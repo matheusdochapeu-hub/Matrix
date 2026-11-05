@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+  <title>MATRIX - Gestão Financeira Integrada</title>
+  
+  <meta name="theme-color" content="#050807">
+  <meta name="description" content="Sistema de inteligência e gestão financeira 360: USP, Scarlet, Casa Maracaju, Faturas e Investimentos.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/matrix-icon.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/matrix.css">
+</head>
+<body>
+  <!-- Canvas Digital Rain -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="matrix-header">
+      <div class="brand-block">
+        <div class="logo-matrix">M_</div>
+        <div class="title-area">
+          <h1>MATRIX <span style="font-size:12px;color:var(--text-muted);font-weight:400;">FINANCE 360</span></h1>
+          <p>TORRE DE CONTROLE & PROJEÇÃO FINANCEIRA • MATHEUS & SCARLET</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="rainToggleBtn" class="btn-matrix" title="Ligar/Desligar Chuva Digital">⚡ Rain ON</button>
+        
+        <!-- Year Selector -->
+        <select id="yearSelect" class="matrix-select" style="width: auto; padding: 4px 8px;">
+          <option value="2025">2025 (Histórico)</option>
+          <option value="2026" selected>2026 (Atual)</option>
+          <option value="2027">2027 (Projetado)</option>
+        </select>
+
+        <!-- Month Navigation -->
+        <div class="month-selector">
+          <button id="prevMonthBtn" class="btn-icon" title="Mês Anterior">◀</button>
+          <div id="currentMonthDisplay" class="month-display">Novembro / 2026</div>
+          <button id="nextMonthBtn" class="btn-icon" title="Próximo Mês">▶</button>
+        </div>
+
+        <span id="cloudSyncStatusBadge" class="status-badge" style="cursor:pointer;" onclick="document.querySelector('[data-tab=\'tab-backup\']').click()">⚪ Modo Offline</span>
+      </div>
+    </header>
+
+    <!-- Top KPI Bar -->
+    <section class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-label">Saldo / Folga de Caixa <span>💳</span></div>
+        <div id="kpiSaldo" class="kpi-value">R$ 0,00</div>
+        <div class="kpi-sub">Ganhos menos despesas do mês</div>
+      </div>
+
+      <div class="kpi-card cyan">
+        <div class="kpi-label">Ganhos no Mês <span>📥</span></div>
+        <div id="kpiGanhos" class="kpi-value">R$ 0,00</div>
+        <div class="kpi-sub">USP Líquido + Benefícios</div>
+      </div>
+
+      <div class="kpi-card amber">
+        <div class="kpi-label">Gastos Fixos <span>🔒</span></div>
+        <div id="kpiFixos" class="kpi-value">R$ 0,00</div>
+        <div class="kpi-sub">Casa Caixa, Caronas, Unimed, Contas</div>
+      </div>
+
+      <div class="kpi-card rose">
+        <div class="kpi-label">Gastos Variáveis <span>🛍️</span></div>
+        <div id="kpiOutros" class="kpi-value">R$ 0,00</div>
+        <div class="kpi-sub">Aportes, Cartões, Família</div>
+      </div>
+
+      <div class="kpi-card purple">
+        <div class="kpi-label">Investimentos <span>📈</span></div>
+        <div id="kpiInvestimentos" class="kpi-value">R$ 0,00</div>
+        <div class="kpi-sub">XP, Inter, BB, Santander</div>
+      </div>
+
+      <div class="kpi-card green">
+        <div class="kpi-label">Dívida Caixa (Casa) <span>🏠</span></div>
+        <div id="kpiDividaCaixa" class="kpi-value">R$ 157.884,49</div>
+        <div class="kpi-sub">271 meses • Price 8,99% a.a.</div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="matrix-tabs">
+      <button class="tab-btn active" data-tab="tab-fluxo">📊 Fluxo de Caixa</button>
+      <button class="tab-btn" data-tab="tab-simulador">🔮 Simulador "E se?"</button>
+      <button class="tab-btn" data-tab="tab-holerites">📄 Holerites & Renda</button>
+      <button class="tab-btn" data-tab="tab-calendario">📅 Calendário USP & Caronas</button>
+      <button class="tab-btn" data-tab="tab-financiamento">🏠 Financiamento Caixa</button>
+      <button class="tab-btn" data-tab="tab-investimentos">📈 Investimentos 360</button>
+      <button class="tab-btn" data-tab="tab-backup">☁️ Backup & Conexões</button>
+    </nav>
+
+    <!-- TAB 1: FLUXO DE CAIXA MENSAL -->
+    <main id="tab-fluxo" class="tab-content active">
+      <!-- Contas de Início de Ano (exibido apenas em Janeiro) -->
+      <div id="contasInicioAnoBox" class="matrix-box" style="display:none; border-color:var(--amber);">
+        <div class="box-header">
+          <h2 style="color:var(--amber);">⚠️ Contas de Início de Ano (Janeiro)</h2>
+          <span class="box-badge" style="color:var(--amber);background:rgba(251,191,36,0.1);">Sazonal</span>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Despesa</th>
+              <th>Período</th>
+              <th style="text-align:right;">Valor</th>
+            </tr>
+          </thead>
+          <tbody id="contasInicioTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="fluxo-columns">
+        <!-- Coluna: Gastos Fixos -->
+        <div class="matrix-box">
+          <div class="box-header">
+            <h2>🔒 Gastos Fixos</h2>
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('fixo')">+ Fixo</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Status</th>
+                <th style="text-align:right;">Valor</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="fixosTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Coluna: Gastos Variáveis / Outros -->
+        <div class="matrix-box">
+          <div class="box-header">
+            <h2>🛍️ Gastos Variáveis / Outros</h2>
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('outro')">+ Variável</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Status</th>
+                <th style="text-align:right;">Valor</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="outrosTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Coluna: Resumo de Receitas & Fechamento -->
+        <div class="matrix-box">
+          <div class="box-header">
+            <h2>📥 Receitas & Fechamento</h2>
+            <span class="box-badge">Totais</span>
+          </div>
+          <div id="resumoTotaisList" style="font-family:var(--font-mono);font-size:12px;line-height:2;"></div>
+          
+          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-dim);">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">NOTAS DO MÊS:</div>
+            <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono);">
+              • Caronas sincronizadas com calendário da USP.<br>
+              • VA de R$ 2.050,00 exclusivo para alimentação domiciliar.<br>
+              • Parcela Caixa debitada automaticamente.
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 2: SIMULADOR "E SE?" (PROJEÇÕES FUTURAS) -->
+    <section id="tab-simulador" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>🔮 Laboratório "E se?" — Simulação de Despesas Futuras</h2>
+          <button class="btn-matrix primary" onclick="MatrixApp.addNewScenarioPrompt()">+ Adicionar Hipótese</button>
+        </div>
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:14px;">
+          Teste o impacto de novos compromissos (ex: o seguro de vida da Scarlet de R$ 100~150) antes de contratá-los. 
+          O simulador aplica a nova despesa sobre o orçamento real mês a mês e aponta instantaneamente onde o caixa fica seguro e onde pode apertar.
+        </p>
+
+        <!-- Lista de Hipóteses Ativas -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--matrix-green);text-transform:uppercase;margin-bottom:6px;">Cenários em Análise:</div>
+          <div id="activeScenariosList"></div>
+        </div>
+
+        <!-- Indicadores de Impacto -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:200px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">CUSTO TOTAL NO HORIZONTE:</div>
+            <div id="simTotalImpacto" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:200px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">MESES COM DÉFICIT DE CAIXA:</div>
+            <div id="simMesesDeficit" style="font-size:18px;font-weight:700;font-family:var(--font-mono);">0 meses</div>
+          </div>
+        </div>
+
+        <!-- Tabela Mês a Mês da Simulação -->
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mês / Ano</th>
+              <th style="text-align:right;">Ganhos Base</th>
+              <th style="text-align:right;">Gastos Atuais</th>
+              <th style="text-align:right;">Custo Simulado</th>
+              <th style="text-align:right;">Novo Saldo Líquido</th>
+              <th style="text-align:center;">Folga Orçamentária</th>
+            </tr>
+          </thead>
+          <tbody id="simulationTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: HOLERITES & RENDA -->
+    <section id="tab-holerites" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>📄 Processamento de Holerites (USP & MPSP)</h2>
+          <span class="box-badge">Local PDF Parser</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:20px;">
+          <!-- Dropzone -->
+          <div>
+            <div id="holeriteDropzone" class="pdf-dropzone">
+              <div class="dropzone-icon">📥</div>
+              <strong style="color:var(--matrix-green);display:block;margin-bottom:4px;">Arraste e solte o PDF do Holerite aqui</strong>
+              <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">ou clique para selecionar o arquivo no seu computador</p>
+              <button class="btn-matrix" type="button">Procurar PDF no Disco</button>
+              <input type="file" id="holeriteFileInput" accept="application/pdf" style="display:none;">
+            </div>
+
+            <!-- Informações do 13º Salário -->
+            <div style="margin-top:20px;background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);">
+              <div style="font-weight:700;color:var(--matrix-green);font-size:13px;margin-bottom:8px;">🎄 Previsão do 13º Salário USP (2026)</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">
+                Admissão em 06/07/2026 (6 meses trabalhados):
+              </div>
+              <div style="font-family:var(--font-mono);font-size:12px;line-height:1.8;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span>1ª Parcela (30/11/2026):</span>
+                  <strong style="color:var(--matrix-green);">R$ 1.566,00</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span>2ª Parcela (20/12/2026 com descontos):</span>
+                  <strong style="color:var(--matrix-green);">~R$ 1.280,00</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulário de Conferência e Lançamento -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);">
+            <div style="font-weight:700;color:var(--text-main);margin-bottom:12px;font-size:13px;">Conferência & Lançamento Manual:</div>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Ano:</label>
+                <select id="hlAno" class="matrix-select">
+                  <option value="2026" selected>2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2025">2025</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Mês:</label>
+                <select id="hlMes" class="matrix-select">
+                  <option value="Novembro" selected>Novembro</option>
+                  <option value="Dezembro">Dezembro</option>
+                  <option value="Outubro">Outubro</option>
+                  <option value="Setembro">Setembro</option>
+                  <option value="Agosto">Agosto</option>
+                  <option value="Julho">Julho</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-muted);">Vencimento Bruto (R$):</label>
+              <input type="number" step="0.01" id="hlVencimento" class="matrix-input" value="6264.04">
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-muted);">Auxílio-Saúde USP (R$):</label>
+              <input type="number" step="0.01" id="hlAuxSaude" class="matrix-input" value="759.01">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Desconto INSS (R$):</label>
+                <input type="number" step="0.01" id="hlInss" class="matrix-input" value="678.46">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Desconto IRRF (R$):</label>
+                <input type="number" step="0.01" id="hlIr" class="matrix-input" value="482.71">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Sindicato (R$):</label>
+                <input type="number" step="0.01" id="hlSindicato" class="matrix-input" value="62.64">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Desconto VR (R$):</label>
+                <input type="number" step="0.01" id="hlDescontoVr" class="matrix-input" value="11.05">
+              </div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-muted);">FGTS Depositado (R$):</label>
+              <input type="number" step="0.01" id="hlFgts" class="matrix-input" value="501.12">
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <label style="font-size:11px;color:var(--matrix-green);font-weight:700;">Salário Líquido em Conta (R$):</label>
+              <input type="number" step="0.01" id="hlLiquido" class="matrix-input" value="5788.19" style="border-color:var(--matrix-green);font-weight:700;">
+            </div>
+
+            <button class="btn-matrix primary" style="width:100%;justify-content:center;" onclick="MatrixApp.salvarHoleriteManual()">💾 Salvar e Lançar no Fluxo de Caixa</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CALENDÁRIO & CARONAS -->
+    <section id="tab-calendario" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>📅 Calendário Oficial USP São Carlos & Deslocamento</h2>
+          <button class="btn-matrix primary" onclick="MatrixApp.aplicarCaronasNoMes()">🔄 Atualizar no Fluxo de Caixa</button>
+        </div>
+
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px;">
+          Controle automático de dias úteis com feriados estaduais, municipais (São Carlos e Ribeirão Preto) e o recesso USP de 18/12 a 04/01. 
+          Clique em qualquer dia para marcar folga ou férias e recalcular caronas e VR.
+        </p>
+
+        <!-- KPI Resumo do Mês -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">DIAS ÚTEIS TRABALHADOS:</div>
+            <div id="calDiasUteis" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">0 dias</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">CUSTO CARONAS (R$ 60/DIA):</div>
+            <div id="calCaronasTotal" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">VALE REFEIÇÃO (R$ 65/DIA):</div>
+            <div id="calVRTotal" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+        </div>
+
+        <!-- Grade de Dias -->
+        <div id="calendarDaysGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: FINANCIAMENTO CAIXA -->
+    <section id="tab-financiamento" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>🏠 Financiamento Habitacional da Casa (Caixa Econômica)</h2>
+          <span class="box-badge">Tabela Price</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:20px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">SALDO DEVEDOR ATUAL:</div>
+            <div id="caixaSaldoDevedor" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 157.884,49</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PRAZO RESTANTE:</div>
+            <div id="caixaPrazoMeses" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">271 meses</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PARCELA ATUAL:</div>
+            <div id="caixaParcelaAtual" style="font-size:18px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 1.395,88</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">TAXA EFETIVA:</div>
+            <div id="caixaTaxaJuros" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">8,9899% a.a.</div>
+          </div>
+        </div>
+
+        <!-- Bloco FGTS Bianual -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
+          <div style="font-weight:700;color:var(--matrix-green);margin-bottom:6px;">💰 Abatimento com FGTS da USP (a cada 2 anos)</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            Como funcionário celetista da USP, você recebe um depósito mensal de FGTS de <strong>R$ 501,12</strong>. A cada 24 meses acumulam-se aproximadamente <strong id="fgtsEstimado24m" style="color:var(--matrix-green);">R$ 12.026,88</strong> para abater o saldo devedor.
+          </p>
+        </div>
+
+        <!-- Simulador de Amortização Extraordinária -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);">
+          <div style="font-weight:700;color:var(--cyan);margin-bottom:12px;">⚡ Simulador de Amortização Extraordinária</div>
+          
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:14px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Valor do Aporte Extra (R$):</label>
+              <input type="number" step="100" id="inputAmortizacaoExtra" class="matrix-input" value="12026.88" oninput="MatrixApp.simularAmortizacao()">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Estratégia de Redução:</label>
+              <select id="selectModalidadeAmortizacao" class="matrix-select" onchange="MatrixApp.simularAmortizacao()">
+                <option value="prazo" selected>Reduzir Prazo (Eliminar Juros Futuros)</option>
+                <option value="parcela">Reduzir Parcela (Aliviar Caixa Mensal)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--border-dim);padding-top:12px;">
+            <div>
+              <span style="font-size:11px;color:var(--text-muted);">ECONOMIA DE JUROS ESTIMADA:</span>
+              <div id="resEconomiaJuros" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--text-muted);">MESES POUPADOS:</span>
+              <div id="resMesesPoupados" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">0 meses</div>
+            </div>
+            <div>
+              <span style="font-size:11px;color:var(--text-muted);">NOVO TOTAL PAGO ATÉ QUITAR:</span>
+              <div id="resNovoTotalPago" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: INVESTIMENTOS 360 -->
+    <section id="tab-investimentos" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>📈 Mapa Integrado de Investimentos (Matheus & Scarlet)</h2>
+          <div>
+            <span style="font-size:11px;color:var(--text-muted);margin-right:6px;">PATRIMÔNIO INVESTIDO:</span>
+            <strong id="invPatrimonioTotal" style="font-size:16px;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ativo</th>
+              <th>Instituição</th>
+              <th>Categoria</th>
+              <th style="text-align:right;">Posição Atual</th>
+              <th>Status / Estratégia</th>
+            </tr>
+          </thead>
+          <tbody id="investmentsTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 7: BACKUP & CONEXÕES NUVEM -->
+    <section id="tab-backup" class="tab-content">
+      <div class="matrix-box">
+        <div class="box-header">
+          <h2>☁️ Backup em Nuvem & Conectores Satélites</h2>
+          <span class="box-badge">Google Sheets Engine</span>
+        </div>
+
+        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px;">
+          Configure a conexão com a sua planilha do Google Sheets via Google Apps Script (modelo ultra-fiel com travas de concorrência e restauração sem perdas).
+        </p>
+
+        <!-- Formulário de Configuração do Google Apps Script -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
+          <div style="margin-bottom:12px;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">URL da Implantação do Web App (Apps Script):</label>
+            <input type="url" id="cfgCloudUrl" class="matrix-input" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Token de Acesso / Segredo Compartilhado:</label>
+            <input type="password" id="cfgCloudToken" class="matrix-input" placeholder="MatrixReloaded2026!">
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn-matrix primary" onclick="MatrixApp.saveCloudSettings()">💾 Salvar Conexão</button>
+            <button class="btn-matrix" onclick="MatrixApp.testCloudConnection()">🔌 Testar Conexão</button>
+            <button class="btn-matrix" onclick="MatrixApp.forceSyncToCloud()">⬆️ Fazer Backup Agora</button>
+            <button class="btn-matrix" onclick="MatrixApp.forceFetchFromCloud()">⬇️ Puxar da Planilha</button>
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--text-dim);font-family:var(--font-mono);">
+            Último backup: <span id="lastSyncLabel">Nunca</span>
+          </div>
+        </div>
+
+        <!-- Backup em Arquivo JSON Local -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);">
+          <div style="font-weight:700;color:var(--text-main);margin-bottom:8px;">📁 Cópia de Segurança Local (Arquivo .json)</div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
+            Baixe uma cópia integral instantânea de todos os anos e configurações para manter em disco ou transferir entre máquinas.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn-matrix" onclick="MatrixApp.downloadBackupFile()">⬇️ Baixar Backup (.json)</button>
+            <button class="btn-matrix" onclick="document.getElementById('importBackupInput').click()">⬆️ Restaurar Backup (.json)</button>
+            <input type="file" id="importBackupInput" accept=".json" style="display:none;" onchange="MatrixApp.importBackupFile(this)">
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL: ADICIONAR / EDITAR DESPESA -->
+  <div id="itemModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal">
+      <div class="modal-header">
+        <h3 id="modalItemTitle">Adicionar Item</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <input type="hidden" id="modalItemTipo" value="fixo">
+      <input type="hidden" id="modalItemEditId" value="">
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Descrição da Despesa:</label>
+        <input type="text" id="modalItemNome" class="matrix-input" placeholder="Ex: Parcela da Casa, Unimed, Spotify...">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Valor em Reais (R$):</label>
+        <input type="number" step="0.01" id="modalItemValor" class="matrix-input" placeholder="0,00">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
+        <select id="modalItemCategoria" class="matrix-select">
+          <option value="Habitação">Habitação (Casa / Condomínio / Financiamento)</option>
+          <option value="Transporte">Transporte (Caronas / Carro / Combustível)</option>
+          <option value="Saúde">Saúde (Unimed / Dentista / Psicólogo)</option>
+          <option value="Contas">Contas (Água / Luz / Internet / Celular)</option>
+          <option value="Aportes">Aportes (Tesouro / Previdência / Cripto)</option>
+          <option value="Família">Família / Aportes Parentes</option>
+          <option value="Cartão">Cartão de Crédito</option>
+          <option value="Outros" selected>Outros</option>
+        </select>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-matrix" onclick="MatrixApp.closeModal('itemModalBackdrop')">Cancelar</button>
+        <button class="btn-matrix primary" onclick="MatrixApp.saveItemFromModal()">Salvar Lançamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="js/seed-data.js"></script>
+  <script src="js/matrix-rain.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/calendar-engine.js"></script>
+  <script src="js/amortization-engine.js"></script>
+  <script src="js/scenario-simulator.js"></script>
+  <script src="js/pdf-reader.js"></script>
+  <script src="js/sync-engine.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Service Worker para suporte Offline PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Matrix Finance 360",
+  "short_name": "Matrix",
+  "description": "Sistema de inteligência e gestão financeira integrada para Matheus e Scarlet.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050807",
+  "theme_color": "#050807",
+  "icons": [
+    {
+      "src": "icons/matrix-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
