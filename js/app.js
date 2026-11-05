@@ -556,6 +556,11 @@ const MatrixApp = (function () {
         document.getElementById('satMaracajuSaldoVa').textContent = formatBRL(sat.maracaju.saldoVaRestante);
         document.getElementById('satMaracajuSaldoVa').style.color = sat.maracaju.transbordouVa > 0 ? 'var(--rose)' : 'var(--matrix-green)';
       }
+      if (document.getElementById('satMaracajuGastoVr')) document.getElementById('satMaracajuGastoVr').textContent = formatBRL(sat.maracaju.gastoVrMesAtual || 0);
+      if (document.getElementById('satMaracajuSaldoVr')) {
+        document.getElementById('satMaracajuSaldoVr').textContent = formatBRL(sat.maracaju.saldoVrRestante || 0);
+        document.getElementById('satMaracajuSaldoVr').style.color = (sat.maracaju.transbordouVr || 0) > 0 ? 'var(--rose)' : 'var(--cyan)';
+      }
       if (document.getElementById('badgeMaracajuStatus')) {
         document.getElementById('badgeMaracajuStatus').className = 'status-badge pago';
         document.getElementById('badgeMaracajuStatus').textContent = 'Conectado';

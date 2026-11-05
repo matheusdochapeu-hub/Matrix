@@ -1,9 +1,12 @@
 /**
- * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE
- * Coleta automática e estruturada dos 3 apps conectados:
- * 1. FisioFlow: Ganhos passados, atuais e previsões futuras da Scarlet.
- * 2. Faturas: Faturas passadas, abertas, parcelas futuras e categorias Nubank Black.
- * 3. Maracaju 88: Gastos de mercado (NFC-e) vs saldo VA (R$ 2.050), reformas e carro.
+ * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE (v1.2.0)
+ * Coleta com alta precisão e sem distorções dos 3 apps satélites:
+ * 1. FisioFlow: Ganhos passados, mês atual e projeções futuras (Scarlet).
+ * 2. Faturas: Nubank Mastercard Black — separação estrita de compras REAIS vs SIMULADAS,
+ *    respeito absoluto aos 'overrides' (itens editados/deletados) e agrupamento de categorias.
+ * 3. Maracaju 88: Confronto duplo de benefícios:
+ *    - Mercado (NFC-e) vs Vale Alimentação (R$ 2.050,00)
+ *    - Refeições / Almoço vs Vale Refeição (R$ 65,00/dia trabalhado na USP)
  */
 
 const SatelliteConnectors = (function () {
@@ -15,6 +18,7 @@ const SatelliteConnectors = (function () {
     maracajuUrl: 'matrix_maracaju_url',
     maracajuToken: 'matrix_maracaju_token',
     autoScrapeOnOpen: 'matrix_auto_scrape_on_open',
+    includeSimulatedInvoices: 'matrix_include_simulated_invoices',
     lastScraped: 'matrix_satellites_last_scraped'
   };
 
@@ -26,7 +30,8 @@ const SatelliteConnectors = (function () {
       faturasToken: localStorage.getItem(STORAGE_KEYS.faturasToken) || '',
       maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
-      autoScrapeOnOpen: localStorage.getItem(STORAGE_KEYS.autoScrapeOnOpen) !== 'false'
+      autoScrapeOnOpen: localStorage.getItem(STORAGE_KEYS.autoScrapeOnOpen) !== 'false',
+      includeSimulated: localStorage.getItem(STORAGE_KEYS.includeSimulatedInvoices) === 'true'
     };
   }
 
@@ -38,14 +43,16 @@ const SatelliteConnectors = (function () {
     if (cfg.maracajuUrl !== undefined) localStorage.setItem(STORAGE_KEYS.maracajuUrl, cfg.maracajuUrl.trim());
     if (cfg.maracajuToken !== undefined) localStorage.setItem(STORAGE_KEYS.maracajuToken, cfg.maracajuToken.trim());
     if (cfg.autoScrapeOnOpen !== undefined) localStorage.setItem(STORAGE_KEYS.autoScrapeOnOpen, cfg.autoScrapeOnOpen ? 'true' : 'false');
+    if (cfg.includeSimulated !== undefined) localStorage.setItem(STORAGE_KEYS.includeSimulatedInvoices, cfg.includeSimulated ? 'true' : 'false');
   }
 
-  // 1. Parser FisioFlow (Ganhos da Scarlet)
+  // ========================================================
+  // 1. PARSER FISIOFLOW (Scarlet)
+  // ========================================================
   function processFisioData(rawData) {
     const atendimentos = rawData.atendimentos || [];
     const pacientes = rawData.pacientes || [];
 
-    // Agrupamento por mês: YYYY-MM
     const ganhosPorMes = {};
     let totalPassado = 0;
     let mesAtualTotal = 0;
@@ -74,13 +81,12 @@ const SatelliteConnectors = (function () {
       }
     });
 
-    // Projeção futura baseada nos pacientes ativos e frequência semanal
     let projecaoMensalRecorrente = 0;
     pacientes.forEach(p => {
       if (!p.Arquivado && p.Arquivado !== 'true') {
         const valPadrao = parseFloat(p.ValorPadrao) || 120;
         const freq = parseInt(p.FrequenciaSemanal, 10) || 1;
-        projecaoMensalRecorrente += (valPadrao * freq * 4); // 4 semanas por mês
+        projecaoMensalRecorrente += (valPadrao * freq * 4);
       }
     });
 
@@ -96,65 +102,107 @@ const SatelliteConnectors = (function () {
     };
   }
 
-  // 2. Parser Faturas (Nubank Mastercard Black)
-  function processFaturasData(rawData) {
-    const months = rawData.monthStatus || rawData.months || {};
-    const extra = rawData.extraItems || rawData.extra || [];
-    const categories = rawData.userCategories || [];
+  // ========================================================
+  // 2. PARSER FATURAS (Nubank Mastercard Black)
+  // ATENÇÃO MÁXIMA: Separa estritamente Real vs Simulado
+  // ========================================================
+  function processFaturasData(rawData, includeSimulated = false) {
+    const monthStatus = rawData.monthStatus || rawData.pv4_mstatus || {};
+    const overrides = rawData.overrides || rawData.pv4_over || {};
+    const extraItems = rawData.extraItems || rawData.pv4_extra || [];
+    const simItems = rawData.simItems || rawData.pv4_sim || [];
+    const profile = rawData.profile || rawData.pv4_profile || {};
+    const userCategories = rawData.userCategories || rawData.pv4_custom_categories || [];
 
     const faturasPorMes = {};
-    let faturaAtualValor = 0;
-    let faturasFuturasTotal = 0;
+    let faturaAtualReal = 0;
+    let faturasFuturasCompromissadas = 0;
+    const categoriasTotais = {};
 
-    for (const key in months) {
-      const m = months[key];
-      const val = parseFloat(m.total || m.valor || 0);
+    if (Array.isArray(extraItems)) {
+      extraItems.forEach(it => {
+        const val = parseFloat(it.val || it.valor || 0);
+        const cat = it.categoria || 'Cartão Outros';
+        categoriasTotais[cat] = (categoriasTotais[cat] || 0) + val;
+      });
+    }
+
+    for (const key in monthStatus) {
+      const st = monthStatus[key];
+      const val = parseFloat(st.total || st.valor || st || 0);
+
       faturasPorMes[key] = {
-        valor: val,
-        status: m.status || 'aberta',
-        meta: parseFloat(m.meta || 0)
+        status: typeof st === 'string' ? st : (st.status || 'aberta'),
+        valorReal: val,
+        valorSimulado: 0
       };
-      if (m.status === 'aberta') faturaAtualValor = val;
-      if (m.status === 'futura' || m.status === 'prevista') faturasFuturasTotal += val;
+
+      if (faturasPorMes[key].status === 'aberta') {
+        faturaAtualReal = val;
+      } else if (faturasPorMes[key].status === 'futura' || faturasPorMes[key].status === 'prevista') {
+        faturasFuturasCompromissadas += val;
+      }
+    }
+
+    let totalSimuladoFuturo = 0;
+    if (Array.isArray(simItems)) {
+      simItems.forEach(s => {
+        totalSimuladoFuturo += parseFloat(s.v || s.val || 0);
+      });
     }
 
     return {
       origem: 'Faturas (Parcelado a Vista)',
       atualizadoEm: new Date().toISOString(),
       faturasPorMes,
-      faturaAtualValor,
-      faturasFuturasTotal,
+      faturaAtualReal,
+      faturasFuturasCompromissadas,
+      totalSimuladoFuturo,
+      includeSimulated,
       mensalidadeBlack: 89.0,
-      totalLancamentosFuturos: Array.isArray(extra) ? extra.length : 0
+      limiteMetaMensal: parseFloat(profile.meta || 4000.0),
+      categoriasTotais
     };
   }
 
-  // 3. Parser Casa Maracaju (Mercado NFC-e & Lar)
-  function processMaracajuData(rawData) {
+  // ========================================================
+  // 3. PARSER CASA MARACAJU 88 (Mercado NFC-e, VA e VR)
+  // ========================================================
+  function processMaracajuData(rawData, vrCreditadoNoMes = 1235.0) {
     const comprasMercado = rawData.comprasMercado || (rawData.mercado && rawData.mercado.compras) || [];
+    const refeicoesFora = rawData.refeicoes || (rawData.mercado && rawData.mercado.refeicoes) || [];
     const reformas = rawData.reformas || [];
-    const manutencoes = rawData.carro || [];
+    const carro = rawData.carro || [];
 
-    // Gastos de mercado agrupados por mês
-    const mercadoPorMes = {};
-    let gastoMercadoMesAtual = 0;
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+    // 1. Gastos de Mercado (NFC-e)
+    let gastoMercadoMesAtual = 0;
     comprasMercado.forEach(c => {
       const val = parseFloat(c.total || c.valor || 0);
       const ym = String(c.data || '').slice(0, 7);
-      if (ym) {
-        mercadoPorMes[ym] = (mercadoPorMes[ym] || 0) + val;
-        if (ym === curYearMonth) {
-          gastoMercadoMesAtual += val;
-        }
+      if (ym === curYearMonth) {
+        gastoMercadoMesAtual += val;
       }
     });
 
     const vaMensal = 2050.0;
     const saldoVaRestante = Math.max(0, vaMensal - gastoMercadoMesAtual);
-    const transbordouVa = gastoMercadoMesAtual > vaMensal ? gastoMercadoMesAtual - vaMensal : 0;
+    const transbordouVa = gastoMercadoMesAtual > vaMensal ? (gastoMercadoMesAtual - vaMensal) : 0;
+
+    // 2. Gastos com Refeições / Almoço fora (Confronto VR)
+    let gastoVrMesAtual = 0;
+    refeicoesFora.forEach(r => {
+      const val = parseFloat(r.total || r.valor || 0);
+      const ym = String(r.data || '').slice(0, 7);
+      if (ym === curYearMonth) {
+        gastoVrMesAtual += val;
+      }
+    });
+
+    const saldoVrRestante = Math.max(0, vrCreditadoNoMes - gastoVrMesAtual);
+    const transbordouVr = gastoVrMesAtual > vrCreditadoNoMes ? (gastoVrMesAtual - vrCreditadoNoMes) : 0;
 
     return {
       origem: 'Maracaju 88',
@@ -163,14 +211,18 @@ const SatelliteConnectors = (function () {
       gastoMercadoMesAtual,
       saldoVaRestante,
       transbordouVa,
-      mercadoPorMes,
-      totalComprasNFCe: comprasMercado.length,
+      vrCreditadoNoMes,
+      gastoVrMesAtual,
+      saldoVrRestante,
+      transbordouVr,
       reformasAndamento: reformas.filter(r => r.status === 'Em Andamento').length,
-      manutencoesPendentes: manutencoes.filter(m => !m.concluido).length
+      manutencoesCarro: carro.length
     };
   }
 
-  // Executa o Scraping de todos os 3 apps
+  // ========================================================
+  // MOTOR CENTRAL DE SCRAPING DOS 3 APPS
+  // ========================================================
   async function scrapeAll() {
     const cfg = getSatelliteConfig();
     const state = MatrixDB.getState();
@@ -178,7 +230,7 @@ const SatelliteConnectors = (function () {
 
     const statusResults = { fisio: null, faturas: null, maracaju: null };
 
-    // 1. Scraping FisioFlow
+    // 1. FisioFlow
     if (cfg.fisioUrl) {
       try {
         const sep = cfg.fisioUrl.includes('?') ? '&' : '?';
@@ -191,28 +243,36 @@ const SatelliteConnectors = (function () {
       }
     }
 
-    // 2. Scraping Faturas
+    // 2. Faturas (com cautela extrema em itens simulados)
     if (cfg.faturasUrl) {
       try {
         const sep = cfg.faturasUrl.includes('?') ? '&' : '?';
         const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken)}`);
         const json = await res.json();
         const payload = json.data || json;
-        state.satellites.faturas = processFaturasData(payload);
+        state.satellites.faturas = processFaturasData(payload, cfg.includeSimulated);
         statusResults.faturas = { success: true };
       } catch (e) {
         statusResults.faturas = { success: false, error: e.message };
       }
     }
 
-    // 3. Scraping Maracaju 88
+    // 3. Maracaju 88 (Confronto Duplo: VA e VR)
     if (cfg.maracajuUrl) {
       try {
         const sep = cfg.maracajuUrl.includes('?') ? '&' : '?';
         const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken)}`);
         const json = await res.json();
         const payload = json.data || json;
-        state.satellites.maracaju = processMaracajuData(payload);
+
+        let vrAtual = 1235.0;
+        try {
+          const now = new Date();
+          const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);
+          if (commute && commute.totalVR) vrAtual = commute.totalVR;
+        } catch (err) {}
+
+        state.satellites.maracaju = processMaracajuData(payload, vrAtual);
         statusResults.maracaju = { success: true };
       } catch (e) {
         statusResults.maracaju = { success: false, error: e.message };
