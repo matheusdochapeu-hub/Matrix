@@ -47,6 +47,23 @@ const MatrixDB = (function () {
         memoryCache = JSON.parse(JSON.stringify(MATRIX_SEED_DATA));
       }
     }
+
+    // Compatibilidade e enriquecimento automático de titularidade (Matheus & Scarlet)
+    if (memoryCache && memoryCache.investimentos) {
+      memoryCache.investimentos.forEach(inv => {
+        if (!inv.titular) inv.titular = 'Matheus';
+      });
+
+      // Se o cache antigo do usuário ainda não possuir os ativos de Scarlet, mescla os seeds
+      const temScarlet = memoryCache.investimentos.some(inv => inv.titular === 'Scarlet');
+      if (!temScarlet && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.investimentos) {
+        const scarletSeeds = MATRIX_SEED_DATA.investimentos.filter(s => s.titular === 'Scarlet');
+        if (scarletSeeds.length > 0) {
+          memoryCache.investimentos.push(...JSON.parse(JSON.stringify(scarletSeeds)));
+        }
+      }
+    }
+
     return memoryCache;
   }
 

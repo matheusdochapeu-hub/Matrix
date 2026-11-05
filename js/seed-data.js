@@ -113,7 +113,10 @@ const MATRIX_SEED_DATA = {
       "ativo": "Tesouro Direto Renda+ 2055",
       "corretora": "XP Investimentos",
       "categoria": "Previdência / Aposentadoria",
+      "titular": "Matheus",
       "valorAtual": 466.07,
+      "vencimento": "2055",
+      "rentabilidadeContratada": "IPCA + 6,50% a.a.",
       "status": "Ativo (Foco de novos aportes)"
     },
     {
@@ -121,7 +124,10 @@ const MATRIX_SEED_DATA = {
       "ativo": "Tesouro Direto Renda+ 2055",
       "corretora": "Banco Inter",
       "categoria": "Previdência / Aposentadoria",
+      "titular": "Matheus",
       "valorAtual": 852.82,
+      "vencimento": "2055",
+      "rentabilidadeContratada": "IPCA + 6,50% a.a.",
       "status": "Congelado para novos aportes"
     },
     {
@@ -129,7 +135,10 @@ const MATRIX_SEED_DATA = {
       "ativo": "Bitcoin (BTC)",
       "corretora": "Banco Inter Cripto",
       "categoria": "Criptomoedas",
+      "titular": "Matheus",
       "valorAtual": 44.69,
+      "vencimento": "Longo Prazo",
+      "rentabilidadeContratada": "Renda Variável",
       "status": "Ativo (Aportes mensais)"
     },
     {
@@ -137,7 +146,10 @@ const MATRIX_SEED_DATA = {
       "ativo": "Tesouro Reserva",
       "corretora": "BB Investimentos",
       "categoria": "Reserva de Emergência / Início de Ano",
-      "valorAtual": 2213.8,
+      "titular": "Matheus",
+      "valorAtual": 2213.80,
+      "vencimento": "Liquidez Diária",
+      "rentabilidadeContratada": "100% Selic (~10,75% a.a.)",
       "status": "Alocado p/ faturas e contas de início de ano"
     },
     {
@@ -145,7 +157,10 @@ const MATRIX_SEED_DATA = {
       "ativo": "Título de Capitalização DinDin",
       "corretora": "Santander",
       "categoria": "Capitalização",
-      "valorAtual": 550.0,
+      "titular": "Matheus",
+      "valorAtual": 550.00,
+      "vencimento": "2028 (36 meses)",
+      "rentabilidadeContratada": "TR + Sorteios Mensais",
       "status": "Aporte automático R$ 50/mês"
     },
     {
@@ -153,9 +168,13 @@ const MATRIX_SEED_DATA = {
       "ativo": "CSNA3 (Cia Siderúrgica Nacional)",
       "corretora": "XP Investimentos",
       "categoria": "Ações",
+      "titular": "Matheus",
       "quantidade": 40,
-      "precoMedio": 5.0,
-      "valorAtual": 200.0,
+      "precoMedio": 5.00,
+      "precoAtual": 4.10,
+      "valorAtual": 164.00,
+      "vencimento": "Indeterminado / B3",
+      "rentabilidadeContratada": "Dividend Yield ~6% a.a.",
       "status": "Custódia"
     },
     {
@@ -163,9 +182,13 @@ const MATRIX_SEED_DATA = {
       "ativo": "MGLU3 (Magazine Luiza)",
       "corretora": "XP Investimentos",
       "categoria": "Ações",
+      "titular": "Matheus",
       "quantidade": 137,
       "precoMedio": 5.82,
-      "valorAtual": 718.07,
+      "precoAtual": 5.30,
+      "valorAtual": 726.10,
+      "vencimento": "Indeterminado / B3",
+      "rentabilidadeContratada": "Renda Variável B3",
       "status": "Custódia"
     },
     {
@@ -173,8 +196,33 @@ const MATRIX_SEED_DATA = {
       "ativo": "Dividendos / Proventos Provisionados",
       "corretora": "Clear (Inativa)",
       "categoria": "Proventos até 2028",
-      "valorAtual": 29.0,
+      "titular": "Matheus",
+      "valorAtual": 29.00,
+      "vencimento": "2028",
+      "rentabilidadeContratada": "Proventos",
       "status": "A receber até 2028"
+    },
+    {
+      "id": "reserva_scarlet_nu",
+      "ativo": "Reserva de Emergência Scarlet",
+      "corretora": "Nubank",
+      "categoria": "Reserva de Emergência",
+      "titular": "Scarlet",
+      "valorAtual": 1250.00,
+      "vencimento": "Liquidez Diária",
+      "rentabilidadeContratada": "100% CDI (~10,75% a.a.)",
+      "status": "Ativo (Caixinha Reserva)"
+    },
+    {
+      "id": "cdb_scarlet_inter",
+      "ativo": "CDB Pessoal Scarlet",
+      "corretora": "Banco Inter",
+      "categoria": "Renda Fixa",
+      "titular": "Scarlet",
+      "valorAtual": 650.00,
+      "vencimento": "2027",
+      "rentabilidadeContratada": "102% CDI",
+      "status": "Ativo (Aposentadoria / Sonhos)"
     }
   ],
   "holerites": [

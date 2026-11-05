@@ -1236,3 +1236,144 @@ body {
   border-radius: var(--radius-sm);
   margin-top: 10px;
 }
+
+/* ===================================================
+   INVESTIMENTOS 360 - MATHEUS & SCARLET, GRÁFICOS & B3
+   =================================================== */
+.invest-kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.invest-kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.invest-controls-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.invest-filter-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.invest-filter-btn {
+  background: rgba(5, 8, 7, 0.6);
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.invest-filter-btn:hover {
+  border-color: var(--matrix-green-dim);
+  color: var(--text-main);
+}
+
+.invest-filter-btn.active {
+  background: rgba(0, 255, 102, 0.12);
+  border-color: var(--matrix-green);
+  color: var(--matrix-green);
+  font-weight: 700;
+}
+
+.invest-charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.invest-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.stock-monitor-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.stock-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.stock-card {
+  background: rgba(5, 8, 7, 0.6);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.stock-card:hover {
+  border-color: var(--cyan);
+}
+
+.stock-ticker {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--cyan);
+}
+
+.titular-badge {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.titular-badge.matheus {
+  background: rgba(0, 255, 102, 0.12);
+  color: var(--matrix-green);
+  border: 1px solid rgba(0, 255, 102, 0.3);
+}
+
+.titular-badge.scarlet {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+}
+
+.grouped-subrow {
+  background: rgba(5, 8, 7, 0.35);
+  font-size: 11px;
+}
+
+.grouped-subrow td {
+  padding-left: 28px !important;
+  color: var(--text-muted);
+}

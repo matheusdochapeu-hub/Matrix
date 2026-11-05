@@ -742,24 +742,97 @@
       <div class="matrix-box">
         <div class="box-header">
           <h2>📈 Mapa Integrado de Investimentos (Matheus & Scarlet)</h2>
-          <div>
-            <span style="font-size:11px;color:var(--text-muted);margin-right:6px;">PATRIMÔNIO INVESTIDO:</span>
-            <strong id="invPatrimonioTotal" style="font-size:16px;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</strong>
+          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Patrimônio 360°</span>
+        </div>
+
+        <!-- KPIs Resumo de Patrimônio (Consolidado, Matheus e Scarlet) -->
+        <div class="invest-kpi-bar">
+          <div class="invest-kpi-card">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PATRIMÔNIO TOTAL CASAL:</div>
+            <div id="invPatrimonioTotal" style="font-size:20px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+          <div class="invest-kpi-card">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">👨 PATRIMÔNIO MATHEUS:</div>
+            <div id="invMatheusTotal" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+          <div class="invest-kpi-card">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">👩 PATRIMÔNIO SCARLET:</div>
+            <div id="invScarletTotal" style="font-size:18px;font-weight:700;color:#f472b6;font-family:var(--font-mono);">R$ 0,00</div>
+          </div>
+          <div class="invest-kpi-card">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">ESTIMATIVA NO VENCIMENTO / 2055:</div>
+            <div id="invProjecaoTotal" style="font-size:18px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 0,00</div>
           </div>
         </div>
 
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Ativo</th>
-              <th>Instituição</th>
-              <th>Categoria</th>
-              <th style="text-align:right;">Posição Atual</th>
-              <th>Status / Estratégia</th>
-            </tr>
-          </thead>
-          <tbody id="investmentsTableBody"></tbody>
-        </table>
+        <!-- Barra de Filtros, Agrupamento e Ações -->
+        <div class="invest-controls-toolbar">
+          <div class="invest-filter-group">
+            <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-right:4px;">TITULAR:</span>
+            <button class="invest-filter-btn active" id="btnFilterTitularTodos" onclick="MatrixApp.setInvestFilter('todos')">Todos (Consolidado)</button>
+            <button class="invest-filter-btn" id="btnFilterTitularMatheus" onclick="MatrixApp.setInvestFilter('Matheus')">👨 Matheus</button>
+            <button class="invest-filter-btn" id="btnFilterTitularScarlet" onclick="MatrixApp.setInvestFilter('Scarlet')">👩 Scarlet</button>
+            <span style="border-left:1px solid var(--border-dim);height:18px;margin:0 4px;"></span>
+            <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()">📦 Agrupar Ativos Iguais</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewInvestmentModal()">+ Novo Investimento</button>
+            <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="color:var(--cyan);border-color:var(--cyan);text-decoration:none;" title="Abrir Portfólio oficial no Google Finance">📈 Google Finance ↗</a>
+          </div>
+        </div>
+
+        <!-- Painel Google Finance & Ações B3 (CSNA3 e MGLU3) -->
+        <div class="stock-monitor-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <div style="font-weight:700;color:var(--cyan);font-size:13px;display:flex;align-items:center;gap:6px;">
+              📊 Monitor B3 em Tempo Real (Google Finance)
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);">
+              Cotações de fechamento integradas com o portfólio oficial do Google Finance.
+            </div>
+          </div>
+          <div class="stock-cards-grid" id="stockCardsContainer">
+            <!-- Cards de CSNA3 e MGLU3 gerados dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Gráficos de Investimentos (Titularidade, Categorias e Projeção) -->
+        <div class="invest-charts-container">
+          <!-- Gráfico 1: Titularidade Matheus vs Scarlet -->
+          <div class="invest-chart-card">
+            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">👥 Divisão Patrimonial (Matheus vs Scarlet)</div>
+            <div id="chartTitularContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <!-- Gráfico 2: Alocação por Classe de Ativo -->
+          <div class="invest-chart-card">
+            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">🥧 Alocação por Categoria</div>
+            <div id="chartCategoriaContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+          <!-- Gráfico 3: Projeção de Crescimento Patrimonial -->
+          <div class="invest-chart-card">
+            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">📈 Projeção com Rendimentos Compostos</div>
+            <div id="chartProjecaoContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+
+        <!-- Tabela Completa de Ativos e Posições -->
+        <div style="overflow-x:auto;">
+          <table class="data-table" style="font-size:11px;">
+            <thead>
+              <tr>
+                <th style="width:75px;">Titular</th>
+                <th>Ativo</th>
+                <th>Instituição</th>
+                <th>Categoria</th>
+                <th style="text-align:right;">Posição Atual</th>
+                <th>Vencimento & Estimativa</th>
+                <th>Rentabilidade / Estratégia</th>
+                <th style="text-align:center;width:170px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="investmentsTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -1057,6 +1130,161 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button class="btn-matrix" onclick="MatrixApp.closeModal('scenarioModalBackdrop')">Cancelar</button>
         <button class="btn-matrix primary" onclick="MatrixApp.saveScenarioFromModal()">Salvar Hipótese</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRAR / EDITAR INVESTIMENTO (MATHEUS & SCARLET) -->
+  <div id="investModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width:560px;">
+      <div class="modal-header">
+        <h3 id="invModalTitle">Novo Investimento</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('investModalBackdrop')">&times;</button>
+      </div>
+      <input type="hidden" id="invModalId" value="">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Titular do Ativo:</label>
+          <select id="invModalTitular" class="matrix-select">
+            <option value="Matheus" selected>👨 Matheus</option>
+            <option value="Scarlet">👩 Scarlet</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Instituição / Corretora / Banco:</label>
+          <input type="text" id="invModalCorretora" class="matrix-input" placeholder="Ex: XP, Banco Inter, Nubank, BB...">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Nome do Ativo / Código:</label>
+        <input type="text" id="invModalAtivo" class="matrix-input" placeholder="Ex: Tesouro Direto Renda+ 2055, CSNA3, Bitcoin...">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Categoria do Investimento:</label>
+          <select id="invModalCategoria" class="matrix-select">
+            <option value="Previdência / Aposentadoria">Previdência / Aposentadoria</option>
+            <option value="Reserva de Emergência">Reserva de Emergência</option>
+            <option value="Renda Fixa">Renda Fixa / CDB / LCI</option>
+            <option value="Ações">Ações B3</option>
+            <option value="Criptomoedas">Criptomoedas</option>
+            <option value="Capitalização">Capitalização</option>
+            <option value="Proventos / Dividendos">Proventos / Dividendos</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Posição Atual (R$):</label>
+          <input type="number" step="0.01" id="invModalValor" class="matrix-input" placeholder="0,00">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Vencimento / Prazo:</label>
+          <input type="text" id="invModalVencimento" class="matrix-input" placeholder="Ex: 2055, Liquidez Diária, 2027...">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Rentabilidade Contratada / Esperada:</label>
+          <input type="text" id="invModalRentabilidade" class="matrix-input" placeholder="Ex: IPCA + 6,50% a.a., 100% CDI...">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Quantidade de Cotas / Ações (Opcional):</label>
+          <input type="number" step="any" id="invModalQtd" class="matrix-input" placeholder="Ex: 40, 137...">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Preço Médio de Compra (R$) (Opcional):</label>
+          <input type="number" step="0.01" id="invModalPM" class="matrix-input" placeholder="0,00">
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--text-muted);">Status / Estratégia de Aportes:</label>
+        <input type="text" id="invModalStatus" class="matrix-input" placeholder="Ex: Ativo (Foco de novos aportes), Custódia, Congelado...">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-matrix" onclick="MatrixApp.closeModal('investModalBackdrop')">Cancelar</button>
+        <button class="btn-matrix primary" onclick="MatrixApp.salvarInvestimentoModal()">Salvar Ativo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: APORTE / RESGATE / LIQUIDAÇÃO DE INVESTIMENTO -->
+  <div id="investAporteModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width:500px;">
+      <div class="modal-header">
+        <h3 id="invAporteModalTitle">Adicionar Aporte / Resgate</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('investAporteModalBackdrop')">&times;</button>
+      </div>
+      <input type="hidden" id="invAporteAtivoId" value="">
+
+      <div style="background:rgba(5,8,7,0.5);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;font-family:var(--font-mono);font-size:12px;">
+        <div>Ativo: <strong id="invAporteAtivoNome" style="color:var(--text-main);">--</strong></div>
+        <div style="margin-top:2px;">Posição Atual: <strong id="invAporteSaldoAtual" style="color:var(--matrix-green);">R$ 0,00</strong></div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Tipo de Operação:</label>
+        <select id="invOperacaoTipo" class="matrix-select" onchange="MatrixApp.onChangeOperacaoTipo(this.value)">
+          <option value="aporte" selected>➕ Novo Aporte (Adicionar valor aplicado)</option>
+          <option value="resgate">💸 Resgate Parcial</option>
+          <option value="liquidacao">🛑 Liquidação Total (Zerar e encerrar posição)</option>
+        </select>
+      </div>
+
+      <div id="invOperacaoValorRow" style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Valor da Operação (R$):</label>
+        <input type="number" step="0.01" id="invOperacaoValor" class="matrix-input" placeholder="0,00">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Mês de Aplicação / Referência:</label>
+        <input type="text" id="invOperacaoMes" class="matrix-input" placeholder="Ex: Novembro/2026, Dezembro/2026">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--text-muted);">Observações / Origem do Recurso:</label>
+        <input type="text" id="invOperacaoObs" class="matrix-input" placeholder="Ex: Sobra do mês, 13º salário, resgate p/ fatura...">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-matrix" onclick="MatrixApp.closeModal('investAporteModalBackdrop')">Cancelar</button>
+        <button class="btn-matrix primary" onclick="MatrixApp.confirmarOperacaoInvestimento()">Confirmar Operação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ATUALIZAR COTAÇÃO DE AÇÃO B3 (GOOGLE FINANCE) -->
+  <div id="investCotacaoModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>Atualizar Cotação B3 (Google Finance)</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('investCotacaoModalBackdrop')">&times;</button>
+      </div>
+      <input type="hidden" id="invCotacaoAtivoId" value="">
+
+      <div style="background:rgba(5,8,7,0.5);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;font-family:var(--font-mono);font-size:12px;">
+        <div>Ticker: <strong id="invCotacaoTicker" style="color:var(--cyan);font-size:14px;">CSNA3</strong></div>
+        <div style="margin-top:2px;">Quantidade: <strong id="invCotacaoQtd" style="color:var(--text-main);">0</strong> cotas • Preço Médio: <strong id="invCotacaoPM" style="color:var(--text-muted);">R$ 0,00</strong></div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--text-muted);">Novo Preço de Fechamento B3 (R$):</label>
+        <input type="number" step="0.01" id="invCotacaoNovoPreco" class="matrix-input" placeholder="Ex: 4,10 ou 5,30">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Consulte o fechamento no <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" style="color:var(--cyan);">Google Finance Portfolio ↗</a>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-matrix" onclick="MatrixApp.closeModal('investCotacaoModalBackdrop')">Cancelar</button>
+        <button class="btn-matrix primary" onclick="MatrixApp.salvarCotacaoAcaoModal()">Salvar Cotação</button>
       </div>
     </div>
   </div>

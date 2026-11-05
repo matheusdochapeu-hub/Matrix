@@ -11,6 +11,9 @@ const MatrixApp = (function () {
   let calSelectedMonth = 'Novembro';
   let lastSimulationResult = null;
   let customAmortItens = [];
+  let currentInvestFilter = 'todos';
+  let investAgrupado = false;
+  let investExpandedGroups = {};
 
   const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1653,26 +1656,641 @@ const MatrixApp = (function () {
   }
 
   // ==========================================
-  // 6. INVESTIMENTOS 360
+  // 6. INVESTIMENTOS 360 (MATHEUS & SCARLET)
   // ==========================================
+  function estimarValorVencimento(inv) {
+    const val = parseFloat(inv.valorAtual) || 0;
+    const cat = (inv.categoria || '').toLowerCase();
+    const ativo = (inv.ativo || '').toLowerCase();
+
+    if (ativo.includes('renda+') || ativo.includes('2055')) {
+      const fv = val * Math.pow(1 + 0.065, 29);
+      const rendaMensal20Anos = fv / 148;
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} (Renda est. ~${formatBRL(rendaMensal20Anos)}/mês por 20 anos a partir de 2055)`
+      };
+    } else if (cat.includes('reserva') || cat.includes('renda fixa') || ativo.includes('cdb') || ativo.includes('selic')) {
+      const fv = val * Math.pow(1 + 0.1075, 2);
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} em 2 anos (a ~10,75% a.a.)`
+      };
+    } else if (cat.includes('capitalização') || ativo.includes('dindin')) {
+      const fv = val + (36 * 50) + 120;
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} no resgate final (36 meses)`
+      };
+    } else if (cat.includes('ações') || ativo.includes('csna') || ativo.includes('mglu')) {
+      const fv = val * 1.35;
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} (Projeção analistas + proventos)`
+      };
+    } else if (cat.includes('cripto') || ativo.includes('btc')) {
+      const fv = val * 2.5;
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} (Ciclo de alta Halving)`
+      };
+    } else {
+      const fv = val * 1.15;
+      return {
+        valorFuturo: fv,
+        texto: `${formatBRL(fv)} (Projeção conservadora)`
+      };
+    }
+  }
+
   function renderInvestments() {
     const state = MatrixDB.getState();
     const invList = state.investimentos || [];
 
-    const total = invList.reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
-    document.getElementById('invPatrimonioTotal').textContent = formatBRL(total);
+    const totalGeral = invList.reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
+    const totalMatheus = invList.filter(it => it.titular === 'Matheus').reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
+    const totalScarlet = invList.filter(it => it.titular === 'Scarlet').reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
+    
+    let totalProjetado = 0;
+    invList.forEach(it => {
+      const est = estimarValorVencimento(it);
+      totalProjetado += est.valorFuturo;
+    });
 
+    const totEl = document.getElementById('invPatrimonioTotal');
+    if (totEl) totEl.textContent = formatBRL(totalGeral);
+
+    const matheusEl = document.getElementById('invMatheusTotal');
+    if (matheusEl) matheusEl.textContent = formatBRL(totalMatheus);
+
+    const scarletEl = document.getElementById('invScarletTotal');
+    if (scarletEl) scarletEl.textContent = formatBRL(totalScarlet);
+
+    const projEl = document.getElementById('invProjecaoTotal');
+    if (projEl) projEl.textContent = formatBRL(totalProjetado);
+
+    renderStockCards(invList);
+    renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet);
+    renderInvestTable(invList);
+  }
+
+  function renderStockCards(invList) {
+    const container = document.getElementById('stockCardsContainer');
+    if (!container) return;
+
+    const csna = invList.find(it => (it.ativo || '').toUpperCase().includes('CSNA3')) || {
+      id: 'acoes_csna',
+      ativo: 'CSNA3 (Cia Siderúrgica Nacional)',
+      quantidade: 40,
+      precoMedio: 5.0,
+      precoAtual: 4.10,
+      valorAtual: 164.0
+    };
+
+    const mglu = invList.find(it => (it.ativo || '').toUpperCase().includes('MGLU3')) || {
+      id: 'acoes_mglu',
+      ativo: 'MGLU3 (Magazine Luiza)',
+      quantidade: 137,
+      precoMedio: 5.82,
+      precoAtual: 5.30,
+      valorAtual: 726.10
+    };
+
+    function renderCard(item, ticker, cor) {
+      const qtd = parseFloat(item.quantidade) || 0;
+      const pm = parseFloat(item.precoMedio) || 0;
+      const pAtual = parseFloat(item.precoAtual) || (qtd > 0 ? (item.valorAtual / qtd) : pm);
+      const totalInvestido = qtd * pm;
+      const totalAtual = parseFloat(item.valorAtual) || (qtd * pAtual);
+      const plValor = totalAtual - totalInvestido;
+      const plPercent = totalInvestido > 0 ? (plValor / totalInvestido) * 100 : 0;
+      const plColor = plValor >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+      const plSignal = plValor >= 0 ? '+' : '';
+
+      return `
+        <div class="stock-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div>
+              <span class="stock-ticker" style="color:${cor};">${ticker}</span>
+              <div style="font-size:11px;color:var(--text-muted);">${item.ativo}</div>
+            </div>
+            <a href="https://www.google.com/finance/quote/${ticker}:BVMF" target="_blank" style="font-size:10px;color:var(--cyan);text-decoration:none;" title="Ver cotação no Google Finance">Google Finance ↗</a>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:var(--font-mono);font-size:11px;margin-bottom:10px;">
+            <div>
+              <span style="color:var(--text-dim);font-size:9px;">POSIÇÃO ATUAL:</span>
+              <div style="font-weight:700;font-size:14px;color:var(--text-main);">${formatBRL(totalAtual)}</div>
+            </div>
+            <div>
+              <span style="color:var(--text-dim);font-size:9px;">P&L (RESULTADO):</span>
+              <div style="font-weight:700;font-size:13px;color:${plColor};">${plSignal}${formatBRL(plValor)} (${plSignal}${plPercent.toFixed(1)}%)</div>
+            </div>
+            <div>
+              <span style="color:var(--text-dim);font-size:9px;">QUANTIDADE:</span>
+              <div style="color:var(--text-main);">${qtd} cotas</div>
+            </div>
+            <div>
+              <span style="color:var(--text-dim);font-size:9px;">FECHAMENTO B3:</span>
+              <div style="color:var(--cyan);font-weight:600;">${formatBRL(pAtual)}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-dim);padding-top:8px;">
+            <span style="font-size:9px;color:var(--text-dim);">PM: ${formatBRL(pm)}</span>
+            <button class="btn-matrix" style="padding:4px 8px;font-size:10px;" onclick="MatrixApp.openAtualizarCotacaoModal('${item.id}')">✏️ Atualizar Cotação</button>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      ${renderCard(csna, 'CSNA3', 'var(--cyan)')}
+      ${renderCard(mglu, 'MGLU3', 'var(--amber)')}
+    `;
+  }
+
+  function renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet) {
+    const cTitular = document.getElementById('chartTitularContainer');
+    const cCat = document.getElementById('chartCategoriaContainer');
+    const cProj = document.getElementById('chartProjecaoContainer');
+
+    // 1. Gráfico Titularidade
+    if (cTitular) {
+      if (totalGeral <= 0) {
+        cTitular.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Sem dados.</div>';
+      } else {
+        const pctM = ((totalMatheus / totalGeral) * 100).toFixed(1);
+        const pctS = ((totalScarlet / totalGeral) * 100).toFixed(1);
+        cTitular.innerHTML = `
+          <div style="display:flex;height:14px;border-radius:4px;overflow:hidden;background:rgba(5,8,7,0.6);margin-bottom:8px;">
+            <div style="width:${pctM}%;background:var(--matrix-green);transition:width 0.4s ease;" title="Matheus: ${pctM}%"></div>
+            <div style="width:${pctS}%;background:#ec4899;transition:width 0.4s ease;" title="Scarlet: ${pctS}%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;">
+            <span style="display:flex;align-items:center;gap:4px;">
+              <span style="width:8px;height:8px;background:var(--matrix-green);border-radius:2px;display:inline-block;"></span>
+              👨 Matheus: <strong>${pctM}%</strong> (${formatBRL(totalMatheus)})
+            </span>
+            <span style="display:flex;align-items:center;gap:4px;">
+              <span style="width:8px;height:8px;background:#ec4899;border-radius:2px;display:inline-block;"></span>
+              👩 Scarlet: <strong>${pctS}%</strong> (${formatBRL(totalScarlet)})
+            </span>
+          </div>
+        `;
+      }
+    }
+
+    // 2. Gráfico por Categoria
+    if (cCat) {
+      const cats = {};
+      invList.forEach(it => {
+        const c = it.categoria || 'Outros';
+        cats[c] = (cats[c] || 0) + (parseFloat(it.valorAtual) || 0);
+      });
+
+      const catColors = ['var(--matrix-green)', 'var(--cyan)', 'var(--amber)', 'var(--purple)', '#ec4899', 'var(--rose)'];
+      let colorIdx = 0;
+      const rows = Object.keys(cats).sort((a,b) => cats[b] - cats[a]).map(k => {
+        const val = cats[k];
+        const pct = totalGeral > 0 ? ((val / totalGeral) * 100).toFixed(1) : 0;
+        const col = catColors[colorIdx % catColors.length];
+        colorIdx++;
+        return `
+          <div style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--font-mono);margin-bottom:2px;">
+              <span>${k}</span>
+              <span><strong>${formatBRL(val)}</strong> (${pct}%)</span>
+            </div>
+            <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+              <div style="width:${pct}%;background:${col};height:100%;border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      cCat.innerHTML = rows || '<div style="font-size:11px;color:var(--text-muted);">Sem dados.</div>';
+    }
+
+    // 3. Gráfico Projeção de Crescimento Patrimonial
+    if (cProj) {
+      const hoje = totalGeral;
+      const em1Ano = totalGeral * 1.1075; // +10.75%
+      const em3Anos = totalGeral * 1.358; // +35.8%
+      const em5Anos = totalGeral * 1.666; // +66.6%
+      let aposentadoria2055 = 0;
+      invList.forEach(it => {
+        const est = estimarValorVencimento(it);
+        aposentadoria2055 += est.valorFuturo;
+      });
+
+      const marcos = [
+        { label: 'Hoje', val: hoje, color: 'var(--text-muted)' },
+        { label: '+1 Ano', val: em1Ano, color: 'var(--cyan)' },
+        { label: '+3 Anos', val: em3Anos, color: 'var(--amber)' },
+        { label: '+5 Anos', val: em5Anos, color: 'var(--matrix-green)' },
+        { label: '2055 (Aposentadoria)', val: aposentadoria2055, color: 'var(--purple)' }
+      ];
+
+      const maxVal = Math.max(...marcos.map(m => m.val), 1);
+      cProj.innerHTML = marcos.map(m => {
+        const pct = ((m.val / maxVal) * 100).toFixed(0);
+        return `
+          <div style="margin-bottom:5px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--font-mono);margin-bottom:2px;">
+              <span style="color:${m.color};font-weight:600;">${m.label}</span>
+              <span><strong>${formatBRL(m.val)}</strong></span>
+            </div>
+            <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+              <div style="width:${pct}%;background:${m.color};height:100%;border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  function setInvestFilter(titular) {
+    currentInvestFilter = titular;
+    ['btnFilterTitularTodos', 'btnFilterTitularMatheus', 'btnFilterTitularScarlet'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.classList.remove('active');
+    });
+
+    if (titular === 'Matheus') {
+      document.getElementById('btnFilterTitularMatheus')?.classList.add('active');
+    } else if (titular === 'Scarlet') {
+      document.getElementById('btnFilterTitularScarlet')?.classList.add('active');
+    } else {
+      document.getElementById('btnFilterTitularTodos')?.classList.add('active');
+    }
+
+    renderInvestments();
+  }
+
+  function toggleInvestAgrupamento() {
+    investAgrupado = !investAgrupado;
+    const btn = document.getElementById('btnToggleAgrupamento');
+    if (btn) {
+      if (investAgrupado) {
+        btn.classList.add('active');
+        btn.textContent = '📦 Agrupado por Ativo (Ativo)';
+      } else {
+        btn.classList.remove('active');
+        btn.textContent = '📦 Agrupar Ativos Iguais';
+      }
+    }
+    renderInvestments();
+  }
+
+  function toggleGroupExpand(nomeAtivo) {
+    investExpandedGroups[nomeAtivo] = !investExpandedGroups[nomeAtivo];
+    const state = MatrixDB.getState();
+    renderInvestTable(state.investimentos || []);
+  }
+
+  function renderInvestTable(invList) {
     const tbody = document.getElementById('investmentsTableBody');
-    if (tbody) {
-      tbody.innerHTML = invList.map(inv => `
+    if (!tbody) return;
+
+    let filtered = invList;
+    if (currentInvestFilter && currentInvestFilter !== 'todos') {
+      filtered = invList.filter(it => (it.titular || 'Matheus') === currentInvestFilter);
+    }
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">Nenhum investimento encontrado para o filtro selecionado.</td></tr>`;
+      return;
+    }
+
+    // Se estiver agrupado por nome de ativo
+    if (investAgrupado) {
+      const groups = {};
+      filtered.forEach(it => {
+        const key = it.ativo || 'Outro';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(it);
+      });
+
+      let html = '';
+      Object.keys(groups).forEach(key => {
+        const subItems = groups[key];
+        const totalGrupo = subItems.reduce((acc, x) => acc + (parseFloat(x.valorAtual) || 0), 0);
+        const first = subItems[0];
+        const est = estimarValorVencimento(first);
+        const isExpanded = !!investExpandedGroups[key];
+        const hasMultiple = subItems.length > 1;
+
+        html += `
+          <tr style="background:rgba(18,29,23,0.3);font-weight:600;">
+            <td>
+              <span class="titular-badge ${first.titular.toLowerCase()}">${first.titular}</span>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px;">
+                ${hasMultiple ? `<button class="btn-icon" style="font-size:10px;padding:2px 4px;" onclick="MatrixApp.toggleGroupExpand('${key}')">${isExpanded ? '▼' : '▶'}</button>` : ''}
+                <strong style="color:var(--text-main);">${key}</strong>
+                ${hasMultiple ? `<span class="box-badge" style="font-size:9px;color:var(--cyan);border-color:var(--cyan);">${subItems.length} Custódias</span>` : ''}
+              </div>
+            </td>
+            <td>${hasMultiple ? 'Múltiplas Corretoras' : first.corretora}</td>
+            <td><span class="status-badge simulado">${first.categoria}</span></td>
+            <td class="val-col" style="font-size:13px;font-weight:700;color:var(--matrix-green);">${formatBRL(totalGrupo)}</td>
+            <td><div style="font-size:10px;color:var(--text-muted);">${est.texto}</div></td>
+            <td><span style="font-size:10px;color:var(--text-muted);">${first.rentabilidadeContratada || first.status}</span></td>
+            <td style="text-align:center;">
+              <div style="display:flex;gap:4px;justify-content:center;">
+                <button class="btn-matrix" style="padding:2px 6px;font-size:10px;" onclick="MatrixApp.openAporteModal('${first.id}')">+ Aporte</button>
+                <button class="btn-matrix secondary" style="padding:2px 6px;font-size:10px;" onclick="MatrixApp.openResgateModal('${first.id}')">💸 Resgatar</button>
+              </div>
+            </td>
+          </tr>
+        `;
+
+        // Se estiver expandido e tiver mais de 1 custódia, mostra as sublinhas detalhadas
+        if (hasMultiple && isExpanded) {
+          subItems.forEach(sub => {
+            html += `
+              <tr class="grouped-subrow">
+                <td><span style="font-size:9px;color:var(--text-dim);">${sub.titular}</span></td>
+                <td>↳ <span style="font-size:10px;color:var(--text-muted);">${sub.ativo}</span></td>
+                <td><strong style="color:var(--cyan);font-size:10px;">${sub.corretora}</strong></td>
+                <td><span style="font-size:9px;color:var(--text-dim);">${sub.categoria}</span></td>
+                <td class="val-col" style="font-size:11px;">${formatBRL(sub.valorAtual)}</td>
+                <td><span style="font-size:9px;color:var(--text-dim);">${sub.vencimento || '--'}</span></td>
+                <td><span style="font-size:9px;color:var(--text-dim);">${sub.status || '--'}</span></td>
+                <td style="text-align:center;">
+                  <button class="btn-icon" style="font-size:11px;" onclick="MatrixApp.openEditInvestmentModal('${sub.id}')" title="Editar">✏️</button>
+                  <button class="btn-icon" style="color:var(--rose);font-size:11px;" onclick="MatrixApp.excluirInvestimento('${sub.id}')" title="Excluir">🗑️</button>
+                </td>
+              </tr>
+            `;
+          });
+        }
+      });
+
+      tbody.innerHTML = html;
+      return;
+    }
+
+    // Visão Detalhada Tradicional
+    tbody.innerHTML = filtered.map(inv => {
+      const est = estimarValorVencimento(inv);
+      const titular = inv.titular || 'Matheus';
+      const titularClass = titular.toLowerCase();
+
+      return `
         <tr>
+          <td><span class="titular-badge ${titularClass}">${titular}</span></td>
           <td><strong>${inv.ativo}</strong></td>
           <td>${inv.corretora}</td>
           <td><span class="status-badge simulado">${inv.categoria}</span></td>
-          <td class="val-col">${formatBRL(inv.valorAtual)}</td>
-          <td><span class="status-badge ${inv.status.includes('Ativo') ? 'pago' : 'pendente'}">${inv.status}</span></td>
+          <td class="val-col" style="font-weight:700;color:var(--matrix-green);">${formatBRL(inv.valorAtual)}</td>
+          <td>
+            <div style="font-weight:600;color:var(--text-main);">${inv.vencimento || 'Longo Prazo'}</div>
+            <div style="font-size:10px;color:var(--text-muted);">${est.texto}</div>
+          </td>
+          <td>
+            <div style="font-size:11px;color:var(--cyan);">${inv.rentabilidadeContratada || ''}</div>
+            <span class="status-badge ${inv.status && inv.status.includes('Ativo') ? 'pago' : 'pendente'}" style="font-size:9px;padding:1px 6px;">${inv.status}</span>
+          </td>
+          <td style="text-align:center;">
+            <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn-matrix" style="padding:3px 7px;font-size:10px;" onclick="MatrixApp.openAporteModal('${inv.id}')" title="Adicionar aporte futuro ou presente">+ Aporte</button>
+              <button class="btn-matrix secondary" style="padding:3px 7px;font-size:10px;" onclick="MatrixApp.openResgateModal('${inv.id}')" title="Resgatar ou liquidar">💸 Resgatar</button>
+              <button class="btn-icon" onclick="MatrixApp.openEditInvestmentModal('${inv.id}')" title="Editar este ativo">✏️</button>
+              <button class="btn-icon" style="color:var(--rose);" onclick="MatrixApp.excluirInvestimento('${inv.id}')" title="Excluir do portfólio">🗑️</button>
+            </div>
+          </td>
         </tr>
-      `).join('');
+      `;
+    }).join('');
+  }
+
+  function openNewInvestmentModal(defaultTitular) {
+    document.getElementById('invModalTitle').textContent = 'Novo Investimento';
+    document.getElementById('invModalId').value = '';
+    document.getElementById('invModalTitular').value = defaultTitular || (currentInvestFilter !== 'todos' ? currentInvestFilter : 'Matheus');
+    document.getElementById('invModalAtivo').value = '';
+    document.getElementById('invModalCorretora').value = '';
+    document.getElementById('invModalCategoria').value = 'Previdência / Aposentadoria';
+    document.getElementById('invModalValor').value = '';
+    document.getElementById('invModalVencimento').value = '';
+    document.getElementById('invModalRentabilidade').value = '';
+    document.getElementById('invModalQtd').value = '';
+    document.getElementById('invModalPM').value = '';
+    document.getElementById('invModalStatus').value = 'Ativo (Foco de novos aportes)';
+
+    const backdrop = document.getElementById('investModalBackdrop');
+    if (backdrop) backdrop.classList.add('open');
+  }
+
+  function openEditInvestmentModal(id) {
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    document.getElementById('invModalTitle').textContent = 'Editar Investimento';
+    document.getElementById('invModalId').value = inv.id;
+    document.getElementById('invModalTitular').value = inv.titular || 'Matheus';
+    document.getElementById('invModalAtivo').value = inv.ativo || '';
+    document.getElementById('invModalCorretora').value = inv.corretora || '';
+    document.getElementById('invModalCategoria').value = inv.categoria || 'Previdência / Aposentadoria';
+    document.getElementById('invModalValor').value = inv.valorAtual || 0;
+    document.getElementById('invModalVencimento').value = inv.vencimento || '';
+    document.getElementById('invModalRentabilidade').value = inv.rentabilidadeContratada || '';
+    document.getElementById('invModalQtd').value = inv.quantidade || '';
+    document.getElementById('invModalPM').value = inv.precoMedio || '';
+    document.getElementById('invModalStatus').value = inv.status || 'Ativo';
+
+    const backdrop = document.getElementById('investModalBackdrop');
+    if (backdrop) backdrop.classList.add('open');
+  }
+
+  function salvarInvestimentoModal() {
+    const id = document.getElementById('invModalId').value;
+    const titular = document.getElementById('invModalTitular').value;
+    const ativo = document.getElementById('invModalAtivo').value.trim();
+    const corretora = document.getElementById('invModalCorretora').value.trim();
+    const categoria = document.getElementById('invModalCategoria').value;
+    const valorAtual = parseFloat(document.getElementById('invModalValor').value) || 0;
+    const vencimento = document.getElementById('invModalVencimento').value.trim();
+    const rentabilidadeContratada = document.getElementById('invModalRentabilidade').value.trim();
+    const status = document.getElementById('invModalStatus').value.trim() || 'Ativo';
+    const quantidade = parseFloat(document.getElementById('invModalQtd').value) || undefined;
+    const precoMedio = parseFloat(document.getElementById('invModalPM').value) || undefined;
+
+    if (!ativo) {
+      alert('Por favor, informe o nome do ativo.');
+      return;
+    }
+
+    const state = MatrixDB.getState();
+    if (!state.investimentos) state.investimentos = [];
+
+    const item = {
+      id: id || ('inv_' + Date.now()),
+      ativo,
+      corretora: corretora || 'Corretora',
+      categoria,
+      titular,
+      valorAtual,
+      vencimento: vencimento || 'Longo Prazo',
+      rentabilidadeContratada: rentabilidadeContratada || 'Renda Fixa / CDI',
+      status,
+      quantidade,
+      precoMedio
+    };
+
+    if (id) {
+      const idx = state.investimentos.findIndex(it => it.id === id);
+      if (idx >= 0) state.investimentos[idx] = item;
+      else state.investimentos.push(item);
+    } else {
+      state.investimentos.push(item);
+    }
+
+    MatrixDB.saveState(state);
+    closeModal('investModalBackdrop');
+    renderInvestments();
+    alert(`Ativo "${ativo}" salvo com sucesso!`);
+  }
+
+  function openAporteModal(id) {
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    document.getElementById('invAporteModalTitle').textContent = `Novo Aporte em ${inv.ativo}`;
+    document.getElementById('invAporteAtivoId').value = inv.id;
+    document.getElementById('invAporteAtivoNome').textContent = `${inv.ativo} (${inv.corretora} • ${inv.titular})`;
+    document.getElementById('invAporteSaldoAtual').textContent = formatBRL(inv.valorAtual);
+    document.getElementById('invOperacaoTipo').value = 'aporte';
+    document.getElementById('invOperacaoValorRow').style.display = 'block';
+    document.getElementById('invOperacaoValor').value = '';
+    document.getElementById('invOperacaoMes').value = `${currentMonth}/${currentYear}`;
+    document.getElementById('invOperacaoObs').value = 'Aporte mensal planejado';
+
+    const backdrop = document.getElementById('investAporteModalBackdrop');
+    if (backdrop) backdrop.classList.add('open');
+  }
+
+  function openResgateModal(id) {
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    document.getElementById('invAporteModalTitle').textContent = `Resgatar / Liquidar ${inv.ativo}`;
+    document.getElementById('invAporteAtivoId').value = inv.id;
+    document.getElementById('invAporteAtivoNome').textContent = `${inv.ativo} (${inv.corretora} • ${inv.titular})`;
+    document.getElementById('invAporteSaldoAtual').textContent = formatBRL(inv.valorAtual);
+    document.getElementById('invOperacaoTipo').value = 'resgate';
+    document.getElementById('invOperacaoValorRow').style.display = 'block';
+    document.getElementById('invOperacaoValor').value = '';
+    document.getElementById('invOperacaoMes').value = `${currentMonth}/${currentYear}`;
+    document.getElementById('invOperacaoObs').value = 'Resgate parcial de investimento';
+
+    const backdrop = document.getElementById('investAporteModalBackdrop');
+    if (backdrop) backdrop.classList.add('open');
+  }
+
+  function onChangeOperacaoTipo(tipo) {
+    const valRow = document.getElementById('invOperacaoValorRow');
+    if (!valRow) return;
+    if (tipo === 'liquidacao') {
+      valRow.style.display = 'none';
+    } else {
+      valRow.style.display = 'block';
+    }
+  }
+
+  function confirmarOperacaoInvestimento() {
+    const id = document.getElementById('invAporteAtivoId').value;
+    const tipo = document.getElementById('invOperacaoTipo').value;
+    const valor = parseFloat(document.getElementById('invOperacaoValor').value) || 0;
+    const mes = document.getElementById('invOperacaoMes').value.trim();
+    const obs = document.getElementById('invOperacaoObs').value.trim();
+
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    if (tipo === 'aporte') {
+      if (valor <= 0) {
+        alert('Informe um valor válido de aporte maior que zero.');
+        return;
+      }
+      inv.valorAtual = (parseFloat(inv.valorAtual) || 0) + valor;
+      inv.status = 'Ativo (Aporte recente)';
+      alert(`✅ Aporte de ${formatBRL(valor)} adicionado a ${inv.ativo}! Nova posição: ${formatBRL(inv.valorAtual)}.`);
+    } else if (tipo === 'resgate') {
+      if (valor <= 0 || valor > inv.valorAtual) {
+        alert(`Informe um valor de resgate válido (até ${formatBRL(inv.valorAtual)}).`);
+        return;
+      }
+      inv.valorAtual = Math.max(0, (parseFloat(inv.valorAtual) || 0) - valor);
+      alert(`💸 Resgate de ${formatBRL(valor)} efetuado em ${inv.ativo}. Saldo restante: ${formatBRL(inv.valorAtual)}.`);
+    } else if (tipo === 'liquidacao') {
+      const confirmacao = confirm(`Deseja realmente LIQUIDAR TOTALMENTE a posição de ${formatBRL(inv.valorAtual)} em ${inv.ativo}?`);
+      if (!confirmacao) return;
+      inv.valorAtual = 0;
+      inv.status = 'Liquidado / Encerrado';
+      alert(`🛑 Investimento ${inv.ativo} liquidado com sucesso!`);
+    }
+
+    MatrixDB.saveState(state);
+    closeModal('investAporteModalBackdrop');
+    renderInvestments();
+  }
+
+  function openAtualizarCotacaoModal(id) {
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    document.getElementById('invCotacaoAtivoId').value = inv.id;
+    document.getElementById('invCotacaoTicker').textContent = inv.ativo;
+    document.getElementById('invCotacaoQtd').textContent = inv.quantidade || 0;
+    document.getElementById('invCotacaoPM').textContent = formatBRL(inv.precoMedio || 0);
+    const pAtual = inv.precoAtual || (inv.quantidade > 0 ? (inv.valorAtual / inv.quantidade) : inv.precoMedio);
+    document.getElementById('invCotacaoNovoPreco').value = (parseFloat(pAtual) || 0).toFixed(2);
+
+    const backdrop = document.getElementById('investCotacaoModalBackdrop');
+    if (backdrop) backdrop.classList.add('open');
+  }
+
+  function salvarCotacaoAcaoModal() {
+    const id = document.getElementById('invCotacaoAtivoId').value;
+    const novoPreco = parseFloat(document.getElementById('invCotacaoNovoPreco').value) || 0;
+    if (novoPreco <= 0) {
+      alert('Informe um preço de fechamento válido.');
+      return;
+    }
+
+    const state = MatrixDB.getState();
+    const inv = (state.investimentos || []).find(it => it.id === id);
+    if (!inv) return;
+
+    inv.precoAtual = novoPreco;
+    const qtd = parseFloat(inv.quantidade) || 0;
+    inv.valorAtual = qtd > 0 ? (qtd * novoPreco) : inv.valorAtual;
+
+    MatrixDB.saveState(state);
+    closeModal('investCotacaoModalBackdrop');
+    renderInvestments();
+    alert(`Cotação de ${inv.ativo} atualizada para ${formatBRL(novoPreco)}! Posição atualizada para ${formatBRL(inv.valorAtual)}.`);
+  }
+
+  function excluirInvestimento(id) {
+    const state = MatrixDB.getState();
+    if (!state.investimentos) return;
+    const idx = state.investimentos.findIndex(it => it.id === id);
+    if (idx >= 0) {
+      const nome = state.investimentos[idx].ativo;
+      if (confirm(`Deseja realmente excluir "${nome}" do seu portfólio?`)) {
+        state.investimentos.splice(idx, 1);
+        MatrixDB.saveState(state);
+        renderInvestments();
+      }
     }
   }
 
@@ -2682,6 +3300,20 @@ const MatrixApp = (function () {
     baixarRelatorioPDF,
     baixarRelatorioPDFAtual,
     renderFinancing,
+    renderInvestments,
+    setInvestFilter,
+    toggleInvestAgrupamento,
+    toggleGroupExpand,
+    openNewInvestmentModal,
+    openEditInvestmentModal,
+    salvarInvestimentoModal,
+    openAporteModal,
+    openResgateModal,
+    onChangeOperacaoTipo,
+    confirmarOperacaoInvestimento,
+    openAtualizarCotacaoModal,
+    salvarCotacaoAcaoModal,
+    excluirInvestimento,
     saveCloudSettings,
     testCloudConnection,
     forceSyncToCloud,
