@@ -509,17 +509,18 @@
       <div class="matrix-box">
         <div class="box-header">
           <h2>🏠 Financiamento Habitacional da Casa (Caixa Econômica)</h2>
-          <span class="box-badge">Tabela Price</span>
+          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Tabela Price Oficial</span>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:20px;">
+        <!-- Indicadores Contratuais Atuais -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:18px;">
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">SALDO DEVEDOR ATUAL:</div>
             <div id="caixaSaldoDevedor" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 157.884,49</div>
           </div>
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PRAZO RESTANTE:</div>
-            <div id="caixaPrazoMeses" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">271 meses</div>
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PRAZO RESTANTE ORIGINAL:</div>
+            <div id="caixaPrazoMeses" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">271 meses (~23 anos)</div>
           </div>
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PARCELA ATUAL:</div>
@@ -531,45 +532,206 @@
           </div>
         </div>
 
-        <!-- Bloco FGTS Bianual -->
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
-          <div style="font-weight:700;color:var(--matrix-green);margin-bottom:6px;">💰 Abatimento com FGTS da USP (a cada 2 anos)</div>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-            Como funcionário celetista da USP, você recebe um depósito mensal de FGTS de <strong>R$ 501,12</strong>. A cada 24 meses acumulam-se aproximadamente <strong id="fgtsEstimado24m" style="color:var(--matrix-green);">R$ 12.026,88</strong> para abater o saldo devedor.
+        <!-- Bloco FGTS Celetista USP -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+            <div style="font-weight:700;color:var(--matrix-green);">💰 Abatimento com FGTS da USP (Direito a cada 2 anos)</div>
+            <span class="box-badge" style="color:var(--cyan);border-color:var(--cyan);">Depósito R$ 501,12/mês</span>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin:0;">
+            Como funcionário celetista da USP, seu holerite gera <strong>R$ 501,12</strong> de FGTS mensal. A cada 24 meses acumulam-se aproximadamente <strong id="fgtsEstimado24m" style="color:var(--matrix-green);">R$ 12.026,88</strong> para abater diretamente no saldo devedor, gerando economia massiva de juros futuros.
           </p>
         </div>
 
-        <!-- Simulador de Amortização Extraordinária -->
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);">
-          <div style="font-weight:700;color:var(--cyan);margin-bottom:12px;">⚡ Simulador de Amortização Extraordinária</div>
-          
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-bottom:14px;">
+        <!-- Simulador Multimodal de Amortização Extraordinária -->
+        <div class="sim-config-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
             <div>
-              <label style="font-size:11px;color:var(--text-muted);">Valor do Aporte Extra (R$):</label>
-              <input type="number" step="100" id="inputAmortizacaoExtra" class="matrix-input" value="12026.88" oninput="MatrixApp.simularAmortizacao()">
+              <div style="font-weight:700;color:var(--cyan);font-size:15px;">⚡ Simulador Avançado de Amortização Extraordinária</div>
+              <div style="font-size:11px;color:var(--text-muted);">Simule valores iguais, intercalados, sazonais ou mês a mês e exporte o laudo em PDF.</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn-matrix" onclick="MatrixApp.salvarSimulacaoAtualPrompt()" title="Salvar este cenário no banco local">💾 Salvar Simulação</button>
+              <button class="btn-matrix primary" onclick="MatrixApp.baixarRelatorioPDFAtual()" title="Gerar e baixar laudo executivo em PDF">📄 Baixar PDF</button>
+            </div>
+          </div>
+
+          <!-- Seleção da Modalidade / Estratégia de Aporte -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;margin-bottom:16px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Tipo de Simulação / Estratégia de Aporte:</label>
+              <select id="simTipoEstrategia" class="matrix-select" style="width:100%;" onchange="MatrixApp.onChangeTipoSimulacao()">
+                <option value="combinado" selected>🚀 Turbo USP (Aporte Mensal + FGTS a cada 24m)</option>
+                <option value="mensal_fixo">🔄 Valores Iguais Todos os Meses (Aporte Contínuo)</option>
+                <option value="periodico">📅 Valores Iguais Intercalados (A cada 6, 12 ou 24 meses)</option>
+                <option value="sazonal">🎁 Aportes Sazonais (Meses de 13º e Férias)</option>
+                <option value="unico">📌 Aporte Único Pontual (FGTS atual ou valor avulso)</option>
+                <option value="customizado">✍️ Customizado Mês a Mês (Valores variáveis)</option>
+              </select>
             </div>
             <div>
-              <label style="font-size:11px;color:var(--text-muted);">Estratégia de Redução:</label>
-              <select id="selectModalidadeAmortizacao" class="matrix-select" onchange="MatrixApp.simularAmortizacao()">
-                <option value="prazo" selected>Reduzir Prazo (Eliminar Juros Futuros)</option>
-                <option value="parcela">Reduzir Parcela (Aliviar Caixa Mensal)</option>
+              <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Estratégia de Redução Bancária:</label>
+              <select id="simModalidadeReducao" class="matrix-select" style="width:100%;" onchange="MatrixApp.simularAmortizacao()">
+                <option value="prazo" selected>Reduzir Prazo (Eliminar Juros Futuros) [Recomendado]</option>
+                <option value="parcela">Reduzir Valor da Parcela (Aliviar Caixa Mensal)</option>
               </select>
             </div>
           </div>
 
-          <div style="display:flex;gap:16px;flex-wrap:wrap;border-top:1px solid var(--border-dim);padding-top:12px;">
+          <!-- Campos Específicos por Estratégia -->
+          <div id="simPanelCombinado" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
             <div>
-              <span style="font-size:11px;color:var(--text-muted);">ECONOMIA DE JUROS ESTIMADA:</span>
-              <div id="resEconomiaJuros" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+              <label style="font-size:11px;color:var(--text-muted);">Aporte Mensal do Bolso (R$):</label>
+              <input type="number" step="50" id="simCombMensal" class="matrix-input" value="800" oninput="MatrixApp.simularAmortizacao()">
             </div>
             <div>
-              <span style="font-size:11px;color:var(--text-muted);">MESES POUPADOS:</span>
-              <div id="resMesesPoupados" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">0 meses</div>
+              <label style="font-size:11px;color:var(--text-muted);">Abatimento FGTS USP (R$ a cada 24m):</label>
+              <input type="number" step="100" id="simCombFgts" class="matrix-input" value="12026.88" oninput="MatrixApp.simularAmortizacao()">
+            </div>
+          </div>
+
+          <div id="simPanelMensalFixo" style="display:none;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Valor Fixo Mensal (R$):</label>
+              <input type="number" step="100" id="simFixoValor" class="matrix-input" value="1000" oninput="MatrixApp.simularAmortizacao()">
             </div>
             <div>
-              <span style="font-size:11px;color:var(--text-muted);">NOVO TOTAL PAGO ATÉ QUITAR:</span>
-              <div id="resNovoTotalPago" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">R$ 0,00</div>
+              <label style="font-size:11px;color:var(--text-muted);">Começar no Mês:</label>
+              <input type="number" id="simFixoInicio" class="matrix-input" value="1" min="1" max="271" oninput="MatrixApp.simularAmortizacao()">
             </div>
+          </div>
+
+          <div id="simPanelPeriodico" style="display:none;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Valor do Aporte Intercalado (R$):</label>
+              <input type="number" step="500" id="simPeriodicoValor" class="matrix-input" value="5000" oninput="MatrixApp.simularAmortizacao()">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Frequência dos Aportes:</label>
+              <select id="simPeriodicoFreq" class="matrix-select" style="width:100%;" onchange="MatrixApp.simularAmortizacao()">
+                <option value="6">A cada 6 meses (Semestral)</option>
+                <option value="12" selected>A cada 12 meses (Anual)</option>
+                <option value="24">A cada 24 meses (Bianual)</option>
+                <option value="3">A cada 3 meses (Trimestral)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="simPanelSazonal" style="display:none;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Valor por Mês Sazonal (R$):</label>
+                <input type="number" step="500" id="simSazonalValor" class="matrix-input" value="3000" oninput="MatrixApp.simularAmortizacao()">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">Meses de Aplicação Sazonal:</label>
+                <div style="display:flex;gap:12px;align-items:center;padding-top:6px;font-size:12px;font-family:var(--font-mono);">
+                  <label><input type="checkbox" id="chkSazonalNov" checked onchange="MatrixApp.simularAmortizacao()"> Nov (13º)</label>
+                  <label><input type="checkbox" id="chkSazonalDez" checked onchange="MatrixApp.simularAmortizacao()"> Dez (13º)</label>
+                  <label><input type="checkbox" id="chkSazonalJan" onchange="MatrixApp.simularAmortizacao()"> Jan (Férias)</label>
+                  <label><input type="checkbox" id="chkSazonalMai" onchange="MatrixApp.simularAmortizacao()"> Maio</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="simPanelUnico" style="display:none;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">Valor do Aporte Único (R$):</label>
+              <input type="number" step="100" id="simUnicoValor" class="matrix-input" value="12026.88" oninput="MatrixApp.simularAmortizacao()">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-muted);">No Mês do Financiamento:</label>
+              <input type="number" id="simUnicoMes" class="matrix-input" value="1" min="1" max="271" oninput="MatrixApp.simularAmortizacao()">
+            </div>
+          </div>
+
+          <div id="simPanelCustomizado" style="display:none;margin-bottom:14px;background:rgba(5,8,7,0.5);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border-dim);">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+              <div style="font-size:11px;color:var(--text-muted);">Defina aportes extras com valores diferentes mês a mês:</div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-matrix" style="padding:4px 8px;font-size:10px;" onclick="MatrixApp.preencherCustomLote(1000)">+ R$ 1.000 em todos</button>
+                <button class="btn-matrix" style="padding:4px 8px;font-size:10px;" onclick="MatrixApp.limparCustomLote()">Limpar</button>
+              </div>
+            </div>
+            <div class="custom-amort-table-wrapper">
+              <table class="data-table" style="font-size:11px;">
+                <thead>
+                  <tr>
+                    <th style="width:70px;">Mês</th>
+                    <th>Período</th>
+                    <th>Valor do Aporte Extra (R$)</th>
+                  </tr>
+                </thead>
+                <tbody id="simCustomTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- PAINEL DE RESULTADOS EM TEMPO REAL -->
+          <div class="sim-results-grid">
+            <div class="sim-result-item">
+              <span class="sim-result-label">🎯 NOVO PRAZO (MESES RESTANTES):</span>
+              <span id="resNovoPrazo" class="sim-result-value highlight-blue">0 meses</span>
+            </div>
+            <div class="sim-result-item">
+              <span class="sim-result-label">⏳ MESES POUPADOS:</span>
+              <span id="resMesesPoupados" class="sim-result-value highlight-green">0 meses</span>
+            </div>
+            <div class="sim-result-item">
+              <span class="sim-result-label">📅 NOVA DATA DE QUITAÇÃO:</span>
+              <span id="resNovaDataQuitacao" class="sim-result-value highlight-blue">--</span>
+            </div>
+            <div class="sim-result-item">
+              <span class="sim-result-label">💰 ECONOMIA DE JUROS ESTIMADA:</span>
+              <span id="resEconomiaJuros" class="sim-result-value highlight-green">R$ 0,00</span>
+            </div>
+            <div class="sim-result-item">
+              <span class="sim-result-label">💵 NOVO TOTAL PAGO ATÉ QUITAR:</span>
+              <span id="resNovoTotalPago" class="sim-result-value">R$ 0,00</span>
+            </div>
+            <div class="sim-result-item">
+              <span class="sim-result-label">📊 TOTAL APORTADO EXTRA:</span>
+              <span id="resTotalAportado" class="sim-result-value" style="color:var(--amber);">R$ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Botões de Ação Complementares -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+            <button class="btn-matrix secondary" onclick="MatrixApp.toggleTabelaAnual()">📊 Alternar Demonstrativo Ano a Ano</button>
+          </div>
+
+          <!-- Demonstrativo Ano a Ano Expansível -->
+          <div id="simContainerTabelaAnual" style="display:none;margin-top:14px;border-top:1px solid var(--border-dim);padding-top:12px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">📈 Evolução Anual da Dívida com os Aportes Programados:</div>
+            <div style="max-height:260px;overflow-y:auto;">
+              <table class="data-table" style="font-size:11px;">
+                <thead>
+                  <tr>
+                    <th>Ano</th>
+                    <th style="text-align:right;">Saldo Inicial</th>
+                    <th style="text-align:right;">Parcelas Normais</th>
+                    <th style="text-align:right;">Aportes Extras</th>
+                    <th style="text-align:right;">Juros Pagos</th>
+                    <th style="text-align:right;">Saldo Final</th>
+                  </tr>
+                </thead>
+                <tbody id="simTabelaAnualBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção: Minhas Simulações Salvas -->
+        <div style="margin-top:24px;">
+          <div class="box-header" style="margin-bottom:12px;">
+            <h3 style="font-size:14px;color:var(--text-main);display:flex;align-items:center;gap:6px;">
+              📁 Simulações Salvas
+            </h3>
+            <span id="simCountBadge" class="box-badge" style="font-size:10px;">0 salvas</span>
+          </div>
+          <div id="simulacoesSalvasContainer">
+            <p style="font-size:12px;color:var(--text-muted);font-style:italic;">Nenhuma simulação salva ainda. Configure seus aportes acima e clique em "💾 Salvar Simulação".</p>
           </div>
         </div>
       </div>

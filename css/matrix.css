@@ -1158,3 +1158,81 @@ body {
     justify-content: center;
   }
 }
+
+/* ===================================================
+   SIMULADOR DE AMORTIZAÇÃO CAIXA & RELATÓRIOS PDF
+   =================================================== */
+.sim-config-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.sim-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+  padding: 14px;
+  background: rgba(0, 255, 102, 0.03);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+}
+
+.sim-result-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.sim-result-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.sim-result-value {
+  font-size: 17px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+}
+
+.sim-result-value.highlight-green {
+  color: var(--matrix-green);
+  text-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+}
+
+.sim-result-value.highlight-blue {
+  color: var(--cyan);
+}
+
+.sim-saved-card {
+  background: rgba(5, 8, 7, 0.6);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.sim-saved-card:hover {
+  border-color: var(--matrix-green-dim);
+  background: rgba(18, 29, 23, 0.4);
+}
+
+.custom-amort-table-wrapper {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+}

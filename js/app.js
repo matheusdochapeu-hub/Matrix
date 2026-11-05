@@ -9,6 +9,8 @@ const MatrixApp = (function () {
   let currentMonth = 'Novembro';
   let calSelectedYear = '2026';
   let calSelectedMonth = 'Novembro';
+  let lastSimulationResult = null;
+  let customAmortItens = [];
 
   const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1271,37 +1273,383 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const cfg = state.financiamentoCaixa || AmortizationEngine.DEFAULT_CONFIG;
 
-    document.getElementById('caixaSaldoDevedor').textContent = formatBRL(cfg.saldoDevedor);
-    document.getElementById('caixaPrazoMeses').textContent = `${cfg.prazoMeses || cfg.totalPrestacoes} meses (~${Math.round((cfg.prazoMeses || cfg.totalPrestacoes) / 12)} anos)`;
-    document.getElementById('caixaParcelaAtual').textContent = formatBRL(cfg.parcelaAtual);
-    document.getElementById('caixaTaxaJuros').textContent = `${cfg.taxaJurosAnual || cfg.taxaAnual}% a.a.`;
+    const saldoEl = document.getElementById('caixaSaldoDevedor');
+    if (saldoEl) saldoEl.textContent = formatBRL(cfg.saldoDevedor);
+
+    const prazoEl = document.getElementById('caixaPrazoMeses');
+    if (prazoEl) prazoEl.textContent = `${cfg.prazoMeses || cfg.totalPrestacoes || 271} meses (~${Math.round((cfg.prazoMeses || cfg.totalPrestacoes || 271) / 12)} anos)`;
+
+    const parcelaEl = document.getElementById('caixaParcelaAtual');
+    if (parcelaEl) parcelaEl.textContent = formatBRL(cfg.parcelaAtual);
+
+    const taxaEl = document.getElementById('caixaTaxaJuros');
+    if (taxaEl) taxaEl.textContent = `${cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899}% a.a.`;
 
     // Simulação FGTS (24 meses de depósitos USP = 24 * 501.12 = R$ 12.026,88)
     const saldoFgts24m = (cfg.fgtsMensalUsp || 501.12) * 24;
-    document.getElementById('fgtsEstimado24m').textContent = formatBRL(saldoFgts24m);
+    const fgtsEl = document.getElementById('fgtsEstimado24m');
+    if (fgtsEl) fgtsEl.textContent = formatBRL(saldoFgts24m);
 
-    // Calcular simulação inicial
+    renderSimulacoesSalvas();
+    onChangeTipoSimulacao();
+  }
+
+  function onChangeTipoSimulacao() {
+    const tipoSelect = document.getElementById('simTipoEstrategia');
+    const tipo = tipoSelect ? tipoSelect.value : 'combinado';
+
+    const panels = {
+      'combinado': document.getElementById('simPanelCombinado'),
+      'mensal_fixo': document.getElementById('simPanelMensalFixo'),
+      'periodico': document.getElementById('simPanelPeriodico'),
+      'sazonal': document.getElementById('simPanelSazonal'),
+      'unico': document.getElementById('simPanelUnico'),
+      'customizado': document.getElementById('simPanelCustomizado')
+    };
+
+    Object.keys(panels).forEach(k => {
+      if (panels[k]) {
+        if (k === tipo) {
+          panels[k].style.display = (k === 'sazonal' || k === 'customizado') ? 'block' : 'grid';
+        } else {
+          panels[k].style.display = 'none';
+        }
+      }
+    });
+
+    if (tipo === 'customizado') {
+      renderCustomAmortTable();
+    }
+
+    simularAmortizacao();
+  }
+
+  function renderCustomAmortTable() {
+    const tbody = document.getElementById('simCustomTableBody');
+    if (!tbody) return;
+    if (customAmortItens.length === 0) {
+      for (let m = 1; m <= 36; m++) {
+        customAmortItens.push({ mes: m, valor: 0 });
+      }
+    }
+
+    const refDate = { ano: 2026, mesIndex: 11 };
+    tbody.innerHTML = customAmortItens.map(item => {
+      const totalM = (refDate.mesIndex - 1) + item.mes;
+      const ano = refDate.ano + Math.floor(totalM / 12);
+      const mes = MONTH_NAMES[totalM % 12];
+      return `
+        <tr>
+          <td style="font-weight:700;color:var(--text-muted);text-align:center;">Mês ${item.mes}</td>
+          <td><span style="color:var(--text-main);font-family:var(--font-mono);">${mes} / ${ano}</span></td>
+          <td>
+            <input type="number" step="100" class="matrix-input" style="padding:4px 8px;font-size:11px;max-width:140px;" 
+                   value="${item.valor || 0}" 
+                   oninput="MatrixApp.updateCustomAmortItem(${item.mes}, this.value)">
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function updateCustomAmortItem(mes, val) {
+    const it = customAmortItens.find(x => x.mes === mes);
+    if (it) it.valor = parseFloat(val) || 0;
+    simularAmortizacao();
+  }
+
+  function preencherCustomLote(val) {
+    customAmortItens.forEach(it => it.valor = val);
+    renderCustomAmortTable();
+    simularAmortizacao();
+  }
+
+  function limparCustomLote() {
+    customAmortItens.forEach(it => it.valor = 0);
+    renderCustomAmortTable();
     simularAmortizacao();
   }
 
   function simularAmortizacao() {
     const state = MatrixDB.getState();
     const cfg = state.financiamentoCaixa || AmortizationEngine.DEFAULT_CONFIG;
-    
-    const valorExtra = parseFloat(document.getElementById('inputAmortizacaoExtra').value) || 0;
-    const modalidade = document.getElementById('selectModalidadeAmortizacao').value || 'prazo';
 
-    const sim = AmortizationEngine.simularAbatimentoFgts(
+    const tipoSelect = document.getElementById('simTipoEstrategia');
+    const tipo = tipoSelect ? tipoSelect.value : 'combinado';
+    const modSelect = document.getElementById('simModalidadeReducao');
+    const modalidade = modSelect ? modSelect.value : 'prazo';
+
+    const config = { tipo, modalidade };
+
+    if (tipo === 'combinado') {
+      config.valorMensal = parseFloat(document.getElementById('simCombMensal')?.value) || 0;
+      config.valorFgts = parseFloat(document.getElementById('simCombFgts')?.value) || 12026.88;
+      config.frequenciaFgts = 24;
+    } else if (tipo === 'mensal_fixo') {
+      config.valorMensal = parseFloat(document.getElementById('simFixoValor')?.value) || 0;
+      config.mesInicio = parseInt(document.getElementById('simFixoInicio')?.value, 10) || 1;
+    } else if (tipo === 'periodico') {
+      config.valorPeriodico = parseFloat(document.getElementById('simPeriodicoValor')?.value) || 0;
+      config.frequenciaMeses = parseInt(document.getElementById('simPeriodicoFreq')?.value, 10) || 12;
+    } else if (tipo === 'sazonal') {
+      config.valorSazonal = parseFloat(document.getElementById('simSazonalValor')?.value) || 0;
+      config.mesesSazonais = [];
+      if (document.getElementById('chkSazonalNov')?.checked) config.mesesSazonais.push(11);
+      if (document.getElementById('chkSazonalDez')?.checked) config.mesesSazonais.push(12);
+      if (document.getElementById('chkSazonalJan')?.checked) config.mesesSazonais.push(1);
+      if (document.getElementById('chkSazonalMai')?.checked) config.mesesSazonais.push(5);
+    } else if (tipo === 'unico') {
+      config.valorUnico = parseFloat(document.getElementById('simUnicoValor')?.value) || 0;
+      config.mesUnico = parseInt(document.getElementById('simUnicoMes')?.value, 10) || 1;
+    } else if (tipo === 'customizado') {
+      config.itensCustomizados = customAmortItens;
+    }
+
+    const sim = AmortizationEngine.executarSimulacaoCompleta(
       cfg.saldoDevedor,
       cfg.prazoMeses || cfg.totalPrestacoes || 271,
       cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899,
-      valorExtra,
-      modalidade
+      config,
+      { ano: 2026, mesIndex: 11 }
     );
 
-    document.getElementById('resEconomiaJuros').textContent = formatBRL(sim.economiaJuros);
-    document.getElementById('resMesesPoupados').textContent = `${sim.mesesPoupados} meses (${(sim.mesesPoupados / 12).toFixed(1)} anos)`;
-    document.getElementById('resNovoTotalPago').textContent = formatBRL(sim.simulado.totalPago);
+    lastSimulationResult = sim;
+
+    // Atualiza KPIs da interface
+    const resNovoPrazo = document.getElementById('resNovoPrazo');
+    if (resNovoPrazo) resNovoPrazo.textContent = `${sim.novoPrazo} meses (~${sim.novoPrazoAnos} anos)`;
+
+    const resMesesPoupados = document.getElementById('resMesesPoupados');
+    if (resMesesPoupados) resMesesPoupados.textContent = `${sim.mesesPoupados} meses (~${sim.anosPoupados} anos)`;
+
+    const resNovaData = document.getElementById('resNovaDataQuitacao');
+    if (resNovaData) resNovaData.textContent = sim.dataQuitacaoNova;
+
+    const resEconomia = document.getElementById('resEconomiaJuros');
+    if (resEconomia) resEconomia.textContent = formatBRL(sim.economiaJuros);
+
+    const resNovoTotal = document.getElementById('resNovoTotalPago');
+    if (resNovoTotal) resNovoTotal.textContent = formatBRL(sim.novoTotalPago);
+
+    const resTotalAportado = document.getElementById('resTotalAportado');
+    if (resTotalAportado) resTotalAportado.textContent = formatBRL(sim.totalAportadoExtra);
+
+    // Atualiza tabela ano a ano
+    const tBody = document.getElementById('simTabelaAnualBody');
+    if (tBody && sim.resumoAnual) {
+      tBody.innerHTML = sim.resumoAnual.map(r => `
+        <tr>
+          <td><strong>Ano ${r.ano}</strong> (${r.anoCalendario})</td>
+          <td style="text-align:right;">${formatBRL(r.saldoInicial)}</td>
+          <td style="text-align:right;">${formatBRL(r.parcelasPagas)}</td>
+          <td style="text-align:right;color:var(--matrix-green);font-weight:700;">${formatBRL(r.extrasAportados)}</td>
+          <td style="text-align:right;color:var(--rose);">${formatBRL(r.jurosPagos)}</td>
+          <td style="text-align:right;font-weight:700;">${formatBRL(r.saldoFinal)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  function toggleTabelaAnual() {
+    const box = document.getElementById('simContainerTabelaAnual');
+    if (!box) return;
+    box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+  }
+
+  function salvarSimulacaoAtualPrompt() {
+    if (!lastSimulationResult) simularAmortizacao();
+    const cfg = lastSimulationResult.config || {};
+    let defaultNome = 'Simulação Turbo';
+    if (cfg.tipo === 'combinado') defaultNome = 'Aporte Mensal + FGTS USP 24m';
+    else if (cfg.tipo === 'mensal_fixo') defaultNome = `Aporte Fixo ${formatBRL(cfg.valorMensal)}/mês`;
+    else if (cfg.tipo === 'periodico') defaultNome = `Aporte ${formatBRL(cfg.valorPeriodico)} a cada ${cfg.frequenciaMeses}m`;
+    else if (cfg.tipo === 'sazonal') defaultNome = `Aporte 13º Salário (${formatBRL(cfg.valorSazonal)})`;
+    else if (cfg.tipo === 'unico') defaultNome = `Aporte Único de ${formatBRL(cfg.valorUnico)}`;
+    else if (cfg.tipo === 'customizado') defaultNome = 'Aportes Variáveis Mês a Mês';
+
+    const nome = prompt('Dê um nome para esta simulação de amortização:', defaultNome);
+    if (!nome || nome.trim() === '') return;
+
+    const state = MatrixDB.getState();
+    if (!state.simulacoesAmortizacao) state.simulacoesAmortizacao = [];
+
+    const itemSalvo = {
+      id: 'sim_amort_' + Date.now(),
+      nome: nome.trim(),
+      data: new Date().toISOString(),
+      config: JSON.parse(JSON.stringify(cfg)),
+      resultado: {
+        novoPrazo: lastSimulationResult.novoPrazo,
+        novoPrazoAnos: lastSimulationResult.novoPrazoAnos,
+        mesesPoupados: lastSimulationResult.mesesPoupados,
+        anosPoupados: lastSimulationResult.anosPoupados,
+        economiaJuros: lastSimulationResult.economiaJuros,
+        totalAportadoExtra: lastSimulationResult.totalAportadoExtra,
+        novoTotalPago: lastSimulationResult.novoTotalPago,
+        dataQuitacaoNova: lastSimulationResult.dataQuitacaoNova,
+        dataQuitacaoOriginal: lastSimulationResult.dataQuitacaoOriginal
+      }
+    };
+
+    state.simulacoesAmortizacao.push(itemSalvo);
+    MatrixDB.saveState(state);
+    renderSimulacoesSalvas();
+    alert(`✅ Simulação "${nome.trim()}" salva com sucesso!`);
+  }
+
+  function renderSimulacoesSalvas() {
+    const state = MatrixDB.getState();
+    const lista = state.simulacoesAmortizacao || [];
+    const container = document.getElementById('simulacoesSalvasContainer');
+    const badge = document.getElementById('simCountBadge');
+    if (badge) badge.textContent = `${lista.length} salvas`;
+    if (!container) return;
+
+    if (lista.length === 0) {
+      container.innerHTML = '<p style="font-size:12px;color:var(--text-muted);font-style:italic;">Nenhuma simulação salva ainda. Configure seus aportes acima e clique em "💾 Salvar Simulação".</p>';
+      return;
+    }
+
+    container.innerHTML = lista.map((sim) => {
+      const res = sim.resultado || {};
+      const dt = new Date(sim.data).toLocaleDateString('pt-BR');
+      return `
+        <div class="sim-saved-card">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--text-main);">${sim.nome}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+              Salva em: ${dt} • Novo Prazo: <strong style="color:var(--cyan);">${res.novoPrazo || 0} meses</strong> (~${res.novoPrazoAnos || 0} anos) • Poupados: <strong style="color:var(--matrix-green);">${res.mesesPoupados || 0} meses</strong>
+            </div>
+            <div style="font-size:11px;color:var(--matrix-green);font-weight:600;margin-top:2px;">
+              Economia em Juros: ${formatBRL(res.economiaJuros || 0)} • Quitação: ${res.dataQuitacaoNova || '--'}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-matrix secondary" style="padding:6px 12px;font-size:11px;" onclick="MatrixApp.carregarSimulacao('${sim.id}')" title="Carregar no simulador">📂 Carregar</button>
+            <button class="btn-matrix primary" style="padding:6px 12px;font-size:11px;" onclick="MatrixApp.baixarRelatorioPDF('${sim.id}')" title="Baixar relatório em PDF">📄 Baixar PDF</button>
+            <button class="btn-icon" style="color:var(--rose);font-size:14px;padding:6px 10px;" onclick="MatrixApp.excluirSimulacao('${sim.id}')" title="Excluir simulação">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function carregarSimulacao(id) {
+    const state = MatrixDB.getState();
+    const lista = state.simulacoesAmortizacao || [];
+    const sim = lista.find(s => s.id === id);
+    if (!sim || !sim.config) return;
+
+    const cfg = sim.config;
+    const tipoSelect = document.getElementById('simTipoEstrategia');
+    if (tipoSelect) tipoSelect.value = cfg.tipo || 'combinado';
+    const modSelect = document.getElementById('simModalidadeReducao');
+    if (modSelect) modSelect.value = cfg.modalidade || 'prazo';
+
+    if (cfg.tipo === 'combinado') {
+      if (document.getElementById('simCombMensal')) document.getElementById('simCombMensal').value = cfg.valorMensal || 800;
+      if (document.getElementById('simCombFgts')) document.getElementById('simCombFgts').value = cfg.valorFgts || 12026.88;
+    } else if (cfg.tipo === 'mensal_fixo') {
+      if (document.getElementById('simFixoValor')) document.getElementById('simFixoValor').value = cfg.valorMensal || 1000;
+      if (document.getElementById('simFixoInicio')) document.getElementById('simFixoInicio').value = cfg.mesInicio || 1;
+    } else if (cfg.tipo === 'periodico') {
+      if (document.getElementById('simPeriodicoValor')) document.getElementById('simPeriodicoValor').value = cfg.valorPeriodico || 5000;
+      if (document.getElementById('simPeriodicoFreq')) document.getElementById('simPeriodicoFreq').value = cfg.frequenciaMeses || 12;
+    } else if (cfg.tipo === 'sazonal') {
+      if (document.getElementById('simSazonalValor')) document.getElementById('simSazonalValor').value = cfg.valorSazonal || 3000;
+    } else if (cfg.tipo === 'unico') {
+      if (document.getElementById('simUnicoValor')) document.getElementById('simUnicoValor').value = cfg.valorUnico || 12026.88;
+      if (document.getElementById('simUnicoMes')) document.getElementById('simUnicoMes').value = cfg.mesUnico || 1;
+    } else if (cfg.tipo === 'customizado') {
+      customAmortItens = cfg.itensCustomizados || [];
+      renderCustomAmortTable();
+    }
+
+    onChangeTipoSimulacao();
+    alert(`Simulação "${sim.nome}" carregada com sucesso!`);
+  }
+
+  function excluirSimulacao(id) {
+    const state = MatrixDB.getState();
+    if (!state.simulacoesAmortizacao) return;
+    const idx = state.simulacoesAmortizacao.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      const nome = state.simulacoesAmortizacao[idx].nome;
+      if (confirm(`Deseja realmente excluir a simulação "${nome}"?`)) {
+        state.simulacoesAmortizacao.splice(idx, 1);
+        MatrixDB.saveState(state);
+        renderSimulacoesSalvas();
+      }
+    }
+  }
+
+  function baixarRelatorioPDF(idOuSim) {
+    const state = MatrixDB.getState();
+    const cfgFin = state.financiamentoCaixa || AmortizationEngine.DEFAULT_CONFIG;
+    let simulacaoCompleta = null;
+    let nomeSim = 'Simulação Caixa';
+
+    if (typeof idOuSim === 'string') {
+      const lista = state.simulacoesAmortizacao || [];
+      const saved = lista.find(s => s.id === idOuSim);
+      if (saved) {
+        nomeSim = saved.nome;
+        simulacaoCompleta = AmortizationEngine.executarSimulacaoCompleta(
+          cfgFin.saldoDevedor,
+          cfgFin.prazoMeses || cfgFin.totalPrestacoes || 271,
+          cfgFin.taxaJurosAnual || cfgFin.taxaAnual || 8.9899,
+          saved.config,
+          { ano: 2026, mesIndex: 11 }
+        );
+        simulacaoCompleta.nome = saved.nome;
+      }
+    } else if (idOuSim && typeof idOuSim === 'object') {
+      simulacaoCompleta = idOuSim;
+      nomeSim = simulacaoCompleta.nome || 'Simulação Atual';
+    }
+
+    if (!simulacaoCompleta) {
+      simulacaoCompleta = lastSimulationResult;
+      if (!simulacaoCompleta) {
+        simularAmortizacao();
+        simulacaoCompleta = lastSimulationResult;
+      }
+    }
+
+    if (!simulacaoCompleta) {
+      alert('Erro ao gerar relatório da simulação.');
+      return;
+    }
+
+    simulacaoCompleta.nome = nomeSim;
+    const htmlReport = AmortizationEngine.gerarRelatorioHTML(simulacaoCompleta, cfgFin);
+
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.open();
+      printWin.document.write(htmlReport);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 500);
+    } else {
+      const blob = new Blob([htmlReport], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Laudo_Amortizacao_${nomeSim.replace(/[^a-zA-Z0-9]/g, '_')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('O relatório foi gerado e baixado! Abra o arquivo e pressione Ctrl+P para salvar em PDF.');
+    }
+  }
+
+  function baixarRelatorioPDFAtual() {
+    if (!lastSimulationResult) simularAmortizacao();
+    baixarRelatorioPDF(lastSimulationResult);
   }
 
   // ==========================================
@@ -2322,6 +2670,18 @@ const MatrixApp = (function () {
     resetCalendarToCurrent,
     renderCalendar,
     simularAmortizacao,
+    onChangeTipoSimulacao,
+    updateCustomAmortItem,
+    preencherCustomLote,
+    limparCustomLote,
+    toggleTabelaAnual,
+    salvarSimulacaoAtualPrompt,
+    renderSimulacoesSalvas,
+    carregarSimulacao,
+    excluirSimulacao,
+    baixarRelatorioPDF,
+    baixarRelatorioPDFAtual,
+    renderFinancing,
     saveCloudSettings,
     testCloudConnection,
     forceSyncToCloud,
