@@ -805,7 +805,58 @@ body {
     margin-bottom: 12px;
   }
 
-  /* Evitar zoom automático no Safari iOS */
+  /* Holerite History Accordion */
+.holerite-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.holerite-card:hover {
+  border-color: var(--matrix-green-dim);
+}
+
+.holerite-header {
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(5, 8, 7, 0.4);
+  transition: background var(--transition-fast);
+  user-select: none;
+}
+
+.holerite-header:hover {
+  background: rgba(0, 255, 102, 0.05);
+}
+
+.holerite-body {
+  display: none;
+  padding: 14px;
+  border-top: 1px solid var(--border-dim);
+  background: rgba(5, 8, 7, 0.6);
+}
+
+.holerite-card.open .holerite-body {
+  display: block;
+}
+
+.holerite-card.open .holerite-chevron {
+  transform: rotate(180deg);
+}
+
+.holerite-chevron {
+  transition: transform 0.25s ease;
+  display: inline-block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Evitar zoom automático no Safari iOS */
   .matrix-input, .matrix-select {
     font-size: 16px;
   }

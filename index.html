@@ -412,6 +412,18 @@
             <button class="btn-matrix primary" style="width:100%;justify-content:center;" onclick="MatrixApp.salvarHoleriteManual()">💾 Salvar e Lançar no Fluxo de Caixa</button>
           </div>
         </div>
+
+        <!-- Histórico de Holerites Mensais com Expandir/Recolher -->
+        <div style="margin-top:24px;border-top:1px solid var(--border-dim);padding-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:13px;font-weight:700;color:var(--matrix-green);text-transform:uppercase;font-family:var(--font-mono);">
+              📑 Histórico de Holerites Mensais & Demonstrativos Detalhados
+            </div>
+            <span id="holeritesCountBadge" class="box-badge">0 Holerites</span>
+          </div>
+
+          <div id="holeritesHistoricoList"></div>
+        </div>
       </div>
     </section>
 

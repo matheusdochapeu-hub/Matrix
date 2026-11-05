@@ -23,6 +23,7 @@ const MatrixApp = (function () {
     setupEventListeners();
     updateMonthDisplay();
     renderAll();
+    renderHoleritesHistorico();
 
     // Inicialização ultra-rápida (instantânea da memória/disco local)
     // As chamadas em nuvem rodam em segundo plano sem bloquear a interface
@@ -133,6 +134,7 @@ const MatrixApp = (function () {
 
         // Re-render specifics if needed
         if (targetId === 'tab-simulador') renderSimulator();
+        if (targetId === 'tab-holerites') renderHoleritesHistorico();
         if (targetId === 'tab-calendario') renderCalendar();
         if (targetId === 'tab-financiamento') renderFinancing();
         if (targetId === 'tab-investimentos') renderInvestments();
@@ -1781,7 +1783,12 @@ const MatrixApp = (function () {
     try {
       const res = await PdfHoleriteReader.processPdfFile(file);
       preencherFormularioHolerite(res);
-      alert(`Holerite identificado: ${res.orgao} - ${res.competencia || 'Lido com sucesso'}!`);
+      const conf = confirm(`Holerite identificado: ${res.orgao} - ${res.competencia || 'Lido com sucesso'}!\n\nSalário Líquido: ${formatBRL(res.liquido || 0)}\n\nDeseja lançar este holerite automaticamente no mês de ${res.mesNome || 'Novembro'}/${res.ano || '2026'} agora?`);
+      if (conf) {
+        salvarHoleriteManual();
+      } else {
+        alert('Dados preenchidos no formulário para sua conferência.');
+      }
     } catch (e) {
       alert(`Aviso: ${e.message}\nVocê pode conferir ou digitar os campos abaixo.`);
     }
@@ -1805,30 +1812,275 @@ const MatrixApp = (function () {
     const mes = document.getElementById('hlMes').value;
     const liquido = parseFloat(document.getElementById('hlLiquido').value) || 0;
     const auxSaude = parseFloat(document.getElementById('hlAuxSaude').value) || 0;
+    const vencimentoBruto = parseFloat(document.getElementById('hlVencimento').value) || 6264.04;
+    const inss = parseFloat(document.getElementById('hlInss').value) || 0;
+    const irrf = parseFloat(document.getElementById('hlIr').value) || 0;
+    const sindicato = parseFloat(document.getElementById('hlSindicato').value) || 0;
+    const descontoVr = parseFloat(document.getElementById('hlDescontoVr').value) || 0;
+    const fgts = parseFloat(document.getElementById('hlFgts').value) || 501.12;
+
+    const isMpsp = (ano === '2025' || (ano === '2026' && ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'].includes(mes)));
+    const orgao = isMpsp ? 'Ministério Público de São Paulo (MPSP)' : 'Universidade de São Paulo (USP)';
+    const cargo = isMpsp ? 'Oficial de Promotoria I' : 'Técnico 1 - Nível A';
+    const banco = isMpsp ? 'Bradesco Ag. 00443' : 'Banco do Brasil Ag. 2211 CC 38154-3';
+
+    const monthNum = String(MONTH_NAMES.indexOf(mes) + 1).padStart(2, '0');
+    const periodoKey = `${ano}-${monthNum}`;
 
     const state = MatrixDB.getState();
     if (!state.holerites) state.holerites = [];
 
-    state.holerites.push({
-      periodo: `${ano}-${mes}`,
-      orgao: 'USP - PUSP-SC',
-      cargo: 'Técnico 1 - Nível A',
-      vencimentos: parseFloat(document.getElementById('hlVencimento').value) || 6264.04,
-      descontos: (parseFloat(document.getElementById('hlInss').value) || 0) + (parseFloat(document.getElementById('hlIr').value) || 0),
+    const existingIdx = state.holerites.findIndex(h => h.periodo === periodoKey || h.periodo === `${ano}-${mes}`);
+    const holeriteObj = {
+      periodo: periodoKey,
+      ano: ano,
+      mesNome: mes,
+      orgao: orgao,
+      cargo: cargo,
+      banco: banco,
+      vencimentos: vencimentoBruto,
+      descontos: inss + irrf + sindicato + descontoVr,
       liquido: liquido,
-      fgts: parseFloat(document.getElementById('hlFgts').value) || 501.12
-    });
+      fgts: fgts,
+      auxilioSaude: auxSaude,
+      itens: [
+        { desc: 'Vencimento Básico', tipo: 'Vencimento', valor: vencimentoBruto },
+        ...(auxSaude > 0 ? [{ desc: 'Auxílio-Saúde USP', tipo: 'Vencimento', valor: auxSaude }] : []),
+        ...(inss > 0 ? [{ desc: 'INSS', tipo: 'Desconto', valor: inss }] : []),
+        ...(irrf > 0 ? [{ desc: 'Imposto de Renda (IRRF)', tipo: 'Desconto', valor: irrf }] : []),
+        ...(sindicato > 0 ? [{ desc: 'Sindicato Trabalhadores USP', tipo: 'Desconto', valor: sindicato }] : []),
+        ...(descontoVr > 0 ? [{ desc: 'Desconto Vale Refeição', tipo: 'Desconto', valor: descontoVr }] : [])
+      ]
+    };
 
-    // Atualiza o mês no Fluxo de Caixa
+    if (existingIdx >= 0) {
+      state.holerites[existingIdx] = holeriteObj;
+    } else {
+      state.holerites.push(holeriteObj);
+    }
+
+    // 1. INJEÇÃO DIRETA NO MÊS CORRESPONDENTE DO FLUXO DE CAIXA:
     const month = MatrixDB.getMonth(ano, mes);
+    if (!month.receitas) month.receitas = [];
     if (!month.totais) month.totais = {};
+
+    let salItem = month.receitas.find(r => r.nome.toLowerCase().includes('salário') || r.id.startsWith('rec_sal'));
+    const salNome = isMpsp ? 'Salário Líquido MPSP (Bradesco)' : 'Salário Líquido USP (Banco do Brasil)';
+    if (salItem) {
+      salItem.valor = liquido;
+      salItem.pago = true;
+      salItem.nome = salNome;
+    } else {
+      month.receitas.unshift({
+        id: 'rec_sal_' + mes,
+        nome: salNome,
+        valor: liquido,
+        categoria: 'Salário / Proventos',
+        conta: isMpsp ? 'bradesco' : 'bb',
+        renda: 'salario_usp',
+        pago: true
+      });
+    }
+
+    // 2. Atualiza totais do mês
     month.totais['Salário Mensal'] = liquido;
     if (auxSaude > 0) month.totais['Auxílio-Saúde USP'] = auxSaude;
 
+    // 3. Atualiza depósito mensal do FGTS na Caixa
+    if (fgts > 0 && state.financiamentoCaixa) {
+      state.financiamentoCaixa.fgtsMensalUsp = fgts;
+    }
+
     MatrixDB.saveMonth(ano, mes, month);
     MatrixDB.saveState(state);
+
     renderAll();
-    alert(`Holerite salvo com sucesso e lançado no mês de ${mes}/${ano}!`);
+    renderHoleritesHistorico();
+    alert(`✅ Holerite lançado com sucesso direto no mês de ${mes}/${ano}!\n\n• Salário Líquido: ${formatBRL(liquido)} (creditado como Recebido)\n• FGTS: ${formatBRL(fgts)} atualizado na amortização Caixa`);
+  }
+
+  function renderHoleritesHistorico() {
+    const listEl = document.getElementById('holeritesHistoricoList');
+    const badgeEl = document.getElementById('holeritesCountBadge');
+    if (!listEl) return;
+
+    const state = MatrixDB.getState();
+    const holerites = (state.holerites || []).slice();
+
+    if (badgeEl) badgeEl.textContent = `${holerites.length} Holerites`;
+
+    if (holerites.length === 0) {
+      listEl.innerHTML = `
+        <div style="background:var(--bg-card);border:1px dashed var(--border-dim);padding:20px;border-radius:var(--radius-sm);text-align:center;color:var(--text-muted);font-family:var(--font-mono);font-size:12px;">
+          Nenhum holerite processado no histórico. Arraste um arquivo PDF ou lance manualmente acima.
+        </div>
+      `;
+      return;
+    }
+
+    // Ordenar cronologicamente decrescente (mais recente primeiro)
+    holerites.sort((a, b) => {
+      const pA = a.periodo || '';
+      const pB = b.periodo || '';
+      return pB.localeCompare(pA);
+    });
+
+    listEl.innerHTML = holerites.map((h, i) => {
+      const cardId = `holerite_card_${i}`;
+      const orgaoIcon = (h.orgao && h.orgao.includes('MPSP')) ? '⚖️' : '🏛️';
+      const itens = h.itens || [];
+      const vencimentosItens = itens.filter(it => it.tipo === 'Vencimento');
+      const descontosItens = itens.filter(it => it.tipo === 'Desconto');
+
+      let anoLabel = h.ano;
+      let mesLabel = h.mesNome;
+      if (!anoLabel || !mesLabel) {
+        if (h.periodo && h.periodo.includes('-')) {
+          const parts = h.periodo.split('-');
+          anoLabel = parts[0];
+          const mNum = parseInt(parts[1], 10);
+          mesLabel = !isNaN(mNum) && mNum >= 1 && mNum <= 12 ? MONTH_NAMES[mNum - 1] : parts[1];
+        } else {
+          anoLabel = '2026';
+          mesLabel = 'Mês';
+        }
+      }
+
+      return `
+        <div id="${cardId}" class="holerite-card">
+          <!-- Cabeçalho do Card (Expandir / Recolher) -->
+          <div class="holerite-header" onclick="MatrixApp.toggleHoleriteAccordion('${cardId}')" title="Clique para expandir ou recolher o demonstrativo">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:18px;">${orgaoIcon}</span>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <strong style="color:var(--text-main);font-size:13.5px;font-family:var(--font-mono);">${mesLabel} / ${anoLabel}</strong>
+                  <span class="status-badge" style="background:rgba(0,255,102,0.12);color:var(--matrix-green);border-color:var(--matrix-green-dim);font-size:9.5px;">
+                    ✅ Lançado no Mês
+                  </span>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                  ${h.orgao || 'USP - São Carlos'} • ${h.cargo || 'Técnico 1 - Nível A'}
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="text-align:right;font-family:var(--font-mono);">
+                <div style="font-size:10px;color:var(--text-muted);">LÍQUIDO EM CONTA:</div>
+                <div style="font-size:14px;font-weight:700;color:var(--matrix-green);">${formatBRL(h.liquido || 0)}</div>
+              </div>
+              <span class="holerite-chevron">▼</span>
+            </div>
+          </div>
+
+          <!-- Corpo do Card (Demonstrativo Detalhado) -->
+          <div class="holerite-body">
+            <!-- Barra de Indicadores do Holerite -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:14px;background:rgba(5,8,7,0.4);padding:10px;border-radius:var(--radius-xs);border:1px solid var(--border-dim);font-family:var(--font-mono);font-size:11px;">
+              <div>
+                <span style="color:var(--text-muted);font-size:10px;">VENCIMENTO BRUTO:</span>
+                <div style="color:var(--cyan);font-weight:700;font-size:12.5px;">${formatBRL(h.vencimentos || 0)}</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);font-size:10px;">TOTAL DESCONTOS:</span>
+                <div style="color:var(--rose);font-weight:700;font-size:12.5px;">- ${formatBRL(h.descontos || 0)}</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);font-size:10px;">FGTS DEPOSITADO:</span>
+                <div style="color:var(--amber);font-weight:700;font-size:12.5px;">${formatBRL(h.fgts || 501.12)}</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted);font-size:10px;">CONTA BANCÁRIA:</span>
+                <div style="color:var(--text-main);font-size:11px;">${h.banco || 'Banco do Brasil Ag. 2211'}</div>
+              </div>
+            </div>
+
+            <!-- Tabela dos Itens Discriminados (se houver) -->
+            ${itens.length > 0 ? `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px;margin-bottom:14px;">
+              <!-- Coluna Vencimentos -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:6px;font-family:var(--font-mono);text-transform:uppercase;">
+                  (+) Vencimentos & Vantagens:
+                </div>
+                <table class="data-table" style="font-size:11px;">
+                  <tbody>
+                    ${vencimentosItens.map(it => `
+                      <tr>
+                        <td>
+                          ${it.cod ? `<span style="color:var(--text-dim);font-family:var(--font-mono);font-size:10px;">[${it.cod}] </span>` : ''}
+                          <strong>${it.desc || it.nome}</strong>
+                        </td>
+                        <td class="val-col" style="color:var(--cyan);">${formatBRL(it.valor)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Coluna Descontos -->
+              <div>
+                <div style="font-size:11px;font-weight:700;color:var(--rose);margin-bottom:6px;font-family:var(--font-mono);text-transform:uppercase;">
+                  (-) Descontos & Retenções:
+                </div>
+                <table class="data-table" style="font-size:11px;">
+                  <tbody>
+                    ${descontosItens.map(it => `
+                      <tr>
+                        <td>
+                          ${it.cod ? `<span style="color:var(--text-dim);font-family:var(--font-mono);font-size:10px;">[${it.cod}] </span>` : ''}
+                          <strong>${it.desc || it.nome}</strong>
+                        </td>
+                        <td class="val-col" style="color:var(--rose);">- ${formatBRL(it.valor)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            ` : `
+            <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;">
+              Holerite consolidado. Valores registrados no fluxo de caixa: Líquido ${formatBRL(h.liquido)}, FGTS ${formatBRL(h.fgts)}.
+            </div>
+            `}
+
+            <!-- Ações do Holerite -->
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-dim);padding-top:10px;margin-top:10px;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:11px;color:var(--matrix-green);font-family:var(--font-mono);">
+                ● Dados integrados no Fluxo de Caixa de <strong>${mesLabel} / ${anoLabel}</strong>
+              </span>
+              <div style="display:flex;gap:8px;">
+                <button class="btn-matrix" style="font-size:11px;padding:4px 10px;" onclick="MatrixApp.navegarParaMes('${anoLabel}', '${mesLabel}')">
+                  🚀 Ver no Fluxo de Caixa (${mesLabel}/${anoLabel})
+                </button>
+                <button class="btn-icon" title="Excluir este holerite" onclick="MatrixApp.excluirHolerite(${i})">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function toggleHoleriteAccordion(cardId) {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.classList.toggle('open');
+    }
+  }
+
+  function excluirHolerite(index) {
+    const state = MatrixDB.getState();
+    const h = state.holerites && state.holerites[index];
+    const desc = h ? `${h.periodo} (${h.orgao})` : 'este holerite';
+    if (confirm(`Deseja remover o registro de holerite de ${desc}?`)) {
+      state.holerites.splice(index, 1);
+      MatrixDB.saveState(state);
+      renderHoleritesHistorico();
+    }
   }
 
   // Inicializar quando o DOM estiver pronto
@@ -1874,7 +2126,10 @@ const MatrixApp = (function () {
     executarScrapingSatellites,
     abrirDrilldown,
     abrirRaioXSimulador,
-    navegarParaMes
+    navegarParaMes,
+    renderHoleritesHistorico,
+    toggleHoleriteAccordion,
+    excluirHolerite
   };
 })();
 
