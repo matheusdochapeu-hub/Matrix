@@ -684,72 +684,189 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.35);
 }
 
-/* Origem do Recurso (De onde veio o dinheiro / De onde sai) */
+/* Origem do Recurso & Logos dos Bancos (De onde veio / De onde sai) */
 .origem-badge {
   display: inline-flex;
   align-items: center;
-  padding: 1.5px 5px;
+  gap: 3.5px;
+  padding: 1.5px 5.5px;
   border-radius: var(--radius-xs);
-  font-size: 9px;
+  font-size: 9.5px;
   font-family: var(--font-mono);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1.2;
+  letter-spacing: 0.2px;
+  line-height: 1.25;
   border: 1px solid var(--border-dim);
   background: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
 }
 
 .origem-badge.bb {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
+  color: #fde047;
+  border-color: rgba(253, 224, 71, 0.45);
+  background: rgba(0, 56, 130, 0.28);
 }
 
 .origem-badge.va {
-  color: #00ff66;
-  border-color: rgba(0, 255, 102, 0.35);
-  background: rgba(0, 255, 102, 0.08);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.15);
 }
 
 .origem-badge.vr {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.08);
+  color: #67e8f9;
+  border-color: rgba(6, 182, 212, 0.45);
+  background: rgba(6, 182, 212, 0.15);
 }
 
 .origem-badge.nubank {
-  color: #c084fc;
-  border-color: rgba(192, 132, 252, 0.35);
-  background: rgba(192, 132, 252, 0.08);
+  color: #d8b4fe;
+  border-color: rgba(130, 10, 209, 0.45);
+  background: rgba(130, 10, 209, 0.18);
 }
 
-.origem-badge.scarlet {
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.08);
+.origem-badge.inter {
+  color: #fb923c;
+  border-color: rgba(255, 122, 0, 0.45);
+  background: rgba(255, 122, 0, 0.18);
 }
 
-.origem-badge.invest {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.4);
-  background: rgba(56, 189, 248, 0.12);
+.origem-badge.santander {
+  color: #fca5a5;
+  border-color: rgba(236, 0, 0, 0.45);
+  background: rgba(236, 0, 0, 0.18);
+}
+
+.origem-badge.caixa {
+  color: #93c5fd;
+  border-color: rgba(0, 92, 169, 0.5);
+  background: rgba(0, 92, 169, 0.25);
+}
+
+.origem-badge.scarlet, .origem-badge.fisio {
+  color: #f472b6;
+  border-color: rgba(236, 72, 153, 0.45);
+  background: rgba(236, 72, 153, 0.18);
+}
+
+.origem-badge.invest, .origem-badge.tesouro {
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.18);
 }
 
 .origem-badge.resgate {
   color: #f87171;
-  border-color: rgba(248, 113, 113, 0.4);
-  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.15);
 }
 
-.origem-badge.caixa {
-  color: #60a5fa;
-  border-color: rgba(96, 165, 250, 0.35);
-  background: rgba(96, 165, 250, 0.08);
+.origem-badge.dinheiro {
+  color: #86efac;
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.18);
 }
 
 .origem-badge.default {
   color: var(--text-dim);
+}
+
+.bank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+}
+.bank-badge.nubank { background: rgba(130, 10, 209, 0.18); color: #d8b4fe; border: 1px solid rgba(130, 10, 209, 0.45); }
+.bank-badge.bb { background: rgba(0, 56, 130, 0.28); color: #fde047; border: 1px solid rgba(253, 224, 71, 0.45); }
+.bank-badge.inter { background: rgba(255, 122, 0, 0.18); color: #fb923c; border: 1px solid rgba(255, 122, 0, 0.45); }
+.bank-badge.santander { background: rgba(236, 0, 0, 0.18); color: #fca5a5; border: 1px solid rgba(236, 0, 0, 0.45); }
+.bank-badge.caixa { background: rgba(0, 92, 169, 0.25); color: #93c5fd; border: 1px solid rgba(0, 92, 169, 0.5); }
+.bank-badge.va { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.45); }
+.bank-badge.vr { background: rgba(6, 182, 212, 0.18); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.45); }
+.bank-badge.fisio { background: rgba(236, 72, 153, 0.18); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.45); }
+.bank-badge.tesouro { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.45); }
+.bank-badge.dinheiro { background: rgba(34, 197, 94, 0.18); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.45); }
+.bank-badge.default { background: rgba(255, 255, 255, 0.08); color: var(--text-muted); border: 1px solid var(--border-dim); }
+
+/* Botão Flutuante de Gasto Diário (FAB) */
+.fab-quick-expense {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99;
+  background: linear-gradient(135deg, #00ff66, #008f11);
+  color: #030805;
+  border: 1px solid #00ff66;
+  border-radius: 30px;
+  padding: 11px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 255, 102, 0.45);
+  transition: all var(--transition-fast);
+  touch-action: manipulation;
+}
+
+.fab-quick-expense:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 26px rgba(0, 255, 102, 0.65);
+}
+
+.fab-quick-expense:active {
+  transform: translateY(1px);
+}
+
+.fab-icon {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .fab-quick-expense {
+    bottom: 20px;
+    right: 16px;
+    padding: 10px 14px;
+    font-size: 11.5px;
+  }
+}
+
+/* Relatório de Impressão e Exportação */
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+  }
+  .matrix-header, .matrix-tabs, .mobile-swipe-indicator, .fab-quick-expense, .matrix-modal-backdrop, .btn-matrix, .action-col, #rainCanvas {
+    display: none !important;
+  }
+  .app-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  .matrix-box {
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+    color: #111 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    margin-bottom: 20px !important;
+  }
+  .data-table th, .data-table td {
+    color: #111 !important;
+    border-bottom: 1px solid #eee !important;
+  }
 }
 
 .cat-pill {

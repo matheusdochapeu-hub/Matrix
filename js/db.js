@@ -73,6 +73,11 @@ const MatrixDB = (function () {
           m.receitas = m.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
           if (m.receitas.length !== origLen) mutated = true;
         }
+        if (m.diarios && Array.isArray(m.diarios)) {
+          const origLen = m.diarios.length;
+          m.diarios = m.diarios.filter(it => it && !isSummaryOrTotalItem(it.nome));
+          if (m.diarios.length !== origLen) mutated = true;
+        }
       }
     }
     if (mutated) {
@@ -238,24 +243,30 @@ const MatrixDB = (function () {
   function getListByTipo(month, tipo) {
     if (tipo === 'fixo') return month.fixos || (month.fixos = []);
     if (tipo === 'receita') return month.receitas || (month.receitas = []);
+    if (tipo === 'diario' || tipo === 'gasto_diario') return month.diarios || (month.diarios = []);
     return month.outros || (month.outros = []);
   }
 
   function addTransaction(ano, mes, tipo, item) {
     const s = getState();
     if (!s.anos[ano]) s.anos[ano] = {};
-    if (!s.anos[ano][mes]) s.anos[ano][mes] = { fixos: [], outros: [], receitas: [], totais: {} };
+    if (!s.anos[ano][mes]) s.anos[ano][mes] = { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
 
     const month = s.anos[ano][mes];
     const list = getListByTipo(month, tipo);
-    const prefix = tipo === 'fixo' ? 'fix_' : (tipo === 'receita' ? 'rec_' : 'out_');
+    const prefix = tipo === 'fixo' ? 'fix_' : (tipo === 'receita' ? 'rec_' : (tipo === 'diario' || tipo === 'gasto_diario' ? 'diar_' : 'out_'));
 
     list.push({
       id: prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       nome: item.nome,
       valor: parseFloat(item.valor) || 0,
-      categoria: item.categoria || (tipo === 'receita' ? 'Salário / Proventos' : (tipo === 'fixo' ? 'Habitação' : 'Outros')),
-      pago: !!item.pago
+      categoria: item.categoria || (tipo === 'receita' ? 'Salário / Proventos' : (tipo === 'fixo' ? 'Habitação' : (tipo === 'diario' ? 'Alimentação & Lanches' : 'Outros'))),
+      conta: item.conta || 'debito_nubank',
+      renda: item.renda || '',
+      metodo: item.metodo || 'debito',
+      dataHora: item.dataHora || new Date().toISOString(),
+      obs: item.obs || '',
+      pago: item.pago !== undefined ? !!item.pago : true
     });
 
     saveState(s);
@@ -354,6 +365,7 @@ const MatrixDB = (function () {
             fixos: (src.fixos || []).map(f => ({ ...f, id: 'fix_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), pago: false })),
             outros: (src.outros || []).map(o => ({ ...o, id: 'out_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), pago: false })),
             receitas: (src.receitas || []).map(r => ({ ...r, id: 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4), pago: false })),
+            diarios: [],
             totais: { ...(src.totais || {}) }
           };
         } else {
@@ -361,6 +373,7 @@ const MatrixDB = (function () {
           s.anos[ty][mes] = {
             fixos: [],
             outros: [],
+            diarios: [],
             receitas: [
               { id: 'rec_sal_' + mes, nome: 'Salário Líquido USP (Banco do Brasil)', valor: 5788.19, categoria: 'Salário / Proventos', pago: false },
               { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1235.00, categoria: 'Benefícios', pago: false },

@@ -541,13 +541,15 @@ const MatrixApp = (function () {
     const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     // Gastos Outros/Variáveis
     const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    // Gastos Diários Imediatos
+    const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     // Contas início de ano
     let contasInicio = 0;
     if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
       contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
     }
 
-    const totalGastos = fixos + outros + contasInicio;
+    const totalGastos = fixos + outros + diarios + contasInicio;
     const saldoLivre = ganhos - totalGastos;
 
     // Fatura Nubank Black e Ganhos da Scarlet do mês
@@ -568,7 +570,7 @@ const MatrixApp = (function () {
 
     document.getElementById('kpiGanhos').textContent = formatBRL(ganhos);
     document.getElementById('kpiFixos').textContent = formatBRL(fixos);
-    document.getElementById('kpiOutros').textContent = formatBRL(outros);
+    document.getElementById('kpiOutros').textContent = formatBRL(outros + diarios);
     
     const saldoEl = document.getElementById('kpiSaldo');
     saldoEl.textContent = formatBRL(saldoLivre);
@@ -1016,47 +1018,119 @@ const MatrixApp = (function () {
   // ==========================================
   // 2. FLUXO DE CAIXA MENSAL (TABELA PRINCIPAL)
   // ==========================================
-  function renderOrigemBadge(conta, renda, nome) {
+  const BANK_BADGE_MAP = {
+    // Nubank
+    debito_nubank: { label: 'Débito Nubank', class: 'nubank', icon: '🟣' },
+    credito_nubank_matheus: { label: 'Crédito Nubank (Matheus)', class: 'nubank', icon: '🟣💳' },
+    credito_nubank_scarlet: { label: 'Crédito Nubank (Scarlet)', class: 'nubank', icon: '🟣💳' },
+    pix_nubank: { label: 'Pix Nubank', class: 'nubank', icon: '🟣⚡' },
+    nubank: { label: 'Nubank Black', class: 'nubank', icon: '🟣💳' },
+    nubank_matheus: { label: 'Crédito Nubank (Matheus)', class: 'nubank', icon: '🟣💳' },
+    nubank_scarlet: { label: 'Crédito Nubank (Scarlet)', class: 'nubank', icon: '🟣💳' },
+
+    // Banco do Brasil
+    salario_bb: { label: 'BB Salário USP', class: 'bb', icon: '🟡🏦' },
+    debito_bb: { label: 'Débito BB', class: 'bb', icon: '🟡' },
+    pix_bb: { label: 'Pix BB', class: 'bb', icon: '🟡⚡' },
+    boleto_bb: { label: 'Boleto BB', class: 'bb', icon: '🟡📄' },
+    bb: { label: 'Banco do Brasil', class: 'bb', icon: '🟡🏦' },
+
+    // Banco Inter
+    debito_inter: { label: 'Débito Inter', class: 'inter', icon: '🟠' },
+    pix_inter: { label: 'Pix Inter', class: 'inter', icon: '🟠⚡' },
+    cdb_inter: { label: 'CDB Inter 100% CDI', class: 'inter', icon: '🟠📈' },
+    inter: { label: 'Banco Inter', class: 'inter', icon: '🟠' },
+
+    // Santander
+    debito_santander: { label: 'Débito Santander', class: 'santander', icon: '🔴' },
+    pix_santander: { label: 'Pix Santander', class: 'santander', icon: '🔴⚡' },
+    santander: { label: 'Santander DinDin', class: 'santander', icon: '🔴' },
+
+    // Caixa Econômica
+    debito_caixa: { label: 'Caixa Casa', class: 'caixa', icon: '🔵🏠' },
+    fgts_caixa: { label: 'FGTS USP Caixa', class: 'caixa', icon: '🔵🏢' },
+    caixa: { label: 'Caixa Habitação', class: 'caixa', icon: '🔵🏠' },
+
+    // Benefícios
+    cartao_va: { label: 'Cartão VA (Maracaju)', class: 'va', icon: '🟢🥗' },
+    va: { label: 'Cartão VA (Maracaju)', class: 'va', icon: '🟢🥗' },
+    cartao_vr: { label: 'Cartão VR (USP)', class: 'vr', icon: '🍽️' },
+    vr: { label: 'Cartão VR (USP)', class: 'vr', icon: '🍽️' },
+
+    // Scarlet / FisioFlow
+    scarlet_fisio: { label: 'FisioFlow (Scarlet)', class: 'fisio', icon: '🩺' },
+    scarlet: { label: 'FisioFlow (Scarlet)', class: 'fisio', icon: '🩺' },
+
+    // Investimentos / Resgates
+    resgate_tesouro_reserva: { label: 'Resgate Tesouro Reserva', class: 'resgate', icon: '📉🏛️' },
+    tesouro_renda: { label: 'Tesouro Renda+ 2055', class: 'invest', icon: '📈🏛️' },
+    tesouro_selic: { label: 'Tesouro Selic', class: 'invest', icon: '🏛️' },
+    acoes_b3: { label: 'Ações B3 (CSNA3/MGLU3)', class: 'invest', icon: '📊' },
+    investimento_aporte: { label: 'Aporte Investimentos', class: 'invest', icon: '📈' },
+
+    // Dinheiro
+    dinheiro_vivo: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' },
+    dinheiro: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' }
+  };
+
+  function renderOrigemBadge(conta, renda, nome, metodo = null) {
     const c = String(conta || '').toLowerCase();
     const r = String(renda || '').toLowerCase();
     const n = String(nome || '').toLowerCase();
 
-    if (c === 'resgate_tesouro_reserva' || (n.includes('tesouro reserva') && (c.includes('resgate') || r.includes('resgate')))) {
-      return '<span class="origem-badge resgate" title="Custeado por resgate do Tesouro Reserva">📉 Resgate Tesouro</span>';
+    // 1. Direct match in dictionary
+    if (BANK_BADGE_MAP[c]) {
+      const b = BANK_BADGE_MAP[c];
+      return `<span class="bank-badge ${b.class}" title="Origem: ${b.label}"><span class="bank-icon">${b.icon}</span> <strong>${b.label}</strong></span>`;
     }
+
+    // 2. Fallbacks based on pattern
     if (c.includes('resgate') || r.includes('resgate') || n.includes('resgate')) {
-      return '<span class="origem-badge resgate" title="Custeado por resgate de investimento">📉 Resgate Invest</span>';
+      return '<span class="bank-badge resgate" title="Custeado por resgate do Tesouro Reserva"><span class="bank-icon">📉🏛️</span> <strong>Resgate Tesouro</strong></span>';
     }
-    if (c === 'investimento_aporte' || n.includes('renda+') || n.includes('tesouro') || n.includes('cripto') || n.includes('cdb')) {
-      return '<span class="origem-badge invest" title="Aporte / Aplicação em Investimentos">📈 Investimento</span>';
+    if (c.includes('invest') || c.includes('aporte') || n.includes('renda+') || n.includes('tesouro') || n.includes('cdb') || n.includes('cripto')) {
+      return '<span class="bank-badge invest" title="Aporte / Aplicação"><span class="bank-icon">📈🏛️</span> <strong>Investimento</strong></span>';
     }
-    if (c === 'va' || r === 'va_mercado' || n.includes('alimentação') || n.includes('mercado')) {
-      return '<span class="origem-badge va" title="Recurso oriundo do Vale Alimentação (Maracaju 88)">🥗 VA Maracaju</span>';
+    if (c.includes('nubank') || n.includes('nubank')) {
+      if (c.includes('scarlet') || n.includes('scarlet')) {
+        return '<span class="bank-badge nubank" title="Crédito Nubank Scarlet"><span class="bank-icon">🟣💳</span> <strong>Crédito Nubank (Scarlet)</strong></span>';
+      }
+      return '<span class="bank-badge nubank" title="Nubank Mastercard Black"><span class="bank-icon">🟣💳</span> <strong>Nubank Black</strong></span>';
     }
-    if (c === 'vr' || r === 'vr_almoco' || n.includes('refeição') || n.includes('almoço') || n.includes('restaurante')) {
-      return '<span class="origem-badge vr" title="Recurso oriundo do Vale Refeição (USP)">🍽️ VR USP</span>';
+    if (c.includes('inter') || n.includes('inter')) {
+      return '<span class="bank-badge inter" title="Banco Inter"><span class="bank-icon">🟠</span> <strong>Banco Inter</strong></span>';
     }
-    if (c === 'nubank_scarlet' || c === 'nubank_matheus' || n.includes('nubank')) {
-      return '<span class="origem-badge nubank" title="Cartão de Crédito Nubank Black">💳 Nubank Black</span>';
+    if (c.includes('santander') || n.includes('santander') || n.includes('dindin')) {
+      return '<span class="bank-badge santander" title="Santander"><span class="bank-icon">🔴</span> <strong>Santander</strong></span>';
     }
-    if (c === 'scarlet' || r === 'ganhos_scarlet' || n.includes('scarlet')) {
-      return '<span class="origem-badge scarlet" title="Ganhos da Scarlet (FisioFlow)">🩺 Scarlet</span>';
+    if (c.includes('caixa') || n.includes('caixa') || n.includes('habita')) {
+      return '<span class="bank-badge caixa" title="Caixa Habitação"><span class="bank-icon">🔵🏠</span> <strong>Caixa Casa</strong></span>';
     }
-    if (c === 'caixa' || n.includes('caixa') || n.includes('parcela casa')) {
-      return '<span class="origem-badge caixa" title="Débito em Conta / Financiamento Caixa">🏠 Caixa</span>';
+    if (c === 'va' || r.includes('va') || n.includes('va maracaju') || n.includes('supermercado')) {
+      return '<span class="bank-badge va" title="Cartão Vale Alimentação (Maracaju 88)"><span class="bank-icon">🟢🥗</span> <strong>Cartão VA</strong></span>';
     }
-    if (c === 'bb' || r === 'salario_usp' || n.includes('salário') || n.includes('bb')) {
-      return '<span class="origem-badge bb" title="Recurso oriundo do Salário Líquido USP (Conta BB)">🏦 BB Salário</span>';
+    if (c === 'vr' || r.includes('vr') || n.includes('vr usp') || n.includes('refeição')) {
+      return '<span class="bank-badge vr" title="Cartão Vale Refeição (Almoço USP)"><span class="bank-icon">🍽️</span> <strong>Cartão VR</strong></span>';
     }
-    return `<span class="origem-badge default" title="Conta de Origem">${conta || 'Orçamento'}</span>`;
+    if (c.includes('scarlet') || r.includes('scarlet') || n.includes('scarlet') || n.includes('fisio')) {
+      return '<span class="bank-badge fisio" title="Ganhos da Scarlet (FisioFlow)"><span class="bank-icon">🩺</span> <strong>FisioFlow (Scarlet)</strong></span>';
+    }
+    if (c === 'bb' || r.includes('salario') || n.includes('bb') || n.includes('salário')) {
+      return '<span class="bank-badge bb" title="Salário Líquido USP (Conta BB)"><span class="bank-icon">🟡🏦</span> <strong>BB Salário USP</strong></span>';
+    }
+    if (c.includes('dinheiro') || n.includes('dinheiro')) {
+      return '<span class="bank-badge dinheiro" title="Dinheiro em Espécie"><span class="bank-icon">💵</span> <strong>Dinheiro Vivo</strong></span>';
+    }
+
+    return `<span class="bank-badge default" title="Conta de Origem"><span class="bank-icon">💳</span> <strong>${conta || 'Orçamento Geral'}</strong></span>`;
   }
 
-  function renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList) {
+  function renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList, diariosList = []) {
     const origensEl = document.getElementById('traceOrigensList');
     const destinosEl = document.getElementById('traceDestinosList');
     if (!origensEl || !destinosEl) return;
 
-    const allExpenses = [...fixosList, ...outrosList];
+    const allExpenses = [...fixosList, ...outrosList, ...diariosList];
 
     // 1. Fontes de Recurso (De Onde Veio)
     const receitas = monthData.receitas || [];
@@ -1242,8 +1316,13 @@ const MatrixApp = (function () {
     const pagosOutros = outrosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     const pendentesOutros = Math.max(0, totalOutros - pagosOutros);
 
-    const totalGeralPago = pagosFixos + pagosOutros;
-    const totalGeralPendente = pendentesFixos + pendentesOutros;
+    const diariosList = monthData.diarios || [];
+    const totalDiarios = diariosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pagosDiarios = diariosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pendentesDiarios = Math.max(0, totalDiarios - pagosDiarios);
+
+    const totalGeralPago = pagosFixos + pagosOutros + pagosDiarios;
+    const totalGeralPendente = pendentesFixos + pendentesOutros + pendentesDiarios;
 
     // Atualizar Termômetro dos Fixos
     if (document.getElementById('fixosPagoLabel')) document.getElementById('fixosPagoLabel').textContent = formatBRL(pagosFixos);
@@ -1257,10 +1336,18 @@ const MatrixApp = (function () {
     const pctOutros = totalOutros > 0 ? (pagosOutros / totalOutros) * 100 : 0;
     if (document.getElementById('outrosProgressBar')) document.getElementById('outrosProgressBar').style.width = pctOutros.toFixed(1) + '%';
 
+    // Atualizar Termômetro dos Gastos Diários
+    if (document.getElementById('diariosPagoLabel')) document.getElementById('diariosPagoLabel').textContent = formatBRL(pagosDiarios);
+    if (document.getElementById('diariosPendenteLabel')) document.getElementById('diariosPendenteLabel').textContent = formatBRL(pendentesDiarios);
+    if (document.getElementById('diariosTotalLabel')) document.getElementById('diariosTotalLabel').textContent = formatBRL(totalDiarios);
+    const pctDiarios = totalDiarios > 0 ? (pagosDiarios / totalDiarios) * 100 : 0;
+    if (document.getElementById('diariosProgressBar')) document.getElementById('diariosProgressBar').style.width = pctDiarios.toFixed(1) + '%';
+
     // Atualizar Termômetro Geral do Mês
+    const totalGeralDespesas = totalFixos + totalOutros + totalDiarios;
     if (document.getElementById('geralPagoTotal')) document.getElementById('geralPagoTotal').textContent = formatBRL(totalGeralPago);
     if (document.getElementById('geralPendenteTotal')) document.getElementById('geralPendenteTotal').textContent = formatBRL(totalGeralPendente);
-    const pctGeral = (totalFixos + totalOutros) > 0 ? (totalGeralPago / (totalFixos + totalOutros)) * 100 : 0;
+    const pctGeral = totalGeralDespesas > 0 ? (totalGeralPago / totalGeralDespesas) * 100 : 0;
     if (document.getElementById('geralProgressBar')) document.getElementById('geralProgressBar').style.width = pctGeral.toFixed(1) + '%';
 
     // Render Fixos Table Body
@@ -1345,6 +1432,52 @@ const MatrixApp = (function () {
       }
     }
 
+    // Render Diários / Micro-Gastos Table Body
+    const diariosTbody = document.getElementById('diariosTableBody');
+    if (diariosTbody) {
+      if (diariosList.length === 0) {
+        diariosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Nenhum gasto diário registrado neste mês. Clique no botão flutuante "+ Gasto Diário" para lançar.</td></tr>`;
+      } else {
+        diariosTbody.innerHTML = diariosList.map((d, i) => {
+          let dtFmt = '';
+          if (d.dataHora) {
+            const p = d.dataHora.split('T');
+            const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+            const horaP = p[1] ? p[1].slice(0, 5) : '';
+            dtFmt = `${dataP} ${horaP}`.trim();
+          }
+          return `
+          <tr class="${d.pago ? 'paid' : ''}">
+            <td>
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+                <strong>${d.nome}</strong>
+                ${dtFmt ? `<small style="color:var(--text-dim);font-size:10px;">${dtFmt}</small>` : ''}
+              </div>
+              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+                ${renderOrigemBadge(d.conta, d.renda, d.nome)}
+                <span class="cat-pill">${d.categoria || 'Gasto Diário'}</span>
+                ${d.obs ? `<span style="font-size:10px;color:var(--text-muted);font-style:italic;">"${d.obs}"</span>` : ''}
+              </div>
+            </td>
+            <td>
+              <button type="button" 
+                      class="status-btn ${d.pago ? 'pago' : 'pendente'}" 
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'diario', ${i})"
+                      title="Clique para alternar entre Pago e Pendente">
+                ${d.pago ? '✅ PAGO' : '⏳ PENDENTE'}
+              </button>
+            </td>
+            <td class="val-col" style="color:var(--rose);font-weight:700;">${formatBRL(d.valor)}</td>
+            <td class="action-col">
+              <button class="btn-icon" title="Editar este gasto diário" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">✏️</button>
+              <button class="btn-icon" title="Excluir este gasto diário" onclick="MatrixApp.removeQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">🗑️</button>
+            </td>
+          </tr>
+        `;
+        }).join('');
+      }
+    }
+
     // Render Receitas / Ganhos Table Body & Termômetro
     const receitasList = monthData.receitas || [];
     const totalReceitas = receitasList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
@@ -1388,8 +1521,9 @@ const MatrixApp = (function () {
       }
     }
 
-    // Totais de Fixos e Variáveis abaixo de Receitas e Fechamento
-    const saldoFinal = totalReceitas - (totalFixos + totalOutros);
+    // Totais de Fixos, Variáveis e Diários abaixo de Receitas e Fechamento
+    const totalDespesas = totalFixos + totalOutros + totalDiarios;
+    const saldoFinal = totalReceitas - totalDespesas;
 
     const badgeMes = document.getElementById('fechamentoMesBadge');
     if (badgeMes) badgeMes.textContent = `${currentMonth} / ${currentYear}`;
@@ -1413,11 +1547,11 @@ const MatrixApp = (function () {
     }
 
     const totalOutEl = document.getElementById('fechamentoTotalOutros');
-    if (totalOutEl) totalOutEl.textContent = formatBRL(totalOutros);
+    if (totalOutEl) totalOutEl.textContent = formatBRL(totalOutros + totalDiarios);
     const outSubEl = document.getElementById('fechamentoOutrosSub');
     if (outSubEl) {
-      const pagCount = outrosList.filter(o => o.pago).length;
-      const pendCount = outrosList.length - pagCount;
+      const pagCount = outrosList.filter(o => o.pago).length + diariosList.filter(d => d.pago).length;
+      const pendCount = (outrosList.length + diariosList.length) - pagCount;
       outSubEl.textContent = `${pagCount} pagos • ${pendCount} pendentes`;
     }
 
@@ -1434,7 +1568,7 @@ const MatrixApp = (function () {
     }
 
     // Rastreabilidade: De Onde Veio ➔ Para Onde Foi
-    renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList);
+    renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList, diariosList);
 
     // Render Bloco Contas de Início de Ano (se Janeiro)
     const contasInicioBox = document.getElementById('contasInicioAnoBox');
@@ -1444,6 +1578,17 @@ const MatrixApp = (function () {
         renderContasInicioAno(monthData);
       } else {
         contasInicioBox.style.display = 'none';
+      }
+    }
+
+    // Render Bloco Revisão Anual de Gastos & Ranking Top 10 (se Dezembro)
+    const revisaoDezembroBox = document.getElementById('revisaoAnualDezembroBox');
+    if (revisaoDezembroBox) {
+      if (currentMonth === 'Dezembro') {
+        revisaoDezembroBox.style.display = 'block';
+        renderRevisaoAnualDezembro(currentYear);
+      } else {
+        revisaoDezembroBox.style.display = 'none';
       }
     }
   }
@@ -1478,6 +1623,459 @@ const MatrixApp = (function () {
         <td class="val-col">${formatBRL(it.valor)}</td>
       </tr>
     `).join('');
+  }
+
+  // ==========================================
+  // 2.1 CONTROLE DE GASTOS DIÁRIOS (FAB & MODAL)
+  // ==========================================
+  function openQuickExpenseModal(index = null) {
+    const titleEl = document.getElementById('quickExpenseModalTitle');
+    const idxInput = document.getElementById('quickExpenseEditIndex');
+    const nomeInput = document.getElementById('quickExpenseNome');
+    const valorInput = document.getElementById('quickExpenseValor');
+    const dataHoraInput = document.getElementById('quickExpenseDataHora');
+    const catSelect = document.getElementById('quickExpenseCategoria');
+    const contaSelect = document.getElementById('quickExpenseConta');
+    const pagoSim = document.getElementById('quickExpensePagoSim');
+    const pagoNao = document.getElementById('quickExpensePagoNao');
+    const obsInput = document.getElementById('quickExpenseObs');
+
+    const now = new Date();
+    const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+    if (index !== null && index !== undefined && index !== '') {
+      const month = MatrixDB.getMonth(currentYear, currentMonth);
+      const item = (month.diarios || [])[index];
+      if (item) {
+        if (titleEl) titleEl.textContent = '✏️ Editar Gasto Diário';
+        if (idxInput) idxInput.value = String(index);
+        if (nomeInput) nomeInput.value = item.nome || '';
+        if (valorInput) valorInput.value = item.valor != null ? item.valor : '';
+        if (dataHoraInput) dataHoraInput.value = item.dataHora ? item.dataHora.slice(0, 16) : localIso;
+        if (catSelect && item.categoria) catSelect.value = item.categoria;
+        if (contaSelect && item.conta) contaSelect.value = item.conta;
+        if (pagoSim && pagoNao) {
+          if (item.pago) pagoSim.checked = true;
+          else pagoNao.checked = true;
+        }
+        if (obsInput) obsInput.value = item.obs || '';
+        document.getElementById('quickExpenseModalBackdrop').classList.add('open');
+        return;
+      }
+    }
+
+    // Novo lançamento
+    if (titleEl) titleEl.textContent = '⚡ Registrar Gasto Diário';
+    if (idxInput) idxInput.value = '';
+    if (nomeInput) nomeInput.value = '';
+    if (valorInput) valorInput.value = '';
+    if (dataHoraInput) dataHoraInput.value = localIso;
+    if (catSelect) catSelect.value = 'Alimentação & Lanches';
+    if (contaSelect) contaSelect.value = 'debito_nubank';
+    if (pagoSim) pagoSim.checked = true;
+    if (obsInput) obsInput.value = '';
+
+    document.getElementById('quickExpenseModalBackdrop').classList.add('open');
+  }
+
+  function saveQuickExpense() {
+    const idxVal = document.getElementById('quickExpenseEditIndex').value;
+    const nome = document.getElementById('quickExpenseNome').value.trim();
+    const valor = parseFloat(document.getElementById('quickExpenseValor').value) || 0;
+    const dataHora = document.getElementById('quickExpenseDataHora').value;
+    const categoria = document.getElementById('quickExpenseCategoria').value;
+    const conta = document.getElementById('quickExpenseConta').value;
+    const pago = document.getElementById('quickExpensePagoSim').checked;
+    const obs = document.getElementById('quickExpenseObs').value.trim();
+
+    if (!nome) {
+      alert('Informe a descrição do gasto diário.');
+      return;
+    }
+    if (valor <= 0) {
+      alert('Informe um valor válido maior que zero.');
+      return;
+    }
+
+    const payload = {
+      nome,
+      valor,
+      dataHora,
+      categoria,
+      conta,
+      pago,
+      obs
+    };
+
+    if (idxVal !== '') {
+      const index = parseInt(idxVal, 10);
+      MatrixDB.updateTransactionByIndex(currentYear, currentMonth, 'diario', index, payload);
+    } else {
+      MatrixDB.addTransaction(currentYear, currentMonth, 'diario', payload);
+    }
+
+    closeModal('quickExpenseModalBackdrop');
+    renderAll();
+  }
+
+  function editQuickExpenseByIndex(ano, mes, index) {
+    openQuickExpenseModal(index);
+  }
+
+  function removeQuickExpenseByIndex(ano, mes, index) {
+    const month = MatrixDB.getMonth(ano, mes);
+    const item = (month.diarios || [])[index];
+    const desc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este gasto diário';
+    if (confirm(`Deseja realmente excluir ${desc}?`)) {
+      MatrixDB.removeTransactionByIndex(ano, mes, 'diario', index);
+      renderAll();
+    }
+  }
+
+  // ==========================================
+  // 2.2 REVISÃO ANUAL DE DEZEMBRO & RANKING TOP 10
+  // ==========================================
+  function renderRevisaoAnualDezembro(ano) {
+    const container = document.getElementById('revisaoAnualDezembroConteudo');
+    const labelAno = document.getElementById('revisaoAnoLabel');
+    if (labelAno) labelAno.textContent = ano;
+    if (!container) return;
+
+    const state = MatrixDB.getState();
+    const yearData = (state.anos && state.anos[ano]) || {};
+
+    const expenseAggregation = {};
+    let totalAnoReceitas = 0;
+    let totalAnoGastos = 0;
+
+    MONTH_NAMES.forEach(mes => {
+      const m = yearData[mes];
+      if (!m) return;
+
+      (m.receitas || []).forEach(r => {
+        totalAnoReceitas += (parseFloat(r.valor) || 0);
+      });
+
+      (m.fixos || []).forEach(f => {
+        const val = parseFloat(f.valor) || 0;
+        totalAnoGastos += val;
+        const key = f.nome.trim();
+        if (!expenseAggregation[key]) {
+          expenseAggregation[key] = {
+            nome: key,
+            categoria: f.categoria || 'Fixos',
+            conta: f.conta || 'bb',
+            total: 0,
+            ocorrencias: 0
+          };
+        }
+        expenseAggregation[key].total += val;
+        expenseAggregation[key].ocorrencias++;
+      });
+
+      (m.outros || []).forEach(o => {
+        const val = parseFloat(o.valor) || 0;
+        totalAnoGastos += val;
+        const key = o.nome.trim();
+        if (!expenseAggregation[key]) {
+          expenseAggregation[key] = {
+            nome: key,
+            categoria: o.categoria || 'Variáveis',
+            conta: o.conta || 'nubank_matheus',
+            total: 0,
+            ocorrencias: 0
+          };
+        }
+        expenseAggregation[key].total += val;
+        expenseAggregation[key].ocorrencias++;
+      });
+
+      (m.diarios || []).forEach(d => {
+        const val = parseFloat(d.valor) || 0;
+        totalAnoGastos += val;
+        const key = d.nome.trim();
+        if (!expenseAggregation[key]) {
+          expenseAggregation[key] = {
+            nome: key,
+            categoria: d.categoria || 'Diário',
+            conta: d.conta || 'debito_nubank',
+            total: 0,
+            ocorrencias: 0
+          };
+        }
+        expenseAggregation[key].total += val;
+        expenseAggregation[key].ocorrencias++;
+      });
+    });
+
+    const saldoAnualLivre = totalAnoReceitas - totalAnoGastos;
+    const taxaPoupanca = totalAnoReceitas > 0 ? ((saldoAnualLivre / totalAnoReceitas) * 100).toFixed(1) : '0';
+
+    const rankedExpenses = Object.values(expenseAggregation)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;margin-bottom:16px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+          <div style="font-size:11px;color:var(--text-muted);">Total Rendas do Casal (${ano})</div>
+          <div style="font-size:16px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(totalAnoReceitas)}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Salário USP + Scarlet + Benefícios</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+          <div style="font-size:11px;color:var(--text-muted);">Total Despesas do Ano (${ano})</div>
+          <div style="font-size:16px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalAnoGastos)}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Fixos, variáveis, diários e fatura</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+          <div style="font-size:11px;color:var(--text-muted);">Saldo Anual Livre Acumulado</div>
+          <div style="font-size:16px;font-weight:bold;color:${saldoAnualLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};margin-top:2px;">${formatBRL(saldoAnualLivre)}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Taxa média de poupança: ${taxaPoupanca}%</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+          <div style="font-size:11px;color:var(--text-muted);">Economia Potencial Mapeada</div>
+          <div style="font-size:16px;font-weight:bold;color:var(--amber);margin-top:2px;">~R$ 2.400,00/ano</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Otimização de assinaturas e cartões</div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+          <strong style="color:var(--matrix-green);font-size:13px;">🏆 Ranking Top 10 Maiores Despesas do Ano (${ano})</strong>
+          <span style="font-size:11px;color:var(--text-muted);">Acumulado de Janeiro a Dezembro</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">Rank</th>
+                <th>Despesa</th>
+                <th>Origem / Banco</th>
+                <th>Média Mensal</th>
+                <th style="text-align:right;">Total no Ano</th>
+                <th style="text-align:right;">% do Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rankedExpenses.map((exp, idx) => {
+                const pct = totalAnoGastos > 0 ? ((exp.total / totalAnoGastos) * 100).toFixed(1) : 0;
+                const media = exp.total / 12;
+                const medal = idx === 0 ? '🥇 1º' : (idx === 1 ? '🥈 2º' : (idx === 2 ? '🥉 3º' : `${idx + 1}º`));
+                return `
+                  <tr>
+                    <td><strong>${medal}</strong></td>
+                    <td>
+                      <strong>${exp.nome}</strong>
+                      <span class="cat-pill" style="margin-left:4px;">${exp.categoria}</span>
+                    </td>
+                    <td>${renderOrigemBadge(exp.conta, '', exp.nome)}</td>
+                    <td class="val-col" style="color:var(--text-muted);">${formatBRL(media)}</td>
+                    <td class="val-col" style="color:var(--rose);font-weight:700;">${formatBRL(exp.total)}</td>
+                    <td class="val-col" style="color:var(--amber);">${pct}%</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(180deg, rgba(234,179,8,0.06), rgba(5,8,7,0.7));border:1px solid var(--amber);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <strong style="color:var(--amber);font-size:13.5px;display:flex;align-items:center;gap:6px;">
+            <span>💡 Auditoria Automatizada de Assinaturas & Recomendações de Redução</span>
+          </strong>
+          <span style="font-size:11px;background:rgba(234,179,8,0.2);color:var(--amber);padding:2px 8px;border-radius:10px;font-weight:bold;">
+            Economia Anual Estimada: ~R$ 1.950,00 a R$ 2.500,00/ano
+          </span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+          <div style="background:rgba(0,0,0,0.5);border-left:3px solid #f59e0b;padding:10px 12px;border-radius:var(--radius-xs);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <strong style="color:var(--text-main);font-size:12.5px;">🎬 Globoplay / Streamings</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia: ~R$ 300,00/ano</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+              • <strong>Situação Atual:</strong> Assinatura mensal avulsa (~R$ 54,90/mês = R$ 658,80/ano).<br>
+              • <strong>Oportunidade:</strong> Migração para o plano anual da Globoplay (~R$ 29,90/mês = R$ 358,80/ano parcelado) ou combo com provedor de telecom/canais.<br>
+              • <strong>Ação Prática:</strong> Ajustar no app da Globoplay antes da renovação de Janeiro.
+            </div>
+          </div>
+
+          <div style="background:rgba(0,0,0,0.5);border-left:3px solid #10b981;padding:10px 12px;border-radius:var(--radius-xs);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <strong style="color:var(--text-main);font-size:12.5px;">🐾 Petlove & Cuidados Pet</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia: ~R$ 240 a R$ 360/ano</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+              • <strong>Situação Atual:</strong> Compras avulsas de ração, antipulgas e pet care via fatura de crédito.<br>
+              • <strong>Oportunidade:</strong> Ativar a <strong>Assinatura Recorrente Petlove (Clube)</strong>: 10% de desconto permanente + frete grátis + cashback no cartão.<br>
+              • <strong>Ação Prática:</strong> Configurar a frequência bimestral para os produtos de consumo contínuo.
+            </div>
+          </div>
+
+          <div style="background:rgba(0,0,0,0.5);border-left:3px solid #8b5cf6;padding:10px 12px;border-radius:var(--radius-xs);grid-column:1/-1;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <strong style="color:var(--text-main);font-size:12.5px;">💳 Nubank Ultravioleta vs Melhores Cartões do Mercado</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia em Tarifas: até R$ 1.068,00/ano</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+              • <strong>Análise da Mensalidade (R$ 89,00/mês = R$ 1.068,00/ano):</strong> O Nubank Black concede isenção total gastando R$ 5.000/mês ou com R$ 50k investidos na NuInvest. O cashback de 1,25% crescendo a 200% do CDI é imbatível se a isenção for cumprida.<br>
+              • <strong>Comparativo com Alternativas Superiores caso não atinja os R$ 5.000:</strong><br>
+                &nbsp;&nbsp;▸ <strong>XP Visa Infinite:</strong> Zero anuidade perpétua a partir de apenas R$ 5.000 investidos na XP, Investback de 1% e até 4 acessos anuais a salas VIP DragonPass.<br>
+                &nbsp;&nbsp;▸ <strong>Inter Mastercard Black:</strong> Zero anuidade assinando o Duo Gourmet (~R$ 450/ano economizando centenas em refeições) ou R$ 250k investidos, 1% cashback na conta e salas VIP LoungeKey ilimitadas.<br>
+                &nbsp;&nbsp;▸ <strong>C6 Carbon Black:</strong> Gera 2,5 pontos por dólar no programa Átomos com isenção gradual.<br>
+              • <strong>Veredito Automatizado Matrix:</strong> Mantenha o Ultravioleta se as compras do casal atingirem a isenção. Se houver cobrança dos R$ 89,00, a migração para o XP Visa Infinite economiza <strong>R$ 1.068,00 líquidos/ano</strong> com os mesmos privilégios Black.
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function exportarRelatorioDezembro(anoParam = null) {
+    const ano = anoParam || currentYear;
+    const state = MatrixDB.getState();
+    const yearData = (state.anos && state.anos[ano]) || {};
+
+    let totalAnoReceitas = 0;
+    let totalAnoGastos = 0;
+    const expenseAggregation = {};
+
+    MONTH_NAMES.forEach(mes => {
+      const m = yearData[mes];
+      if (!m) return;
+      (m.receitas || []).forEach(r => totalAnoReceitas += (parseFloat(r.valor) || 0));
+      (m.fixos || []).forEach(f => {
+        const val = parseFloat(f.valor) || 0;
+        totalAnoGastos += val;
+        const k = f.nome.trim();
+        expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
+      });
+      (m.outros || []).forEach(o => {
+        const val = parseFloat(o.valor) || 0;
+        totalAnoGastos += val;
+        const k = o.nome.trim();
+        expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
+      });
+      (m.diarios || []).forEach(d => {
+        const val = parseFloat(d.valor) || 0;
+        totalAnoGastos += val;
+        const k = d.nome.trim();
+        expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
+      });
+    });
+
+    const saldoAnualLivre = totalAnoReceitas - totalAnoGastos;
+    const ranked = Object.entries(expenseAggregation)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('Por favor, autorize pop-ups no seu navegador para gerar e imprimir o relatório em PDF.');
+      return;
+    }
+
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Relatório Financeiro Executivo & Auditoria ${ano} - Matrix</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 35px; color: #111; line-height: 1.5; font-size: 13px; }
+          .header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          h1 { margin: 0; font-size: 20px; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+          .kpi-box { border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fafafa; }
+          .kpi-title { font-size: 10px; text-transform: uppercase; color: #666; font-weight: bold; }
+          .kpi-val { font-size: 16px; font-weight: bold; margin-top: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+          th, td { border-bottom: 1px solid #e5e5e5; padding: 8px 6px; text-align: left; }
+          th { background: #f4f4f4; font-size: 11px; }
+          .val { text-align: right; font-family: monospace; font-size: 13px; }
+          .tip-box { border-left: 4px solid #16a34a; background: #f9fbf9; padding: 10px 12px; margin-bottom: 10px; border-radius: 3px; font-size: 12px; }
+          .btn-print { background: #16a34a; color: #fff; padding: 10px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
+          @media print { .no-print { display: none; } body { margin: 15mm; } }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px; display:flex; justify-content:flex-end;">
+          <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+        </div>
+
+        <div class="header">
+          <div>
+            <h1>📊 Relatório Financeiro Executivo & Retrospectiva ${ano}</h1>
+            <div style="font-size:12px;color:#555;margin-top:4px;">Matheus & Scarlet • Gestão Integrada de Patrimônio</div>
+          </div>
+          <div style="text-align:right;font-size:11px;color:#666;">
+            Competência: 01/01/${ano} a 31/12/${ano}<br>
+            Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-title">Total Receitas</div>
+            <div class="kpi-val" style="color:#0284c7;">${formatBRL(totalAnoReceitas)}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-title">Total Despesas</div>
+            <div class="kpi-val" style="color:#dc2626;">${formatBRL(totalAnoGastos)}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-title">Saldo Acumulado</div>
+            <div class="kpi-val" style="color:#16a34a;">${formatBRL(saldoAnualLivre)}</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-title">Economia Mapeada</div>
+            <div class="kpi-val" style="color:#d97706;">~R$ 2.400,00/ano</div>
+          </div>
+        </div>
+
+        <h3>🏆 Ranking Top 10 Maiores Despesas do Ano</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;">Rank</th>
+              <th>Despesa</th>
+              <th style="text-align:right;">Média Mensal</th>
+              <th style="text-align:right;">Total no Ano</th>
+              <th style="text-align:right;">% do Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ranked.map(([nome, val], i) => `
+              <tr>
+                <td>${i + 1}º</td>
+                <td><strong>${nome}</strong></td>
+                <td class="val">${formatBRL(val / 12)}</td>
+                <td class="val" style="font-weight:bold;">${formatBRL(val)}</td>
+                <td class="val">${((val / (totalAnoGastos || 1)) * 100).toFixed(1)}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h3>💡 Diagnóstico de Otimização & Assinaturas</h3>
+        <div class="tip-box">
+          <strong>1. Globoplay / Streamings (Economia: R$ 300,00/ano)</strong><br>
+          Migração para o plano anual ou combo com provedor de telecom reduz o valor de R$ 54,90 para R$ 29,90/mês.
+        </div>
+        <div class="tip-box">
+          <strong>2. Petlove Recorrente (Economia: ~R$ 300,00/ano)</strong><br>
+          Ativação da assinatura do Clube Petlove garante 10% de desconto em todas as compras recorrentes de ração e medicamentos.
+        </div>
+        <div class="tip-box">
+          <strong>3. Nubank Ultravioleta vs XP Visa Infinite (Economia: até R$ 1.068,00/ano)</strong><br>
+          Garantir média de gastos >= R$ 5.000 ou R$ 50k investidos para isenção total dos R$ 89/mês. Caso a fatura seja menor, adotar o XP Visa Infinite com zero anuidade.
+        </div>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
   }
 
   function renderResumoTotais(monthData) {
@@ -4290,6 +4888,12 @@ const MatrixApp = (function () {
     toggleModalInvestSubFields,
     isFaturasItem,
     alertFaturasReadOnly,
+    openQuickExpenseModal,
+    saveQuickExpense,
+    editQuickExpenseByIndex,
+    removeQuickExpenseByIndex,
+    renderRevisaoAnualDezembro,
+    exportarRelatorioDezembro,
     switchTab,
     initSwipeNavigation
   };
