@@ -33,6 +33,12 @@ const MatrixApp = (function () {
           }
         });
       }
+
+      // Scraping automático dos 3 apps satélites ao abrir se ativado
+      const satCfg = SatelliteConnectors.getSatelliteConfig();
+      if (satCfg.autoScrapeOnOpen) {
+        executarScrapingSatellites(true); // modo silencioso
+      }
     }, 800);
   }
 
@@ -509,6 +515,88 @@ const MatrixApp = (function () {
     if (lastSyncEl) {
       lastSyncEl.textContent = cfg.lastSync ? new Date(cfg.lastSync).toLocaleString('pt-BR') : 'Nunca sincronizado';
     }
+
+    renderSatellitesUI();
+  }
+
+  function renderSatellitesUI() {
+    const satCfg = SatelliteConnectors.getSatelliteConfig();
+    if (document.getElementById('cfgFisioUrl')) document.getElementById('cfgFisioUrl').value = satCfg.fisioUrl;
+    if (document.getElementById('cfgFisioToken')) document.getElementById('cfgFisioToken').value = satCfg.fisioToken;
+    if (document.getElementById('cfgFaturasUrl')) document.getElementById('cfgFaturasUrl').value = satCfg.faturasUrl;
+    if (document.getElementById('cfgFaturasToken')) document.getElementById('cfgFaturasToken').value = satCfg.faturasToken;
+    if (document.getElementById('cfgMaracajuUrl')) document.getElementById('cfgMaracajuUrl').value = satCfg.maracajuUrl;
+    if (document.getElementById('cfgMaracajuToken')) document.getElementById('cfgMaracajuToken').value = satCfg.maracajuToken;
+    if (document.getElementById('chkAutoScrapeOnOpen')) document.getElementById('chkAutoScrapeOnOpen').checked = satCfg.autoScrapeOnOpen;
+
+    const state = MatrixDB.getState();
+    const sat = state.satellites || {};
+
+    if (sat.fisioflow) {
+      if (document.getElementById('satFisioMesAtual')) document.getElementById('satFisioMesAtual').textContent = formatBRL(sat.fisioflow.mesAtualTotal);
+      if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.projecaoMensalRecorrente);
+      if (document.getElementById('badgeFisioStatus')) {
+        document.getElementById('badgeFisioStatus').className = 'status-badge pago';
+        document.getElementById('badgeFisioStatus').textContent = 'Conectado';
+      }
+    }
+
+    if (sat.faturas) {
+      if (document.getElementById('satFaturaAtual')) document.getElementById('satFaturaAtual').textContent = formatBRL(sat.faturas.faturaAtualValor);
+      if (document.getElementById('satFaturasFuturas')) document.getElementById('satFaturasFuturas').textContent = formatBRL(sat.faturas.faturasFuturasTotal);
+      if (document.getElementById('badgeFaturasStatus')) {
+        document.getElementById('badgeFaturasStatus').className = 'status-badge pago';
+        document.getElementById('badgeFaturasStatus').textContent = 'Conectado';
+      }
+    }
+
+    if (sat.maracaju) {
+      if (document.getElementById('satMaracajuMercado')) document.getElementById('satMaracajuMercado').textContent = formatBRL(sat.maracaju.gastoMercadoMesAtual);
+      if (document.getElementById('satMaracajuSaldoVa')) {
+        document.getElementById('satMaracajuSaldoVa').textContent = formatBRL(sat.maracaju.saldoVaRestante);
+        document.getElementById('satMaracajuSaldoVa').style.color = sat.maracaju.transbordouVa > 0 ? 'var(--rose)' : 'var(--matrix-green)';
+      }
+      if (document.getElementById('badgeMaracajuStatus')) {
+        document.getElementById('badgeMaracajuStatus').className = 'status-badge pago';
+        document.getElementById('badgeMaracajuStatus').textContent = 'Conectado';
+      }
+    }
+  }
+
+  function salvarConfigSatellites() {
+    const cfg = {
+      fisioUrl: document.getElementById('cfgFisioUrl').value,
+      fisioToken: document.getElementById('cfgFisioToken').value,
+      faturasUrl: document.getElementById('cfgFaturasUrl').value,
+      faturasToken: document.getElementById('cfgFaturasToken').value,
+      maracajuUrl: document.getElementById('cfgMaracajuUrl').value,
+      maracajuToken: document.getElementById('cfgMaracajuToken').value,
+      autoScrapeOnOpen: document.getElementById('chkAutoScrapeOnOpen').checked
+    };
+    SatelliteConnectors.saveSatelliteConfig(cfg);
+    alert('Configurações dos 3 apps salvas com sucesso!');
+  }
+
+  async function executarScrapingSatellites(silent = false) {
+    if (!silent) {
+      const btn = event && event.target;
+      if (btn) btn.textContent = '⏳ Coletando dados...';
+    }
+
+    try {
+      const results = await SatelliteConnectors.scrapeAll();
+      renderSatellitesUI();
+      if (!silent) {
+        alert('Scraping concluído com sucesso nos apps configurados!');
+      }
+    } catch (e) {
+      if (!silent) alert('Erro no scraping: ' + e.message);
+    } finally {
+      if (!silent) {
+        const btn = document.querySelector('[onclick*="executarScrapingSatellites"]');
+        if (btn) btn.textContent = '🔄 Fazer Scraping dos 3 Apps Agora';
+      }
+    }
   }
 
   // ==========================================
@@ -859,7 +947,9 @@ const MatrixApp = (function () {
     forceFetchFromCloud,
     downloadBackupFile,
     importBackupFile,
-    salvarHoleriteManual
+    salvarHoleriteManual,
+    salvarConfigSatellites,
+    executarScrapingSatellites
   };
 })();
 

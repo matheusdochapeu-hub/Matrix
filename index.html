@@ -483,6 +483,63 @@
           Configure a conexão com a sua planilha do Google Sheets via Google Apps Script (modelo ultra-fiel com travas de concorrência e restauração sem perdas).
         </p>
 
+        <!-- SEÇÃO: CONECTORES DOS 3 APPS SATÉLITES -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
+          <div class="box-header" style="margin-bottom:10px;padding-bottom:6px;">
+            <h3 style="font-family:var(--font-mono);color:var(--matrix-green);font-size:14px;">🛰️ Ingestão & Scraping dos 3 Apps Conectados</h3>
+            <button class="btn-matrix primary" onclick="MatrixApp.executarScrapingSatellites()">🔄 Fazer Scraping dos 3 Apps Agora</button>
+          </div>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+            Coleta automática de dados financeiros: FisioFlow (ganhos Scarlet), Faturas (cartão Black e parcelas) e Casa Maracaju (Mercado NFC-e e consumo do VA).
+          </p>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;margin-bottom:16px;">
+            <!-- Card FisioFlow -->
+            <div style="background:#050807;border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <strong style="color:var(--matrix-green);">🩺 FisioFlow (Scarlet)</strong>
+                <span id="badgeFisioStatus" class="status-badge pendente">Pendente</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Ganhos Mês Atual: <strong id="satFisioMesAtual" style="color:var(--text-main);">R$ 0,00</strong></div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Previsão Recorrente Mensal: <strong id="satFisioPrevisao" style="color:var(--cyan);">R$ 0,00</strong></div>
+              <input type="url" id="cfgFisioUrl" class="matrix-input" style="font-size:11px;margin-bottom:6px;" placeholder="URL Web App FisioFlow...">
+              <input type="password" id="cfgFisioToken" class="matrix-input" style="font-size:11px;" placeholder="Token FisioFlow...">
+            </div>
+
+            <!-- Card Faturas -->
+            <div style="background:#050807;border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <strong style="color:var(--cyan);">💳 Faturas (Nubank Black)</strong>
+                <span id="badgeFaturasStatus" class="status-badge pendente">Pendente</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Fatura Atual em Aberto: <strong id="satFaturaAtual" style="color:var(--rose);">R$ 0,00</strong></div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Parcelas Futuras Mapeadas: <strong id="satFaturasFuturas" style="color:var(--text-main);">R$ 0,00</strong></div>
+              <input type="url" id="cfgFaturasUrl" class="matrix-input" style="font-size:11px;margin-bottom:6px;" placeholder="URL Web App Faturas...">
+              <input type="password" id="cfgFaturasToken" class="matrix-input" style="font-size:11px;" placeholder="Token Faturas...">
+            </div>
+
+            <!-- Card Casa Maracaju 88 -->
+            <div style="background:#050807;border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <strong style="color:var(--amber);">🏡 Casa Maracaju 88</strong>
+                <span id="badgeMaracajuStatus" class="status-badge pendente">Pendente</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Gasto Mercado (NFC-e): <strong id="satMaracajuMercado" style="color:var(--text-main);">R$ 0,00</strong></div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">Saldo Restante VA (R$ 2.050): <strong id="satMaracajuSaldoVa" style="color:var(--matrix-green);">R$ 2.050,00</strong></div>
+              <input type="url" id="cfgMaracajuUrl" class="matrix-input" style="font-size:11px;margin-bottom:6px;" placeholder="URL Web App Maracaju 88...">
+              <input type="password" id="cfgMaracajuToken" class="matrix-input" style="font-size:11px;" placeholder="Token Maracaju 88...">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+              <input type="checkbox" id="chkAutoScrapeOnOpen" checked>
+              <strong>Fazer Scraping automático dos 3 apps toda vez que o Matrix for aberto</strong>
+            </label>
+            <button class="btn-matrix" onclick="MatrixApp.salvarConfigSatellites()">💾 Salvar Conexões dos Apps</button>
+          </div>
+        </div>
+
         <!-- Formulário de Configuração do Google Apps Script -->
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:16px;border-radius:var(--radius-sm);margin-bottom:20px;">
           <div style="margin-bottom:12px;">
@@ -570,6 +627,7 @@
   <script src="js/amortization-engine.js"></script>
   <script src="js/scenario-simulator.js"></script>
   <script src="js/pdf-reader.js"></script>
+  <script src="js/satellite-connectors.js"></script>
   <script src="js/sync-engine.js"></script>
   <script src="js/app.js"></script>
 
