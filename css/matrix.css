@@ -885,3 +885,276 @@ body {
     display: none;
   }
 }
+
+/* ===================================================
+   CALENDÁRIO OFICIAL USP SÃO CARLOS (7 COLUNAS DOM-SÁB)
+   =================================================== */
+.calendar-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.cal-nav-group, .cal-selectors-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cal-month-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 255, 102, 0.08);
+  border: 1px solid var(--matrix-green-dim);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+}
+
+.cal-month-title {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--matrix-green);
+  text-transform: capitalize;
+}
+
+.cal-badge-pill {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.cal-select {
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: 120px;
+}
+
+.cal-notification-banner {
+  background: rgba(0, 255, 102, 0.05);
+  border: 1px dashed var(--matrix-green-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.cal-notification-banner.saved-flash {
+  background: rgba(0, 255, 102, 0.2) !important;
+  border-color: var(--matrix-green) !important;
+  color: var(--matrix-green) !important;
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.3);
+}
+
+.cal-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  background: rgba(5, 8, 7, 0.4);
+  border-radius: var(--radius-sm);
+}
+
+.cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cal-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.calendar-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.calendar-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.cal-wkday-cell {
+  background: rgba(18, 29, 23, 0.7);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px 4px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--matrix-green);
+}
+
+.cal-wkday-cell.weekend {
+  color: var(--amber);
+  background: rgba(251, 191, 36, 0.06);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+.calendar-days-grid-7 {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-day-cell {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-family: var(--font-mono);
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+  user-select: none;
+}
+
+.cal-day-cell:hover {
+  border-color: var(--matrix-green);
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.15);
+  transform: translateY(-1px);
+}
+
+.cal-day-cell.padding-day {
+  background: rgba(5, 8, 7, 0.25);
+  border-color: rgba(255, 255, 255, 0.04);
+  opacity: 0.35;
+  cursor: default;
+}
+.cal-day-cell.padding-day:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.cal-day-cell.workday {
+  border-color: rgba(0, 255, 102, 0.35);
+  background: rgba(0, 255, 102, 0.03);
+}
+
+.cal-day-cell.weekend {
+  background: rgba(5, 8, 7, 0.45);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.cal-day-cell.holiday {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.cal-day-cell.recess {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.cal-day-cell.custom-leave {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: inset 0 0 8px rgba(168, 85, 247, 0.1);
+}
+
+.cal-day-cell.today {
+  border: 2px solid var(--matrix-green);
+  box-shadow: 0 0 12px rgba(0, 255, 102, 0.25);
+}
+
+.cal-day-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cal-day-num {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.cal-day-cell.today .cal-day-num {
+  color: var(--matrix-green);
+}
+
+.cal-day-status {
+  font-size: 10px;
+  line-height: 1.3;
+  margin: 4px 0;
+  word-break: break-word;
+}
+
+.cal-day-footer {
+  font-size: 9px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .cal-day-cell {
+    min-height: 64px;
+    padding: 5px 3px;
+    font-size: 10px;
+  }
+  .cal-day-num {
+    font-size: 12px;
+  }
+  .cal-day-status {
+    font-size: 9px;
+  }
+  .cal-day-footer {
+    display: none;
+  }
+  .cal-wkday-cell {
+    font-size: 10px;
+    padding: 6px 2px;
+  }
+  .calendar-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cal-nav-group, .cal-selectors-group {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .btn-cal-nav {
+    flex: 1;
+  }
+  .cal-month-badge {
+    flex: 2;
+    justify-content: center;
+  }
+}

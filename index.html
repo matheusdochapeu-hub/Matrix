@@ -432,32 +432,75 @@
       <div class="matrix-box">
         <div class="box-header">
           <h2>📅 Calendário Oficial USP São Carlos & Deslocamento</h2>
-          <button class="btn-matrix primary" onclick="MatrixApp.aplicarCaronasNoMes()">🔄 Atualizar no Fluxo de Caixa</button>
+          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Inteligência de Dias Úteis</span>
         </div>
 
-        <p style="color:var(--text-muted);font-size:12px;margin-bottom:16px;">
-          Controle automático de dias úteis com feriados estaduais, municipais (São Carlos e Ribeirão Preto) e o recesso USP de 18/12 a 04/01. 
-          Clique em qualquer dia para marcar folga ou férias e recalcular caronas e VR.
-        </p>
+        <!-- Barra de Navegação e Seleção de Mês e Ano -->
+        <div class="calendar-controls-bar">
+          <div class="cal-nav-group">
+            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(-1)" title="Ir para o mês anterior">◀ Anterior</button>
+            <div class="cal-month-badge">
+              <span style="font-size:16px;">📅</span>
+              <span id="calCurrentMonthTitle" class="cal-month-title">Novembro / 2026</span>
+              <span class="cal-badge-pill">USP São Carlos</span>
+            </div>
+            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(1)" title="Ir para o próximo mês">Próximo ▶</button>
+          </div>
+          <div class="cal-selectors-group">
+            <select id="calMonthSelect" class="matrix-select cal-select" onchange="MatrixApp.onCalMonthChange(this.value)" title="Selecionar Mês"></select>
+            <select id="calYearSelect" class="matrix-select cal-select" onchange="MatrixApp.onCalYearChange(this.value)" title="Selecionar Ano"></select>
+            <button class="btn-matrix secondary" onclick="MatrixApp.resetCalendarToCurrent()" title="Retornar ao mês atual do sistema">Hoje</button>
+            <button class="btn-matrix primary" onclick="MatrixApp.aplicarCaronasNoMes()" title="Sincronizar Caronas e VR deste mês no Fluxo de Caixa">💾 Sincronizar Mês no Fluxo</button>
+          </div>
+        </div>
 
-        <!-- KPI Resumo do Mês -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+        <!-- Banner Informativo de Mês Ativo & Auto-Save -->
+        <div id="calSaveNotification" class="cal-notification-banner">
+          <span>📅 Editando: <strong id="calBannerMonthText">Novembro de 2026</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>
+        </div>
+
+        <!-- KPI Resumo do Mês Selecionado -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">DIAS ÚTEIS TRABALHADOS:</div>
             <div id="calDiasUteis" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">0 dias</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">CUSTO CARONAS (R$ 60/DIA):</div>
             <div id="calCaronasTotal" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 0,00</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:160px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">VALE REFEIÇÃO (R$ 65/DIA):</div>
             <div id="calVRTotal" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
           </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
+            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">FOLGAS / FERIADOS / RECESSO:</div>
+            <div id="calFolgasTotal" style="font-size:18px;font-weight:700;color:var(--purple);font-family:var(--font-mono);">0 dias</div>
+          </div>
         </div>
 
-        <!-- Grade de Dias -->
-        <div id="calendarDaysGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:8px;"></div>
+        <!-- Legenda Visual -->
+        <div class="cal-legend-bar">
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--matrix-green);"></span> 🚗 Presencial USP (R$ 60/R$ 65)</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--purple);"></span> 🏖️ Folga / Férias (Customizável)</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--amber);"></span> 🎉 Feriado SP / São Carlos</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--cyan);"></span> 🏛️ Recesso USP (18/12 a 04/01)</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(255,255,255,0.2);"></span> 💤 Fim de Semana (Dom / Sáb)</span>
+        </div>
+
+        <!-- Calendário em Grade de 7 Colunas (Domingo a Sábado) -->
+        <div class="calendar-wrapper">
+          <div class="calendar-weekdays-row">
+            <div class="cal-wkday-cell weekend">DOM</div>
+            <div class="cal-wkday-cell">SEG</div>
+            <div class="cal-wkday-cell">TER</div>
+            <div class="cal-wkday-cell">QUA</div>
+            <div class="cal-wkday-cell">QUI</div>
+            <div class="cal-wkday-cell">SEX</div>
+            <div class="cal-wkday-cell weekend">SÁB</div>
+          </div>
+          <div id="calendarDaysGrid" class="calendar-days-grid-7"></div>
+        </div>
       </div>
     </section>
 

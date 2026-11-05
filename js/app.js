@@ -7,6 +7,8 @@
 const MatrixApp = (function () {
   let currentYear = '2026';
   let currentMonth = 'Novembro';
+  let calSelectedYear = '2026';
+  let calSelectedMonth = 'Novembro';
 
   const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -113,6 +115,7 @@ const MatrixApp = (function () {
     if (yearSelect) {
       yearSelect.addEventListener('change', (e) => {
         currentYear = e.target.value;
+        calSelectedYear = currentYear;
         const allYears = MatrixDB.getAllYears();
         if (!allYears.includes(currentYear)) {
           MatrixDB.createYear(currentYear, allYears[allYears.length - 1] || '2027');
@@ -168,6 +171,8 @@ const MatrixApp = (function () {
       currentYear = String(parseInt(currentYear, 10) + 1);
     }
     currentMonth = MONTH_NAMES[idx];
+    calSelectedMonth = currentMonth;
+    calSelectedYear = currentYear;
 
     // Se o novo ano ainda não estiver criado, cria automaticamente
     const allYears = MatrixDB.getAllYears();
@@ -865,6 +870,8 @@ const MatrixApp = (function () {
   function navegarParaMes(ano, mes) {
     currentYear = String(ano);
     currentMonth = String(mes);
+    calSelectedYear = String(ano);
+    calSelectedMonth = String(mes);
 
     const allYears = MatrixDB.getAllYears();
     if (!allYears.includes(currentYear)) {
@@ -1087,58 +1094,174 @@ const MatrixApp = (function () {
   // 4. CALENDÁRIO & CARONAS (USP SÃO CARLOS)
   // ==========================================
   function renderCalendar() {
-    const monthIndex = MONTH_NAMES.indexOf(currentMonth) + 1;
-    const yearNum = parseInt(currentYear, 10);
+    if (!calSelectedYear) calSelectedYear = currentYear;
+    if (!calSelectedMonth) calSelectedMonth = currentMonth;
+
+    const monthIndex = MONTH_NAMES.indexOf(calSelectedMonth) + 1;
+    const yearNum = parseInt(calSelectedYear, 10);
     const state = MatrixDB.getState();
     const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
 
+    // Preenche seletor de meses
+    const mSelect = document.getElementById('calMonthSelect');
+    if (mSelect) {
+      if (mSelect.options.length === 0) {
+        mSelect.innerHTML = MONTH_NAMES.map(m => `<option value="${m}">${m}</option>`).join('');
+      }
+      mSelect.value = calSelectedMonth;
+    }
+
+    // Preenche seletor de anos
+    const ySelect = document.getElementById('calYearSelect');
+    if (ySelect) {
+      const allYears = (typeof MatrixDB.getAllYears === 'function') ? MatrixDB.getAllYears() : ['2026', '2027', '2028'];
+      if (!allYears.includes(calSelectedYear)) allYears.push(calSelectedYear);
+      ySelect.innerHTML = allYears.map(y => `<option value="${y}">${y}</option>`).join('');
+      ySelect.value = calSelectedYear;
+    }
+
+    // Título do Mês e Banner Informativo
+    const titleEl = document.getElementById('calCurrentMonthTitle');
+    if (titleEl) titleEl.textContent = `${calSelectedMonth} / ${calSelectedYear}`;
+
+    const bannerText = document.getElementById('calBannerMonthText');
+    if (bannerText) bannerText.textContent = `${calSelectedMonth} de ${calSelectedYear}`;
+
     const commute = CalendarEngine.calculateCommuteAndVR(yearNum, monthIndex, customLeaves);
 
-    document.getElementById('calDiasUteis').textContent = `${commute.workingDaysCount} dias`;
-    document.getElementById('calCaronasTotal').textContent = formatBRL(commute.totalCaronas);
-    document.getElementById('calVRTotal').textContent = formatBRL(commute.totalVR);
+    const diasUteisEl = document.getElementById('calDiasUteis');
+    if (diasUteisEl) diasUteisEl.textContent = `${commute.workingDaysCount} dias`;
 
-    // Render Grid dos Dias
+    const caronasEl = document.getElementById('calCaronasTotal');
+    if (caronasEl) caronasEl.textContent = formatBRL(commute.totalCaronas);
+
+    const vrEl = document.getElementById('calVRTotal');
+    if (vrEl) vrEl.textContent = formatBRL(commute.totalVR);
+
+    const folgasEl = document.getElementById('calFolgasTotal');
+    if (folgasEl) {
+      const naoUteis = commute.totalDays - commute.workingDaysCount;
+      const countFolgas = commute.customLeavesCount || 0;
+      folgasEl.textContent = `${naoUteis} dias (${countFolgas} folgas)`;
+    }
+
+    // Render Grid dos Dias em 7 Colunas (Domingo a Sábado)
     const gridEl = document.getElementById('calendarDaysGrid');
-    if (gridEl) {
-      gridEl.innerHTML = commute.days.map(d => {
-        let tag = '';
-        let bg = 'var(--bg-card)';
-        let border = 'var(--border-dim)';
+    if (!gridEl) return;
 
-        if (d.isWeekend) {
-          tag = 'Fim de Semana';
-          bg = 'rgba(5,8,7,0.4)';
-        } else if (d.inRecess) {
-          tag = 'Recesso USP';
-          border = 'var(--cyan)';
-          bg = 'rgba(56,189,248,0.1)';
-        } else if (d.isHoliday) {
-          tag = d.holidayDesc;
-          border = 'var(--amber)';
-          bg = 'rgba(251,191,36,0.1)';
-        } else if (d.isCustomLeave) {
-          tag = d.customLeaveDesc;
-          border = 'var(--purple)';
-        } else {
-          tag = 'Presencial USP';
-          border = 'var(--matrix-green-dim)';
-        }
+    const today = new Date();
+    const isCurrentYearNow = today.getFullYear() === yearNum;
+    const isCurrentMonthNow = (today.getMonth() + 1) === monthIndex;
+    const currentDayNow = today.getDate();
 
-        return `
-          <div style="background:${bg};border:1px solid ${border};border-radius:var(--radius-sm);padding:8px;font-family:var(--font-mono);font-size:11px;min-height:75px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;" onclick="MatrixApp.toggleCalendarDay('${d.dateStr}')">
-            <div style="display:flex;justify-content:space-between;">
-              <span style="font-weight:700;color:var(--text-main);">${d.day}</span>
-              <span style="color:var(--text-muted);font-size:10px;">${d.dayOfWeekStr}</span>
+    let gridHtml = '';
+
+    // 1. Células de preenchimento anteriores ao dia 1 (para alinhar com Domingo = 0)
+    if (commute.paddingDaysBefore && commute.paddingDaysBefore.length > 0) {
+      commute.paddingDaysBefore.forEach(p => {
+        gridHtml += `
+          <div class="cal-day-cell padding-day" title="Mês anterior">
+            <div class="cal-day-top">
+              <span class="cal-day-num" style="color:var(--text-dim);opacity:0.5;">${p.day}</span>
             </div>
-            <div style="font-size:10px;color:${d.isWorkDay ? 'var(--matrix-green)' : 'var(--text-muted)'};margin-top:4px;">
-              ${tag}
-            </div>
-            ${d.isWorkDay ? '<div style="font-size:9px;color:var(--text-dim);">Carona R$ 60 • VR R$ 65</div>' : ''}
           </div>
         `;
-      }).join('');
+      });
     }
+
+    // 2. Dias do mês corrente (1 a totalDays)
+    commute.days.forEach(d => {
+      let cellTypeClass = 'workday';
+      let tag = '🚗 Presencial USP';
+      let detail = '<span>Carona R$ 60</span><span>VR R$ 65</span>';
+      let tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Presencial na USP São Carlos. Clique para marcar folga/férias.`;
+
+      if (d.isWeekend) {
+        cellTypeClass = 'weekend';
+        tag = '💤 Fim de Semana';
+        detail = '<span>Descanso</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Fim de semana. Clique para marcar evento ou folga.`;
+      } else if (d.isCustomLeave) {
+        cellTypeClass = 'custom-leave';
+        tag = `🏖️ ${d.customLeaveDesc}`;
+        detail = '<span style="color:var(--purple);font-weight:600;">Folga / Férias</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): ${d.customLeaveDesc}. Clique para remover ou alterar.`;
+      } else if (d.isHoliday) {
+        cellTypeClass = 'holiday';
+        tag = `🎉 ${d.holidayDesc}`;
+        detail = '<span style="color:var(--amber);">Feriado</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Feriado (${d.holidayDesc}). Sem expediente.`;
+      } else if (d.inRecess) {
+        cellTypeClass = 'recess';
+        tag = '🏛️ Recesso USP';
+        detail = '<span style="color:var(--cyan);">Recesso Fim de Ano</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Recesso oficial USP de fim de ano.`;
+      }
+
+      const isToday = isCurrentYearNow && isCurrentMonthNow && d.day === currentDayNow;
+      const todayClass = isToday ? 'today' : '';
+      const todayBadge = isToday ? '<span style="font-size:9px;background:var(--matrix-green);color:#050807;padding:1px 5px;border-radius:3px;font-weight:700;">HOJE</span>' : '';
+
+      gridHtml += `
+        <div class="cal-day-cell ${cellTypeClass} ${todayClass}" onclick="MatrixApp.toggleCalendarDay('${d.dateStr}')" title="${tooltip}">
+          <div class="cal-day-top">
+            <span class="cal-day-num">${d.day}</span>
+            ${todayBadge}
+          </div>
+          <div class="cal-day-status">${tag}</div>
+          <div class="cal-day-footer">${detail}</div>
+        </div>
+      `;
+    });
+
+    // 3. Células de preenchimento após o último dia para fechar no Sábado
+    if (commute.paddingDaysAfter && commute.paddingDaysAfter.length > 0) {
+      commute.paddingDaysAfter.forEach(p => {
+        gridHtml += `
+          <div class="cal-day-cell padding-day" title="Próximo mês">
+            <div class="cal-day-top">
+              <span class="cal-day-num" style="color:var(--text-dim);opacity:0.5;">${p.day}</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    gridEl.innerHTML = gridHtml;
+  }
+
+  function navCalendarMonth(direction) {
+    let idx = MONTH_NAMES.indexOf(calSelectedMonth);
+    idx += direction;
+    if (idx < 0) {
+      idx = 11;
+      calSelectedYear = String(parseInt(calSelectedYear, 10) - 1);
+    } else if (idx > 11) {
+      idx = 0;
+      calSelectedYear = String(parseInt(calSelectedYear, 10) + 1);
+    }
+    calSelectedMonth = MONTH_NAMES[idx];
+    renderCalendar();
+  }
+
+  function onCalMonthChange(m) {
+    if (m && MONTH_NAMES.includes(m)) {
+      calSelectedMonth = m;
+      renderCalendar();
+    }
+  }
+
+  function onCalYearChange(y) {
+    if (y) {
+      calSelectedYear = String(y);
+      renderCalendar();
+    }
+  }
+
+  function resetCalendarToCurrent() {
+    calSelectedYear = currentYear;
+    calSelectedMonth = currentMonth;
+    renderCalendar();
   }
 
   // ==========================================
@@ -1576,36 +1699,101 @@ const MatrixApp = (function () {
   }
 
   function toggleCalendarDay(dateStr) {
+    if (!dateStr) return;
+    const parts = dateStr.split('-');
+    const yearStr = parts[0];
+    const monthIdx = parseInt(parts[1], 10);
+    const monthName = MONTH_NAMES[monthIdx - 1];
+    const dayNum = parseInt(parts[2], 10);
+
     const state = MatrixDB.getState();
     if (!state.calendarioCustom) state.calendarioCustom = { folgas: [] };
     const folgas = state.calendarioCustom.folgas;
 
     const existingIdx = folgas.findIndex(f => f.data === dateStr);
+    let folgaAlterada = false;
+
     if (existingIdx >= 0) {
-      folgas.splice(existingIdx, 1);
+      const currentMotivo = folgas[existingIdx].motivo || 'Folga / Férias';
+      const action = confirm(`O dia ${dayNum}/${monthIdx}/${yearStr} está registrado como "${currentMotivo}".\n\nDeseja REMOVER esta folga e restaurar como dia normal?`);
+      if (action) {
+        folgas.splice(existingIdx, 1);
+        folgaAlterada = true;
+      }
     } else {
-      const motivo = prompt('Motivo da Ausência / Folga / Férias:', 'Férias / Folga');
-      if (motivo) {
-        folgas.push({ data: dateStr, motivo });
+      const motivo = prompt(`Marcar Ausência / Folga / Férias no dia ${dayNum}/${monthIdx}/${yearStr}:\nInforme o motivo:`, 'Folga / Férias');
+      if (motivo !== null && motivo.trim() !== '') {
+        folgas.push({ data: dateStr, motivo: motivo.trim() });
+        folgaAlterada = true;
       }
     }
+
+    if (!folgaAlterada) return;
+
+    // 1. Salva folgas no estado global do MatrixDB
     MatrixDB.saveState(state);
-    renderCalendar();
-  }
 
-  function aplicarCaronasNoMes() {
-    const monthIndex = MONTH_NAMES.indexOf(currentMonth) + 1;
-    const state = MatrixDB.getState();
-    const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
-    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), monthIndex, customLeaves);
+    // 2. Recalcula Caronas e VR para o mês específico alterado (Ex: Outubro salva Outubro, Novembro salva Novembro)
+    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIdx, folgas);
 
-    // Atualiza ou insere o item "Caronas" nos gastos fixos
-    const month = MatrixDB.getMonth(currentYear, currentMonth);
-    let caronaItem = (month.fixos || []).find(f => f.nome.toLowerCase().includes('carona'));
+    // 3. Atualiza os gastos fixos (Caronas) e totais (VR) desse mês específico no MatrixDB
+    const monthData = MatrixDB.getMonth(yearStr, monthName);
+    if (!monthData.fixos) monthData.fixos = [];
+    let caronaItem = monthData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
     if (caronaItem) {
       caronaItem.valor = commute.totalCaronas;
     } else {
-      month.fixos.push({
+      monthData.fixos.push({
+        id: 'fix_carona_' + Date.now(),
+        nome: 'Caronas',
+        valor: commute.totalCaronas,
+        categoria: 'Transporte',
+        pago: false
+      });
+    }
+
+    if (!monthData.totais) monthData.totais = {};
+    monthData.totais['VR'] = commute.totalVR;
+
+    MatrixDB.saveMonth(yearStr, monthName, monthData);
+
+    // 4. Se estiver visualizando o mesmo mês no fluxo de caixa geral, sincroniza os cards e tabelas
+    if (yearStr === currentYear && monthName === currentMonth) {
+      renderFluxoCaixa();
+      renderKpiCards();
+    }
+
+    // 5. Re-renderiza o calendário
+    renderCalendar();
+
+    // 6. Feedback visual elegante de confirmação na interface
+    const banner = document.getElementById('calSaveNotification');
+    if (banner) {
+      banner.classList.add('saved-flash');
+      banner.innerHTML = `<span>✅ <strong>${monthName} de ${yearStr} SALVO E RECALCULADO!</strong> ${commute.workingDaysCount} dias úteis • Caronas: ${formatBRL(commute.totalCaronas)} • VR: ${formatBRL(commute.totalVR)}</span>`;
+      setTimeout(() => {
+        banner.classList.remove('saved-flash');
+        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>`;
+      }, 4000);
+    }
+  }
+
+  function aplicarCaronasNoMes() {
+    const yearStr = calSelectedYear || currentYear;
+    const monthName = calSelectedMonth || currentMonth;
+    const monthIndex = MONTH_NAMES.indexOf(monthName) + 1;
+    const state = MatrixDB.getState();
+    const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIndex, customLeaves);
+
+    // Atualiza ou insere o item "Caronas" nos gastos fixos do mês em edição
+    const monthData = MatrixDB.getMonth(yearStr, monthName);
+    if (!monthData.fixos) monthData.fixos = [];
+    let caronaItem = monthData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
+    if (caronaItem) {
+      caronaItem.valor = commute.totalCaronas;
+    } else {
+      monthData.fixos.push({
         id: 'fix_carona_' + Date.now(),
         nome: 'Caronas',
         valor: commute.totalCaronas,
@@ -1615,12 +1803,28 @@ const MatrixApp = (function () {
     }
 
     // Atualiza VR nos totais
-    if (!month.totais) month.totais = {};
-    month.totais['VR'] = commute.totalVR;
+    if (!monthData.totais) monthData.totais = {};
+    monthData.totais['VR'] = commute.totalVR;
 
-    MatrixDB.saveMonth(currentYear, currentMonth, month);
-    renderAll();
-    alert(`Caronas (${formatBRL(commute.totalCaronas)}) e VR (${formatBRL(commute.totalVR)}) atualizados com sucesso para ${currentMonth}!`);
+    MatrixDB.saveMonth(yearStr, monthName, monthData);
+
+    if (yearStr === currentYear && monthName === currentMonth) {
+      renderAll();
+    } else {
+      renderCalendar();
+    }
+
+    const banner = document.getElementById('calSaveNotification');
+    if (banner) {
+      banner.classList.add('saved-flash');
+      banner.innerHTML = `<span>✅ <strong>Caronas e VR de ${monthName}/${yearStr} sincronizados no Fluxo de Caixa!</strong> (${commute.workingDaysCount} dias úteis | Caronas: ${formatBRL(commute.totalCaronas)} | VR: ${formatBRL(commute.totalVR)})</span>`;
+      setTimeout(() => {
+        banner.classList.remove('saved-flash');
+        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>`;
+      }, 4000);
+    } else {
+      alert(`Caronas (${formatBRL(commute.totalCaronas)}) e VR (${formatBRL(commute.totalVR)}) sincronizados com sucesso para ${monthName}/${yearStr}!`);
+    }
   }
 
   function saveCloudSettings() {
@@ -2112,6 +2316,11 @@ const MatrixApp = (function () {
     addNewScenarioPrompt,
     toggleCalendarDay,
     aplicarCaronasNoMes,
+    navCalendarMonth,
+    onCalMonthChange,
+    onCalYearChange,
+    resetCalendarToCurrent,
+    renderCalendar,
     simularAmortizacao,
     saveCloudSettings,
     testCloudConnection,

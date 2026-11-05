@@ -82,9 +82,14 @@ const CalendarEngine = (function () {
   function getMonthDaysInfo(year, monthIndex, customLeaves = []) {
     // monthIndex: 1 to 12
     const totalDays = new Date(year, monthIndex, 0).getDate();
+    const firstDayOfWeek = new Date(year, monthIndex - 1, 1).getDay(); // 0 = Dom, 1 = Seg, ..., 6 = Sáb
+    const lastDayOfWeek = new Date(year, monthIndex - 1, totalDays).getDay();
+    const prevMonthDays = new Date(year, monthIndex - 1, 0).getDate();
     const movables = getMovableHolidays(year);
     const days = [];
     let workingDaysCount = 0;
+    let customLeavesCount = 0;
+    let holidaysCount = 0;
 
     for (let d = 1; d <= totalDays; d++) {
       const dateObj = new Date(year, monthIndex - 1, d);
@@ -122,6 +127,11 @@ const CalendarEngine = (function () {
       if (custom) {
         isCustomLeave = true;
         customLeaveDesc = custom.motivo || 'Folga / Férias';
+        customLeavesCount++;
+      }
+
+      if (isHoliday || inRecess) {
+        holidaysCount++;
       }
 
       const isWorkDay = !isWk && !isHoliday && !inRecess && !isCustomLeave;
@@ -144,12 +154,39 @@ const CalendarEngine = (function () {
       });
     }
 
+    // Dias de preenchimento antes do dia 1 (para começar domingo = índice 0)
+    const paddingDaysBefore = [];
+    for (let p = firstDayOfWeek - 1; p >= 0; p--) {
+      paddingDaysBefore.push({
+        day: prevMonthDays - p,
+        isPadding: true,
+        type: 'prev'
+      });
+    }
+
+    // Dias de preenchimento após o último dia do mês (para fechar sábado = índice 6)
+    const paddingDaysAfter = [];
+    const trailingCount = 6 - lastDayOfWeek;
+    for (let t = 1; t <= trailingCount; t++) {
+      paddingDaysAfter.push({
+        day: t,
+        isPadding: true,
+        type: 'next'
+      });
+    }
+
     return {
       year,
       monthIndex,
       monthName: MONTH_NAMES[monthIndex - 1],
       totalDays,
+      firstDayOfWeek,
+      lastDayOfWeek,
+      paddingDaysBefore,
+      paddingDaysAfter,
       workingDaysCount,
+      customLeavesCount,
+      holidaysCount,
       days
     };
   }
