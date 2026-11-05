@@ -446,6 +446,11 @@ const MatrixApp = (function () {
     document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
     document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
 
+    const todayBtn = document.getElementById('btnCurrentMonth');
+    if (todayBtn) {
+      todayBtn.addEventListener('click', goToCurrentRealMonth);
+    }
+
     // Year selection
     const yearSelect = document.getElementById('yearSelect');
     if (yearSelect) {
@@ -519,6 +524,27 @@ const MatrixApp = (function () {
     renderAll();
   }
 
+  function goToCurrentRealMonth() {
+    const now = new Date();
+    const realYear = String(now.getFullYear());
+    const realMonth = MONTH_NAMES[now.getMonth()] || 'Novembro';
+    const targetY = parseInt(realYear, 10) < 2025 ? '2025' : realYear;
+
+    currentYear = targetY;
+    currentMonth = realMonth;
+    calSelectedYear = currentYear;
+    calSelectedMonth = currentMonth;
+
+    const allYears = MatrixDB.getAllYears();
+    if (!allYears.includes(currentYear)) {
+      MatrixDB.createYear(currentYear, allYears[allYears.length - 1] || '2027');
+    }
+
+    populateYearSelector();
+    updateMonthDisplay();
+    renderAll();
+  }
+
   function updateMonthDisplay() {
     const el = document.getElementById('currentMonthDisplay');
     if (el) el.textContent = `${currentMonth} / ${currentYear}`;
@@ -531,6 +557,19 @@ const MatrixApp = (function () {
       prevBtn.style.opacity = isAtMinTimeline ? '0.35' : '1';
       prevBtn.style.cursor = isAtMinTimeline ? 'not-allowed' : 'pointer';
       prevBtn.title = isAtMinTimeline ? 'Timeline inicia em 2025 (2024 e anteriores não possuem dados)' : 'Mês anterior';
+    }
+
+    // Atualizar estado e destaque visual do botão "Mês Atual"
+    const todayBtn = document.getElementById('btnCurrentMonth');
+    if (todayBtn) {
+      const now = new Date();
+      const realY = String(now.getFullYear());
+      const realM = MONTH_NAMES[now.getMonth()] || 'Novembro';
+      const isAlreadyOnCurrent = (String(currentYear) === realY && currentMonth === realM);
+      todayBtn.classList.toggle('is-current-month', isAlreadyOnCurrent);
+      todayBtn.title = isAlreadyOnCurrent 
+        ? 'Você já está no mês atual' 
+        : `Voltar diretamente para ${realM} / ${realY}`;
     }
   }
 
@@ -5273,6 +5312,7 @@ const MatrixApp = (function () {
   return {
     init,
     changeMonth,
+    goToCurrentRealMonth,
     promptAddNewYear,
     populateYearSelector,
     togglePaid,

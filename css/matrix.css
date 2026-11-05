@@ -71,8 +71,8 @@ body {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 0;
-  opacity: 0.14;
+  z-index: 1;
+  opacity: 0.16;
   transition: opacity var(--transition-normal);
 }
 
@@ -81,7 +81,7 @@ body {
 }
 
 #matrixCanvas.rain-off {
-  display: none;
+  display: none !important;
 }
 
 /* App Shell */
@@ -203,6 +203,63 @@ body {
   min-width: 130px;
   text-align: center;
   letter-spacing: 0.5px;
+}
+
+/* Botão Voltar para o Mês Atual */
+.btn-today-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 255, 102, 0.12);
+  border: 1px solid var(--matrix-green);
+  color: var(--matrix-green);
+  border-radius: var(--radius-xs);
+  padding: 4px 9px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-left: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.btn-today-nav:hover {
+  background: var(--matrix-green);
+  color: #050807;
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.6);
+}
+
+.btn-today-nav:active {
+  transform: scale(0.95);
+}
+
+.btn-today-nav.is-current-month {
+  background: rgba(22, 42, 31, 0.4);
+  border-color: var(--border-dim);
+  color: var(--text-dim);
+  box-shadow: none;
+  cursor: default;
+}
+
+.btn-today-nav .today-dot {
+  display: inline-block;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--matrix-green);
+  animation: todayDotPulse 2s infinite ease-in-out;
+}
+
+.btn-today-nav.is-current-month .today-dot {
+  color: var(--text-muted);
+  animation: none;
+}
+
+@keyframes todayDotPulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  50% { transform: scale(1.25); opacity: 1; filter: drop-shadow(0 0 4px var(--matrix-green)); }
+  100% { transform: scale(0.85); opacity: 0.6; }
 }
 
 /* Action Buttons */
@@ -848,7 +905,7 @@ body {
     color: #111 !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
   }
-  .matrix-header, .matrix-tabs, .mobile-swipe-indicator, .fab-quick-expense, .matrix-modal-backdrop, .btn-matrix, .action-col, #rainCanvas {
+  .matrix-header, .matrix-tabs, .mobile-swipe-indicator, .fab-quick-expense, .matrix-modal-backdrop, .btn-matrix, .action-col, #matrixCanvas, #rainCanvas {
     display: none !important;
   }
   .app-container {
@@ -1203,6 +1260,13 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* No celular, a chuva Matrix sobrepõe toda a tela com mix-blend-mode, sem interferir em toques/cliques */
+  #matrixCanvas {
+    z-index: 10;
+    opacity: 0.22;
+    mix-blend-mode: screen;
+  }
+
   .app-container {
     padding: 8px 10px 90px 10px;
   }
@@ -1240,6 +1304,12 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 16px;
+  }
+
+  .btn-today-nav {
+    padding: 6px 8px;
+    font-size: 11px;
+    height: 34px;
   }
 
   /* Navigation Tabs Sticky & Touch Friendly on Mobile */

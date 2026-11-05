@@ -47,8 +47,11 @@
         <!-- Month Navigation -->
         <div class="month-selector">
           <button id="prevMonthBtn" class="btn-icon" title="Mês Anterior">◀</button>
-          <div id="currentMonthDisplay" class="month-display">Novembro / 2026</div>
+          <div id="currentMonthDisplay" class="month-display" title="Clique para voltar para o Mês Atual" onclick="MatrixApp.goToCurrentRealMonth()" style="cursor:pointer;">Novembro / 2026</div>
           <button id="nextMonthBtn" class="btn-icon" title="Próximo Mês">▶</button>
+          <button id="btnCurrentMonth" class="btn-today-nav" title="Voltar para o Mês Atual" onclick="MatrixApp.goToCurrentRealMonth()">
+            <span class="today-dot">●</span> <span>Mês Atual</span>
+          </button>
         </div>
 
         <span id="cloudSyncStatusBadge" class="status-badge" style="cursor:pointer;" onclick="document.querySelector('[data-tab=\'tab-backup\']').click()">⚪ Modo Offline</span>
