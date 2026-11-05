@@ -479,13 +479,15 @@ body {
 }
 
 .data-table tr.paid td {
-  opacity: 0.45;
-  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.data-table tr.paid td strong {
+  color: #8da386;
 }
 
 .data-table tr.paid td:last-child {
   opacity: 1;
-  text-decoration: none;
 }
 
 .data-table .val-col {
@@ -653,6 +655,162 @@ body {
   background: rgba(248, 113, 113, 0.12);
   color: var(--rose);
   border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+/* Origem do Recurso (De onde veio o dinheiro / De onde sai) */
+.origem-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 5px;
+  border-radius: var(--radius-xs);
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  border: 1px solid var(--border-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.origem-badge.bb {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.origem-badge.va {
+  color: #00ff66;
+  border-color: rgba(0, 255, 102, 0.35);
+  background: rgba(0, 255, 102, 0.08);
+}
+
+.origem-badge.vr {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.origem-badge.nubank {
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.35);
+  background: rgba(192, 132, 252, 0.08);
+}
+
+.origem-badge.scarlet {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.origem-badge.invest {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.origem-badge.resgate {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.origem-badge.caixa {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.35);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.origem-badge.default {
+  color: var(--text-dim);
+}
+
+.cat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1.5px 5px;
+  border-radius: var(--radius-xs);
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Painel de Fechamento & Rastreabilidade */
+.fechamento-dashboard-card {
+  margin-top: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.fechamento-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.fechamento-stat-box {
+  background: #050807;
+  border: 1px solid var(--border-dim);
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  flex-direction: column;
+}
+
+.fechamento-stat-box .label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.fechamento-stat-box .val {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  margin: 2px 0;
+}
+
+.fechamento-stat-box .sub {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.fechamento-stat-box.green .val { color: var(--matrix-green); }
+.fechamento-stat-box.amber .val { color: var(--amber); }
+.fechamento-stat-box.rose .val { color: var(--rose); }
+.fechamento-stat-box.cyan .val { color: var(--cyan); }
+
+.cashflow-trace-box {
+  border-top: 1px solid var(--border-dim);
+  padding-top: 10px;
+}
+
+.trace-flow-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.trace-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.trace-item-row:last-child {
+  border-bottom: none;
 }
 
 /* Modals */

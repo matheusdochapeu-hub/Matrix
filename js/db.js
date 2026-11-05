@@ -37,6 +37,52 @@ const MatrixDB = (function () {
     return memoryCache;
   }
 
+  function isSummaryOrTotalItem(name) {
+    if (!name) return false;
+    const n = String(name).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const exactForbidden = [
+      'total', 'totais', 'subtotal', 'sub-total', 'sub total', 'gastos',
+      'total gastos fixos', 'total gastos variaveis', 'total outros gastos',
+      'subtotal gastos', 'subtotal ganhos', 'ganhos - gastos',
+      'soma', 'saldo final', 'resumo', 'ideal', 'investimentos'
+    ];
+    if (exactForbidden.includes(n)) return true;
+    if (/^(total|totais|subtotal|sub-total|sub\s+total|gastos)\b/i.test(n)) return true;
+    return false;
+  }
+
+  function sanitizeState(state) {
+    if (!state || !state.anos) return state;
+    let mutated = false;
+    for (const ano in state.anos) {
+      for (const mes in state.anos[ano]) {
+        const m = state.anos[ano][mes];
+        if (!m) continue;
+        if (m.fixos && Array.isArray(m.fixos)) {
+          const origLen = m.fixos.length;
+          m.fixos = m.fixos.filter(it => it && !isSummaryOrTotalItem(it.nome));
+          if (m.fixos.length !== origLen) mutated = true;
+        }
+        if (m.outros && Array.isArray(m.outros)) {
+          const origLen = m.outros.length;
+          m.outros = m.outros.filter(it => it && !isSummaryOrTotalItem(it.nome));
+          if (m.outros.length !== origLen) mutated = true;
+        }
+        if (m.receitas && Array.isArray(m.receitas)) {
+          const origLen = m.receitas.length;
+          m.receitas = m.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
+          if (m.receitas.length !== origLen) mutated = true;
+        }
+      }
+    }
+    if (mutated) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+    return state;
+  }
+
   function getState() {
     if (!memoryCache) {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -46,6 +92,10 @@ const MatrixDB = (function () {
       if (!memoryCache && typeof MATRIX_SEED_DATA !== 'undefined') {
         memoryCache = JSON.parse(JSON.stringify(MATRIX_SEED_DATA));
       }
+    }
+
+    if (memoryCache) {
+      sanitizeState(memoryCache);
     }
 
     // Compatibilidade e enriquecimento automático de titularidade (Matheus & Scarlet)
@@ -168,7 +218,12 @@ const MatrixDB = (function () {
     const month = s.anos[ano][mes];
     if (!month.fixos) month.fixos = [];
     if (!month.outros) month.outros = [];
+    month.fixos = month.fixos.filter(it => it && !isSummaryOrTotalItem(it.nome));
+    month.outros = month.outros.filter(it => it && !isSummaryOrTotalItem(it.nome));
     ensureMonthReceitas(month, ano, mes);
+    if (month.receitas) {
+      month.receitas = month.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
+    }
     return month;
   }
 

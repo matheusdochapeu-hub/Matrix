@@ -214,22 +214,63 @@
 
           <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;margin-bottom:16px;" onclick="MatrixApp.openNewItemModal('receita')">+ Nova Receita</button>
 
-          <!-- Bloco: Fechamento & Termômetro Geral do Mês -->
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);margin-top:8px;">
-            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">Termômetro Geral de Pagamento das Despesas:</div>
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11.5px;margin-bottom:4px;">
-              <span style="color:var(--matrix-green);">● Total Já Pago no Mês:</span>
-              <strong id="geralPagoTotal">R$ 0,00</strong>
+          <!-- Bloco: Fechamento Consolidado & Totais Executivos -->
+          <div class="fechamento-dashboard-card">
+            <div style="font-size:11px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+              <span>📊 Fechamento Consolidado do Mês</span>
+              <span id="fechamentoMesBadge" class="status-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border:1px solid var(--matrix-green-dim);">Mês Ativo</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11.5px;margin-bottom:8px;">
-              <span style="color:var(--amber);">● Ainda a Pagar (Falta):</span>
-              <strong id="geralPendenteTotal">R$ 0,00</strong>
-            </div>
-            <div class="progress-track"><div id="geralProgressBar" class="progress-fill green" style="width:0%;"></div></div>
 
-            <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border-dim);margin-top:10px;padding-top:8px;font-family:var(--font-mono);font-size:12px;">
-              <span style="color:var(--text-muted);">Saldo Final Previsto:</span>
-              <strong id="fechamentoSaldoFinal">R$ 0,00</strong>
+            <!-- Totais de Fixos e Variáveis abaixo de Receitas e Fechamento -->
+            <div class="fechamento-summary-grid">
+              <div class="fechamento-stat-box green">
+                <span class="label">Total Receitas</span>
+                <span class="val" id="fechamentoTotalReceitas">R$ 0,00</span>
+                <span class="sub" id="fechamentoReceitasSub">0 recebidos • 0 a receber</span>
+              </div>
+              <div class="fechamento-stat-box amber">
+                <span class="label">(-) Gastos Fixos</span>
+                <span class="val" id="fechamentoTotalFixos">R$ 0,00</span>
+                <span class="sub" id="fechamentoFixosSub">0 pagos • 0 pendentes</span>
+              </div>
+              <div class="fechamento-stat-box rose">
+                <span class="label">(-) Gastos Variáveis</span>
+                <span class="val" id="fechamentoTotalOutros">R$ 0,00</span>
+                <span class="sub" id="fechamentoOutrosSub">0 pagos • 0 pendentes</span>
+              </div>
+              <div class="fechamento-stat-box cyan">
+                <span class="label">(=) Saldo Líquido</span>
+                <span class="val" id="fechamentoSaldoLiquido">R$ 0,00</span>
+                <span class="sub" id="fechamentoSaldoSub">Margem pós-despesas</span>
+              </div>
+            </div>
+
+            <!-- Termômetro de Execução dos Gastos -->
+            <div style="background:#050807;border:1px solid var(--border-dim);padding:8px 10px;border-radius:var(--radius-xs);margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;margin-bottom:4px;">
+                <span style="color:var(--matrix-green);">● Total Já Pago no Mês: <strong id="geralPagoTotal">R$ 0,00</strong></span>
+                <span style="color:var(--amber);">● Falta Pagar: <strong id="geralPendenteTotal">R$ 0,00</strong></span>
+              </div>
+              <div class="progress-track"><div id="geralProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+            </div>
+
+            <!-- Rastreabilidade Integral: De Onde Veio ➔ Para Onde Foi -->
+            <div class="cashflow-trace-box">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;font-weight:700;">🔍 De Onde Veio ➔ Para Onde Foi:</span>
+                <span style="font-size:9.5px;color:var(--cyan);font-family:var(--font-mono);">Origem & Destino 100%</span>
+              </div>
+
+              <div class="trace-flow-grid">
+                <div>
+                  <div style="font-size:10px;color:var(--cyan);font-family:var(--font-mono);margin-bottom:4px;font-weight:600;">📥 FONTES DE RECURSO (DE ONDE VEIO):</div>
+                  <div id="traceOrigensList"></div>
+                </div>
+                <div style="margin-top:4px;">
+                  <div style="font-size:10px;color:var(--amber);font-family:var(--font-mono);margin-bottom:4px;font-weight:600;">📤 DESTINOS DO DINHEIRO (PRA ONDE FOI):</div>
+                  <div id="traceDestinosList"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1001,16 +1042,19 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
         <div>
-          <label style="font-size:11px;color:var(--text-muted);">🏦 De onde sai / entra (Conta):</label>
-          <select id="modalItemConta" class="matrix-select">
+          <label style="font-size:11px;color:var(--text-muted);">🏦 De onde sai / entra (Conta / Origem):</label>
+          <select id="modalItemConta" class="matrix-select" onchange="MatrixApp.onModalContaChange(this.value)">
             <option value="bb">Banco do Brasil (Salário USP)</option>
-            <option value="nubank_scarlet">Cartão Nubank Scarlet (Black)</option>
+            <option value="va">Vale Alimentação (VA - Maracaju 88)</option>
+            <option value="vr">Vale Refeição (VR - Almoço USP)</option>
+            <option value="nubank_scarlet">Cartão Nubank Scarlet (Mastercard Black)</option>
             <option value="nubank_matheus">Cartão Nubank Matheus</option>
-            <option value="inter">Banco Inter (Pix / Giro)</option>
-            <option value="santander">Banco Santander (DinDin)</option>
+            <option value="inter">Banco Inter (Pix / Giro / XP)</option>
+            <option value="santander">Banco Santander</option>
             <option value="caixa">Caixa (Débito Casa)</option>
-            <option value="va">Vale Alimentação (VA)</option>
-            <option value="vr">Vale Refeição (VR)</option>
+            <option value="resgate_tesouro_reserva">💸 Resgate Tesouro Reserva (Investimento)</option>
+            <option value="resgate_outro">💸 Resgate de Outro Investimento</option>
+            <option value="investimento_aporte">📈 Aporte em Investimento (XP / Inter)</option>
             <option value="dinheiro">Dinheiro Vivo / Outro</option>
           </select>
         </div>
@@ -1021,17 +1065,69 @@
             <option value="ganhos_scarlet">Ganhos Scarlet (FisioFlow)</option>
             <option value="va_mercado">Vale Alimentação (Maracaju 88)</option>
             <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
+            <option value="investimento_resgate">Resgate de Investimento (Tesouro)</option>
             <option value="estudio_extra">Estúdio / Renda Extra</option>
             <option value="orcamento_geral" selected>Orçamento Geral Conjunto</option>
           </select>
         </div>
       </div>
 
-      <div style="margin-bottom:16px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;">
-          <input type="checkbox" id="modalItemPago">
-          <span id="modalItemPagoLabel" style="color:var(--matrix-green);font-weight:600;">Marcar como Já Pago</span>
+      <!-- Seletor Explicito de Status (Pendente / Pago) -->
+      <div style="background:#050807;border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-xs);margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">Status deste Lançamento:</label>
+        <div style="display:flex;gap:18px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--font-mono);font-size:12px;">
+            <input type="radio" name="modalItemStatusRadio" id="modalItemStatusPendente" value="pendente" checked>
+            <span style="color:var(--amber);font-weight:600;">⏳ PENDENTE</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--font-mono);font-size:12px;">
+            <input type="radio" name="modalItemStatusRadio" id="modalItemStatusPago" value="pago">
+            <span style="color:var(--matrix-green);font-weight:600;">✅ PAGO / CONCLUÍDO</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Vínculo Bidirecional com Investimentos 360 -->
+      <div id="modalInvestLinkBox" style="background:#050807;border:1px dashed var(--border-dim);padding:12px;border-radius:var(--radius-xs);margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-family:var(--font-mono);cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="chkModalInvestLink" onchange="MatrixApp.toggleModalInvestSubFields(this.checked)">
+          <strong style="color:var(--cyan);">🔗 Sincronizar com a Aba Investimentos 360</strong>
         </label>
+        <div id="modalInvestSubFields" style="display:none;margin-top:8px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">Operação:</label>
+              <select id="modalInvestOperacao" class="matrix-select" style="font-size:11px;">
+                <option value="aporte">📈 Aporte (Aumenta o saldo do investimento)</option>
+                <option value="resgate">💸 Resgate (Reduz o investimento para pagar)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">Ativo Selecionado:</label>
+              <select id="modalInvestAtivoSelect" class="matrix-select" style="font-size:11px;"></select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">Corretora / Banco:</label>
+              <select id="modalInvestCorretoraSelect" class="matrix-select" style="font-size:11px;">
+                <option value="XP Investimentos">XP Investimentos</option>
+                <option value="Banco Inter">Banco Inter</option>
+                <option value="NuInvest / Nubank">NuInvest / Nubank</option>
+                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="Binance">Binance (Cripto)</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;color:var(--text-muted);">Titular:</label>
+              <select id="modalInvestTitularSelect" class="matrix-select" style="font-size:11px;">
+                <option value="Matheus">Matheus</option>
+                <option value="Scarlet">Scarlet</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:10px;">

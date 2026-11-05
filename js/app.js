@@ -198,6 +198,11 @@ const MatrixApp = (function () {
   function renderAll() {
     renderKPIs();
     renderFluxoCaixa();
+    if (typeof renderCalendar === 'function') renderCalendar();
+    if (typeof renderFinancing === 'function') renderFinancing();
+    if (typeof renderInvestments === 'function') renderInvestments();
+    if (typeof renderSimulator === 'function') renderSimulator();
+    if (typeof renderHoleritesHistorico === 'function') renderHoleritesHistorico();
   }
 
   // ==========================================
@@ -505,6 +510,206 @@ const MatrixApp = (function () {
   // ==========================================
   // 2. FLUXO DE CAIXA MENSAL (TABELA PRINCIPAL)
   // ==========================================
+  function renderOrigemBadge(conta, renda, nome) {
+    const c = String(conta || '').toLowerCase();
+    const r = String(renda || '').toLowerCase();
+    const n = String(nome || '').toLowerCase();
+
+    if (c === 'resgate_tesouro_reserva' || (n.includes('tesouro reserva') && (c.includes('resgate') || r.includes('resgate')))) {
+      return '<span class="origem-badge resgate" title="Custeado por resgate do Tesouro Reserva">📉 Resgate Tesouro</span>';
+    }
+    if (c.includes('resgate') || r.includes('resgate') || n.includes('resgate')) {
+      return '<span class="origem-badge resgate" title="Custeado por resgate de investimento">📉 Resgate Invest</span>';
+    }
+    if (c === 'investimento_aporte' || n.includes('renda+') || n.includes('tesouro') || n.includes('cripto') || n.includes('cdb')) {
+      return '<span class="origem-badge invest" title="Aporte / Aplicação em Investimentos">📈 Investimento</span>';
+    }
+    if (c === 'va' || r === 'va_mercado' || n.includes('alimentação') || n.includes('mercado')) {
+      return '<span class="origem-badge va" title="Recurso oriundo do Vale Alimentação (Maracaju 88)">🥗 VA Maracaju</span>';
+    }
+    if (c === 'vr' || r === 'vr_almoco' || n.includes('refeição') || n.includes('almoço') || n.includes('restaurante')) {
+      return '<span class="origem-badge vr" title="Recurso oriundo do Vale Refeição (USP)">🍽️ VR USP</span>';
+    }
+    if (c === 'nubank_scarlet' || c === 'nubank_matheus' || n.includes('nubank')) {
+      return '<span class="origem-badge nubank" title="Cartão de Crédito Nubank Black">💳 Nubank Black</span>';
+    }
+    if (c === 'scarlet' || r === 'ganhos_scarlet' || n.includes('scarlet')) {
+      return '<span class="origem-badge scarlet" title="Ganhos da Scarlet (FisioFlow)">🩺 Scarlet</span>';
+    }
+    if (c === 'caixa' || n.includes('caixa') || n.includes('parcela casa')) {
+      return '<span class="origem-badge caixa" title="Débito em Conta / Financiamento Caixa">🏠 Caixa</span>';
+    }
+    if (c === 'bb' || r === 'salario_usp' || n.includes('salário') || n.includes('bb')) {
+      return '<span class="origem-badge bb" title="Recurso oriundo do Salário Líquido USP (Conta BB)">🏦 BB Salário</span>';
+    }
+    return `<span class="origem-badge default" title="Conta de Origem">${conta || 'Orçamento'}</span>`;
+  }
+
+  function renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList) {
+    const origensEl = document.getElementById('traceOrigensList');
+    const destinosEl = document.getElementById('traceDestinosList');
+    if (!origensEl || !destinosEl) return;
+
+    const allExpenses = [...fixosList, ...outrosList];
+
+    // 1. Fontes de Recurso (De Onde Veio)
+    const receitas = monthData.receitas || [];
+    let salUsp = 0;
+    let vaTotal = 2050.00;
+    let vrTotal = 1235.00;
+    let scarletTotal = 1100.00;
+
+    receitas.forEach(r => {
+      const n = (r.nome || '').toLowerCase();
+      const val = parseFloat(r.valor) || 0;
+      if (n.includes('salário') || n.includes('salario') || (r.id && r.id.startsWith('rec_sal'))) {
+        salUsp += val;
+      } else if (n.includes('va') || n.includes('alimentação')) {
+        vaTotal = val;
+      } else if (n.includes('vr') || n.includes('refeição')) {
+        vrTotal = val;
+      } else if (n.includes('scarlet') || n.includes('fisio')) {
+        scarletTotal = val;
+      }
+    });
+
+    if (salUsp === 0) salUsp = 5788.19;
+
+    let salUsado = 0;
+    let vaUsado = 0;
+    let vrUsado = 0;
+    let scarletUsado = 0;
+    let nubankUsado = 0;
+    let resgateInvestUsado = 0;
+
+    allExpenses.forEach(exp => {
+      const val = parseFloat(exp.valor) || 0;
+      const c = String(exp.conta || '').toLowerCase();
+      const r = String(exp.renda || '').toLowerCase();
+      const n = String(exp.nome || '').toLowerCase();
+
+      if (c === 'resgate_tesouro_reserva' || c.includes('resgate') || r.includes('resgate') || (n.includes('tesouro reserva') && val > 0 && exp.pago)) {
+        resgateInvestUsado += val;
+      } else if (c === 'va' || r === 'va_mercado' || n.includes('mercado') || n.includes('alimentação')) {
+        vaUsado += val;
+      } else if (c === 'vr' || r === 'vr_almoco' || n.includes('refeição') || n.includes('almoço')) {
+        vrUsado += val;
+      } else if (c === 'nubank_scarlet' || c === 'nubank_matheus' || n.includes('nubank')) {
+        nubankUsado += val;
+      } else if (c === 'scarlet' || r === 'ganhos_scarlet' || n.includes('scarlet')) {
+        scarletUsado += val;
+      } else if (c === 'bb' || r === 'salario_usp' || c === 'caixa') {
+        salUsado += val;
+      }
+    });
+
+    const state = MatrixDB.getState();
+    const sat = state.satellites || {};
+    if (sat.maracaju && sat.maracaju.gastoMercadoMesAtual && vaUsado === 0) {
+      vaUsado = sat.maracaju.gastoMercadoMesAtual;
+    }
+    if (sat.maracaju && sat.maracaju.gastoVrMesAtual && vrUsado === 0) {
+      vrUsado = sat.maracaju.gastoVrMesAtual;
+    }
+    if (sat.faturas && sat.faturas.faturaAtualValor && nubankUsado === 0) {
+      nubankUsado = sat.faturas.faturaAtualValor;
+    }
+
+    const salRestante = salUsp - salUsado;
+    const vaRestante = vaTotal - vaUsado;
+    const vrRestante = vrTotal - vrUsado;
+
+    origensEl.innerHTML = `
+      <div class="trace-item-row">
+        <span>🏦 <strong>Salário USP (BB)</strong></span>
+        <span>${formatBRL(salUsp)} <small style="color:${salRestante >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">(${formatBRL(salRestante)} livre)</small></span>
+      </div>
+      <div class="trace-item-row">
+        <span>🥗 <strong>Vale Alimentação (VA)</strong></span>
+        <span>${formatBRL(vaTotal)} <small style="color:${vaRestante >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">(${formatBRL(vaRestante)} saldo)</small></span>
+      </div>
+      <div class="trace-item-row">
+        <span>🍽️ <strong>Vale Refeição (VR)</strong></span>
+        <span>${formatBRL(vrTotal)} <small style="color:${vrRestante >= 0 ? 'var(--cyan)' : 'var(--rose)'};">(${formatBRL(vrRestante)} saldo)</small></span>
+      </div>
+      <div class="trace-item-row">
+        <span>🩺 <strong>Ganhos Scarlet (FisioFlow)</strong></span>
+        <span>${formatBRL(scarletTotal)} <small style="color:var(--text-dim);">(Compromissos: ${formatBRL(scarletUsado)})</small></span>
+      </div>
+      <div class="trace-item-row">
+        <span>💳 <strong>Crédito Nubank Black</strong></span>
+        <span style="color:var(--rose);">${formatBRL(nubankUsado)} <small style="color:var(--text-dim);">(Fatura cartão)</small></span>
+      </div>
+      ${resgateInvestUsado > 0 ? `
+      <div class="trace-item-row" style="background:rgba(248,113,113,0.08);border-radius:4px;padding:3px 6px;">
+        <span style="color:var(--rose);">📉 <strong>Resgate Tesouro Reserva</strong></span>
+        <strong style="color:var(--rose);">${formatBRL(resgateInvestUsado)} (Aplicado em despesas)</strong>
+      </div>` : ''}
+    `;
+
+    // 2. Destinos do Dinheiro (Pra Onde Foi)
+    let destMoradia = 0;
+    let destMercado = 0;
+    let destAlmoco = 0;
+    let destSaude = 0;
+    let destTransporte = 0;
+    let destInvestimentos = 0;
+    let destFaturasOutros = 0;
+
+    allExpenses.forEach(exp => {
+      const val = parseFloat(exp.valor) || 0;
+      const n = (exp.nome || '').toLowerCase();
+      const cat = (exp.categoria || '').toLowerCase();
+
+      if (cat.includes('habita') || n.includes('casa') || n.includes('água') || n.includes('luz') || n.includes('internet') || n.includes('iptu')) {
+        destMoradia += val;
+      } else if (cat.includes('alimen') || n.includes('mercado') || exp.conta === 'va') {
+        destMercado += val;
+      } else if (n.includes('refeição') || n.includes('almoço') || exp.conta === 'vr') {
+        destAlmoco += val;
+      } else if (cat.includes('saúde') || cat.includes('saude') || n.includes('unimed') || n.includes('psico') || n.includes('dentista')) {
+        destSaude += val;
+      } else if (cat.includes('transporte') || n.includes('carona') || n.includes('carro') || n.includes('combustível')) {
+        destTransporte += val;
+      } else if (cat.includes('aporte') || n.includes('renda+') || n.includes('tesouro') || n.includes('cripto') || n.includes('cdb')) {
+        destInvestimentos += val;
+      } else {
+        destFaturasOutros += val;
+      }
+    });
+
+    destinosEl.innerHTML = `
+      <div class="trace-item-row">
+        <span>🏠 <strong>Moradia & Casa Caixa</strong></span>
+        <strong style="color:var(--text-main);">${formatBRL(destMoradia)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>🥗 <strong>Supermercado (via VA)</strong></span>
+        <strong style="color:var(--matrix-green);">${formatBRL(destMercado)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>🍽️ <strong>Almoço USP (via VR)</strong></span>
+        <strong style="color:var(--cyan);">${formatBRL(destAlmoco)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>🩺 <strong>Saúde & Bem-Estar</strong></span>
+        <strong style="color:var(--text-main);">${formatBRL(destSaude)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>🚗 <strong>Transporte & Caronas USP</strong></span>
+        <strong style="color:var(--text-main);">${formatBRL(destTransporte)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>📈 <strong>Aportes Investimentos (Tesouro/XP)</strong></span>
+        <strong style="color:var(--cyan);">${formatBRL(destInvestimentos)}</strong>
+      </div>
+      <div class="trace-item-row">
+        <span>💳 <strong>Cartão Nubank & Despesas Pessoais</strong></span>
+        <strong style="color:var(--amber);">${formatBRL(destFaturasOutros)}</strong>
+      </div>
+    `;
+  }
+
   function renderFluxoCaixa() {
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
@@ -550,6 +755,10 @@ const MatrixApp = (function () {
           <tr class="${f.pago ? 'paid' : ''}">
             <td>
               <strong>${f.nome}</strong>
+              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+                ${renderOrigemBadge(f.conta, f.renda, f.nome)}
+                ${f.categoria ? `<span class="cat-pill">${f.categoria}</span>` : ''}
+              </div>
             </td>
             <td>
               <button type="button" 
@@ -579,6 +788,10 @@ const MatrixApp = (function () {
           <tr class="${o.pago ? 'paid' : ''}">
             <td>
               <strong>${o.nome}</strong>
+              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+                ${renderOrigemBadge(o.conta, o.renda, o.nome)}
+                ${o.categoria ? `<span class="cat-pill">${o.categoria}</span>` : ''}
+              </div>
             </td>
             <td>
               <button type="button" 
@@ -618,7 +831,10 @@ const MatrixApp = (function () {
           <tr class="${r.pago ? 'paid' : ''}">
             <td>
               <strong>${r.nome}</strong>
-              <div style="font-size:10px;color:var(--text-dim);">${r.categoria || 'Receita'}</div>
+              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+                ${renderOrigemBadge(r.conta, r.renda, r.nome)}
+                <span class="cat-pill">${r.categoria || 'Receita'}</span>
+              </div>
             </td>
             <td>
               <button type="button" 
@@ -638,13 +854,53 @@ const MatrixApp = (function () {
       }
     }
 
-    // Saldo Final do Mês no Fechamento
+    // Totais de Fixos e Variáveis abaixo de Receitas e Fechamento
     const saldoFinal = totalReceitas - (totalFixos + totalOutros);
+
+    const badgeMes = document.getElementById('fechamentoMesBadge');
+    if (badgeMes) badgeMes.textContent = `${currentMonth} / ${currentYear}`;
+
+    const totalRecEl = document.getElementById('fechamentoTotalReceitas');
+    if (totalRecEl) totalRecEl.textContent = formatBRL(totalReceitas);
+    const recSubEl = document.getElementById('fechamentoReceitasSub');
+    if (recSubEl) {
+      const pagCount = receitasList.filter(r => r.pago).length;
+      const pendCount = receitasList.length - pagCount;
+      recSubEl.textContent = `${pagCount} recebidas • ${pendCount} a receber`;
+    }
+
+    const totalFixEl = document.getElementById('fechamentoTotalFixos');
+    if (totalFixEl) totalFixEl.textContent = formatBRL(totalFixos);
+    const fixSubEl = document.getElementById('fechamentoFixosSub');
+    if (fixSubEl) {
+      const pagCount = fixosList.filter(f => f.pago).length;
+      const pendCount = fixosList.length - pagCount;
+      fixSubEl.textContent = `${pagCount} pagos • ${pendCount} pendentes`;
+    }
+
+    const totalOutEl = document.getElementById('fechamentoTotalOutros');
+    if (totalOutEl) totalOutEl.textContent = formatBRL(totalOutros);
+    const outSubEl = document.getElementById('fechamentoOutrosSub');
+    if (outSubEl) {
+      const pagCount = outrosList.filter(o => o.pago).length;
+      const pendCount = outrosList.length - pagCount;
+      outSubEl.textContent = `${pagCount} pagos • ${pendCount} pendentes`;
+    }
+
+    const saldoLiqEl = document.getElementById('fechamentoSaldoLiquido');
+    if (saldoLiqEl) {
+      saldoLiqEl.textContent = formatBRL(saldoFinal);
+      saldoLiqEl.style.color = saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
     const saldoFinalEl = document.getElementById('fechamentoSaldoFinal');
     if (saldoFinalEl) {
       saldoFinalEl.textContent = formatBRL(saldoFinal);
       saldoFinalEl.style.color = saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
+
+    // Rastreabilidade: De Onde Veio ➔ Para Onde Foi
+    renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList);
 
     // Render Bloco Contas de Início de Ano (se Janeiro)
     const contasInicioBox = document.getElementById('contasInicioAnoBox');
@@ -1246,20 +1502,27 @@ const MatrixApp = (function () {
       calSelectedYear = String(parseInt(calSelectedYear, 10) + 1);
     }
     calSelectedMonth = MONTH_NAMES[idx];
-    renderCalendar();
+    currentMonth = calSelectedMonth;
+    currentYear = calSelectedYear;
+    updateMonthDisplay();
+    renderAll();
   }
 
   function onCalMonthChange(m) {
     if (m && MONTH_NAMES.includes(m)) {
       calSelectedMonth = m;
-      renderCalendar();
+      currentMonth = calSelectedMonth;
+      updateMonthDisplay();
+      renderAll();
     }
   }
 
   function onCalYearChange(y) {
     if (y) {
       calSelectedYear = String(y);
-      renderCalendar();
+      currentYear = calSelectedYear;
+      updateMonthDisplay();
+      renderAll();
     }
   }
 
@@ -2446,38 +2709,89 @@ const MatrixApp = (function () {
     }
   }
 
+  function populateModalInvestAtivos() {
+    const state = MatrixDB.getState();
+    const invs = state.investimentos || [];
+    const select = document.getElementById('modalInvestAtivoSelect');
+    if (!select) return;
+
+    const names = new Set();
+    names.add('Tesouro Renda+ 2055');
+    names.add('Tesouro Reserva');
+    names.add('Tesouro Selic');
+    names.add('CSNA3 (Cia Siderúrgica Nacional)');
+    names.add('MGLU3 (Magazine Luiza)');
+    names.add('Cripto Bitcoin');
+    names.add('CDB Inter 100% CDI');
+
+    invs.forEach(i => {
+      if (i.ativo) names.add(i.ativo);
+    });
+
+    select.innerHTML = Array.from(names).map(n => `<option value="${n}">${n}</option>`).join('');
+  }
+
+  function onModalContaChange(val) {
+    const chk = document.getElementById('chkModalInvestLink');
+    const sub = document.getElementById('modalInvestSubFields');
+    const op = document.getElementById('modalInvestOperacao');
+    const at = document.getElementById('modalInvestAtivoSelect');
+
+    if (val === 'resgate_tesouro_reserva') {
+      if (chk) chk.checked = true;
+      if (sub) sub.style.display = 'block';
+      if (op) op.value = 'resgate';
+      if (at) at.value = 'Tesouro Reserva';
+    } else if (val === 'resgate_outro') {
+      if (chk) chk.checked = true;
+      if (sub) sub.style.display = 'block';
+      if (op) op.value = 'resgate';
+    } else if (val === 'investimento_aporte') {
+      if (chk) chk.checked = true;
+      if (sub) sub.style.display = 'block';
+      if (op) op.value = 'aporte';
+    }
+  }
+
+  function toggleModalInvestSubFields(checked) {
+    const sub = document.getElementById('modalInvestSubFields');
+    if (sub) sub.style.display = checked ? 'block' : 'none';
+  }
+
   function openNewItemModal(tipo) {
     document.getElementById('modalItemTipo').value = tipo;
     document.getElementById('modalItemEditId').value = '';
     document.getElementById('modalItemNome').value = '';
     document.getElementById('modalItemValor').value = '';
 
-    const chkPago = document.getElementById('modalItemPago');
-    if (chkPago) chkPago.checked = false;
+    populateModalInvestAtivos();
+
+    const chkInv = document.getElementById('chkModalInvestLink');
+    if (chkInv) chkInv.checked = false;
+    toggleModalInvestSubFields(false);
+
+    if (document.getElementById('modalItemStatusPendente')) document.getElementById('modalItemStatusPendente').checked = true;
+    if (document.getElementById('modalItemStatusPago')) document.getElementById('modalItemStatusPago').checked = false;
 
     const titleEl = document.getElementById('modalItemTitle');
     const nomeLabel = document.getElementById('modalItemNomeLabel');
     const nomeInput = document.getElementById('modalItemNome');
-    const pagoLabel = document.getElementById('modalItemPagoLabel');
     const catSelect = document.getElementById('modalItemCategoria');
 
     if (tipo === 'receita') {
       if (titleEl) titleEl.textContent = '+ Nova Receita / Ganho';
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Salário USP, 13º Salário, Estúdio, Fisio Scarlet...';
-      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Recebido neste Mês';
       if (catSelect) catSelect.value = 'Salário / Proventos';
     } else if (tipo === 'fixo') {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Fixo';
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa Fixa:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Parcela Caixa, Água, Luz, Internet...';
-      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
       if (catSelect) catSelect.value = 'Habitação';
     } else {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Variável';
       if (nomeLabel) nomeLabel.textContent = 'Descrição do Gasto Variável:';
-      if (nomeInput) nomeInput.placeholder = 'Ex: Mercado Extra, Farmácia, Lazer...';
-      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Mercado Extra, Farmácia, Lazer, Renda+ 2055...';
       if (catSelect) catSelect.value = 'Outros';
     }
 
@@ -2499,6 +2813,8 @@ const MatrixApp = (function () {
     const item = list && list[index];
     if (!item) return;
 
+    populateModalInvestAtivos();
+
     document.getElementById('modalItemTipo').value = tipo;
     document.getElementById('modalItemEditId').value = `idx_${index}`;
     document.getElementById('modalItemNome').value = item.nome || '';
@@ -2513,21 +2829,43 @@ const MatrixApp = (function () {
     const rendaSelect = document.getElementById('modalItemRenda');
     if (rendaSelect && item.renda) rendaSelect.value = item.renda;
 
-    const chkPago = document.getElementById('modalItemPago');
-    if (chkPago) chkPago.checked = !!item.pago;
+    // Status Pago / Pendente via radio buttons
+    const isPago = !!item.pago;
+    if (document.getElementById('modalItemStatusPago')) document.getElementById('modalItemStatusPago').checked = isPago;
+    if (document.getElementById('modalItemStatusPendente')) document.getElementById('modalItemStatusPendente').checked = !isPago;
+
+    // Detectar vínculo com investimentos
+    const n = (item.nome || '').toLowerCase();
+    const isInvest = (item.categoria === 'Aportes') ||
+      (item.conta === 'investimento_aporte' || item.conta === 'resgate_tesouro_reserva' || (item.conta && item.conta.includes('resgate'))) ||
+      n.includes('renda+') || n.includes('tesouro');
+
+    const chkInv = document.getElementById('chkModalInvestLink');
+    if (chkInv) {
+      chkInv.checked = isInvest;
+      toggleModalInvestSubFields(isInvest);
+      if (isInvest) {
+        const opSelect = document.getElementById('modalInvestOperacao');
+        if (opSelect) {
+          opSelect.value = (item.conta && item.conta.includes('resgate')) || n.includes('resgate') ? 'resgate' : 'aporte';
+        }
+        const atSelect = document.getElementById('modalInvestAtivoSelect');
+        if (atSelect) {
+          const match = Array.from(atSelect.options).find(opt => n.includes(opt.value.toLowerCase()));
+          if (match) atSelect.value = match.value;
+        }
+      }
+    }
 
     const titleEl = document.getElementById('modalItemTitle');
     const nomeLabel = document.getElementById('modalItemNomeLabel');
-    const pagoLabel = document.getElementById('modalItemPagoLabel');
 
     if (tipo === 'receita') {
       if (titleEl) titleEl.textContent = `Editar Receita: ${item.nome}`;
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
-      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Recebido neste Mês';
     } else {
       if (titleEl) titleEl.textContent = `Editar Despesa: ${item.nome}`;
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa:';
-      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
     }
 
     document.getElementById('itemModalBackdrop').classList.add('open');
@@ -2541,7 +2879,7 @@ const MatrixApp = (function () {
     const cat = document.getElementById('modalItemCategoria').value;
     const conta = document.getElementById('modalItemConta') ? document.getElementById('modalItemConta').value : 'bb';
     const renda = document.getElementById('modalItemRenda') ? document.getElementById('modalItemRenda').value : 'salario_usp';
-    const pago = document.getElementById('modalItemPago') ? document.getElementById('modalItemPago').checked : false;
+    const pago = document.getElementById('modalItemStatusPago') ? document.getElementById('modalItemStatusPago').checked : false;
 
     if (!nome) {
       alert(tipo === 'receita' ? 'Informe a descrição da receita.' : 'Informe a descrição da despesa.');
@@ -2557,6 +2895,70 @@ const MatrixApp = (function () {
       MatrixDB.updateTransaction(currentYear, currentMonth, tipo, editId, payload);
     } else {
       MatrixDB.addTransaction(currentYear, currentMonth, tipo, payload);
+    }
+
+    // VÍNCULO BIDIRECIONAL COM INVESTIMENTOS 360 (Aportes & Resgates)
+    const isInvest = document.getElementById('chkModalInvestLink') ? document.getElementById('chkModalInvestLink').checked : false;
+    const n = nome.toLowerCase();
+    const isAutoInvest = isInvest || (cat === 'Aportes') || (conta === 'investimento_aporte') || (conta === 'resgate_tesouro_reserva') ||
+      n.includes('renda+ 2055') || n.includes('renda+2055') || n.includes('tesouro reserva');
+
+    if (isAutoInvest && valor > 0) {
+      const op = document.getElementById('modalInvestOperacao') ? document.getElementById('modalInvestOperacao').value :
+        (conta.includes('resgate') || n.includes('resgate') ? 'resgate' : 'aporte');
+      
+      let ativoNome = document.getElementById('modalInvestAtivoSelect') ? document.getElementById('modalInvestAtivoSelect').value : '';
+      if (!ativoNome) {
+        if (n.includes('2055')) ativoNome = 'Tesouro Renda+ 2055';
+        else if (n.includes('reserva')) ativoNome = 'Tesouro Reserva';
+        else ativoNome = nome;
+      }
+
+      const corretora = document.getElementById('modalInvestCorretoraSelect') ? document.getElementById('modalInvestCorretoraSelect').value : 'XP Investimentos';
+      const titular = document.getElementById('modalInvestTitularSelect') ? document.getElementById('modalInvestTitularSelect').value : 'Matheus';
+
+      const state = MatrixDB.getState();
+      if (!state.investimentos) state.investimentos = [];
+
+      let targetAsset = state.investimentos.find(inv =>
+        inv.ativo && inv.ativo.toLowerCase().trim() === ativoNome.toLowerCase().trim() &&
+        (!corretora || (inv.corretora || '').toLowerCase().includes(corretora.toLowerCase().slice(0, 4)))
+      );
+
+      if (!targetAsset) {
+        targetAsset = state.investimentos.find(inv =>
+          inv.ativo && (inv.ativo.toLowerCase().includes(ativoNome.toLowerCase()) || ativoNome.toLowerCase().includes(inv.ativo.toLowerCase()))
+        );
+      }
+
+      if (op === 'aporte') {
+        if (targetAsset) {
+          targetAsset.valorAtual = (parseFloat(targetAsset.valorAtual) || 0) + valor;
+          targetAsset.status = `Ativo (Aporte em ${currentMonth}/${currentYear})`;
+          if (corretora) targetAsset.corretora = corretora;
+        } else {
+          state.investimentos.push({
+            id: 'inv_' + Date.now(),
+            ativo: ativoNome,
+            corretora: corretora,
+            titular: titular,
+            categoria: 'Renda Fixa / Tesouro',
+            valorAtual: valor,
+            status: `Ativo (Criado via lançamento em ${currentMonth}/${currentYear})`
+          });
+        }
+      } else if (op === 'resgate') {
+        if (targetAsset) {
+          targetAsset.valorAtual = Math.max(0, (parseFloat(targetAsset.valorAtual) || 0) - valor);
+          if (targetAsset.valorAtual === 0) {
+            targetAsset.status = `Liquidado / Totalmente utilizado em ${currentMonth}/${currentYear}`;
+          } else {
+            targetAsset.status = `Ativo (Resgate parcial em ${currentMonth}/${currentYear})`;
+          }
+        }
+      }
+
+      MatrixDB.saveState(state);
     }
 
     closeModal('itemModalBackdrop');
@@ -3340,7 +3742,9 @@ const MatrixApp = (function () {
     navegarParaMes,
     renderHoleritesHistorico,
     toggleHoleriteAccordion,
-    excluirHolerite
+    excluirHolerite,
+    onModalContaChange,
+    toggleModalInvestSubFields
   };
 })();
 
