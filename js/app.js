@@ -110,6 +110,195 @@ const MatrixApp = (function () {
     alert(`Ano ${anoStr} aberto com sucesso! Você já pode adicionar, editar receitas e despesas livremente.`);
   }
 
+  const TAB_ORDER = [
+    'tab-fluxo',
+    'tab-simulador',
+    'tab-holerites',
+    'tab-calendario',
+    'tab-financiamento',
+    'tab-investimentos',
+    'tab-backup'
+  ];
+
+  let currentActiveTabId = 'tab-fluxo';
+
+  function switchTab(targetId, direction = null) {
+    if (!targetId || !TAB_ORDER.includes(targetId)) targetId = 'tab-fluxo';
+
+    const oldIndex = TAB_ORDER.indexOf(currentActiveTabId);
+    const newIndex = TAB_ORDER.indexOf(targetId);
+
+    // Determina a direção do carrossel se não especificada
+    let animDir = direction;
+    if (!animDir && oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+      animDir = newIndex > oldIndex ? 'next' : 'prev';
+    }
+
+    currentActiveTabId = targetId;
+
+    // 1. Atualizar botões de navegação
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const btnTab = btn.getAttribute('data-tab');
+      if (btnTab === targetId) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        try {
+          btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        } catch (e) {}
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+      }
+    });
+
+    // 2. Atualizar dots do indicador de swipe no celular
+    const dots = document.querySelectorAll('.swipe-dot');
+    dots.forEach((dot, idx) => {
+      if (idx === newIndex) dot.classList.add('active');
+      else dot.classList.remove('active');
+    });
+
+    // 3. Atualizar e animar os containers de conteúdo (Carousel Viewport)
+    document.querySelectorAll('.tab-content').forEach(view => {
+      view.style.transform = '';
+      view.style.transition = '';
+      view.classList.remove('swipe-in-right', 'swipe-in-left');
+
+      if (view.id === targetId) {
+        view.classList.add('active');
+        if (animDir === 'next') {
+          view.classList.add('swipe-in-right');
+        } else if (animDir === 'prev') {
+          view.classList.add('swipe-in-left');
+        }
+      } else {
+        view.classList.remove('active');
+      }
+    });
+
+    // 4. Re-render específico da aba quando acionada
+    if (targetId === 'tab-simulador') renderSimulator();
+    if (targetId === 'tab-holerites') renderHoleritesHistorico();
+    if (targetId === 'tab-calendario') renderCalendar();
+    if (targetId === 'tab-financiamento') renderFinancing();
+    if (targetId === 'tab-investimentos') renderInvestments();
+    if (targetId === 'tab-backup') renderBackup();
+  }
+
+  function initSwipeNavigation() {
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let startTime = 0;
+    let isTracking = false;
+    let isHorizontalDrag = false;
+    let activeViewEl = null;
+
+    function getActiveView() {
+      return document.getElementById(currentActiveTabId);
+    }
+
+    document.addEventListener('touchstart', (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+
+      // Não acionar carrossel se algum modal estiver aberto
+      const openModal = document.querySelector('.matrix-modal-backdrop.open');
+      if (openModal) return;
+
+      // Não acionar se o toque começou dentro de elementos com scroll horizontal próprio, formulários ou botões
+      const target = e.target;
+      if (target && target.closest && target.closest('input, textarea, select, button, .monthly-horizon-grid, .data-table, .matrix-tabs, #calDaysScroll, table, .table-scroll-wrapper, .modal')) {
+        return;
+      }
+
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = startX;
+      startTime = Date.now();
+      isTracking = true;
+      isHorizontalDrag = false;
+      activeViewEl = getActiveView();
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (!isTracking || !e.touches || e.touches.length !== 1 || !activeViewEl) return;
+      currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+
+      // Determina se o gesto é predominantemente horizontal
+      if (!isHorizontalDrag) {
+        if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+          isHorizontalDrag = true;
+        } else if (Math.abs(deltaY) > 10) {
+          // Scroll vertical natural: aborta rastreamento para rolagem limpa
+          isTracking = false;
+          return;
+        }
+      }
+
+      if (isHorizontalDrag) {
+        // Resistência elástica nas extremidades (primeira e última abas)
+        const idx = TAB_ORDER.indexOf(currentActiveTabId);
+        let factor = 1;
+        if ((idx === 0 && deltaX > 0) || (idx === TAB_ORDER.length - 1 && deltaX < 0)) {
+          factor = 0.25;
+        }
+        activeViewEl.style.transition = 'none';
+        activeViewEl.style.transform = `translate3d(${deltaX * factor}px, 0, 0)`;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (!isTracking) return;
+      isTracking = false;
+
+      const endX = e.changedTouches && e.changedTouches.length ? e.changedTouches[0].clientX : currentX;
+      const deltaX = endX - startX;
+      const duration = Date.now() - startTime;
+      const targetView = activeViewEl;
+      activeViewEl = null;
+
+      if (isHorizontalDrag && targetView) {
+        const isSwipeAction = (Math.abs(deltaX) >= 45 && duration <= 500) || (Math.abs(deltaX) >= 30 && duration <= 250);
+        let idx = TAB_ORDER.indexOf(currentActiveTabId);
+        if (idx === -1) idx = 0;
+
+        if (isSwipeAction && deltaX < 0 && idx < TAB_ORDER.length - 1) {
+          // Desliza para a esquerda -> Próxima aba (next)
+          targetView.style.transition = 'transform 0.15s ease, opacity 0.15s ease';
+          targetView.style.transform = 'translate3d(-40px, 0, 0)';
+          targetView.style.opacity = '0';
+          setTimeout(() => {
+            switchTab(TAB_ORDER[idx + 1], 'next');
+          }, 110);
+          return;
+        } else if (isSwipeAction && deltaX > 0 && idx > 0) {
+          // Desliza para a direita -> Aba anterior (prev)
+          targetView.style.transition = 'transform 0.15s ease, opacity 0.15s ease';
+          targetView.style.transform = 'translate3d(40px, 0, 0)';
+          targetView.style.opacity = '0';
+          setTimeout(() => {
+            switchTab(TAB_ORDER[idx - 1], 'prev');
+          }, 110);
+          return;
+        }
+
+        // Retorno suave elástico caso não atinja o limiar
+        targetView.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.22s ease';
+        targetView.style.transform = 'translate3d(0, 0, 0)';
+        targetView.style.opacity = '1';
+        setTimeout(() => {
+          if (targetView) {
+            targetView.style.transform = '';
+            targetView.style.transition = '';
+          }
+        }, 230);
+      }
+    }, { passive: true });
+  }
+
   function setupEventListeners() {
     // Month navigation
     document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
@@ -130,25 +319,16 @@ const MatrixApp = (function () {
       });
     }
 
-    // Tab buttons
+    // Tab buttons & Carousel switching
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        btn.classList.add('active');
         const targetId = btn.getAttribute('data-tab');
-        const targetContent = document.getElementById(targetId);
-        if (targetContent) targetContent.classList.add('active');
-
-        // Re-render specifics if needed
-        if (targetId === 'tab-simulador') renderSimulator();
-        if (targetId === 'tab-holerites') renderHoleritesHistorico();
-        if (targetId === 'tab-calendario') renderCalendar();
-        if (targetId === 'tab-financiamento') renderFinancing();
-        if (targetId === 'tab-investimentos') renderInvestments();
-        if (targetId === 'tab-backup') renderBackup();
+        switchTab(targetId);
       });
     });
+
+    // Iniciar navegação gestual por Swipe entre abas no mobile
+    initSwipeNavigation();
 
     // Rain toggle
     const rainBtn = document.getElementById('rainToggleBtn');
@@ -1500,8 +1680,7 @@ const MatrixApp = (function () {
     closeModal('drilldownModalBackdrop');
     closeModal('scenarioModalBackdrop');
 
-    const fluxoTabBtn = document.querySelector('[data-tab="tab-fluxo"]');
-    if (fluxoTabBtn) fluxoTabBtn.click();
+    switchTab('tab-fluxo', 'prev');
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -4110,7 +4289,9 @@ const MatrixApp = (function () {
     onModalContaChange,
     toggleModalInvestSubFields,
     isFaturasItem,
-    alertFaturasReadOnly
+    alertFaturasReadOnly,
+    switchTab,
+    initSwipeNavigation
   };
 })();
 

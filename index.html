@@ -101,8 +101,24 @@
       <button class="tab-btn" data-tab="tab-backup">☁️ Backup & Conexões</button>
     </nav>
 
-    <!-- TAB 1: FLUXO DE CAIXA MENSAL -->
-    <main id="tab-fluxo" class="tab-content active">
+    <!-- Indicador Visual de Swipe / Carrossel no Celular -->
+    <div id="mobileSwipeIndicator" class="mobile-swipe-indicator">
+      <span class="swipe-hint">👈 Deslize entre as abas 👉</span>
+      <div class="swipe-dots" id="swipeDotsContainer">
+        <span class="swipe-dot active" data-tab="tab-fluxo" onclick="MatrixApp.switchTab('tab-fluxo')"></span>
+        <span class="swipe-dot" data-tab="tab-simulador" onclick="MatrixApp.switchTab('tab-simulador')"></span>
+        <span class="swipe-dot" data-tab="tab-holerites" onclick="MatrixApp.switchTab('tab-holerites')"></span>
+        <span class="swipe-dot" data-tab="tab-calendario" onclick="MatrixApp.switchTab('tab-calendario')"></span>
+        <span class="swipe-dot" data-tab="tab-financiamento" onclick="MatrixApp.switchTab('tab-financiamento')"></span>
+        <span class="swipe-dot" data-tab="tab-investimentos" onclick="MatrixApp.switchTab('tab-investimentos')"></span>
+        <span class="swipe-dot" data-tab="tab-backup" onclick="MatrixApp.switchTab('tab-backup')"></span>
+      </div>
+    </div>
+
+    <!-- CARROSSEL / SWIPE VIEWS VIEWPORT -->
+    <div id="tabsCarouselViewport" class="tabs-carousel-viewport">
+      <!-- TAB 1: FLUXO DE CAIXA MENSAL -->
+      <main id="tab-fluxo" class="tab-content active">
       <!-- ÁREA INICIAL: CARDS MENSAIS DA RENDA CONJUNTA (MATHEUS + SCARLET) -->
       <section id="areaInicialMeses" class="matrix-box" style="margin-bottom:18px;background:linear-gradient(180deg, rgba(5,8,7,0.98), rgba(9,18,13,0.95));border:1px solid rgba(0,255,102,0.25);">
         <div class="box-header" style="margin-bottom:8px;padding-bottom:8px;flex-wrap:wrap;gap:10px;">
@@ -1009,6 +1025,7 @@
         </div>
       </div>
     </section>
+    </div> <!-- Fecha tabsCarouselViewport -->
   </div>
 
   <!-- MODAL: DETALHAMENTO DO CARD (DRILLDOWN) -->

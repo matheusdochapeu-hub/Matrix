@@ -377,19 +377,46 @@ body {
   box-shadow: 0 0 10px var(--border-glow);
 }
 
-/* Tab Content Transitions */
+/* Efeito Swipe Views / Carrossel de Abas (Mobile & Desktop) */
+.tabs-carousel-viewport {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y pinch-zoom;
+}
+
 .tab-content {
   display: none;
+  width: 100%;
+  box-sizing: border-box;
+  will-change: transform, opacity;
 }
 
 .tab-content.active {
   display: block;
-  animation: fadeInFast 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fadeInFast {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+.tab-content.swipe-in-right {
+  animation: tabCarouselInRight 0.28s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.tab-content.swipe-in-left {
+  animation: tabCarouselInLeft 0.28s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes tabCarouselInRight {
+  from { transform: translate3d(36px, 0, 0); opacity: 0.35; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes tabCarouselInLeft {
+  from { transform: translate3d(-36px, 0, 0); opacity: 0.35; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+/* Indicador de Swipe no Celular */
+.mobile-swipe-indicator {
+  display: none;
 }
 
 /* Clean Matrix Box */
@@ -1087,6 +1114,92 @@ body {
   .month-display {
     min-width: unset;
     font-size: 12px;
+  }
+
+  .month-nav-btn {
+    min-width: 42px;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  /* Navigation Tabs Sticky & Touch Friendly on Mobile */
+  .matrix-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    background: rgba(5, 8, 7, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin-left: -10px;
+    margin-right: -10px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+    gap: 5px;
+  }
+
+  .tab-btn {
+    padding: 8px 13px;
+    font-size: 11px;
+    min-height: 38px;
+    touch-action: manipulation;
+  }
+
+  /* Indicador Visual de Carrossel / Swipe no Celular */
+  .mobile-swipe-indicator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: rgba(0, 255, 102, 0.04);
+    border: 1px dashed rgba(0, 255, 102, 0.2);
+    border-radius: var(--radius-xs);
+  }
+
+  .swipe-dots {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .swipe-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .swipe-dot.active {
+    width: 16px;
+    border-radius: 4px;
+    background: var(--matrix-green);
+    box-shadow: 0 0 8px var(--border-glow);
+  }
+
+  /* Grid de Cards Mensais no Celular (Carrossel Horizontal com Snap) */
+  .monthly-horizon-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 10px;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+
+  .month-horizon-card {
+    min-width: 82vw;
+    max-width: 85vw;
+    flex-shrink: 0;
+    scroll-snap-align: center;
   }
 
   .kpi-grid {
