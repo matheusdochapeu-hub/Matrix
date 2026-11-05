@@ -3385,7 +3385,7 @@ const MATRIX_SEED_DATA = {
         "scarlet": {
           "gastos": [],
           "ganhos": 1100.0,
-          "faturaNubank": 4500.0
+          "faturaNubank": 4568.57
         }
       },
       "Dezembro": {

@@ -123,32 +123,60 @@ const MatrixApp = (function () {
 
   // ==========================================
   // SINCRONIZAÇÃO DE DADOS REAIS DOS APPS (FATURAS & FISIOFLOW)
+  // Regra de Integridade Absoluta: Não inventar dados onde não houver!
   // ==========================================
   function getFaturaNubankMes(ano, mes) {
     const state = MatrixDB.getState();
     const monthKey = `${ano}-${mes}`;
     const monthData = MatrixDB.getMonth(ano, mes);
+
+    // 1. Override manual explícito definido pelo usuário para este mês
     if (monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
-      return parseFloat(monthData.scarlet.faturaNubankManual);
+      return parseFloat(monthData.scarlet.faturaNubankManual) || 0;
     }
+
+    // 2. Dados reais sincronizados dos Satélites (App Faturas / Google Sheets)
     const sat = (state.satellites && state.satellites.faturas);
     if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
-      return parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal || 0);
+      const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
+      if (!isNaN(val)) return val;
     }
-    // Valores reais extraídos da fatura Nubank Black
-    if (ano === '2026' && mes === 'Novembro') return 4568.57;
-    if (ano === '2026' && mes === 'Dezembro') return 1568.05;
-    if (ano === '2026' && mes === 'Outubro') return 3418.03;
-    if (ano === '2027' && mes === 'Janeiro') return 1628.89;
-    return (monthData.scarlet && monthData.scarlet.faturaNubank) || 4568.57;
+
+    // 3. Meses conhecidos com dados reais comprovados do app Faturas (apenas 2026/2027)
+    if (ano === '2026') {
+      if (mes === 'Novembro') return 4568.57;
+      if (mes === 'Dezembro') return 1568.05;
+      if (mes === 'Outubro') return 3418.03;
+      if (mes === 'Setembro') return 0;
+    } else if (ano === '2027') {
+      if (mes === 'Janeiro') return 1628.89;
+    }
+
+    // 4. Se houver valor numérico gravado no mês
+    if (monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number') {
+      return monthData.scarlet.faturaNubank;
+    }
+
+    // 5. Sem dados existentes: NUNCA inventar dados (retornar 0)
+    return 0;
   }
 
   function getGanhosScarletMes(ano, mes) {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(ano, mes);
+
+    // 1. Override manual explícito
     if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
-      return parseFloat(monthData.scarlet.ganhosManual);
+      return parseFloat(monthData.scarlet.ganhosManual) || 0;
     }
+
+    // 2. Receita explícita registrada nas receitas do mês
+    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    if (recFisio && recFisio.valor != null) {
+      return parseFloat(recFisio.valor) || 0;
+    }
+
+    // 3. Dados dos Satélites (FisioFlow)
     const mIdx = MONTH_NAMES.indexOf(mes) + 1;
     const ym = `${ano}-${String(mIdx).padStart(2, '0')}`;
     const satFisio = state.satellites && state.satellites.fisioflow;
@@ -157,7 +185,14 @@ const MatrixApp = (function () {
       const tot = (g.realizado || 0) + (g.aReceber || 0);
       if (tot > 0) return tot;
     }
-    return (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
+
+    // 4. Valor numérico gravado no mês
+    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
+      return monthData.scarlet.ganhos;
+    }
+
+    // 5. Sem dados existentes: NUNCA inventar dados (retornar 0)
+    return 0;
   }
 
   function populateYearSelector() {
@@ -659,7 +694,11 @@ const MatrixApp = (function () {
 
     const faturaSubEl = document.getElementById('kpiFaturaSub');
     if (faturaSubEl) {
-      faturaSubEl.textContent = `Scarlet recebe ~${formatBRL(ganhosScarlet)} • Sobra ${formatBRL(sobraFatura)}`;
+      if (faturaNubank > 0) {
+        faturaSubEl.textContent = `Scarlet recebe ~${formatBRL(ganhosScarlet)} • Sobra ${formatBRL(sobraFatura)}`;
+      } else {
+        faturaSubEl.textContent = 'Sem fatura neste período';
+      }
     }
 
     // Dívida Caixa
