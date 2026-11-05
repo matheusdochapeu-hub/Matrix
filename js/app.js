@@ -19,6 +19,7 @@ const MatrixApp = (function () {
   }
 
   function init() {
+    populateYearSelector();
     setupEventListeners();
     updateMonthDisplay();
     renderAll();
@@ -30,6 +31,7 @@ const MatrixApp = (function () {
       if (cfg.cloudUrl) {
         SyncEngine.fetchFromCloud().then(res => {
           if (res.success && res.data) {
+            populateYearSelector();
             renderAll();
           }
         });
@@ -51,6 +53,55 @@ const MatrixApp = (function () {
     });
   }
 
+  function populateYearSelector() {
+    const yearSelect = document.getElementById('yearSelect');
+    if (!yearSelect) return;
+
+    const allYears = MatrixDB.getAllYears();
+    if (!allYears.includes(String(currentYear))) {
+      allYears.push(String(currentYear));
+      allYears.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    }
+
+    yearSelect.innerHTML = allYears.map(y => {
+      let label = y;
+      if (y === '2025') label = '2025 (Histórico)';
+      else if (y === '2026') label = '2026 (Atual)';
+      else if (y === '2027') label = '2027 (Projetado)';
+      else label = `${y} (Projetado)`;
+      return `<option value="${y}" ${String(y) === String(currentYear) ? 'selected' : ''}>${label}</option>`;
+    }).join('');
+
+    // Atualiza o select de holerites na aba correspondente
+    const hlAnoSelect = document.getElementById('hlAno');
+    if (hlAnoSelect) {
+      hlAnoSelect.innerHTML = allYears.map(y => `<option value="${y}" ${String(y) === String(currentYear) ? 'selected' : ''}>${y}</option>`).join('');
+    }
+  }
+
+  function promptAddNewYear() {
+    const years = MatrixDB.getAllYears().map(y => parseInt(y, 10));
+    const nextYearSuggestion = String(Math.max(...years) + 1);
+    const novoAno = prompt('Informe o ano que deseja planejar e projetar (ex: 2028, 2029):', nextYearSuggestion);
+    if (!novoAno || isNaN(parseInt(novoAno, 10))) return;
+
+    const anoStr = String(parseInt(novoAno, 10));
+    const allYears = MatrixDB.getAllYears();
+
+    if (!allYears.includes(anoStr)) {
+      const clone = confirm(`Deseja clonar a base de gastos fixos, parcelas e receitas recorrentes de 2027 para iniciar ${anoStr} com tudo pronto?`);
+      const baseYear = allYears[allYears.length - 1] || '2027';
+      MatrixDB.createYear(anoStr, clone ? baseYear : null);
+    }
+
+    currentYear = anoStr;
+    currentMonth = 'Janeiro';
+    populateYearSelector();
+    updateMonthDisplay();
+    renderAll();
+    alert(`Ano ${anoStr} aberto com sucesso! Você já pode adicionar, editar receitas e despesas livremente.`);
+  }
+
   function setupEventListeners() {
     // Month navigation
     document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
@@ -61,6 +112,10 @@ const MatrixApp = (function () {
     if (yearSelect) {
       yearSelect.addEventListener('change', (e) => {
         currentYear = e.target.value;
+        const allYears = MatrixDB.getAllYears();
+        if (!allYears.includes(currentYear)) {
+          MatrixDB.createYear(currentYear, allYears[allYears.length - 1] || '2027');
+        }
         updateMonthDisplay();
         renderAll();
       });
@@ -112,9 +167,13 @@ const MatrixApp = (function () {
     }
     currentMonth = MONTH_NAMES[idx];
 
-    const yearSelect = document.getElementById('yearSelect');
-    if (yearSelect) yearSelect.value = currentYear;
+    // Se o novo ano ainda não estiver criado, cria automaticamente
+    const allYears = MatrixDB.getAllYears();
+    if (!allYears.includes(currentYear)) {
+      MatrixDB.createYear(currentYear, allYears[allYears.length - 1] || '2027');
+    }
 
+    populateYearSelector();
     updateMonthDisplay();
     renderAll();
   }
@@ -138,7 +197,9 @@ const MatrixApp = (function () {
 
     // Ganhos
     let ganhos = 0;
-    if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
+    if (monthData.receitas && monthData.receitas.length > 0) {
+      ganhos = monthData.receitas.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
       ganhos = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
     } else if (monthData.totais && monthData.totais['Salário Mensal']) {
       ganhos = parseFloat(monthData.totais['Salário Mensal']) || 0;
@@ -208,7 +269,9 @@ const MatrixApp = (function () {
       titleEl.innerHTML = `💵 Auditoria da Folga de Caixa (${periodLabel})`;
 
       let ganhos = 0;
-      if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
+      if (monthData.receitas && monthData.receitas.length > 0) {
+        ganhos = monthData.receitas.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
         ganhos = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
       } else if (monthData.totais && monthData.totais['Salário Mensal']) {
         ganhos = parseFloat(monthData.totais['Salário Mensal']) || 0;
@@ -263,32 +326,39 @@ const MatrixApp = (function () {
 
     } else if (tipo === 'ganhos') {
       titleEl.innerHTML = `📥 Detalhamento de Ganhos (${periodLabel})`;
-      const t = monthData.totais || {};
-      const itens = [];
-      if (t['Salário Mensal']) itens.push({ nome: 'Salário Líquido USP em Conta BB', valor: t['Salário Mensal'] });
-      if (t['VA']) itens.push({ nome: 'Vale Alimentação (Alimentação Domiciliar)', valor: t['VA'] });
-      if (t['VR']) itens.push({ nome: 'Vale Refeição (Almoço / Dias Trabalhados)', valor: t['VR'] });
-      if (t['Estúdio']) itens.push({ nome: 'Entrada Estúdio', valor: t['Estúdio'] });
-      if (t['13º']) itens.push({ nome: '13º Salário USP', valor: t['13º'] });
-      if (t['BB']) itens.push({ nome: 'Outras Entradas / Saldo BB', valor: t['BB'] });
+      const itens = (monthData.receitas && monthData.receitas.length > 0)
+        ? monthData.receitas
+        : [];
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12px;">
           <table class="data-table" style="margin-bottom:14px;">
             <thead>
-              <tr><th>Fonte de Receita</th><th style="text-align:right;">Valor</th></tr>
+              <tr>
+                <th>Fonte de Receita</th>
+                <th>Status</th>
+                <th style="text-align:right;">Valor</th>
+              </tr>
             </thead>
             <tbody>
               ${itens.map(it => `
                 <tr>
-                  <td><strong>${it.nome}</strong></td>
-                  <td class="val-col" style="color:var(--cyan);">${formatBRL(it.valor)}</td>
+                  <td>
+                    <strong>${it.nome}</strong>
+                    <div style="font-size:10px;color:var(--text-dim);">${it.categoria || 'Receita'}</div>
+                  </td>
+                  <td>
+                    <span class="status-badge ${it.pago ? 'pago' : 'pendente'}">
+                      ${it.pago ? '✅ Recebido' : '⏳ A Receber'}
+                    </span>
+                  </td>
+                  <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(it.valor)}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           <div style="font-size:11px;color:var(--text-muted);">
-            Valores computados conforme lançamentos da folha de pagamento e demonstrativos do mês de ${periodLabel}.
+            Valores computados conforme lançamentos e receitas cadastradas para o mês de ${periodLabel}.
           </div>
         </div>
       `;
@@ -516,6 +586,54 @@ const MatrixApp = (function () {
       }
     }
 
+    // Render Receitas / Ganhos Table Body & Termômetro
+    const receitasList = monthData.receitas || [];
+    const totalReceitas = receitasList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pagasReceitas = receitasList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pendentesReceitas = Math.max(0, totalReceitas - pagasReceitas);
+
+    if (document.getElementById('receitasPagoLabel')) document.getElementById('receitasPagoLabel').textContent = formatBRL(pagasReceitas);
+    if (document.getElementById('receitasPendenteLabel')) document.getElementById('receitasPendenteLabel').textContent = formatBRL(pendentesReceitas);
+    const pctReceitas = totalReceitas > 0 ? (pagasReceitas / totalReceitas) * 100 : 0;
+    if (document.getElementById('receitasProgressBar')) document.getElementById('receitasProgressBar').style.width = pctReceitas.toFixed(1) + '%';
+
+    const receitasTbody = document.getElementById('receitasTableBody');
+    if (receitasTbody) {
+      if (receitasList.length === 0) {
+        receitasTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhuma receita cadastrada em ${currentMonth}.</td></tr>`;
+      } else {
+        receitasTbody.innerHTML = receitasList.map((r, i) => `
+          <tr class="${r.pago ? 'paid' : ''}">
+            <td>
+              <strong>${r.nome}</strong>
+              <div style="font-size:10px;color:var(--text-dim);">${r.categoria || 'Receita'}</div>
+            </td>
+            <td>
+              <button type="button" 
+                      class="status-btn ${r.pago ? 'pago' : 'pendente'}" 
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})"
+                      title="Clique para alternar entre Recebido e A Receber">
+                ${r.pago ? '✅ RECEBIDO' : '⏳ A RECEBER'}
+              </button>
+            </td>
+            <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(r.valor)}</td>
+            <td class="action-col">
+              <button class="btn-icon" title="Editar esta receita" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">✏️</button>
+              <button class="btn-icon" title="Excluir esta receita" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">🗑️</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // Saldo Final do Mês no Fechamento
+    const saldoFinal = totalReceitas - (totalFixos + totalOutros);
+    const saldoFinalEl = document.getElementById('fechamentoSaldoFinal');
+    if (saldoFinalEl) {
+      saldoFinalEl.textContent = formatBRL(saldoFinal);
+      saldoFinalEl.style.color = saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
     // Render Bloco Contas de Início de Ano (se Janeiro)
     const contasInicioBox = document.getElementById('contasInicioAnoBox');
     if (contasInicioBox) {
@@ -526,9 +644,6 @@ const MatrixApp = (function () {
         contasInicioBox.style.display = 'none';
       }
     }
-
-    // Render Ganhos & Totais resumo
-    renderResumoTotais(monthData);
   }
 
   function renderContasInicioAno(monthData) {
@@ -923,10 +1038,11 @@ const MatrixApp = (function () {
 
   function removeItemByIndex(ano, mes, tipo, index) {
     const month = MatrixDB.getMonth(ano, mes);
-    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    const list = tipo === 'fixo' ? month.fixos : (tipo === 'receita' ? month.receitas : month.outros);
     const item = list && list[index];
-    const itemDesc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este lançamento';
-    if (confirm(`Deseja realmente excluir ${itemDesc} do mês de ${mes}/${ano}?`)) {
+    const tipoLabel = tipo === 'receita' ? 'a receita' : 'o lançamento';
+    const itemDesc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este item';
+    if (confirm(`Deseja realmente excluir ${tipoLabel} ${itemDesc} do mês de ${mes}/${ano}?`)) {
       MatrixDB.removeTransactionByIndex(ano, mes, tipo, index);
       renderAll();
     }
@@ -937,10 +1053,36 @@ const MatrixApp = (function () {
     document.getElementById('modalItemEditId').value = '';
     document.getElementById('modalItemNome').value = '';
     document.getElementById('modalItemValor').value = '';
-    document.getElementById('modalItemCategoria').value = tipo === 'fixo' ? 'Habitação' : 'Outros';
+
     const chkPago = document.getElementById('modalItemPago');
     if (chkPago) chkPago.checked = false;
-    document.getElementById('modalItemTitle').textContent = tipo === 'fixo' ? '+ Novo Gasto Fixo' : '+ Novo Gasto Variável';
+
+    const titleEl = document.getElementById('modalItemTitle');
+    const nomeLabel = document.getElementById('modalItemNomeLabel');
+    const nomeInput = document.getElementById('modalItemNome');
+    const pagoLabel = document.getElementById('modalItemPagoLabel');
+    const catSelect = document.getElementById('modalItemCategoria');
+
+    if (tipo === 'receita') {
+      if (titleEl) titleEl.textContent = '+ Nova Receita / Ganho';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Salário USP, 13º Salário, Estúdio, Fisio Scarlet...';
+      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Recebido neste Mês';
+      if (catSelect) catSelect.value = 'Salário / Proventos';
+    } else if (tipo === 'fixo') {
+      if (titleEl) titleEl.textContent = '+ Novo Gasto Fixo';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa Fixa:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Parcela Caixa, Água, Luz, Internet...';
+      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
+      if (catSelect) catSelect.value = 'Habitação';
+    } else {
+      if (titleEl) titleEl.textContent = '+ Novo Gasto Variável';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição do Gasto Variável:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Mercado Extra, Farmácia, Lazer...';
+      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
+      if (catSelect) catSelect.value = 'Outros';
+    }
+
     document.getElementById('itemModalBackdrop').classList.add('open');
   }
 
@@ -955,7 +1097,7 @@ const MatrixApp = (function () {
 
   function editItemByIndex(ano, mes, tipo, index) {
     const month = MatrixDB.getMonth(ano, mes);
-    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    const list = tipo === 'fixo' ? month.fixos : (tipo === 'receita' ? month.receitas : month.outros);
     const item = list && list[index];
     if (!item) return;
 
@@ -963,13 +1105,27 @@ const MatrixApp = (function () {
     document.getElementById('modalItemEditId').value = `idx_${index}`;
     document.getElementById('modalItemNome').value = item.nome || '';
     document.getElementById('modalItemValor').value = item.valor != null ? item.valor : '';
-    if (document.getElementById('modalItemCategoria') && item.categoria) {
-      document.getElementById('modalItemCategoria').value = item.categoria;
-    }
+
+    const catSelect = document.getElementById('modalItemCategoria');
+    if (catSelect && item.categoria) catSelect.value = item.categoria;
+
     const chkPago = document.getElementById('modalItemPago');
     if (chkPago) chkPago.checked = !!item.pago;
 
-    document.getElementById('modalItemTitle').textContent = `Editar: ${item.nome}`;
+    const titleEl = document.getElementById('modalItemTitle');
+    const nomeLabel = document.getElementById('modalItemNomeLabel');
+    const pagoLabel = document.getElementById('modalItemPagoLabel');
+
+    if (tipo === 'receita') {
+      if (titleEl) titleEl.textContent = `Editar Receita: ${item.nome}`;
+      if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
+      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Recebido neste Mês';
+    } else {
+      if (titleEl) titleEl.textContent = `Editar Despesa: ${item.nome}`;
+      if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa:';
+      if (pagoLabel) pagoLabel.textContent = 'Marcar como Já Pago neste Mês';
+    }
+
     document.getElementById('itemModalBackdrop').classList.add('open');
   }
 
@@ -982,7 +1138,7 @@ const MatrixApp = (function () {
     const pago = document.getElementById('modalItemPago') ? document.getElementById('modalItemPago').checked : false;
 
     if (!nome) {
-      alert('Informe o nome da despesa.');
+      alert(tipo === 'receita' ? 'Informe a descrição da receita.' : 'Informe a descrição da despesa.');
       return;
     }
 
@@ -1306,6 +1462,8 @@ const MatrixApp = (function () {
   return {
     init,
     changeMonth,
+    promptAddNewYear,
+    populateYearSelector,
     togglePaid,
     togglePaidByIndex,
     removeItem,

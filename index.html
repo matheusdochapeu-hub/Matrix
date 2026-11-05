@@ -34,12 +34,11 @@
       <div class="header-controls">
         <button id="rainToggleBtn" class="btn-matrix" title="Ligar/Desligar Chuva Digital">⚡ Rain ON</button>
         
-        <!-- Year Selector -->
-        <select id="yearSelect" class="matrix-select" style="width: auto; padding: 4px 8px;">
-          <option value="2025">2025 (Histórico)</option>
-          <option value="2026" selected>2026 (Atual)</option>
-          <option value="2027">2027 (Projetado)</option>
-        </select>
+        <!-- Year Selector & Add Year -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <select id="yearSelect" class="matrix-select" style="width: auto; padding: 4px 8px;"></select>
+          <button id="addYearBtn" class="btn-matrix" title="Criar ou planejar um novo ano (ex: 2027, 2028, 2029...)" onclick="MatrixApp.promptAddNewYear()">+ Ano</button>
+        </div>
 
         <!-- Month Navigation -->
         <div class="month-selector">
@@ -185,32 +184,58 @@
           <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('outro')">+ Novo Gasto Variável</button>
         </div>
 
-        <!-- Coluna: Resumo de Receitas & Fechamento -->
+        <!-- Coluna: Receitas & Ganhos -->
         <div class="matrix-box">
           <div class="box-header">
-            <h2>📥 Receitas & Fechamento</h2>
-            <span class="box-badge">Totais</span>
+            <h2>📥 Receitas & Ganhos</h2>
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('receita')">+ Adicionar</button>
           </div>
 
-          <!-- Termômetro Geral de Contas do Mês -->
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">Termômetro Geral de Pagamentos:</div>
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;margin-bottom:4px;">
+          <!-- Termômetro de Recebimento do Mês -->
+          <div class="box-progress-summary">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--font-mono);margin-bottom:6px;">
+              <span><span style="color:var(--matrix-green);">● Já Recebido:</span> <strong id="receitasPagoLabel">R$ 0,00</strong></span>
+              <span><span style="color:var(--cyan);">● A Receber:</span> <strong id="receitasPendenteLabel">R$ 0,00</strong></span>
+            </div>
+            <div class="progress-track"><div id="receitasProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Descrição</th>
+                <th>Status (Clique p/ Alternar)</th>
+                <th style="text-align:right;">Valor</th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="receitasTableBody"></tbody>
+          </table>
+
+          <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;margin-bottom:16px;" onclick="MatrixApp.openNewItemModal('receita')">+ Nova Receita</button>
+
+          <!-- Bloco: Fechamento & Termômetro Geral do Mês -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);margin-top:8px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">Termômetro Geral de Pagamento das Despesas:</div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11.5px;margin-bottom:4px;">
               <span style="color:var(--matrix-green);">● Total Já Pago no Mês:</span>
               <strong id="geralPagoTotal">R$ 0,00</strong>
             </div>
-            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11.5px;margin-bottom:8px;">
               <span style="color:var(--amber);">● Ainda a Pagar (Falta):</span>
               <strong id="geralPendenteTotal">R$ 0,00</strong>
             </div>
             <div class="progress-track"><div id="geralProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+
+            <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border-dim);margin-top:10px;padding-top:8px;font-family:var(--font-mono);font-size:12px;">
+              <span style="color:var(--text-muted);">Saldo Final Previsto:</span>
+              <strong id="fechamentoSaldoFinal">R$ 0,00</strong>
+            </div>
           </div>
 
-          <div id="resumoTotaisList" style="font-family:var(--font-mono);font-size:12px;line-height:2;"></div>
-          
-          <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-dim);">
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">NOTAS DO MÊS:</div>
-            <div style="font-size:12px;color:var(--text-dim);font-family:var(--font-mono);">
+          <div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--border-dim);">
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;font-family:var(--font-mono);">NOTAS DO MÊS:</div>
+            <div style="font-size:11.5px;color:var(--text-dim);font-family:var(--font-mono);line-height:1.5;">
               • Caronas sincronizadas com calendário da USP.<br>
               • VA de R$ 2.050,00 exclusivo para alimentação domiciliar.<br>
               • Parcela Caixa debitada automaticamente.
@@ -632,7 +657,7 @@
     </div>
   </div>
 
-  <!-- MODAL: ADICIONAR / EDITAR DESPESA -->
+  <!-- MODAL: ADICIONAR / EDITAR LANÇAMENTO (DESPESA OU RECEITA) -->
   <div id="itemModalBackdrop" class="matrix-modal-backdrop">
     <div class="matrix-modal">
       <div class="modal-header">
@@ -643,8 +668,8 @@
       <input type="hidden" id="modalItemEditId" value="">
 
       <div style="margin-bottom:12px;">
-        <label style="font-size:11px;color:var(--text-muted);">Descrição da Despesa:</label>
-        <input type="text" id="modalItemNome" class="matrix-input" placeholder="Ex: Parcela da Casa, Unimed, Spotify...">
+        <label id="modalItemNomeLabel" style="font-size:11px;color:var(--text-muted);">Descrição do Lançamento:</label>
+        <input type="text" id="modalItemNome" class="matrix-input" placeholder="Ex: Salário, Parcela da Casa, Unimed...">
       </div>
 
       <div style="margin-bottom:12px;">
@@ -655,6 +680,7 @@
       <div style="margin-bottom:16px;">
         <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
         <select id="modalItemCategoria" class="matrix-select">
+          <!-- Categorias de Despesas -->
           <option value="Habitação">Habitação (Casa / Condomínio / Financiamento)</option>
           <option value="Transporte">Transporte (Caronas / Carro / Combustível)</option>
           <option value="Saúde">Saúde (Unimed / Dentista / Psicólogo)</option>
@@ -662,6 +688,12 @@
           <option value="Aportes">Aportes (Tesouro / Previdência / Cripto)</option>
           <option value="Família">Família / Aportes Parentes</option>
           <option value="Cartão">Cartão de Crédito</option>
+          <!-- Categorias de Receitas -->
+          <option value="Salário / Proventos">Salário / Proventos (USP / MPSP)</option>
+          <option value="Benefícios">Benefícios (VA / VR)</option>
+          <option value="Atendimentos / Scarlet">Atendimentos / Scarlet (FisioFlow)</option>
+          <option value="Renda Extra">Renda Extra (Estúdio / Aulas / Bicos)</option>
+          <option value="Rendimentos">Rendimentos / Restituição IRPF / Proventos</option>
           <option value="Outros" selected>Outros</option>
         </select>
       </div>
@@ -669,7 +701,7 @@
       <div style="margin-bottom:16px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;">
           <input type="checkbox" id="modalItemPago">
-          <span style="color:var(--matrix-green);font-weight:600;">Marcar como Já Pago neste Mês</span>
+          <span id="modalItemPagoLabel" style="color:var(--matrix-green);font-weight:600;">Marcar como Já Pago</span>
         </label>
       </div>
 
