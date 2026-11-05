@@ -103,6 +103,29 @@
 
     <!-- TAB 1: FLUXO DE CAIXA MENSAL -->
     <main id="tab-fluxo" class="tab-content active">
+      <!-- ÁREA INICIAL: CARDS MENSAIS DA RENDA CONJUNTA (MATHEUS + SCARLET) -->
+      <section id="areaInicialMeses" class="matrix-box" style="margin-bottom:18px;background:linear-gradient(180deg, rgba(5,8,7,0.98), rgba(9,18,13,0.95));border:1px solid rgba(0,255,102,0.25);">
+        <div class="box-header" style="margin-bottom:8px;padding-bottom:8px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h2 style="font-size:14px;color:var(--matrix-green);display:flex;align-items:center;gap:8px;">
+              <span>👥 Renda & Orçamento Conjunto do Casal (Matheus + Scarlet)</span>
+            </h2>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+              Projeção mensal do dinheiro que teremos juntos mês a mês. Clique em qualquer mês para abrir o detalhamento.
+            </p>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn-matrix" style="padding:4px 9px;font-size:11px;" onclick="MatrixApp.abrirDrilldown('fatura')">💳 Faturas Nubank & Economia</button>
+            <button class="btn-matrix secondary" style="padding:4px 9px;font-size:11px;" onclick="MatrixApp.abrirDrilldown('fisioflow')">🩺 Financeiro FisioFlow</button>
+          </div>
+        </div>
+
+        <!-- Grid de Cards Mensais -->
+        <div id="monthlyHorizonCardsGrid" class="monthly-horizon-grid">
+          <!-- Gerado dinamicamente por MatrixApp.renderMonthlyHorizonCards() -->
+        </div>
+      </section>
+
       <!-- Contas de Início de Ano (exibido apenas em Janeiro) -->
       <div id="contasInicioAnoBox" class="matrix-box" style="display:none; border-color:var(--amber);">
         <div class="box-header">

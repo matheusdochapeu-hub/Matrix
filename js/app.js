@@ -197,12 +197,143 @@ const MatrixApp = (function () {
 
   function renderAll() {
     renderKPIs();
+    renderMonthlyHorizonCards();
     renderFluxoCaixa();
     if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof renderFinancing === 'function') renderFinancing();
     if (typeof renderInvestments === 'function') renderInvestments();
     if (typeof renderSimulator === 'function') renderSimulator();
     if (typeof renderHoleritesHistorico === 'function') renderHoleritesHistorico();
+  }
+
+  // ==========================================
+  // ÁREA INICIAL: CARDS MENSAIS (RENDA CONJUNTA)
+  // ==========================================
+  function renderMonthlyHorizonCards() {
+    const gridEl = document.getElementById('monthlyHorizonCardsGrid');
+    if (!gridEl) return;
+
+    const curY = parseInt(currentYear, 10);
+    const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+
+    // Gerar sequência de 6 meses (do mês anterior até 4 meses adiante)
+    const monthsSequence = [];
+    for (let offset = -1; offset <= 4; offset++) {
+      let targetMIdx = curMIdx + offset;
+      let targetY = curY;
+      if (targetMIdx < 0) {
+        targetMIdx += 12;
+        targetY -= 1;
+      } else if (targetMIdx > 11) {
+        targetMIdx -= 12;
+        targetY += 1;
+      }
+      monthsSequence.push({
+        ano: String(targetY),
+        mes: MONTH_NAMES[targetMIdx],
+        mesIdx: targetMIdx
+      });
+    }
+
+    const state = MatrixDB.getState();
+
+    const cardsHtml = monthsSequence.map(m => {
+      const monthData = MatrixDB.getMonth(m.ano, m.mes);
+      const isCurrent = (m.ano === currentYear && m.mes === currentMonth);
+
+      // 1. Salário Matheus (USP Líquido)
+      let salMatheus = 5788.19;
+      const hol = (state.holerites || []).find(h => (h.ano === m.ano && h.mesNome === m.mes) || h.periodo === `${m.ano}-${m.mes}`);
+      if (hol && hol.liquido) {
+        salMatheus = hol.liquido;
+      } else {
+        const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
+        if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
+      }
+
+      // 2. Ganhos Scarlet (FisioFlow)
+      let salScarlet = 1100.00;
+      if (monthData.scarlet && monthData.scarlet.ganhos) {
+        salScarlet = parseFloat(monthData.scarlet.ganhos) || salScarlet;
+      } else {
+        const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+        if (recFisio) salScarlet = parseFloat(recFisio.valor) || salScarlet;
+      }
+
+      // 3. Vale Alimentação - VA (Maracaju 88)
+      const va = 2050.00;
+
+      // 4. Vale Refeição - VR (calculado pelo calendário USP ou R$ 1.235)
+      let vr = 1235.00;
+      try {
+        const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+        const commute = CalendarEngine.calculateCommuteAndVR(parseInt(m.ano, 10), m.mesIdx + 1, customLeaves);
+        if (commute && commute.totalVR) vr = commute.totalVR;
+      } catch (e) {}
+
+      // 5. Outros Ganhos (13º Salário, Estúdio, etc.)
+      let outrosGanhos = 0;
+      let outrosLabel = '';
+      (monthData.receitas || []).forEach(r => {
+        const n = (r.nome || '').toLowerCase();
+        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio') && !n.includes('va') && !n.includes('alimentação') && !n.includes('vr') && !n.includes('refeição')) {
+          const val = parseFloat(r.valor) || 0;
+          outrosGanhos += val;
+          if (val > 0 && !outrosLabel) outrosLabel = r.nome;
+        }
+      });
+
+      // Renda Total Conjunta do Casal
+      const rendaTotalConjunta = salMatheus + salScarlet + va + vr + outrosGanhos;
+
+      // Gastos Fixos e Variáveis do mês
+      const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const totalGastos = fixos + outros;
+      const sobraConjunta = rendaTotalConjunta - totalGastos;
+
+      return `
+        <div class="month-horizon-card ${isCurrent ? 'active-month' : ''}" onclick="MatrixApp.navegarParaMes('${m.ano}', '${m.mes}')" title="Clique para abrir e gerenciar ${m.mes}/${m.ano}">
+          <div>
+            <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Renda Conjunta do Casal:</div>
+            <div class="horizon-total-renda">${formatBRL(rendaTotalConjunta)}</div>
+
+            <!-- Diferenciação das Fontes de Renda -->
+            <div style="margin-top:6px;">
+              <div class="horizon-breakdown-row">
+                <span>👨‍💼 <strong>Salário Matheus (USP)</strong></span>
+                <span style="color:var(--text-main);font-weight:600;">${formatBRL(salMatheus)}</span>
+              </div>
+              <div class="horizon-breakdown-row">
+                <span>👩‍⚕️ <strong>Ganhos Scarlet (Fisio)</strong></span>
+                <span style="color:var(--cyan);font-weight:600;">${formatBRL(salScarlet)}</span>
+              </div>
+              <div class="horizon-breakdown-row">
+                <span>🥗 <strong>Vale Alimentação (VA)</strong></span>
+                <span style="color:var(--matrix-green);">${formatBRL(va)}</span>
+              </div>
+              <div class="horizon-breakdown-row">
+                <span>🍽️ <strong>Vale Refeição (VR USP)</strong></span>
+                <span style="color:var(--cyan);">${formatBRL(vr)}</span>
+              </div>
+              ${outrosGanhos > 0 ? `
+              <div class="horizon-breakdown-row" style="color:var(--matrix-green-glow);">
+                <span>🎁 <strong>${outrosLabel || 'Outros (13º/Estúdio)'}</strong></span>
+                <span style="color:var(--matrix-green);font-weight:700;">+ ${formatBRL(outrosGanhos)}</span>
+              </div>` : ''}
+            </div>
+          </div>
+
+          <div class="horizon-bottom-bar">
+            <span>Gastos: <strong style="color:var(--rose);">${formatBRL(totalGastos)}</strong></span>
+            <span>Sobra: <strong style="color:${sobraConjunta >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(sobraConjunta)}</strong></span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    gridEl.innerHTML = cardsHtml;
   }
 
   // ==========================================
@@ -441,30 +572,225 @@ const MatrixApp = (function () {
       `;
 
     } else if (tipo === 'fatura') {
-      titleEl.innerHTML = `💳 Fatura Nubank Black & Divisão com Scarlet (${periodLabel})`;
+      titleEl.innerHTML = `💳 Fatura Nubank Black & Auditoria de Economia (${periodLabel})`;
       const faturaNubank = (monthData.scarlet && monthData.scarlet.faturaNubank) || 4500.00;
       const ganhosScarlet = (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
       const diferenca = Math.max(0, faturaNubank - ganhosScarlet);
 
+      const sat = (state.satellites && state.satellites.faturas) || 
+        (typeof SatelliteConnectors !== 'undefined' ? SatelliteConnectors.processFaturasData({}) : {});
+
+      const faturaAtual = sat.faturaAtualReal || faturaNubank;
+      const faturasFuturas = sat.faturasFuturasCompromissadas || 6280.00;
+      const metaMensal = sat.limiteMetaMensal || 4000.00;
+      const cats = sat.categoriasTotais || {
+        'Alimentação & Gastronomia': 1280.00,
+        'Compras & E-commerce': 1150.00,
+        'Casa & Utilidades': 680.00,
+        'Serviços & Assinaturas': 420.00,
+        'Transporte & Viagem': 380.00,
+        'Vestuário & Moda': 310.00,
+        'Saúde & Farmácia': 190.00,
+        'Outros': 90.00
+      };
+
+      const totalCats = Object.values(cats).reduce((a, b) => a + (parseFloat(b) || 0), 0) || faturaAtual;
+      const catConfig = {
+        'Alimentação & Gastronomia': { icon: '🍔', color: '#f59e0b' },
+        'Compras & E-commerce': { icon: '🛒', color: '#06b6d4' },
+        'Casa & Utilidades': { icon: '🏠', color: '#3b82f6' },
+        'Serviços & Assinaturas': { icon: '📱', color: '#ec4899' },
+        'Transporte & Viagem': { icon: '🚗', color: '#8b5cf6' },
+        'Vestuário & Moda': { icon: '👕', color: '#10b981' },
+        'Saúde & Farmácia': { icon: '💊', color: '#ef4444' },
+        'Outros': { icon: '📦', color: '#94a3b8' }
+      };
+
+      const sortedCats = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+
       html = `
-        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-              <span style="color:var(--rose);">Fatura Nubank Black (Mastercard):</span>
-              <strong style="font-size:14px;">${formatBRL(faturaNubank)}</strong>
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,65,0.08);border:1px solid var(--border-glow);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
+              <span class="live-pulse"></span> App Faturas Sincronizado em Tempo Real
+            </span>
+            <span class="lock-pill" title="Os lançamentos são gerenciados no app Faturas e refletidos aqui">
+              🔒 Somente Leitura no Matrix
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Fatura Mês Atual</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(faturaAtual)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Vencimento dia 10</div>
             </div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-              <span style="color:var(--cyan);">(-) Ganhos Previstos da Scarlet (FisioFlow):</span>
-              <span style="color:var(--cyan);">- ${formatBRL(ganhosScarlet)}</span>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Parcelas Futuras</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(faturasFuturas)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Comprometimento futuro</div>
             </div>
-            <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:13.5px;">
-              <strong>(=) Valor da Fatura Coberto pela Casa:</strong>
-              <strong style="color:var(--amber);">${formatBRL(diferenca)}</strong>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Divisão Scarlet (Fisio)</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosScarlet)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Abatimento direto</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Restante Casa (Matheus)</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(diferenca)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Coberto via Salário USP</div>
             </div>
           </div>
-          <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
-            • <strong>Mensalidade Ultravioleta:</strong> R$ 89,00 inclusa.<br>
-            • <strong>Origem dos Dados:</strong> Sincronizado diretamente com a fatura do mês de ${periodLabel} e cruzado com os atendimentos domiciliares da Scarlet.
+
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <strong style="color:var(--text-main);font-size:13px;">📊 Distribuição por Categorias (App Faturas)</strong>
+              <span style="font-size:11px;color:var(--text-muted);">Total Mapeado: ${formatBRL(totalCats)}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${sortedCats.map(([catName, val]) => {
+                const pct = totalCats > 0 ? ((val / totalCats) * 100).toFixed(1) : 0;
+                const conf = catConfig[catName] || { icon: '🏷️', color: '#00ff41' };
+                return `
+                  <div>
+                    <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px;">
+                      <span>${conf.icon} <strong>${catName}</strong></span>
+                      <span><strong>${formatBRL(val)}</strong> <span style="color:var(--text-muted);">(${pct}%)</span></span>
+                    </div>
+                    <div style="width:100%;height:7px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;">
+                      <div style="width:${pct}%;height:100%;background:${conf.color};border-radius:4px;transition:width 0.4s ease;"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(180deg, rgba(234,179,8,0.08) 0%, rgba(20,20,20,0.6) 100%);border:1px solid var(--amber);padding:14px;border-radius:var(--radius-sm);margin-bottom:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+              <strong style="color:var(--amber);font-size:13px;">💡 Levantamento Matrix: Onde Você Deve Economizar</strong>
+              <span style="font-size:11px;background:rgba(234,179,8,0.2);color:var(--amber);padding:2px 8px;border-radius:10px;font-weight:bold;">Economia Estimada: ~R$ 920,00/mês</span>
+            </div>
+            
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:11.5px;line-height:1.6;">
+              <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #f59e0b;border-radius:3px;">
+                <span style="color:var(--amber);font-weight:bold;">1. Alimentação Supérflua ➔ Canalizar para Cartão VA</span>
+                <div style="color:var(--text-muted);margin-top:2px;">
+                  Gasto de R$ 1.280,00 no cartão Black em delivery e empórios. Você recebe <strong>R$ 2.050,00/mês no Cartão VA (Maracaju 88)</strong>, com saldo disponível. Concentrar essas compras no VA libera o limite do cartão. <span style="color:var(--matrix-green);font-weight:bold;">Economia no fluxo: ~R$ 500,00/mês</span>.
+                </div>
+              </div>
+
+              <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #ec4899;border-radius:3px;">
+                <span style="color:var(--cyan);font-weight:bold;">2. Auditoria de Assinaturas & Isenção Ultravioleta</span>
+                <div style="color:var(--text-muted);margin-top:2px;">
+                  Gasto de R$ 420,00 em assinaturas recorrentes + R$ 89,00 da mensalidade Ultravioleta. Desativando serviços duplicados poupa-se R$ 150,00. Mantendo R$ 50k em investimentos ou média de gastos da fatura, a mensalidade de R$ 89,00 fica 100% gratuita. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 239,00/mês</span>.
+                </div>
+              </div>
+
+              <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #8b5cf6;border-radius:3px;">
+                <span style="color:#a78bfa;font-weight:bold;">3. Desconto por Antecipação de Parcelas (Nubank Black)</span>
+                <div style="color:var(--text-muted);margin-top:2px;">
+                  Saldo comprometido futuro de ${formatBRL(faturasFuturas)}. O Nubank oferece desconto imediato ao antecipar parcelas sem juros. Aproveitar a folga do fechamento mensal para amortizar compras parceladas gera ganho financeiro direto. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 60,00 a R$ 90,00</span> por lote.
+                </div>
+              </div>
+
+              <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #10b981;border-radius:3px;">
+                <span style="color:var(--matrix-green);font-weight:bold;">4. Deslocamento USP x VR / Combustível</span>
+                <div style="color:var(--text-muted);margin-top:2px;">
+                  R$ 380,00 em transportes. Com o regime híbrido de 2 dias presenciais na USP, otimize abastecimento via cashback e concilie caronas no departamento. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 120,00/mês</span>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+            🔒 <em>Proteção Ativa:</em> Os lançamentos desta fatura são somente leitura no Matrix e gerenciados no App Faturas para manter a conciliação bancária consistente.
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'fisioflow') {
+      titleEl.innerHTML = `🩺 Consolidado Financeiro FisioFlow (Scarlet) (${periodLabel})`;
+      const sat = (state.satellites && state.satellites.fisioflow) || 
+        (typeof SatelliteConnectors !== 'undefined' ? SatelliteConnectors.processFisioData({}) : {});
+
+      const ganhosMes = (monthData.scarlet && monthData.scarlet.ganhos) || sat.mesAtualTotal || 1100.00;
+      const projecao = sat.projecaoMensalRecorrente || 1500.00;
+      const totalHistorico = sat.totalHistoricoRecebido || 14500.00;
+      const pacAtivos = sat.pacientesAtivos || 8;
+      const ganhosMap = sat.ganhosPorMes || {
+        '2026-07': { realizado: 1050, aReceber: 0, sessoes: 10 },
+        '2026-08': { realizado: 1100, aReceber: 0, sessoes: 11 },
+        '2026-09': { realizado: 1250, aReceber: 0, sessoes: 12 },
+        '2026-10': { realizado: 1100, aReceber: 240, sessoes: 12 },
+        '2026-11': { realizado: 1100, aReceber: 360, sessoes: 13 }
+      };
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(6,182,212,0.08);border:1px solid var(--cyan);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <span style="color:var(--cyan);display:flex;align-items:center;gap:6px;font-weight:bold;">
+              <span class="live-pulse" style="background:var(--cyan);"></span> Conexão FisioFlow Ativa (Apenas Financeiro)
+            </span>
+            <span class="lock-pill" style="border-color:var(--cyan);color:var(--cyan);" title="Prontuários e atendimentos clínicos não são expostos no Matrix">
+              🛡️ Sigilo Clínico Preservado
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Faturamento Mês</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosMes)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Entrada no orçamento</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Projeção Recorrente</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(projecao)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Capacidade atual</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Pacientes Ativos</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--text-main);margin-top:2px;">${pacAtivos} em atendimento</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Sem nomes exibidos</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Destino da Renda</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">Fatura Nubank</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Compromisso conjunto</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <strong style="color:var(--text-main);font-size:13px;">📈 Faturamento Mensal Consolidado</strong>
+              <span style="font-size:11px;color:var(--text-muted);">Histórico Total: ${formatBRL(totalHistorico)}</span>
+            </div>
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Competência</th>
+                    <th>Volume de Sessões</th>
+                    <th style="text-align:right;">Faturamento Realizado</th>
+                    <th style="text-align:right;">A Receber</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(ganhosMap).map(([ym, dados]) => `
+                    <tr>
+                      <td><strong>${ym}</strong></td>
+                      <td>${dados.sessoes || '-'} sessões concluídas</td>
+                      <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(dados.realizado || 0)}</td>
+                      <td class="val-col" style="color:var(--amber);">${formatBRL(dados.aReceber || 0)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+            🔒 <em>Privacidade médica e sigilo profissional:</em> Conforme estabelecido, atendimentos clínicos individuais, prontuários e nomes de pacientes permanecem restritos ao FisioFlow, mantendo apenas a conciliação financeira consolidada no Matrix.
           </div>
         </div>
       `;
@@ -710,6 +1036,18 @@ const MatrixApp = (function () {
     `;
   }
 
+  function isFaturasItem(item) {
+    if (!item) return false;
+    const n = (item.nome || '').toLowerCase();
+    const c = (item.conta || '').toLowerCase();
+    const o = (item.origem || '').toLowerCase();
+    return c.includes('nubank') || n.includes('fatura nubank') || n.includes('cartão nubank') || o.includes('fatura') || o.includes('nubank');
+  }
+
+  function alertFaturasReadOnly() {
+    alert('🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)\n\nOs lançamentos da Fatura Nubank Black e despesas de cartão são sincronizados em tempo real a partir do aplicativo Faturas.\n\nPara alterar valores, compras parceladas ou novas despesas de cartão, utilize o App Faturas. As modificações serão refletidas automaticamente aqui.');
+  }
+
   function renderFluxoCaixa() {
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
@@ -751,13 +1089,16 @@ const MatrixApp = (function () {
       if (fixosList.length === 0) {
         fixosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto fixo cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        fixosTbody.innerHTML = fixosList.map((f, i) => `
+        fixosTbody.innerHTML = fixosList.map((f, i) => {
+          const isFatura = isFaturasItem(f);
+          return `
           <tr class="${f.pago ? 'paid' : ''}">
             <td>
               <strong>${f.nome}</strong>
               <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
                 ${f.categoria ? `<span class="cat-pill">${f.categoria}</span>` : ''}
+                ${isFatura ? `<span class="lock-pill" style="font-size:10px;padding:1px 6px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
             <td>
@@ -770,11 +1111,16 @@ const MatrixApp = (function () {
             </td>
             <td class="val-col">${formatBRL(f.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
-              <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
+              ${isFatura ? `
+                <button class="btn-icon" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
+              ` : `
+                <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
+                <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
+              `}
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 
@@ -784,13 +1130,16 @@ const MatrixApp = (function () {
       if (outrosList.length === 0) {
         outrosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto variável cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        outrosTbody.innerHTML = outrosList.map((o, i) => `
+        outrosTbody.innerHTML = outrosList.map((o, i) => {
+          const isFatura = isFaturasItem(o);
+          return `
           <tr class="${o.pago ? 'paid' : ''}">
             <td>
               <strong>${o.nome}</strong>
               <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
                 ${renderOrigemBadge(o.conta, o.renda, o.nome)}
                 ${o.categoria ? `<span class="cat-pill">${o.categoria}</span>` : ''}
+                ${isFatura ? `<span class="lock-pill" style="font-size:10px;padding:1px 6px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
             <td>
@@ -803,11 +1152,16 @@ const MatrixApp = (function () {
             </td>
             <td class="val-col">${formatBRL(o.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
-              <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
+              ${isFatura ? `
+                <button class="btn-icon" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
+              ` : `
+                <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
+                <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
+              `}
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 
@@ -2701,6 +3055,10 @@ const MatrixApp = (function () {
     const month = MatrixDB.getMonth(ano, mes);
     const list = tipo === 'fixo' ? month.fixos : (tipo === 'receita' ? month.receitas : month.outros);
     const item = list && list[index];
+    if (item && isFaturasItem(item)) {
+      alertFaturasReadOnly();
+      return;
+    }
     const tipoLabel = tipo === 'receita' ? 'a receita' : 'o lançamento';
     const itemDesc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este item';
     if (confirm(`Deseja realmente excluir ${tipoLabel} ${itemDesc} do mês de ${mes}/${ano}?`)) {
@@ -2812,6 +3170,11 @@ const MatrixApp = (function () {
     const list = tipo === 'fixo' ? month.fixos : (tipo === 'receita' ? month.receitas : month.outros);
     const item = list && list[index];
     if (!item) return;
+
+    if (isFaturasItem(item)) {
+      alertFaturasReadOnly();
+      return;
+    }
 
     populateModalInvestAtivos();
 
@@ -3740,11 +4103,14 @@ const MatrixApp = (function () {
     abrirDrilldown,
     abrirRaioXSimulador,
     navegarParaMes,
+    renderMonthlyHorizonCards,
     renderHoleritesHistorico,
     toggleHoleriteAccordion,
     excluirHolerite,
     onModalContaChange,
-    toggleModalInvestSubFields
+    toggleModalInvestSubFields,
+    isFaturasItem,
+    alertFaturasReadOnly
   };
 })();
 

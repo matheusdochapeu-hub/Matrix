@@ -813,6 +813,155 @@ body {
   border-bottom: none;
 }
 
+/* Área Inicial: Cards Mensais da Renda Conjunta (Matheus + Scarlet) */
+.monthly-horizon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.month-horizon-card {
+  background: #050807;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.month-horizon-card:hover {
+  border-color: var(--matrix-green);
+  box-shadow: 0 0 12px var(--border-glow);
+  transform: translateY(-2px);
+}
+
+.month-horizon-card.active-month {
+  border-color: var(--matrix-green);
+  background: rgba(0, 255, 102, 0.04);
+  box-shadow: 0 0 14px var(--border-glow);
+}
+
+.month-horizon-card.active-month::before {
+  content: 'MÊS ATIVO';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--matrix-green);
+  background: rgba(0, 255, 102, 0.15);
+  border: 1px solid var(--matrix-green-dim);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.horizon-month-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.horizon-total-renda {
+  font-size: 17px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--matrix-green);
+  margin-bottom: 8px;
+}
+
+.horizon-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  padding: 2.5px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+}
+
+.horizon-breakdown-row:last-child {
+  border-bottom: none;
+}
+
+.horizon-bottom-bar {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dim);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Gráficos de Categorias do App Faturas */
+.faturas-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.faturas-cat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.faturas-cat-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.faturas-cat-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.faturas-cat-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Cards do Auditor Inteligente de Economia */
+.saving-tip-card {
+  background: rgba(0, 255, 102, 0.03);
+  border: 1px solid rgba(0, 255, 102, 0.2);
+  border-left: 3px solid var(--matrix-green);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.saving-tip-card.alert {
+  background: rgba(251, 191, 36, 0.04);
+  border-color: rgba(251, 191, 36, 0.3);
+  border-left: 3px solid var(--amber);
+}
+
+.saving-tip-title {
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
 /* Modals */
 .matrix-modal-backdrop {
   position: fixed;
