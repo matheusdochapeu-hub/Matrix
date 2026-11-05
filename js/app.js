@@ -25,6 +25,26 @@ const MatrixApp = (function () {
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  // Regra Fundamental de Pecúnia: VA e VR são vales de alimentação, NÃO entram na conta de dinheiro em conta
+  function isBeneficioNaoPecunia(itemOuNome) {
+    if (typeof MatrixDB !== 'undefined' && typeof MatrixDB.isBeneficioNaoPecunia === 'function') {
+      return MatrixDB.isBeneficioNaoPecunia(itemOuNome);
+    }
+    if (!itemOuNome) return false;
+    if (typeof itemOuNome === 'object') {
+      if (itemOuNome.naoPecunia === true) return true;
+      const cat = (itemOuNome.categoria || '').toLowerCase();
+      if (cat.includes('não pecúnia') || cat.includes('nao pecunia')) return true;
+    }
+    const str = (typeof itemOuNome === 'string' ? itemOuNome : (itemOuNome.nome || '')).toLowerCase();
+    if (/vale\s*(alimenta[çc][ãa]o|refei[çc][ãa]o)/i.test(str)) return true;
+    if (/\bva\b/i.test(str) && (str.includes('maracaju') || str.includes('alelo') || str.includes('aliment') || str.includes('benef') || str.trim() === 'va')) return true;
+    if (/\bvr\b/i.test(str) && (str.includes('usp') || str.includes('refei') || str.includes('benef') || str.trim() === 'vr')) return true;
+    if (str.includes('maracaju 88')) return true;
+    if (str === 'va' || str === 'vr') return true;
+    return false;
+  }
+
   function init() {
     populateYearSelector();
     setupEventListeners();
@@ -647,27 +667,29 @@ const MatrixApp = (function () {
         if (commute && commute.totalVR) vr = commute.totalVR;
       } catch (e) {}
 
-      // 5. Outros Ganhos (13º Salário, Estúdio/Personalizado, etc.)
+      // 5. Outros Ganhos em Pecúnia (13º Salário, Estúdio/Personalizado, etc.)
       let outrosGanhos = 0;
       let outrosLabel = '';
       (monthData.receitas || []).forEach(r => {
-        const n = (r.nome || '').toLowerCase();
-        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio') && !n.includes('va') && !n.includes('alimentação') && !n.includes('vr') && !n.includes('refeição')) {
-          const val = parseFloat(r.valor) || 0;
-          outrosGanhos += val;
-          if (val > 0 && !outrosLabel) outrosLabel = r.nome;
+        if (!isBeneficioNaoPecunia(r)) {
+          const n = (r.nome || '').toLowerCase();
+          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+            const val = parseFloat(r.valor) || 0;
+            outrosGanhos += val;
+            if (val > 0 && !outrosLabel) outrosLabel = r.nome;
+          }
         }
       });
 
-      // Renda Total Conjunta do Casal
-      const rendaTotalConjunta = salMatheus + salScarlet + va + vr + outrosGanhos;
+      // Renda Total Conjunta em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
+      const rendaLiquidaPecunia = salMatheus + salScarlet + outrosGanhos;
 
       // Gastos Fixos, Variáveis e Diários do mês
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const totalGastos = fixos + outros + diarios;
-      const sobraConjunta = rendaTotalConjunta - totalGastos;
+      const sobraPecunia = rendaLiquidaPecunia - totalGastos;
 
       return `
         <div class="month-horizon-card ${isCurrent ? 'active-month' : ''}" onclick="MatrixApp.navegarParaMes('${m.ano}', '${m.mes}')" title="Clique para abrir e gerenciar ${m.mes}/${m.ano}">
@@ -676,11 +698,12 @@ const MatrixApp = (function () {
               <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
               <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 6px;" onclick="event.stopPropagation();MatrixApp.openEditSaldosModal('${m.ano}', '${m.mes}')" title="Editar saldos e rendas de ${m.mes}/${m.ano}">✏️ Saldos</button>
             </div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Renda Conjunta do Casal:</div>
-            <div class="horizon-total-renda">${formatBRL(rendaTotalConjunta)}</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Renda Conjunta em Pecúnia:</div>
+            <div class="horizon-total-renda">${formatBRL(rendaLiquidaPecunia)}</div>
+            <div style="font-size:9px;color:var(--text-dim);font-family:var(--font-mono);margin-top:-3px;margin-bottom:4px;">(Líquido em conta para pagar contas)</div>
 
-            <!-- Diferenciação das Fontes de Renda -->
-            <div style="margin-top:6px;">
+            <!-- Fontes de Renda em Pecúnia -->
+            <div style="margin-top:4px;">
               <div class="horizon-breakdown-row">
                 <span>👨‍💼 <strong>Salário Matheus (USP)</strong></span>
                 <span style="color:var(--text-main);font-weight:600;">${formatBRL(salMatheus)}</span>
@@ -689,25 +712,33 @@ const MatrixApp = (function () {
                 <span>👩‍⚕️ <strong>Ganhos Scarlet (Fisio)</strong></span>
                 <span style="color:var(--cyan);font-weight:600;">${formatBRL(salScarlet)}</span>
               </div>
-              <div class="horizon-breakdown-row">
-                <span>🥗 <strong>Vale Alimentação (VA)</strong></span>
-                <span style="color:var(--matrix-green);">${formatBRL(va)}</span>
-              </div>
-              <div class="horizon-breakdown-row">
-                <span>🍽️ <strong>Vale Refeição (VR USP)</strong></span>
-                <span style="color:var(--cyan);">${formatBRL(vr)}</span>
-              </div>
               ${outrosGanhos > 0 ? `
               <div class="horizon-breakdown-row" style="color:var(--matrix-green-glow);">
                 <span>🎁 <strong>${outrosLabel || getNomeEstudio() || 'Outros'}</strong></span>
                 <span style="color:var(--matrix-green);font-weight:700;">+ ${formatBRL(outrosGanhos)}</span>
               </div>` : ''}
+
+              <!-- Bloco Separado de Benefícios Alimentação (Não Pecúnia) -->
+              <div style="margin-top:6px;padding-top:5px;border-top:1px dashed var(--border-dim);">
+                <div style="font-size:9.5px;color:var(--amber);font-family:var(--font-mono);margin-bottom:2px;display:flex;justify-content:space-between;">
+                  <span>🛒 <strong>Alimentação (Não-Pecúnia):</strong></span>
+                  <strong>${formatBRL(va + vr)}</strong>
+                </div>
+                <div class="horizon-breakdown-row" style="opacity:0.8;font-size:10.5px;">
+                  <span>🥗 VA (Maracaju 88)</span>
+                  <span style="color:var(--matrix-green);">${formatBRL(va)}</span>
+                </div>
+                <div class="horizon-breakdown-row" style="opacity:0.8;font-size:10.5px;">
+                  <span>🍽️ VR (Almoço USP)</span>
+                  <span style="color:var(--cyan);">${formatBRL(vr)}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="horizon-bottom-bar">
             <span>Gastos: <strong style="color:var(--rose);">${formatBRL(totalGastos)}</strong></span>
-            <span>Sobra: <strong style="color:${sobraConjunta >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(sobraConjunta)}</strong></span>
+            <span>Sobra Real: <strong style="color:${sobraPecunia >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(sobraPecunia)}</strong></span>
           </div>
         </div>
       `;
@@ -723,18 +754,30 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
-    // Ganhos
-    let ganhos = 0;
+    // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
+    let ganhosPecunia = 0;
+    let beneficiosNaoPecunia = 0;
+
     if (monthData.receitas && monthData.receitas.length > 0) {
-      ganhos = monthData.receitas.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      monthData.receitas.forEach(it => {
+        const val = parseFloat(it.valor) || 0;
+        if (isBeneficioNaoPecunia(it)) {
+          beneficiosNaoPecunia += val;
+        } else {
+          ganhosPecunia += val;
+        }
+      });
     } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
-      ganhos = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
+      ganhosPecunia = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
+      beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
     } else if (monthData.totais && monthData.totais['Salário Mensal']) {
-      ganhos = parseFloat(monthData.totais['Salário Mensal']) || 0;
-      if (monthData.totais['Estúdio']) ganhos += parseFloat(monthData.totais['Estúdio']) || 0;
-      if (monthData.totais['13º']) ganhos += parseFloat(monthData.totais['13º']) || 0;
+      ganhosPecunia = parseFloat(monthData.totais['Salário Mensal']) || 0;
+      if (monthData.totais['Estúdio']) ganhosPecunia += parseFloat(monthData.totais['Estúdio']) || 0;
+      if (monthData.totais['13º']) ganhosPecunia += parseFloat(monthData.totais['13º']) || 0;
+      beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
     } else {
-      ganhos = 5788.19;
+      ganhosPecunia = 5788.19;
+      beneficiosNaoPecunia = 3285.00;
     }
 
     // Gastos Fixos
@@ -750,7 +793,7 @@ const MatrixApp = (function () {
     }
 
     const totalGastos = fixos + outros + diarios + contasInicio;
-    const saldoLivre = ganhos - totalGastos;
+    const saldoLivre = ganhosPecunia - totalGastos;
 
     // Fatura Nubank Black e Ganhos da Scarlet do mês
     const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
@@ -772,13 +815,23 @@ const MatrixApp = (function () {
     // Dívida Caixa
     const dividaCaixa = (state.financiamentoCaixa && state.financiamentoCaixa.saldoDevedor) || 157884.49;
 
-    document.getElementById('kpiGanhos').textContent = formatBRL(ganhos);
+    document.getElementById('kpiGanhos').textContent = formatBRL(ganhosPecunia);
+    const kpiGanhosSub = document.getElementById('kpiGanhosSub');
+    if (kpiGanhosSub) {
+      kpiGanhosSub.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em VA/VR)`;
+    }
+
     document.getElementById('kpiFixos').textContent = formatBRL(fixos);
     document.getElementById('kpiOutros').textContent = formatBRL(outros + diarios);
     
     const saldoEl = document.getElementById('kpiSaldo');
     saldoEl.textContent = formatBRL(saldoLivre);
     saldoEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+
+    const kpiSaldoSub = document.getElementById('kpiSaldoSub');
+    if (kpiSaldoSub) {
+      kpiSaldoSub.textContent = `Folga real em conta (pecúnia)`;
+    }
 
     const dividaEl = document.getElementById('kpiDividaCaixa');
     if (dividaEl) dividaEl.textContent = formatBRL(dividaCaixa);
@@ -802,36 +855,48 @@ const MatrixApp = (function () {
     if (tipo === 'saldo') {
       titleEl.innerHTML = `💵 Auditoria da Folga de Caixa (${periodLabel})`;
 
-      let ganhos = 0;
+      let ganhosPecunia = 0;
+      let beneficiosNaoPecunia = 0;
       if (monthData.receitas && monthData.receitas.length > 0) {
-        ganhos = monthData.receitas.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+        monthData.receitas.forEach(it => {
+          const val = parseFloat(it.valor) || 0;
+          if (isBeneficioNaoPecunia(it)) {
+            beneficiosNaoPecunia += val;
+          } else {
+            ganhosPecunia += val;
+          }
+        });
       } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
-        ganhos = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
+        ganhosPecunia = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
+        beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
       } else if (monthData.totais && monthData.totais['Salário Mensal']) {
-        ganhos = parseFloat(monthData.totais['Salário Mensal']) || 0;
-        if (monthData.totais['Estúdio']) ganhos += parseFloat(monthData.totais['Estúdio']) || 0;
-        if (monthData.totais['13º']) ganhos += parseFloat(monthData.totais['13º']) || 0;
+        ganhosPecunia = parseFloat(monthData.totais['Salário Mensal']) || 0;
+        if (monthData.totais['Estúdio']) ganhosPecunia += parseFloat(monthData.totais['Estúdio']) || 0;
+        if (monthData.totais['13º']) ganhosPecunia += parseFloat(monthData.totais['13º']) || 0;
+        beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
       } else {
-        ganhos = 5788.19;
+        ganhosPecunia = 5788.19;
+        beneficiosNaoPecunia = 3285.00;
       }
 
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       let contasInicio = 0;
       if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
         contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
       }
 
-      const totalGastos = fixos + outros + contasInicio;
-      const saldo = ganhos - totalGastos;
+      const totalGastos = fixos + outros + diarios + contasInicio;
+      const saldo = ganhosPecunia - totalGastos;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:6px;">Fórmula de Fechamento do Mês:</div>
+            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:6px;">Fórmula de Fechamento em Pecúnia (Dinheiro Líquido):</div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--cyan);">(+) Total de Ganhos:</span>
-              <strong>${formatBRL(ganhos)}</strong>
+              <span style="color:var(--cyan);">(+) Receitas em Pecúnia (Conta Corrente):</span>
+              <strong>${formatBRL(ganhosPecunia)}</strong>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--amber);">(-) Gastos Fixos:</span>
@@ -839,7 +904,7 @@ const MatrixApp = (function () {
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--rose);">(-) Gastos Variáveis & Aportes:</span>
-              <span>- ${formatBRL(outros)}</span>
+              <span>- ${formatBRL(outros + diarios)}</span>
             </div>
             ${contasInicio > 0 ? `
             <div style="display:flex;justify-content:space-between;">
@@ -847,26 +912,46 @@ const MatrixApp = (function () {
               <span>- ${formatBRL(contasInicio)}</span>
             </div>` : ''}
             <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px;">
-              <strong style="color:var(--text-main);">(=) Saldo Livre / Folga:</strong>
+              <strong style="color:var(--text-main);">(=) Folga Real de Caixa (Pecúnia):</strong>
               <strong style="color:${saldo >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldo)}</strong>
             </div>
           </div>
+
+          <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:700;color:var(--amber);font-size:11.5px;">🛒 Benefícios Alimentação (Não Pecúnia):</span>
+              <strong style="color:var(--amber);">${formatBRL(beneficiosNaoPecunia)}</strong>
+            </div>
+            <div style="color:var(--text-dim);font-size:10.5px;line-height:1.5;">
+              Vales Alimentação (VA) e Refeição (VR) <strong>NÃO entram neste cálculo</strong> porque são créditos restritos para supermercado e refeições, não constituindo dinheiro líquido em conta bancária para pagar contas, boletos ou financiamentos.
+            </div>
+          </div>
+
           <p style="color:var(--text-muted);font-size:11px;line-height:1.6;">
-            💡 <strong>Referência:</strong> Este cálculo é <strong>exclusivo do mês de ${periodLabel}</strong> da sua planilha real. 
-            Ele indica exatamente a margem líquida que você tem para manobrar no mês após honrar todos os compromissos fixos e aportes planejados.
+            💡 <strong>Referência:</strong> Este cálculo indica exatamente o montante de dinheiro líquido disponível em conta bancária após honrar todos os pagamentos e aportes planejados para <strong>${periodLabel}</strong>.
           </p>
         </div>
       `;
 
     } else if (tipo === 'ganhos') {
-      titleEl.innerHTML = `📥 Detalhamento de Ganhos (${periodLabel})`;
-      const itens = (monthData.receitas && monthData.receitas.length > 0)
+      titleEl.innerHTML = `📥 Detalhamento de Ganhos em Pecúnia (${periodLabel})`;
+      const todasReceitas = (monthData.receitas && monthData.receitas.length > 0)
         ? monthData.receitas
         : [];
+      
+      const receitasPecunia = todasReceitas.filter(r => !isBeneficioNaoPecunia(r));
+      const beneficiosNaoPecunia = todasReceitas.filter(r => isBeneficioNaoPecunia(r));
+      const totalPecunia = receitasPecunia.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalNaoPecunia = beneficiosNaoPecunia.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12px;">
-          <table class="data-table" style="margin-bottom:14px;">
+          <!-- Bloco Receitas em Pecúnia -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-weight:700;color:var(--cyan);font-size:12px;text-transform:uppercase;">💵 Proventos em Pecúnia (Dinheiro em Conta):</span>
+            <strong style="color:var(--cyan);font-size:13px;">${formatBRL(totalPecunia)}</strong>
+          </div>
+          <table class="data-table" style="margin-bottom:16px;">
             <thead>
               <tr>
                 <th>Fonte de Receita</th>
@@ -875,11 +960,11 @@ const MatrixApp = (function () {
               </tr>
             </thead>
             <tbody>
-              ${itens.map(it => `
+              ${receitasPecunia.length === 0 ? `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Nenhum provento cadastrado.</td></tr>` : receitasPecunia.map(it => `
                 <tr>
                   <td>
                     <strong>${it.nome}</strong>
-                    <div style="font-size:10px;color:var(--text-dim);">${it.categoria || 'Receita'}</div>
+                    <div style="font-size:10px;color:var(--text-dim);">${it.categoria || 'Salário / Proventos'}</div>
                   </td>
                   <td>
                     <span class="status-badge ${it.pago ? 'pago' : 'pendente'}">
@@ -891,8 +976,34 @@ const MatrixApp = (function () {
               `).join('')}
             </tbody>
           </table>
-          <div style="font-size:11px;color:var(--text-muted);">
-            Valores computados conforme lançamentos e receitas cadastradas para o mês de ${periodLabel}.
+
+          <!-- Bloco Benefícios Não Pecúnia -->
+          <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.25);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-weight:700;color:var(--amber);font-size:11.5px;text-transform:uppercase;">🛒 Benefícios de Alimentação (Não Pecúnia):</span>
+              <strong style="color:var(--amber);font-size:12.5px;">${formatBRL(totalNaoPecunia)}</strong>
+            </div>
+            <table class="data-table" style="font-size:11.5px;">
+              <thead>
+                <tr>
+                  <th>Benefício</th>
+                  <th>Finalidade</th>
+                  <th style="text-align:right;">Crédito</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${beneficiosNaoPecunia.map(it => `
+                  <tr>
+                    <td><strong>${it.nome}</strong></td>
+                    <td style="color:var(--text-dim);font-size:10.5px;">Alimentação / Refeição</td>
+                    <td class="val-col" style="color:var(--amber);font-weight:700;">${formatBRL(it.valor)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            <div style="margin-top:8px;font-size:10.5px;color:var(--text-muted);line-height:1.4;">
+              * Estes vales não são dinheiro em conta corrente para pagamento de despesas gerais e por isso foram excluídos do saldo de folga de caixa.
+            </div>
           </div>
         </div>
       `;
@@ -1733,13 +1844,21 @@ const MatrixApp = (function () {
 
     // Render Receitas / Ganhos Table Body & Termômetro
     const receitasList = monthData.receitas || [];
-    const totalReceitas = receitasList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-    const pagasReceitas = receitasList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-    const pendentesReceitas = Math.max(0, totalReceitas - pagasReceitas);
 
-    if (document.getElementById('receitasPagoLabel')) document.getElementById('receitasPagoLabel').textContent = formatBRL(pagasReceitas);
-    if (document.getElementById('receitasPendenteLabel')) document.getElementById('receitasPendenteLabel').textContent = formatBRL(pendentesReceitas);
-    const pctReceitas = totalReceitas > 0 ? (pagasReceitas / totalReceitas) * 100 : 0;
+    // Separação Estrita de Pecúnia (Dinheiro Líquido em Conta) e Benefícios Não-Pecúnia (VA/VR Alimentação)
+    const receitasPecuniaList = receitasList.filter(r => !isBeneficioNaoPecunia(r));
+    const beneficiosNaoPecuniaList = receitasList.filter(r => isBeneficioNaoPecunia(r));
+
+    const totalReceitasPecunia = receitasPecuniaList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pagasReceitasPecunia = receitasPecuniaList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pendentesReceitasPecunia = Math.max(0, totalReceitasPecunia - pagasReceitasPecunia);
+
+    const totalBeneficiosNaoPecunia = beneficiosNaoPecuniaList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+
+    // Termômetro de Receitas reflete a pecúnia
+    if (document.getElementById('receitasPagoLabel')) document.getElementById('receitasPagoLabel').textContent = formatBRL(pagasReceitasPecunia);
+    if (document.getElementById('receitasPendenteLabel')) document.getElementById('receitasPendenteLabel').textContent = formatBRL(pendentesReceitasPecunia);
+    const pctReceitas = totalReceitasPecunia > 0 ? (pagasReceitasPecunia / totalReceitasPecunia) * 100 : 0;
     if (document.getElementById('receitasProgressBar')) document.getElementById('receitasProgressBar').style.width = pctReceitas.toFixed(1) + '%';
 
     const receitasTbody = document.getElementById('receitasTableBody');
@@ -1747,13 +1866,18 @@ const MatrixApp = (function () {
       if (receitasList.length === 0) {
         receitasTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhuma receita cadastrada em ${currentMonth}.</td></tr>`;
       } else {
-        receitasTbody.innerHTML = receitasList.map((r, i) => `
-          <tr class="${r.pago ? 'paid' : ''}">
+        receitasTbody.innerHTML = receitasList.map((r, i) => {
+          const naoPecunia = isBeneficioNaoPecunia(r);
+          return `
+          <tr class="${r.pago ? 'paid' : ''}" style="${naoPecunia ? 'background:rgba(251,191,36,0.035);' : ''}">
             <td>
-              <strong>${r.nome}</strong>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <strong>${r.nome}</strong>
+                ${naoPecunia ? `<span class="cat-pill" style="background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid rgba(251,191,36,0.4);font-size:9.5px;" title="Benefício de Alimentação: não é dinheiro em pecúnia para pagar contas bancárias">🛒 NÃO-PECÚNIA</span>` : ''}
+              </div>
               <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
                 ${renderOrigemBadge(r.conta, r.renda, r.nome)}
-                <span class="cat-pill">${r.categoria || 'Receita'}</span>
+                <span class="cat-pill">${r.categoria || (naoPecunia ? 'Benefício' : 'Receita')}</span>
               </div>
             </td>
             <td>
@@ -1764,30 +1888,34 @@ const MatrixApp = (function () {
                 ${r.pago ? '✅ RECEBIDO' : '⏳ A RECEBER'}
               </button>
             </td>
-            <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(r.valor)}</td>
+            <td class="val-col" style="color:${naoPecunia ? 'var(--amber)' : 'var(--cyan)'};font-weight:700;">
+              ${formatBRL(r.valor)}
+              ${naoPecunia ? `<div style="font-size:9.5px;color:var(--text-dim);font-weight:normal;">(Alimentação)</div>` : ''}
+            </td>
             <td class="action-col">
               <button class="btn-icon" title="Editar esta receita" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">✏️</button>
               <button class="btn-icon" title="Excluir esta receita" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">🗑️</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       }
     }
 
-    // Totais de Fixos, Variáveis e Diários abaixo de Receitas e Fechamento
+    // Totais de Fixos, Variáveis e Diários abaixo de Receitas e Fechamento (Base Estrita em Pecúnia)
     const totalDespesas = totalFixos + totalOutros + totalDiarios;
-    const saldoFinal = totalReceitas - totalDespesas;
+    const saldoFinal = totalReceitasPecunia - totalDespesas;
 
     const badgeMes = document.getElementById('fechamentoMesBadge');
     if (badgeMes) badgeMes.textContent = `${currentMonth} / ${currentYear}`;
 
     const totalRecEl = document.getElementById('fechamentoTotalReceitas');
-    if (totalRecEl) totalRecEl.textContent = formatBRL(totalReceitas);
+    if (totalRecEl) totalRecEl.textContent = formatBRL(totalReceitasPecunia);
     const recSubEl = document.getElementById('fechamentoReceitasSub');
     if (recSubEl) {
-      const pagCount = receitasList.filter(r => r.pago).length;
-      const pendCount = receitasList.length - pagCount;
-      recSubEl.textContent = `${pagCount} recebidas • ${pendCount} a receber`;
+      const pagCount = receitasPecuniaList.filter(r => r.pago).length;
+      const pendCount = receitasPecuniaList.length - pagCount;
+      recSubEl.innerHTML = `${pagCount} recebidas • ${pendCount} a receber<br><span style="color:var(--amber);font-size:10px;">(Exclui ${formatBRL(totalBeneficiosNaoPecunia)} em VA/VR alimentação)</span>`;
     }
 
     const totalFixEl = document.getElementById('fechamentoTotalFixos');
@@ -1821,7 +1949,7 @@ const MatrixApp = (function () {
     }
 
     // Rastreabilidade: De Onde Veio ➔ Para Onde Foi
-    renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList, diariosList);
+    renderCashflowTrace(monthData, totalReceitasPecunia, fixosList, outrosList, diariosList);
 
     // Render Bloco Contas de Início de Ano (se Janeiro)
     const contasInicioBox = document.getElementById('contasInicioAnoBox');

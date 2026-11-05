@@ -63,13 +63,13 @@
       <div class="kpi-card green" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a fórmula e a auditoria do saldo">
         <div class="kpi-label">Saldo / Folga de Caixa <span>💳 🔍</span></div>
         <div id="kpiSaldo" class="kpi-value">R$ 0,00</div>
-        <div class="kpi-sub">Ganhos menos despesas do mês</div>
+        <div id="kpiSaldoSub" class="kpi-sub">Folga líquida em conta (pecúnia)</div>
       </div>
 
       <div class="kpi-card cyan" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para ver a lista de todas as receitas do mês">
-        <div class="kpi-label">Ganhos no Mês <span>📥 🔍</span></div>
+        <div class="kpi-label">Ganhos em Pecúnia <span>📥 🔍</span></div>
         <div id="kpiGanhos" class="kpi-value">R$ 0,00</div>
-        <div class="kpi-sub">USP Líquido + Benefícios</div>
+        <div id="kpiGanhosSub" class="kpi-sub">Dinheiro líquido para pagar contas</div>
       </div>
 
       <div class="kpi-card amber" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fixos')" title="Clique para ver cada gasto fixo do mês">

@@ -44,9 +44,13 @@ const ScenarioSimulator = (function () {
       const yearStr = String(m.year);
       const monthData = (state.anos[yearStr] && state.anos[yearStr][m.monthName]) || { fixos: [], outros: [], totais: {} };
 
-      // Ganhos Base
+      // Ganhos Base em Pecúnia (Dinheiro Líquido - Exclui VA e VR)
       let ganhosBase = 0;
-      if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
+      if (monthData.receitas && monthData.receitas.length > 0) {
+        ganhosBase = monthData.receitas
+          .filter(r => !(typeof MatrixDB !== 'undefined' && MatrixDB.isBeneficioNaoPecunia ? MatrixDB.isBeneficioNaoPecunia(r) : /vale\s*(aliment|refei)|\bva\b|\bvr\b/i.test(r.nome)))
+          .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
         ganhosBase = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
       } else if (monthData.totais && monthData.totais['Salário Mensal']) {
         ganhosBase = parseFloat(monthData.totais['Salário Mensal']) || 0;

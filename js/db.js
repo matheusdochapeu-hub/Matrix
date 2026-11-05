@@ -51,6 +51,23 @@ const MatrixDB = (function () {
     return false;
   }
 
+  // Regra Financeira: VA e VR são benefícios de alimentação e NÃO são dinheiro em pecúnia para pagar contas
+  function isBeneficioNaoPecunia(itemOuNome) {
+    if (!itemOuNome) return false;
+    if (typeof itemOuNome === 'object') {
+      if (itemOuNome.naoPecunia === true) return true;
+      const cat = (itemOuNome.categoria || '').toLowerCase();
+      if (cat.includes('não pecúnia') || cat.includes('nao pecunia')) return true;
+    }
+    const str = (typeof itemOuNome === 'string' ? itemOuNome : (itemOuNome.nome || '')).toLowerCase();
+    if (/vale\s*(alimenta[çc][ãa]o|refei[çc][ãa]o)/i.test(str)) return true;
+    if (/\bva\b/i.test(str) && (str.includes('maracaju') || str.includes('alelo') || str.includes('aliment') || str.includes('benef') || str.trim() === 'va')) return true;
+    if (/\bvr\b/i.test(str) && (str.includes('usp') || str.includes('refei') || str.includes('benef') || str.trim() === 'vr')) return true;
+    if (str.includes('maracaju 88')) return true;
+    if (str === 'va' || str === 'vr') return true;
+    return false;
+  }
+
   function sanitizeState(state) {
     if (!state || !state.anos) return state;
     let mutated = false;
@@ -78,6 +95,14 @@ const MatrixDB = (function () {
           const origLen = m.receitas.length;
           m.receitas = m.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
           if (m.receitas.length !== origLen) mutated = true;
+          // Sinalizar VA e VR existentes como não-pecúnia
+          m.receitas.forEach(r => {
+            if (isBeneficioNaoPecunia(r) && (!r.naoPecunia || r.categoria !== 'Benefício (Não Pecúnia)')) {
+              r.naoPecunia = true;
+              r.categoria = 'Benefício (Não Pecúnia)';
+              mutated = true;
+            }
+          });
         }
         if (m.diarios && Array.isArray(m.diarios)) {
           const origLen = m.diarios.length;
@@ -172,7 +197,8 @@ const MatrixDB = (function () {
         id: 'rec_vr_' + mes,
         nome: 'Vale Refeição (VR)',
         valor: vrVal,
-        categoria: 'Benefícios',
+        categoria: 'Benefício (Não Pecúnia)',
+        naoPecunia: true,
         pago: true
       });
     }
@@ -183,7 +209,8 @@ const MatrixDB = (function () {
         id: 'rec_va_' + mes,
         nome: 'Vale Alimentação (VA - Maracaju 88)',
         valor: vaVal,
-        categoria: 'Benefícios',
+        categoria: 'Benefício (Não Pecúnia)',
+        naoPecunia: true,
         pago: true
       });
     }
@@ -214,8 +241,8 @@ const MatrixDB = (function () {
     if (month.receitas.length === 0 && (parseInt(ano, 10) >= 2026)) {
       month.receitas.push(
         { id: 'rec_sal_' + mes, nome: 'Salário Líquido USP (Banco do Brasil)', valor: 5788.19, categoria: 'Salário / Proventos', pago: false },
-        { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1235.00, categoria: 'Benefícios', pago: false },
-        { id: 'rec_va_' + mes, nome: 'Vale Alimentação (VA - Maracaju 88)', valor: 2050.00, categoria: 'Benefícios', pago: false }
+        { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1235.00, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, pago: false },
+        { id: 'rec_va_' + mes, nome: 'Vale Alimentação (VA - Maracaju 88)', valor: 2050.00, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, pago: false }
       );
     }
 
@@ -442,6 +469,7 @@ const MatrixDB = (function () {
     removeTransactionByIndex,
     togglePaidByIndex,
     ensureMonthReceitas,
+    isBeneficioNaoPecunia,
     getAllYears,
     createYear,
     exportBackupJSON,
