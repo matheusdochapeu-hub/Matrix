@@ -2314,35 +2314,48 @@ const MatrixApp = (function () {
 
   function renderSatellitesUI() {
     const satCfg = SatelliteConnectors.getSatelliteConfig();
-    if (document.getElementById('cfgFisioUrl')) document.getElementById('cfgFisioUrl').value = satCfg.fisioUrl;
-    if (document.getElementById('cfgFisioToken')) document.getElementById('cfgFisioToken').value = satCfg.fisioToken;
-    if (document.getElementById('cfgFaturasUrl')) document.getElementById('cfgFaturasUrl').value = satCfg.faturasUrl;
-    if (document.getElementById('cfgFaturasToken')) document.getElementById('cfgFaturasToken').value = satCfg.faturasToken;
-    if (document.getElementById('cfgMaracajuUrl')) document.getElementById('cfgMaracajuUrl').value = satCfg.maracajuUrl;
-    if (document.getElementById('cfgMaracajuToken')) document.getElementById('cfgMaracajuToken').value = satCfg.maracajuToken;
+    if (document.getElementById('cfgFisioUrl')) document.getElementById('cfgFisioUrl').value = satCfg.fisioUrl || '';
+    if (document.getElementById('cfgFisioToken')) document.getElementById('cfgFisioToken').value = satCfg.fisioToken || '';
+    if (document.getElementById('cfgFaturasUrl')) document.getElementById('cfgFaturasUrl').value = satCfg.faturasUrl || '';
+    if (document.getElementById('cfgFaturasToken')) document.getElementById('cfgFaturasToken').value = satCfg.faturasToken || '';
+    if (document.getElementById('cfgMaracajuUrl')) document.getElementById('cfgMaracajuUrl').value = satCfg.maracajuUrl || '';
+    if (document.getElementById('cfgMaracajuToken')) document.getElementById('cfgMaracajuToken').value = satCfg.maracajuToken || '';
     if (document.getElementById('chkAutoScrapeOnOpen')) document.getElementById('chkAutoScrapeOnOpen').checked = satCfg.autoScrapeOnOpen;
 
     const state = MatrixDB.getState();
     const sat = state.satellites || {};
 
+    // 1. FisioFlow (Scarlet)
+    const fisioBadge = document.getElementById('badgeFisioStatus');
+    const fisioAtivo = !!(satCfg.fisioUrl && satCfg.fisioUrl.trim()) || !!sat.fisioflow;
+    if (fisioBadge) {
+      fisioBadge.className = fisioAtivo ? 'status-badge pago' : 'status-badge pendente';
+      fisioBadge.textContent = fisioAtivo ? 'ATIVO' : 'PENDENTE';
+    }
     if (sat.fisioflow) {
       if (document.getElementById('satFisioMesAtual')) document.getElementById('satFisioMesAtual').textContent = formatBRL(sat.fisioflow.mesAtualTotal);
       if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.projecaoMensalRecorrente);
-      if (document.getElementById('badgeFisioStatus')) {
-        document.getElementById('badgeFisioStatus').className = 'status-badge pago';
-        document.getElementById('badgeFisioStatus').textContent = 'Conectado';
-      }
     }
 
+    // 2. Faturas (Nubank Black)
+    const faturasBadge = document.getElementById('badgeFaturasStatus');
+    const faturasAtivo = !!(satCfg.faturasUrl && satCfg.faturasUrl.trim()) || !!sat.faturas;
+    if (faturasBadge) {
+      faturasBadge.className = faturasAtivo ? 'status-badge pago' : 'status-badge pendente';
+      faturasBadge.textContent = faturasAtivo ? 'ATIVO' : 'PENDENTE';
+    }
     if (sat.faturas) {
       if (document.getElementById('satFaturaAtual')) document.getElementById('satFaturaAtual').textContent = formatBRL(sat.faturas.faturaAtualValor);
       if (document.getElementById('satFaturasFuturas')) document.getElementById('satFaturasFuturas').textContent = formatBRL(sat.faturas.faturasFuturasTotal);
-      if (document.getElementById('badgeFaturasStatus')) {
-        document.getElementById('badgeFaturasStatus').className = 'status-badge pago';
-        document.getElementById('badgeFaturasStatus').textContent = 'Conectado';
-      }
     }
 
+    // 3. Casa Maracaju 88
+    const maracajuBadge = document.getElementById('badgeMaracajuStatus');
+    const maracajuAtivo = !!(satCfg.maracajuUrl && satCfg.maracajuUrl.trim()) || !!sat.maracaju;
+    if (maracajuBadge) {
+      maracajuBadge.className = maracajuAtivo ? 'status-badge pago' : 'status-badge pendente';
+      maracajuBadge.textContent = maracajuAtivo ? 'ATIVO' : 'PENDENTE';
+    }
     if (sat.maracaju) {
       if (document.getElementById('satMaracajuMercado')) document.getElementById('satMaracajuMercado').textContent = formatBRL(sat.maracaju.gastoMercadoMesAtual);
       if (document.getElementById('satMaracajuSaldoVa')) {
@@ -2354,25 +2367,22 @@ const MatrixApp = (function () {
         document.getElementById('satMaracajuSaldoVr').textContent = formatBRL(sat.maracaju.saldoVrRestante || 0);
         document.getElementById('satMaracajuSaldoVr').style.color = (sat.maracaju.transbordouVr || 0) > 0 ? 'var(--rose)' : 'var(--cyan)';
       }
-      if (document.getElementById('badgeMaracajuStatus')) {
-        document.getElementById('badgeMaracajuStatus').className = 'status-badge pago';
-        document.getElementById('badgeMaracajuStatus').textContent = 'Conectado';
-      }
     }
   }
 
   function salvarConfigSatellites() {
     const cfg = {
-      fisioUrl: document.getElementById('cfgFisioUrl').value,
-      fisioToken: document.getElementById('cfgFisioToken').value,
-      faturasUrl: document.getElementById('cfgFaturasUrl').value,
-      faturasToken: document.getElementById('cfgFaturasToken').value,
-      maracajuUrl: document.getElementById('cfgMaracajuUrl').value,
-      maracajuToken: document.getElementById('cfgMaracajuToken').value,
+      fisioUrl: (document.getElementById('cfgFisioUrl').value || '').trim(),
+      fisioToken: (document.getElementById('cfgFisioToken').value || '').trim(),
+      faturasUrl: (document.getElementById('cfgFaturasUrl').value || '').trim(),
+      faturasToken: (document.getElementById('cfgFaturasToken').value || '').trim(),
+      maracajuUrl: (document.getElementById('cfgMaracajuUrl').value || '').trim(),
+      maracajuToken: (document.getElementById('cfgMaracajuToken').value || '').trim(),
       autoScrapeOnOpen: document.getElementById('chkAutoScrapeOnOpen').checked
     };
     SatelliteConnectors.saveSatelliteConfig(cfg);
-    alert('Configurações dos 3 apps salvas com sucesso!');
+    renderSatellitesUI();
+    alert('Configurações dos 3 apps salvas com sucesso! Os conectores vinculados agora estão com status ATIVO.');
   }
 
   async function executarScrapingSatellites(silent = false) {
