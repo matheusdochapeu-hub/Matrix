@@ -592,6 +592,16 @@ body {
   border-color: var(--amber);
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable-row:hover {
+  background: rgba(0, 255, 102, 0.08) !important;
+  box-shadow: inset 3px 0 0 var(--matrix-green);
+}
+
 /* Progress Track and Fill */
 .box-progress-summary {
   background: rgba(5, 8, 7, 0.5);

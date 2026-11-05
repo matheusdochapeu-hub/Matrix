@@ -810,7 +810,7 @@ const MatrixApp = (function () {
       }
     }
 
-    // Render tabela mês a mês da simulação
+    // Render tabela mês a mês da simulação (linhas clicáveis para raio-x e diagnóstico)
     const simTbody = document.getElementById('simulationTableBody');
     if (simTbody) {
       simTbody.innerHTML = result.timeline.map(row => {
@@ -824,15 +824,25 @@ const MatrixApp = (function () {
         }
 
         return `
-          <tr ${rowClass}>
-            <td><strong>${row.label}</strong></td>
+          <tr ${rowClass} class="clickable-row" onclick="MatrixApp.abrirRaioXSimulador('${row.year}', '${row.monthName}')" title="Clique para ver o raio-x e diagnóstico de ${row.label}">
+            <td>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="color:var(--matrix-green);font-size:11px;">🔍</span>
+                <strong>${row.label}</strong>
+              </div>
+            </td>
             <td class="val-col">${formatBRL(row.ganhosBase)}</td>
             <td class="val-col">${formatBRL(row.totalGastosBase)}</td>
             <td class="val-col" style="color:var(--cyan);">${row.custoCenarios > 0 ? '+ ' + formatBRL(row.custoCenarios) : '—'}</td>
             <td class="val-col" style="font-weight:700;color:${row.saldoSimulado >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">
               ${formatBRL(row.saldoSimulado)}
             </td>
-            <td style="text-align:center;">${statusBadge}</td>
+            <td style="text-align:center;white-space:nowrap;">
+              ${statusBadge}
+              <button type="button" class="btn-matrix" style="padding:2px 7px;font-size:10px;margin-left:6px;" onclick="event.stopPropagation(); MatrixApp.navegarParaMes('${row.year}', '${row.monthName}')" title="Ir para o Fluxo de Caixa e editar lançamentos">
+                Editar ➔
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
@@ -847,6 +857,228 @@ const MatrixApp = (function () {
       simDeficitEl.textContent = `${result.mesesDeficit} de ${result.totalMeses} meses`;
       simDeficitEl.style.color = result.mesesDeficit > 0 ? 'var(--rose)' : 'var(--matrix-green)';
     }
+  }
+
+  // Navegar diretamente para o mês selecionado no Fluxo de Caixa
+  function navegarParaMes(ano, mes) {
+    currentYear = String(ano);
+    currentMonth = String(mes);
+
+    const allYears = MatrixDB.getAllYears();
+    if (!allYears.includes(currentYear)) {
+      MatrixDB.createYear(currentYear, allYears[allYears.length - 1] || '2027');
+    }
+
+    populateYearSelector();
+    updateMonthDisplay();
+    renderAll();
+
+    closeModal('drilldownModalBackdrop');
+    closeModal('scenarioModalBackdrop');
+
+    const fluxoTabBtn = document.querySelector('[data-tab="tab-fluxo"]');
+    if (fluxoTabBtn) fluxoTabBtn.click();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Raio-X explicativo do mês no simulador ("Por que esse valor está ficando assim?")
+  function abrirRaioXSimulador(ano, mes) {
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(ano, mes);
+    const titleEl = document.getElementById('drilldownModalTitle');
+    const contentEl = document.getElementById('drilldownModalContent');
+    const backdrop = document.getElementById('drilldownModalBackdrop');
+    if (!titleEl || !contentEl || !backdrop) return;
+
+    const periodLabel = `${mes} de ${ano}`;
+    titleEl.innerHTML = `🔍 Raio-X Financeiro & Diagnóstico: ${periodLabel}`;
+
+    // 1. Receitas
+    const receitasList = monthData.receitas || [];
+    const totalReceitas = receitasList.length > 0 
+      ? receitasList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0)
+      : (parseFloat(monthData.totais && monthData.totais['Subtotal Ganhos']) || 5788.19);
+
+    // 2. Gastos Fixos
+    const fixosList = monthData.fixos || [];
+    const totalFixos = fixosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+
+    // 3. Gastos Variáveis
+    const outrosList = monthData.outros || [];
+    const totalOutros = outrosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+
+    // 4. Contas de Início de Ano (se Janeiro)
+    let contasInicio = 0;
+    if (mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+      contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+    }
+
+    // 5. Cenários aplicados neste mês
+    const simResult = ScenarioSimulator.runSimulation(state, null, 24);
+    const monthSimRow = simResult.timeline.find(r => String(r.year) === String(ano) && r.monthName === mes);
+    const custoCenarios = monthSimRow ? monthSimRow.custoCenarios : 0;
+    const cenariosAplicados = (monthSimRow && monthSimRow.cenariosAplicados) || [];
+
+    const totalGastosReal = totalFixos + totalOutros + contasInicio;
+    const totalGastosComCenarios = totalGastosReal + custoCenarios;
+    const saldoFinal = totalReceitas - totalGastosComCenarios;
+
+    // Diagnóstico Inteligente
+    let diagnosticoHtml = '';
+    if (saldoFinal < 0) {
+      const deficit = Math.abs(saldoFinal);
+      let motivos = [];
+      if (mes === 'Janeiro' && contasInicio > 0) {
+        motivos.push(`<strong>Contas sazonais de início de ano (${formatBRL(contasInicio)})</strong>: IPTU, IPVA, licenciamento e taxas profissionais acumulam neste mês.`);
+      }
+      if (totalFixos > totalReceitas * 0.7) {
+        motivos.push(`<strong>Comprometimento fixo elevado (${formatBRL(totalFixos)})</strong>: parcela Caixa, Unimed e contas essenciais absorvem grande fatia da renda base.`);
+      }
+      if (totalOutros > 2500) {
+        motivos.push(`<strong>Gastos variáveis e faturas (${formatBRL(totalOutros)})</strong>: faturas de cartão e compras correntes pesam no orçamento.`);
+      }
+      if (custoCenarios > 0) {
+        motivos.push(`<strong>Cenários e despesas hipotéticas ativas (+ ${formatBRL(custoCenarios)})</strong>: reduzem a folga deste período.`);
+      }
+      if (motivos.length === 0) {
+        motivos.push(`Despesas totais (${formatBRL(totalGastosComCenarios)}) excedem a receita prevista (${formatBRL(totalReceitas)}).`);
+      }
+
+      diagnosticoHtml = `
+        <div style="background:rgba(239,68,68,0.1);border:1px solid var(--rose);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+          <div style="font-weight:700;color:var(--rose);font-size:12.5px;margin-bottom:6px;">⚠️ Por que este mês fecha em Déficit (-${formatBRL(deficit)})?</div>
+          <ul style="margin:0;padding-left:18px;font-size:11.5px;color:var(--text-main);line-height:1.6;">
+            ${motivos.map(m => `<li>${m}</li>`).join('')}
+          </ul>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+            💡 <em>Dica de Gestão:</em> Em sua rotina financeira, o déficit sazonal de início de ano é tradicionalmente suprido pela poupança do 13º salário na conta BB Investimentos.
+          </div>
+        </div>
+      `;
+    } else {
+      let motivos = [];
+      if (receitasList.some(r => r.nome.includes('13º'))) {
+        motivos.push(`<strong>Entrada do 13º Salário USP</strong> alavanca o caixa deste mês.`);
+      }
+      if (saldoFinal >= 1000) {
+        motivos.push(`Folga financeira confortável (+${formatBRL(saldoFinal)}) disponível para poupança ou investimentos.`);
+      } else {
+        motivos.push(`Caixa equilibrado dentro do teto previsto (+${formatBRL(saldoFinal)}).`);
+      }
+
+      diagnosticoHtml = `
+        <div style="background:rgba(0,255,102,0.08);border:1px solid var(--matrix-green-dim);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+          <div style="font-weight:700;color:var(--matrix-green);font-size:12.5px;margin-bottom:6px;">✅ Por que este mês fecha com Folga (+${formatBRL(saldoFinal)})?</div>
+          <ul style="margin:0;padding-left:18px;font-size:11.5px;color:var(--text-main);line-height:1.6;">
+            ${motivos.map(m => `<li>${m}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // Top Despesas
+    const todasDespesas = [
+      ...fixosList.map(f => ({ ...f, grupo: 'Fixo' })),
+      ...outrosList.map(o => ({ ...o, grupo: 'Variável' }))
+    ].sort((a, b) => (parseFloat(b.valor) || 0) - (parseFloat(a.valor) || 0));
+
+    const topDespesas = todasDespesas.slice(0, 6);
+
+    let html = `
+      <div style="font-family:var(--font-mono);font-size:12px;">
+        <!-- Card Resumo de Fechamento -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--cyan);">(+) Rendas e Receitas Totais:</span>
+            <strong style="color:var(--cyan);">${formatBRL(totalReceitas)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--amber);">(-) Gastos Fixos da Casa:</span>
+            <span>- ${formatBRL(totalFixos)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--rose);">(-) Gastos Variáveis & Outros:</span>
+            <span>- ${formatBRL(totalOutros)}</span>
+          </div>
+          ${contasInicio > 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--amber);">(-) Contas Início de Ano (Sazonal):</span>
+            <span>- ${formatBRL(contasInicio)}</span>
+          </div>` : ''}
+          ${custoCenarios > 0 ? `
+          <div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--cyan);">
+            <span>(-) Hipóteses / Cenários Simulados:</span>
+            <span>- ${formatBRL(custoCenarios)}</span>
+          </div>` : ''}
+          <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:13.5px;">
+            <strong style="color:var(--text-main);">(=) Saldo Líquido Previsto:</strong>
+            <strong style="color:${saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldoFinal)}</strong>
+          </div>
+        </div>
+
+        <!-- Diagnóstico -->
+        ${diagnosticoHtml}
+
+        <!-- Botão de Ação Direta para o Fluxo de Caixa -->
+        <div style="margin-bottom:16px;">
+          <button class="btn-matrix primary" style="width:100%;justify-content:center;padding:10px;font-size:12.5px;font-weight:700;" onclick="MatrixApp.navegarParaMes('${ano}', '${mes}')">
+            🚀 Abrir ${mes} / ${ano} no Fluxo de Caixa para Ver & Editar Lançamentos
+          </button>
+        </div>
+
+        <!-- Tabelas de Detalhamento Rápido -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;">
+          <!-- Receitas do Mês -->
+          <div>
+            <div style="font-weight:700;color:var(--matrix-green);margin-bottom:6px;font-size:11px;text-transform:uppercase;">
+              📥 Receitas Previstas (${receitasList.length})
+            </div>
+            <table class="data-table" style="font-size:11px;">
+              <tbody>
+                ${receitasList.length === 0 ? '<tr><td style="color:var(--text-muted);">Nenhuma receita listada.</td></tr>' : receitasList.map(r => `
+                  <tr>
+                    <td><strong>${r.nome}</strong></td>
+                    <td class="val-col" style="color:var(--cyan);">${formatBRL(r.valor)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Maiores Gastos do Mês -->
+          <div>
+            <div style="font-weight:700;color:var(--rose);margin-bottom:6px;font-size:11px;text-transform:uppercase;">
+              💳 Maiores Despesas do Mês
+            </div>
+            <table class="data-table" style="font-size:11px;">
+              <tbody>
+                ${topDespesas.length === 0 ? '<tr><td style="color:var(--text-muted);">Nenhum gasto listado.</td></tr>' : topDespesas.map(d => `
+                  <tr>
+                    <td>
+                      <strong>${d.nome}</strong>
+                      <span style="font-size:9.5px;color:var(--text-dim);"> (${d.grupo})</span>
+                    </td>
+                    <td class="val-col">${formatBRL(d.valor)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        ${cenariosAplicados.length > 0 ? `
+        <div style="margin-top:14px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:4px;">🔮 Hipóteses Incidindo neste Mês:</div>
+          <div style="font-size:11px;color:var(--text-muted);">
+            ${cenariosAplicados.map(c => `• <strong>${c.titulo}</strong>: ${formatBRL(c.valor)} (Conta: ${c.conta} | Renda: ${c.renda})`).join('<br>')}
+          </div>
+        </div>` : ''}
+      </div>
+    `;
+
+    contentEl.innerHTML = html;
+    backdrop.classList.add('open');
   }
 
   // ==========================================
@@ -1640,7 +1872,9 @@ const MatrixApp = (function () {
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
-    abrirDrilldown
+    abrirDrilldown,
+    abrirRaioXSimulador,
+    navegarParaMes
   };
 })();
 
