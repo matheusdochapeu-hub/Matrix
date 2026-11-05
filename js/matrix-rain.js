@@ -27,29 +27,40 @@
     }
   }
 
-  function draw() {
-    // Efeito de rastro translúcido escuro
-    ctx.fillStyle = 'rgba(5, 8, 7, 0.08)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let lastDrawTime = 0;
+  const isMobile = window.innerWidth < 768;
+  const targetInterval = isMobile ? 45 : 30; // ~22fps no mobile (super econômico), ~33fps no desktop
 
-    ctx.font = fontSize + "px 'JetBrains Mono', monospace";
+  function draw(timestamp) {
+    if (!timestamp) timestamp = performance.now();
+    const elapsed = timestamp - lastDrawTime;
 
-    for (let i = 0; i < drops.length; i++) {
-      const text = chars.charAt(Math.floor(Math.random() * chars.length));
-      
-      // Primeiro caractere da gota é mais brilhante
-      if (Math.random() > 0.85) {
-        ctx.fillStyle = '#ffffff';
-      } else {
-        ctx.fillStyle = '#00ff66';
+    if (elapsed > targetInterval) {
+      lastDrawTime = timestamp - (elapsed % targetInterval);
+
+      // Efeito de rastro translúcido escuro
+      ctx.fillStyle = 'rgba(5, 8, 7, 0.09)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = fontSize + "px 'JetBrains Mono', monospace";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars.charAt(Math.floor(Math.random() * chars.length));
+        
+        // Primeiro caractere da gota é mais brilhante
+        if (Math.random() > 0.85) {
+          ctx.fillStyle = '#ffffff';
+        } else {
+          ctx.fillStyle = '#00ff66';
+        }
+
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.985) {
+          drops[i] = 0;
+        }
+        drops[i]++;
       }
-
-      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-      if (drops[i] * fontSize > canvas.height && Math.random() > 0.985) {
-        drops[i] = 0;
-      }
-      drops[i]++;
     }
 
     if (isRunning) {

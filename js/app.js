@@ -23,7 +23,8 @@ const MatrixApp = (function () {
     updateMonthDisplay();
     renderAll();
 
-    // Tentar sincronização em nuvem se configurada
+    // Inicialização ultra-rápida (instantânea da memória/disco local)
+    // As chamadas em nuvem rodam em segundo plano sem bloquear a interface
     setTimeout(() => {
       const cfg = SyncEngine.getConfig();
       if (cfg.cloudUrl) {
@@ -34,12 +35,20 @@ const MatrixApp = (function () {
         });
       }
 
-      // Scraping automático dos 3 apps satélites ao abrir se ativado
+      // Scraping dos satélites em segundo plano
       const satCfg = SatelliteConnectors.getSatelliteConfig();
       if (satCfg.autoScrapeOnOpen) {
-        executarScrapingSatellites(true); // modo silencioso
+        executarScrapingSatellites(true);
       }
-    }, 800);
+    }, 50);
+
+    // Monitorar conectividade de rede em tempo real
+    window.addEventListener('online', () => {
+      SyncEngine.updateStatusUI('synced', 'Conexão restabelecida');
+    });
+    window.addEventListener('offline', () => {
+      SyncEngine.updateStatusUI('offline', 'Sem conexão com a internet');
+    });
   }
 
   function setupEventListeners() {
@@ -798,6 +807,44 @@ const MatrixApp = (function () {
     URL.revokeObjectURL(url);
   }
 
+  async function copiarBackupClipboard() {
+    try {
+      const jsonStr = MatrixDB.exportBackupJSON();
+      await navigator.clipboard.writeText(jsonStr);
+      alert('Backup completo copiado para a Área de Transferência! Você pode colar no WhatsApp, e-mail ou bloco de notas.');
+    } catch (e) {
+      alert('Não foi possível copiar automaticamente: ' + e.message);
+    }
+  }
+
+  async function colarBackupClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim().startsWith('{')) {
+        const manual = prompt('Cole aqui o texto JSON do backup:');
+        if (!manual) return;
+        processarImportacaoTexto(manual);
+        return;
+      }
+      processarImportacaoTexto(text);
+    } catch (e) {
+      const manual = prompt('Cole aqui o texto JSON do backup:');
+      if (manual) processarImportacaoTexto(manual);
+    }
+  }
+
+  function processarImportacaoTexto(text) {
+    if (confirm('Deseja restaurar este backup e substituir o estado atual?')) {
+      const res = MatrixDB.importBackupJSON(text);
+      if (res.success) {
+        alert('Backup restaurado com sucesso absoluto!');
+        renderAll();
+      } else {
+        alert('Erro ao processar backup: ' + res.error);
+      }
+    }
+  }
+
   function importBackupFile(inputEl) {
     const file = inputEl.files && inputEl.files[0];
     if (!file) return;
@@ -916,7 +963,7 @@ const MatrixApp = (function () {
     const month = MatrixDB.getMonth(ano, mes);
     if (!month.totais) month.totais = {};
     month.totais['Salário Mensal'] = liquido;
-    if (auxSaude > 0) month.totais['Auxílio sade'] = auxSaude;
+    if (auxSaude > 0) month.totais['Auxílio-Saúde USP'] = auxSaude;
 
     MatrixDB.saveMonth(ano, mes, month);
     MatrixDB.saveState(state);
@@ -952,6 +999,8 @@ const MatrixApp = (function () {
     forceFetchFromCloud,
     downloadBackupFile,
     importBackupFile,
+    copiarBackupClipboard,
+    colarBackupClipboard,
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites

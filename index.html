@@ -571,8 +571,10 @@
             Baixe uma cópia integral instantânea de todos os anos e configurações para manter em disco ou transferir entre máquinas.
           </p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn-matrix" onclick="MatrixApp.downloadBackupFile()">⬇️ Baixar Backup (.json)</button>
-            <button class="btn-matrix" onclick="document.getElementById('importBackupInput').click()">⬆️ Restaurar Backup (.json)</button>
+            <button class="btn-matrix" onclick="MatrixApp.downloadBackupFile()">⬇️ Baixar Arquivo (.json)</button>
+            <button class="btn-matrix" onclick="document.getElementById('importBackupInput').click()">⬆️ Restaurar Arquivo (.json)</button>
+            <button class="btn-matrix primary" onclick="MatrixApp.copiarBackupClipboard()">📋 Copiar JSON</button>
+            <button class="btn-matrix" onclick="MatrixApp.colarBackupClipboard()">📋 Colar JSON</button>
             <input type="file" id="importBackupInput" accept=".json" style="display:none;" onchange="MatrixApp.importBackupFile(this)">
           </div>
         </div>
