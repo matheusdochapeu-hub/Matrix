@@ -426,50 +426,90 @@ const MatrixApp = (function () {
   function renderFluxoCaixa() {
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
-    // Render Fixos
+    // Cálculos de Totais, Pagos e Pendentes
+    const fixosList = monthData.fixos || [];
+    const totalFixos = fixosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pagosFixos = fixosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pendentesFixos = Math.max(0, totalFixos - pagosFixos);
+
+    const outrosList = monthData.outros || [];
+    const totalOutros = outrosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pagosOutros = outrosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const pendentesOutros = Math.max(0, totalOutros - pagosOutros);
+
+    const totalGeralPago = pagosFixos + pagosOutros;
+    const totalGeralPendente = pendentesFixos + pendentesOutros;
+
+    // Atualizar Termômetro dos Fixos
+    if (document.getElementById('fixosPagoLabel')) document.getElementById('fixosPagoLabel').textContent = formatBRL(pagosFixos);
+    if (document.getElementById('fixosPendenteLabel')) document.getElementById('fixosPendenteLabel').textContent = formatBRL(pendentesFixos);
+    const pctFixos = totalFixos > 0 ? (pagosFixos / totalFixos) * 100 : 0;
+    if (document.getElementById('fixosProgressBar')) document.getElementById('fixosProgressBar').style.width = pctFixos.toFixed(1) + '%';
+
+    // Atualizar Termômetro dos Variáveis
+    if (document.getElementById('outrosPagoLabel')) document.getElementById('outrosPagoLabel').textContent = formatBRL(pagosOutros);
+    if (document.getElementById('outrosPendenteLabel')) document.getElementById('outrosPendenteLabel').textContent = formatBRL(pendentesOutros);
+    const pctOutros = totalOutros > 0 ? (pagosOutros / totalOutros) * 100 : 0;
+    if (document.getElementById('outrosProgressBar')) document.getElementById('outrosProgressBar').style.width = pctOutros.toFixed(1) + '%';
+
+    // Atualizar Termômetro Geral do Mês
+    if (document.getElementById('geralPagoTotal')) document.getElementById('geralPagoTotal').textContent = formatBRL(totalGeralPago);
+    if (document.getElementById('geralPendenteTotal')) document.getElementById('geralPendenteTotal').textContent = formatBRL(totalGeralPendente);
+    const pctGeral = (totalFixos + totalOutros) > 0 ? (totalGeralPago / (totalFixos + totalOutros)) * 100 : 0;
+    if (document.getElementById('geralProgressBar')) document.getElementById('geralProgressBar').style.width = pctGeral.toFixed(1) + '%';
+
+    // Render Fixos Table Body
     const fixosTbody = document.getElementById('fixosTableBody');
     if (fixosTbody) {
-      if (!monthData.fixos || monthData.fixos.length === 0) {
-        fixosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Nenhum gasto fixo registrado para ${currentMonth}.</td></tr>`;
+      if (fixosList.length === 0) {
+        fixosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto fixo cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        fixosTbody.innerHTML = monthData.fixos.map((f, i) => `
+        fixosTbody.innerHTML = fixosList.map((f, i) => `
           <tr class="${f.pago ? 'paid' : ''}">
             <td>
-              <span style="cursor:pointer;" onclick="MatrixApp.togglePaid('${currentYear}', '${currentMonth}', 'fixo', '${f.id || f.nome}')">
-                ${f.pago ? '✅' : '⏳'}
-              </span>
               <strong>${f.nome}</strong>
             </td>
-            <td><span class="status-badge ${f.pago ? 'pago' : 'pendente'}">${f.pago ? 'Pago' : 'Pendente'}</span></td>
+            <td>
+              <button type="button" 
+                      class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})"
+                      title="Clique para alternar entre Pago e Pendente">
+                ${f.pago ? '✅ PAGO' : '⏳ PENDENTE'}
+              </button>
+            </td>
             <td class="val-col">${formatBRL(f.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar" onclick="MatrixApp.editItemModal('${currentYear}', '${currentMonth}', 'fixo', '${f.id || f.nome}', '${f.nome}', ${f.valor})">✏️</button>
-              <button class="btn-icon" title="Excluir" onclick="MatrixApp.removeItem('${currentYear}', '${currentMonth}', 'fixo', '${f.id || f.nome}')">🗑️</button>
+              <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
+              <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
             </td>
           </tr>
         `).join('');
       }
     }
 
-    // Render Outros / Variáveis
+    // Render Outros / Variáveis Table Body
     const outrosTbody = document.getElementById('outrosTableBody');
     if (outrosTbody) {
-      if (!monthData.outros || monthData.outros.length === 0) {
-        outrosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Nenhum gasto variável registrado para ${currentMonth}.</td></tr>`;
+      if (outrosList.length === 0) {
+        outrosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto variável cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        outrosTbody.innerHTML = monthData.outros.map((o, i) => `
+        outrosTbody.innerHTML = outrosList.map((o, i) => `
           <tr class="${o.pago ? 'paid' : ''}">
             <td>
-              <span style="cursor:pointer;" onclick="MatrixApp.togglePaid('${currentYear}', '${currentMonth}', 'outro', '${o.id || o.nome}')">
-                ${o.pago ? '✅' : '⏳'}
-              </span>
               <strong>${o.nome}</strong>
             </td>
-            <td><span class="status-badge ${o.pago ? 'pago' : 'pendente'}">${o.pago ? 'Pago' : 'Pendente'}</span></td>
+            <td>
+              <button type="button" 
+                      class="status-btn ${o.pago ? 'pago' : 'pendente'}" 
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})"
+                      title="Clique para alternar entre Pago e Pendente">
+                ${o.pago ? '✅ PAGO' : '⏳ PENDENTE'}
+              </button>
+            </td>
             <td class="val-col">${formatBRL(o.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar" onclick="MatrixApp.editItemModal('${currentYear}', '${currentMonth}', 'outro', '${o.id || o.nome}', '${o.nome}', ${o.valor})">✏️</button>
-              <button class="btn-icon" title="Excluir" onclick="MatrixApp.removeItem('${currentYear}', '${currentMonth}', 'outro', '${o.id || o.nome}')">🗑️</button>
+              <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
+              <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
             </td>
           </tr>
         `).join('');
@@ -868,6 +908,12 @@ const MatrixApp = (function () {
     }
   }
 
+  function togglePaidByIndex(ano, mes, tipo, index) {
+    MatrixDB.togglePaidByIndex(ano, mes, tipo, index);
+    renderFluxoCaixa();
+    renderKpis();
+  }
+
   function removeItem(ano, mes, tipo, id) {
     if (confirm(`Remover este item do mês de ${mes}?`)) {
       MatrixDB.removeTransaction(ano, mes, tipo, id);
@@ -875,12 +921,26 @@ const MatrixApp = (function () {
     }
   }
 
+  function removeItemByIndex(ano, mes, tipo, index) {
+    const month = MatrixDB.getMonth(ano, mes);
+    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    const item = list && list[index];
+    const itemDesc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este lançamento';
+    if (confirm(`Deseja realmente excluir ${itemDesc} do mês de ${mes}/${ano}?`)) {
+      MatrixDB.removeTransactionByIndex(ano, mes, tipo, index);
+      renderAll();
+    }
+  }
+
   function openNewItemModal(tipo) {
     document.getElementById('modalItemTipo').value = tipo;
+    document.getElementById('modalItemEditId').value = '';
     document.getElementById('modalItemNome').value = '';
     document.getElementById('modalItemValor').value = '';
-    document.getElementById('modalItemCategoria').value = tipo === 'fixo' ? 'Fixos' : 'Variável';
-    document.getElementById('modalItemTitle').textContent = tipo === 'fixo' ? 'Novo Gasto Fixo' : 'Novo Gasto Variável';
+    document.getElementById('modalItemCategoria').value = tipo === 'fixo' ? 'Habitação' : 'Outros';
+    const chkPago = document.getElementById('modalItemPago');
+    if (chkPago) chkPago.checked = false;
+    document.getElementById('modalItemTitle').textContent = tipo === 'fixo' ? '+ Novo Gasto Fixo' : '+ Novo Gasto Variável';
     document.getElementById('itemModalBackdrop').classList.add('open');
   }
 
@@ -893,22 +953,46 @@ const MatrixApp = (function () {
     document.getElementById('itemModalBackdrop').classList.add('open');
   }
 
+  function editItemByIndex(ano, mes, tipo, index) {
+    const month = MatrixDB.getMonth(ano, mes);
+    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    const item = list && list[index];
+    if (!item) return;
+
+    document.getElementById('modalItemTipo').value = tipo;
+    document.getElementById('modalItemEditId').value = `idx_${index}`;
+    document.getElementById('modalItemNome').value = item.nome || '';
+    document.getElementById('modalItemValor').value = item.valor != null ? item.valor : '';
+    if (document.getElementById('modalItemCategoria') && item.categoria) {
+      document.getElementById('modalItemCategoria').value = item.categoria;
+    }
+    const chkPago = document.getElementById('modalItemPago');
+    if (chkPago) chkPago.checked = !!item.pago;
+
+    document.getElementById('modalItemTitle').textContent = `Editar: ${item.nome}`;
+    document.getElementById('itemModalBackdrop').classList.add('open');
+  }
+
   function saveItemFromModal() {
     const tipo = document.getElementById('modalItemTipo').value;
     const editId = document.getElementById('modalItemEditId').value;
     const nome = document.getElementById('modalItemNome').value.trim();
     const valor = parseFloat(document.getElementById('modalItemValor').value) || 0;
     const cat = document.getElementById('modalItemCategoria').value;
+    const pago = document.getElementById('modalItemPago') ? document.getElementById('modalItemPago').checked : false;
 
     if (!nome) {
       alert('Informe o nome da despesa.');
       return;
     }
 
-    if (editId) {
-      MatrixDB.updateTransaction(currentYear, currentMonth, tipo, editId, { nome, valor, categoria: cat });
+    if (editId && editId.startsWith('idx_')) {
+      const idx = parseInt(editId.replace('idx_', ''), 10);
+      MatrixDB.updateTransactionByIndex(currentYear, currentMonth, tipo, idx, { nome, valor, categoria: cat, pago });
+    } else if (editId) {
+      MatrixDB.updateTransaction(currentYear, currentMonth, tipo, editId, { nome, valor, categoria: cat, pago });
     } else {
-      MatrixDB.addTransaction(currentYear, currentMonth, tipo, { nome, valor, categoria: cat, pago: false });
+      MatrixDB.addTransaction(currentYear, currentMonth, tipo, { nome, valor, categoria: cat, pago });
     }
 
     closeModal('itemModalBackdrop');
@@ -1223,9 +1307,12 @@ const MatrixApp = (function () {
     init,
     changeMonth,
     togglePaid,
+    togglePaidByIndex,
     removeItem,
+    removeItemByIndex,
     openNewItemModal,
     editItemModal,
+    editItemByIndex,
     saveItemFromModal,
     closeModal,
     toggleScenarioActive,

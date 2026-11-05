@@ -127,38 +127,62 @@
         <div class="matrix-box">
           <div class="box-header">
             <h2>🔒 Gastos Fixos</h2>
-            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('fixo')">+ Fixo</button>
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('fixo')">+ Adicionar</button>
           </div>
+
+          <!-- Termômetro de Pagamento: Fixos -->
+          <div class="box-progress-summary">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--font-mono);margin-bottom:6px;">
+              <span><span style="color:var(--matrix-green);">● Já Pago:</span> <strong id="fixosPagoLabel">R$ 0,00</strong></span>
+              <span><span style="color:var(--amber);">● Falta Pagar:</span> <strong id="fixosPendenteLabel">R$ 0,00</strong></span>
+            </div>
+            <div class="progress-track"><div id="fixosProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+          </div>
+
           <table class="data-table">
             <thead>
               <tr>
                 <th>Descrição</th>
-                <th>Status</th>
+                <th>Status (Clique p/ Pagar)</th>
                 <th style="text-align:right;">Valor</th>
                 <th style="text-align:right;">Ações</th>
               </tr>
             </thead>
             <tbody id="fixosTableBody"></tbody>
           </table>
+
+          <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('fixo')">+ Novo Gasto Fixo</button>
         </div>
 
         <!-- Coluna: Gastos Variáveis / Outros -->
         <div class="matrix-box">
           <div class="box-header">
             <h2>🛍️ Gastos Variáveis / Outros</h2>
-            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('outro')">+ Variável</button>
+            <button class="btn-matrix primary" onclick="MatrixApp.openNewItemModal('outro')">+ Adicionar</button>
           </div>
+
+          <!-- Termômetro de Pagamento: Variáveis -->
+          <div class="box-progress-summary">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--font-mono);margin-bottom:6px;">
+              <span><span style="color:var(--matrix-green);">● Já Pago:</span> <strong id="outrosPagoLabel">R$ 0,00</strong></span>
+              <span><span style="color:var(--amber);">● Falta Pagar:</span> <strong id="outrosPendenteLabel">R$ 0,00</strong></span>
+            </div>
+            <div class="progress-track"><div id="outrosProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+          </div>
+
           <table class="data-table">
             <thead>
               <tr>
                 <th>Descrição</th>
-                <th>Status</th>
+                <th>Status (Clique p/ Pagar)</th>
                 <th style="text-align:right;">Valor</th>
                 <th style="text-align:right;">Ações</th>
               </tr>
             </thead>
             <tbody id="outrosTableBody"></tbody>
           </table>
+
+          <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('outro')">+ Novo Gasto Variável</button>
         </div>
 
         <!-- Coluna: Resumo de Receitas & Fechamento -->
@@ -167,6 +191,21 @@
             <h2>📥 Receitas & Fechamento</h2>
             <span class="box-badge">Totais</span>
           </div>
+
+          <!-- Termômetro Geral de Contas do Mês -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;margin-bottom:6px;">Termômetro Geral de Pagamentos:</div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;margin-bottom:4px;">
+              <span style="color:var(--matrix-green);">● Total Já Pago no Mês:</span>
+              <strong id="geralPagoTotal">R$ 0,00</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;margin-bottom:8px;">
+              <span style="color:var(--amber);">● Ainda a Pagar (Falta):</span>
+              <strong id="geralPendenteTotal">R$ 0,00</strong>
+            </div>
+            <div class="progress-track"><div id="geralProgressBar" class="progress-fill green" style="width:0%;"></div></div>
+          </div>
+
           <div id="resumoTotaisList" style="font-family:var(--font-mono);font-size:12px;line-height:2;"></div>
           
           <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-dim);">
@@ -625,6 +664,13 @@
           <option value="Cartão">Cartão de Crédito</option>
           <option value="Outros" selected>Outros</option>
         </select>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;">
+          <input type="checkbox" id="modalItemPago">
+          <span style="color:var(--matrix-green);font-weight:600;">Marcar como Já Pago neste Mês</span>
+        </label>
       </div>
 
       <div style="display:flex;justify-content:flex-end;gap:10px;">

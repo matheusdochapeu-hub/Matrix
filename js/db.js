@@ -139,6 +139,39 @@ const MatrixDB = (function () {
     return true;
   }
 
+  function togglePaidByIndex(ano, mes, tipo, index) {
+    const s = getState();
+    const month = s.anos[ano] && s.anos[ano][mes];
+    if (!month) return false;
+    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    if (!list || !list[index]) return false;
+    list[index].pago = !list[index].pago;
+    saveState(s);
+    return list[index].pago;
+  }
+
+  function removeTransactionByIndex(ano, mes, tipo, index) {
+    const s = getState();
+    const month = s.anos[ano] && s.anos[ano][mes];
+    if (!month) return false;
+    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    if (!list || index < 0 || index >= list.length) return false;
+    list.splice(index, 1);
+    saveState(s);
+    return true;
+  }
+
+  function updateTransactionByIndex(ano, mes, tipo, index, updates) {
+    const s = getState();
+    const month = s.anos[ano] && s.anos[ano][mes];
+    if (!month) return false;
+    const list = tipo === 'fixo' ? month.fixos : month.outros;
+    if (!list || !list[index]) return false;
+    Object.assign(list[index], updates);
+    saveState(s);
+    return true;
+  }
+
   function exportBackupJSON() {
     return JSON.stringify(getState(), null, 2);
   }
@@ -176,7 +209,10 @@ const MatrixDB = (function () {
     saveMonth,
     addTransaction,
     updateTransaction,
+    updateTransactionByIndex,
     removeTransaction,
+    removeTransactionByIndex,
+    togglePaidByIndex,
     exportBackupJSON,
     importBackupJSON,
     resetToDefault
