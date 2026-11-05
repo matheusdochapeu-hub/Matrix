@@ -4,7 +4,7 @@
  */
 
 const MatrixDB = (function () {
-  const STORAGE_KEY = 'MATRIX_FINANCE_STATE_v1';
+  const STORAGE_KEY = 'MATRIX_FINANCE_STATE_v2';
   let memoryCache = null;
 
   async function init() {

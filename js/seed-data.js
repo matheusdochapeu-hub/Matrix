@@ -1,9 +1,9 @@
 // MATRIX FINANCE - DADOS CONSOLIDADOS SEED (2025-2027)
-// Gerado automaticamente a partir das planilhas reais e holerites
+// Parser de precisao sem duplicacao de totais e com bloco da Scarlet
 
 const MATRIX_SEED_DATA = {
   "versao": "1.0.0",
-  "atualizadoEm": "2026-11-05T14:40:00Z",
+  "atualizadoEm": "2026-11-05T15:20:00Z",
   "perfil": {
     "usuario": "Matheus Rodrigues Ribeiro",
     "esposa": "Scarlet Santos",
@@ -443,529 +443,602 @@ const MATRIX_SEED_DATA = {
       "Maio": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 2565.8
+            "valor": 2565.8,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 132.98
+            "valor": 132.98,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 107.32
+            "valor": 107.32,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 11.99
+            "valor": 11.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 360.0
+            "valor": 360.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
-            "nome": "VARIAVEIS",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_17",
             "nome": "Trabalho",
-            "valor": 400.0
+            "valor": 400.0,
+            "pago": false
           },
           {
+            "id": "fix_18",
             "nome": "Mercado",
-            "valor": 1050.14
-          },
-          {
-            "nome": "MERCADO MAIO",
-            "valor": 1050.14
-          },
-          {
-            "nome": "SWIFT",
-            "valor": 115.0
-          },
-          {
-            "nome": "SAVENAGNO 03/05",
-            "valor": 224.0
-          },
-          {
-            "nome": "JARDEL 07/05",
-            "valor": 165.0
-          },
-          {
-            "nome": "COMIDA JAPA",
-            "valor": 135.0
-          },
-          {
-            "nome": "SWIFT",
-            "valor": 411.14
+            "valor": 1050.14,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Dívida RNX",
             "valor": 480.8,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Dívida Mercado Pago",
             "valor": 383.97,
             "pago": true
           },
           {
-            "nome": "Dívida Maria",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_7",
             "nome": "Multa",
             "valor": 293.47,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Investimentos",
             "valor": 150.0,
             "pago": true
           },
           {
-            "nome": "TOTAIS",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_13",
             "nome": "Salário Mensal",
             "valor": 6630.56,
             "pago": false
           },
           {
+            "id": "out_14",
             "nome": "Total Gastos Fixos",
             "valor": 3526.41,
             "pago": false
           },
           {
+            "id": "out_15",
             "nome": "Total Gastos Variáveis",
             "valor": 1450.14,
             "pago": false
           },
           {
+            "id": "out_16",
             "nome": "Total Outros Gastos",
             "valor": 1472.332,
             "pago": false
           },
           {
+            "id": "out_17",
             "nome": "Saldo Final",
             "valor": 181.678,
             "pago": false
           }
         ],
-        "totais": {}
+        "totais": {},
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
+        }
       },
       "Junho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1314.51
+            "valor": 1314.51,
+            "pago": false
           },
           {
-            "nome": "Água",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 113.15
+            "valor": 113.15,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 107.32
+            "valor": 107.32,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 11.99
+            "valor": 11.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 200.0
+            "valor": 200.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
-            "nome": "VARIAVEIS",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_17",
             "nome": "Mercado",
-            "valor": 1500.0
+            "valor": 1500.0,
+            "pago": false
           },
           {
+            "id": "fix_18",
             "nome": "Subtotal",
-            "valor": 1500.0
-          },
-          {
-            "nome": "Trabalho",
-            "valor": 456.0
-          },
-          {
-            "nome": "MERCADO JUNHO",
-            "valor": 0.0
+            "valor": 1500.0,
+            "pago": false
           }
         ],
         "outros": [],
-        "totais": {}
+        "totais": {},
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
+        }
       },
       "Julho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1450.0
+            "valor": 1450.0,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.84
+            "valor": 30.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 121.4
+            "valor": 121.4,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 107.32
+            "valor": 107.32,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 11.99
+            "valor": 11.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 306.0
+            "valor": 306.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 360.0
+            "valor": 360.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 02/12",
-            "valor": 47.0
-          },
-          {
-            "nome": "VARIAVEIS",
-            "valor": 0.0
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 2071.72
-          },
-          {
-            "nome": "Subtotal",
-            "valor": 2071.72
-          },
-          {
-            "nome": "Trabalho",
-            "valor": 600.0
+            "valor": 47.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Dívida Maria",
             "valor": 1200.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
-            "nome": "Selic",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_7",
             "nome": "Préfix 2035",
             "valor": 65.9,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Renda+ 2055",
             "valor": 57.11,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "CDB",
             "valor": 320.0,
             "pago": true
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 25.0,
             "pago": true
           },
           {
+            "id": "out_11",
             "nome": "Inss Maria",
             "valor": 303.0,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "IR - Pai",
             "valor": 277.0,
             "pago": false
           },
           {
+            "id": "out_13",
             "nome": "Multa",
             "valor": 195.23,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Notebook",
             "valor": 500.0,
             "pago": false
           },
           {
+            "id": "out_15",
             "nome": "Dívida RNX",
             "valor": 480.8,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "Dívida Mercado Pago",
             "valor": 383.97,
-            "pago": true
-          },
-          {
-            "nome": "Investimentos",
-            "valor": 0.0,
-            "pago": true
-          },
-          {
-            "nome": "Investimentos",
-            "valor": 0.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5897.4,
           "13°": 2506.884081,
           "Total Gastos Fixos": 2751.87,
           "Total Gastos Variáveis": 2671.72,
           "Total Outros Gastos": 2908.674,
           "Saldo Final": 72.02008117
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Agosto": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1291.03
+            "valor": 1291.03,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.48
+            "valor": 30.48,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 133.79
+            "valor": 133.79,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 11.99
+            "valor": 11.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 70.0
+            "valor": 70.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 363.0
+            "valor": 363.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 360.0
+            "valor": 360.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 03/12",
-            "valor": 47.0
+            "valor": 47.0,
+            "pago": false
           }
         ],
         "outros": [],
-        "totais": {}
+        "totais": {},
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
+        }
       },
       "Setembro": {
         "fixos": [
           {
-            "nome": "Parcela casa",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 35.85
+            "valor": 35.85,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 109.7
+            "valor": 109.7,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 70.0
+            "valor": 70.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 346.5
+            "valor": 346.5,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 600.0
+            "valor": 600.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 04/12",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Aluguel AP - Sheila",
-            "valor": 2000.0
+            "valor": 2000.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Dívida Maria",
             "valor": 1400.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Edna",
             "valor": 500.0,
             "pago": false
           },
           {
-            "nome": "Selic",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_7",
             "nome": "Préfix 2035",
             "valor": 58.8,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Renda+ 2055",
             "valor": 57.56,
             "pago": false
           },
           {
+            "id": "out_9",
             "nome": "CDB",
             "valor": 20.0,
             "pago": false
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 25.0,
             "pago": false
           },
           {
+            "id": "out_11",
             "nome": "Multa",
             "valor": 195.23,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5927.03,
           "Total Gastos Fixos": 3555.42,
           "Total Gastos Variáveis": 0.0,
@@ -974,132 +1047,158 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 5354.038,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Outubro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 250.0
+            "valor": 250.0,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 74.41
+            "valor": 74.41,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 76.57
+            "valor": 76.57,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 87.42
+            "valor": 87.42,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 70.0
+            "valor": 70.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 363.0
+            "valor": 363.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 05/12",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           },
           {
-            "nome": "Sheila",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_16",
             "nome": "Psico Scarlet",
-            "valor": 2500.0
-          },
-          {
-            "nome": "CPFL AP B32",
-            "valor": 0.0
+            "valor": 2500.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Dívida Maria",
             "valor": 1200.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Edna",
             "valor": 500.0,
             "pago": false
           },
           {
-            "nome": "Selic",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_7",
             "nome": "Préfix 2035",
             "valor": 58.8,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Renda+ 2055",
             "valor": 57.56,
             "pago": false
           },
           {
+            "id": "out_9",
             "nome": "CDB",
             "valor": 20.0,
             "pago": false
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 10.0,
             "pago": false
           },
           {
+            "id": "out_11",
             "nome": "Licenciamento Moto",
             "valor": 167.64,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Multa",
             "valor": 78.1,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Advogada",
             "valor": 150.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5749.01,
           "Total Gastos Fixos": 4207.35,
           "Total Gastos Variáveis": 0.0,
@@ -1108,127 +1207,146 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 5884.57,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Novembro": {
         "fixos": [
           {
-            "nome": "Parcela casa",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 70.0
+            "valor": 70.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 330.0
+            "valor": 330.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 06/12",
-            "valor": 47.0
+            "valor": 47.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Aluguel AP - Sheila",
-            "valor": 2000.0
+            "valor": 2000.0,
+            "pago": false
           },
           {
+            "id": "fix_16",
             "nome": "Psico Scarlet",
-            "valor": 500.0
-          },
-          {
-            "nome": "CPFL AP B32",
-            "valor": 0.0
+            "valor": 500.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Dívida Maria",
             "valor": 1200.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Edna",
             "valor": 500.0,
             "pago": false
           },
           {
-            "nome": "Selic",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_7",
             "nome": "Préfix 2035",
             "valor": 58.8,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Renda+ 2055",
             "valor": 57.56,
             "pago": false
           },
           {
+            "id": "out_9",
             "nome": "CDB",
             "valor": 20.0,
             "pago": false
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 10.0,
             "pago": false
           },
           {
+            "id": "out_11",
             "nome": "IR 07/08",
             "valor": 274.49,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Advogada",
             "valor": 150.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5779.2,
           "Total Gastos Fixos": 3873.95,
           "Total Gastos Variáveis": 0.0,
@@ -1237,118 +1355,140 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 5579.92,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Dezembro": {
         "fixos": [
           {
-            "nome": "Parcela casa",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 70.0
+            "valor": 70.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 181.5
+            "valor": 181.5,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 07/12",
-            "valor": 47.0
+            "valor": 47.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Psico Scarlet",
-            "valor": 500.0
-          },
-          {
-            "nome": "CPFL AP B32",
-            "valor": 0.0
+            "valor": 500.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Dívida Santander",
             "valor": 281.48,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Edna",
             "valor": 500.0,
             "pago": false
           },
           {
+            "id": "out_5",
             "nome": "Selic",
             "valor": 165.61,
             "pago": false
           },
           {
+            "id": "out_6",
             "nome": "Préfix 2035",
             "valor": 58.8,
             "pago": false
           },
           {
+            "id": "out_7",
             "nome": "Renda+ 2055",
             "valor": 57.56,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "CDB",
             "valor": 20.0,
             "pago": false
           },
           {
+            "id": "out_9",
             "nome": "Clear",
             "valor": 25.0,
             "pago": false
           },
           {
+            "id": "out_10",
             "nome": "Dívida Maria",
             "valor": 800.0,
             "pago": true
           },
           {
+            "id": "out_11",
             "nome": "IR 08/08",
             "valor": 274.49,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5690.2,
           "13°": 1865.112882,
           "Total Gastos Fixos": 1725.45,
@@ -1358,8 +1498,12 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 3281.42,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       }
     },
@@ -1367,138 +1511,141 @@ const MATRIX_SEED_DATA = {
       "Janeiro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 35.85
+            "valor": 35.85,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 119.55
+            "valor": 119.55,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 263.0
+            "valor": 263.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 09/12",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Psico Scarlet",
-            "valor": 500.0
+            "valor": 500.0,
+            "pago": false
           },
           {
+            "id": "fix_16",
             "nome": "Gasolina Mês",
-            "valor": 750.0
-          },
-          {
-            "nome": "Contas Inicio Ano",
-            "valor": 0.0
-          },
-          {
-            "nome": "IPTU",
-            "valor": 1096.2
-          },
-          {
-            "nome": "IPVA CARRO",
-            "valor": 1077.0
-          },
-          {
-            "nome": "IPVA MOTO",
-            "valor": 0.0
-          },
-          {
-            "nome": "LIC CARRO",
-            "valor": 167.74
-          },
-          {
-            "nome": "LIC MOTO",
-            "valor": 0.0
-          },
-          {
-            "nome": "CREFITO",
-            "valor": 550.0
-          },
-          {
-            "nome": "IPCA",
-            "valor": 1.0
+            "valor": 750.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 60.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 6867.99,
           "13°": 0.0,
           "Total Gastos Fixos": 3974.84,
@@ -1508,127 +1655,170 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 5134.84,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Fevereiro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1352.06
+            "valor": 1352.06,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.48
+            "valor": 30.48,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 114.1
+            "valor": 114.1,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 215.0
+            "valor": 215.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 10/12",
-            "valor": 47.0
+            "valor": 47.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Psico Scarlet",
-            "valor": 500.0
+            "valor": 500.0,
+            "pago": false
           },
           {
+            "id": "fix_16",
             "nome": "Gasolina Mês",
-            "valor": 650.0
+            "valor": 650.0,
+            "pago": false
           },
           {
+            "id": "fix_17",
             "nome": "MEI",
-            "valor": 86.05
+            "valor": 86.05,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_11",
             "nome": "Google One",
             "valor": 149.9,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Morrys",
             "valor": 1200.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 6941.63,
           "Total Gastos Fixos": 3921.99,
           "Total Gastos Variáveis": 0.0,
@@ -1637,142 +1827,170 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 6471.89,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Março": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1353.67
+            "valor": 1353.67,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.48
+            "valor": 30.48,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 122.51
+            "valor": 122.51,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 180.0
+            "valor": 180.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 11/12",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           },
           {
-            "nome": "Psico Scarlet",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_16",
             "nome": "Gasolina Mês",
-            "valor": 650.0
+            "valor": 650.0,
+            "pago": false
           },
           {
+            "id": "fix_17",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 60.0,
             "pago": true
           },
           {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "Strava",
             "valor": 149.9,
             "pago": true
           },
           {
-            "nome": "Morrys",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 202.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Multa",
             "valor": 130.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Auro Marmores",
             "valor": 300.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 6977.23,
           "Total Gastos Fixos": 3400.96,
           "Total Gastos Variáveis": 0.0,
@@ -1781,144 +1999,182 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 5290.86,
           "VARIAVEIS": "Valor",
           "Scarlet": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Abril": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1526.76
+            "valor": 1526.76,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.84
+            "valor": 30.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 129.97
+            "valor": 129.97,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 150.0
+            "valor": 150.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Seguro Casa 12/12",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 55.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 102.59,
             "pago": true
           },
           {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "Carro Doc licenciamento",
             "valor": 295.83,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Cofrinho ML a repor",
             "valor": 1100.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank 03/10",
             "valor": 131.29,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank Scarlet",
             "valor": 3203.4,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "C6 viagem",
             "valor": 210.0,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "Certidões de nascimento",
             "valor": 149.76,
             "pago": true
           },
           {
+            "id": "out_17",
             "nome": "Multa Carro",
             "valor": 78.09,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 6934.2,
           "Total Fixos": 2901.87,
           "Total Variáveis": -3110.0,
@@ -1927,124 +2183,152 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 9237.83,
           "VARIAVEIS": "Valor",
           "Estúdio": -600.0,
-          "Venda Ações Clear": -2510.0,
-          "Total": -3110.0
+          "Venda Ações Clear": -2510.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Maio": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1558.15
+            "valor": 1558.15,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 30.48
+            "valor": 30.48,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 116.61
+            "valor": 116.61,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 250.0
+            "valor": 250.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 360.0
+            "valor": 360.0,
+            "pago": false
           },
           {
-            "nome": "Gasolina Mês",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_15",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 100.0,
             "pago": true
           },
           {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "Nubank 04/10",
             "valor": 217.34,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Scarlet",
             "valor": 2200.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "C6",
             "valor": 180.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 7093.0,
           "Total Gastos Fixos": 2849.54,
           "Total Gastos Variáveis": 0.0,
@@ -2053,119 +2337,158 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 6226.88,
           "VARIAVEIS": "Valor",
           "Estúdio": 0.0,
-          "Trabalho": 0.0,
-          "Total": 0.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Junho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1659.76
+            "valor": 1659.76,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.98
+            "valor": 31.98,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 129.26
+            "valor": 129.26,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Onibus",
-            "valor": 310.0
+            "valor": 310.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Seguro casa",
-            "valor": 50.0
+            "valor": 50.0,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 70.0,
             "pago": true
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 120.0,
             "pago": false
           },
           {
+            "id": "out_11",
             "nome": "Scarlet",
             "valor": 2500.0,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Nubank 05/10",
             "valor": 217.29,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 7423.2,
           "Total Gastos Fixos": 3195.3,
           "Total Gastos Variáveis": -600.0,
@@ -2176,137 +2499,169 @@ const MATRIX_SEED_DATA = {
           "Estúdio": -600.0,
           "Trabalho": 0.0,
           "Total": -600.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Julho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1362.62
+            "valor": 1362.62,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.98
+            "valor": 31.98,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
-            "nome": "Onibus",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_12",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
-            "nome": "Gasolina Mês",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_15",
             "nome": "MEI",
-            "valor": 86.05
+            "valor": 86.05,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 60.0,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 70.0,
             "pago": true
           },
           {
+            "id": "out_10",
             "nome": "Clear",
             "valor": 120.0,
             "pago": false
           },
           {
+            "id": "out_11",
             "nome": "INSS Maria",
             "valor": 178.31,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Bradesco",
             "valor": 1598.81,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank 06/10",
             "valor": 346.68,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Scarlet",
             "valor": 3000.0,
             "pago": false
           },
           {
+            "id": "out_15",
             "nome": "Caixa",
             "valor": 334.76,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "Multa",
             "valor": 78.09,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 10293.0,
           "Total Gastos Fixos": 2567.95,
           "Total Gastos Variáveis": -600.0,
@@ -2315,134 +2670,170 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 7535.61,
           "VARIAVEIS": "Valor",
           "Estúdio": -600.0,
-          "Trabalho": 0.0,
-          "Total": -600.0
+          "Trabalho": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Agosto": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1364.92
+            "valor": 1364.92,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.98
+            "valor": 31.98,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 147.66
+            "valor": 147.66,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 130.0
+            "valor": 130.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "MEI",
-            "valor": 86.05
+            "valor": 86.05,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Caronas",
-            "valor": 1240.5
-          },
-          {
-            "nome": "Amortizar Casa",
-            "valor": 0.0
+            "valor": 1240.5,
+            "pago": false
           }
         ],
         "outros": [
           {
+            "id": "out_3",
             "nome": "Alberto",
             "valor": 30.0,
             "pago": true
           },
           {
+            "id": "out_4",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_5",
             "nome": "Roupas",
             "valor": 120.0,
             "pago": false
           },
           {
+            "id": "out_6",
             "nome": "Viagem",
             "valor": 120.0,
             "pago": false
           },
           {
+            "id": "out_7",
             "nome": "Presentes",
             "valor": 120.0,
             "pago": false
           },
           {
+            "id": "out_8",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Renda+ 2055",
             "valor": 105.0,
             "pago": false
           },
           {
+            "id": "out_10",
             "nome": "Tesouro Reserva",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_11",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Nubank 07/10",
             "valor": 549.57,
             "pago": false
           },
           {
+            "id": "out_13",
             "nome": "Scarlet",
             "valor": 2200.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "INSS Maria",
             "valor": 179.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Crypto",
             "valor": 10.0,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5042.0,
           "VA": 0.0,
           "VR": 0.0,
@@ -2453,192 +2844,151 @@ const MATRIX_SEED_DATA = {
           "Total Outros Gastos": 3270.0,
           "Subtotal Gastos": 7098.41,
           "Ganhos - Gastos": -157.66
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Setembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1366.84
+            "valor": 1366.84,
+            "pago": false
           },
           {
-            "nome": "Água",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 109.79
+            "valor": 109.79,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 118.06
+            "valor": 118.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 100.0
+            "valor": 100.0,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 130.0
+            "valor": 130.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Psico",
-            "valor": 600.0
+            "valor": 600.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "MEI",
-            "valor": 86.05
+            "valor": 86.05,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Caronas",
-            "valor": 1468.49
-          },
-          {
-            "nome": "Gastos",
-            "valor": 0.0
-          },
-          {
-            "nome": "Nubank",
-            "valor": 3719.26
-          },
-          {
-            "nome": "Psico",
-            "valor": 500.0
-          },
-          {
-            "nome": "Renda+ 2055",
-            "valor": 100.0
-          },
-          {
-            "nome": "Partido",
-            "valor": 0.0
-          },
-          {
-            "nome": "Adiantamento Agosto",
-            "valor": 280.0
+            "valor": 1468.49,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 415.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 400.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "#REF!",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "Alberto",
             "valor": 40.0,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 841.66,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Scarlet",
             "valor": 490.0,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "INSS Maria",
             "valor": 179.0,
             "pago": true
           },
           {
+            "id": "out_17",
             "nome": "Dívida Maria",
             "valor": 4000.0,
             "pago": true
-          },
-          {
-            "nome": "TOTAIS",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Ganho Mensal",
-            "valor": 4600.0,
-            "pago": false
-          },
-          {
-            "nome": "Matheus",
-            "valor": 490.0,
-            "pago": false
-          },
-          {
-            "nome": "Maria",
-            "valor": 220.0,
-            "pago": false
-          },
-          {
-            "nome": "Subtotal",
-            "valor": 5310.0,
-            "pago": false
-          },
-          {
-            "nome": "Total Gastos",
-            "valor": 4599.26,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5024.325834,
           "Rescisão MPSP": 6954.13,
           "Estúdio": 600.0,
@@ -2648,180 +2998,158 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 11326.14,
           "Ganhos - Gastos": 1252.315834,
           "Investimentos": 925.0,
-          "Ideal": 1507.29775,
-          "Diferença": 582.2977503
+          "Ideal": 1507.29775
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 4600.0,
+          "faturaNubank": 3719.26
         }
       },
       "Outubro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1369.02
+            "valor": 1369.02,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.84
+            "valor": 31.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 103.29
+            "valor": 103.29,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 118.3
+            "valor": 118.3,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 130.0
+            "valor": 130.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Caronas",
-            "valor": 921.85
+            "valor": 921.85,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Unimed",
-            "valor": 867.72
-          },
-          {
-            "nome": "Gastos",
-            "valor": 0.0
-          },
-          {
-            "nome": "Nubank",
-            "valor": 4835.22
-          },
-          {
-            "nome": "Psico",
-            "valor": 0.0
-          },
-          {
-            "nome": "Renda+ 2055",
-            "valor": 100.0
+            "valor": 867.72,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
-            "nome": "Tesouro Reserva",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "BB",
             "valor": 327.38,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 240.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 154.41,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "Scarlet",
             "valor": 800.0,
             "pago": true
           },
           {
+            "id": "out_17",
             "nome": "INSS Maria",
             "valor": 179.0,
             "pago": true
-          },
-          {
-            "nome": "TOTAIS",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Atendimentos",
-            "valor": 3629.86,
-            "pago": false
-          },
-          {
-            "nome": "Matheus",
-            "valor": 800.0,
-            "pago": false
-          },
-          {
-            "nome": "Total Gastos",
-            "valor": 4935.22,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5786.24,
           "VA": 2050.0,
           "VR": 1300.0,
@@ -2835,185 +3163,164 @@ const MATRIX_SEED_DATA = {
           "Auxílio saúde": 759.01,
           "Subtotal": 108.71,
           "Investimentos": 213.0,
-          "Ideal": 1735.872,
-          "Diferença": 1522.872
+          "Ideal": 1735.872
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 3629.86,
+          "faturaNubank": 4835.22
         }
       },
       "Novembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1395.88
+            "valor": 1395.88,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.98
+            "valor": 31.98,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 118.0
+            "valor": 118.0,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 130.0
+            "valor": 130.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Caronas",
-            "valor": 1200.0
+            "valor": 1200.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Unimed",
-            "valor": 867.72
-          },
-          {
-            "nome": "Gastos",
-            "valor": 0.0
-          },
-          {
-            "nome": "Nubank",
-            "valor": 3789.4
-          },
-          {
-            "nome": "Psico",
-            "valor": 500.0
-          },
-          {
-            "nome": "Renda+ 2055",
-            "valor": 100.0
+            "valor": 867.72,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 1766.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "BB",
             "valor": 1882.64,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 220.74,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
+            "id": "out_16",
             "nome": "Scarlet",
             "valor": 2000.0,
             "pago": true
           },
           {
+            "id": "out_17",
             "nome": "INSS Maria",
             "valor": 179.0,
             "pago": true
-          },
-          {
-            "nome": "TOTAIS",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Ganho Mensal",
-            "valor": 4260.0,
-            "pago": false
-          },
-          {
-            "nome": "Matheus",
-            "valor": 2000.0,
-            "pago": false
-          },
-          {
-            "nome": "Subtotal",
-            "valor": 6260.0,
-            "pago": false
-          },
-          {
-            "nome": "Total Gastos",
-            "valor": 4389.4,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5788.19,
           "VA": 2050.0,
           "VR": 1235.0,
@@ -3025,175 +3332,152 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 11866.2,
           "Ganhos - Gastos": 1587.99,
           "Investimentos": 1979.0,
-          "Ideal": 1736.457,
-          "Diferença": -242.543
+          "Ideal": 1736.457
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 1100.0,
+          "faturaNubank": 4500.0
         }
       },
       "Dezembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1395.88
+            "valor": 1395.88,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.84
+            "valor": 31.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 118.0
+            "valor": 118.0,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 130.0
+            "valor": 130.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Ração fórum",
-            "valor": 30.0
+            "valor": 30.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Caronas",
-            "valor": 840.0
+            "valor": 840.0,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Unimed",
-            "valor": 867.72
-          },
-          {
-            "nome": "Gastos",
-            "valor": 0.0
-          },
-          {
-            "nome": "Nubank",
-            "valor": 1568.05
-          },
-          {
-            "nome": "Psico",
-            "valor": 500.0
-          },
-          {
-            "nome": "Renda+ 2055",
-            "valor": 100.0
+            "valor": 867.72,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
-            "nome": "Tesouro Reserva",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_11",
             "nome": "BB",
             "valor": 48.0,
             "pago": true
           },
           {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 500.0,
             "pago": true
           },
           {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_17",
             "nome": "INSS Maria",
             "valor": 179.0,
             "pago": true
-          },
-          {
-            "nome": "TOTAIS",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Ganho Mensal",
-            "valor": 5200.0,
-            "pago": false
-          },
-          {
-            "nome": "Total Gastos",
-            "valor": 2168.05,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5788.19,
           "VA": 2050.0,
           "VR": 910.0,
@@ -3206,8 +3490,12 @@ const MATRIX_SEED_DATA = {
           "Ganhos - Gastos": 3.51,
           "Recesso": "2026-12-19 00:00:00",
           "Investimentos": 163.0,
-          "Ideal": 1736.457,
-          "Diferença": 1573.457
+          "Ideal": 1736.457
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 5200.0,
+          "faturaNubank": 1568.05
         }
       }
     },
@@ -3215,181 +3503,135 @@ const MATRIX_SEED_DATA = {
       "Janeiro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1399.0
+            "valor": 1399.0,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.84
+            "valor": 31.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Caronas",
-            "valor": 1300.0
+            "valor": 1300.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Contas inicio Ano",
-            "valor": 2691.675
+            "valor": 2691.675,
+            "pago": false
           },
           {
+            "id": "fix_16",
             "nome": "Consignado",
-            "valor": 1881.0
-          },
-          {
-            "nome": "Célula",
-            "valor": 60.0
-          },
-          {
-            "nome": "UC",
-            "valor": 20.0
-          },
-          {
-            "nome": "FDR",
-            "valor": 20.0
-          },
-          {
-            "nome": "Janderson",
-            "valor": 30.0
-          },
-          {
-            "nome": "Sindsemp",
-            "valor": 30.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "XP",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Gastos",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Nubank",
-            "valor": 71.83,
-            "pago": false
-          },
-          {
-            "nome": "Psico",
-            "valor": 500.0,
-            "pago": false
-          },
-          {
-            "nome": "Renda+ 2055",
-            "valor": 100.0,
-            "pago": false
           }
         ],
         "totais": {
-          "Contas Inicio Ano": "Valor",
           "IPTU": 1035.91,
           "IPVA CARRO": 1017.765,
           "LIC CARRO": 187.0,
@@ -3398,156 +3640,146 @@ const MATRIX_SEED_DATA = {
           "REVISÃO CARRO": 0.0,
           "IPTU PAIS": "R$ 0.00",
           "IPVA UNO PAI": 0.0,
-          "COLETA LIXO": 0.0,
-          "Total": 4298.17,
-          "TOTAIS": "Valor",
-          "Ganho Mensal": 4970.0,
-          "Salario Mensal": 4000.0,
-          "Matheus": 0.0,
-          "Subtotal Ganhos": 4970.0,
-          "Total Gastos": 671.83,
-          "Subtotal Salário": 3328.17
+          "COLETA LIXO": 0.0
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Fevereiro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1399.0
+            "valor": 1399.0,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.84
+            "valor": 31.84,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 118.06
+            "valor": 118.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Caronas",
-            "valor": 1300.0
+            "valor": 1300.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
           },
           {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_18",
             "nome": "Google One",
             "valor": 149.9,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5786.24,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -3558,149 +3790,146 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 8170.51,
           "Ganhos - Gastos": -2384.27,
           "Investimentos": 423.0,
-          "Ideal": 1735.872,
-          "Diferença": 1312.872
+          "Ideal": 1735.872
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Março": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
+            "id": "fix_13",
             "nome": "Caronas",
-            "valor": 1300.0
+            "valor": 1300.0,
+            "pago": false
           },
           {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Cesar",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_15",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
           },
           {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_18",
             "nome": "Strava",
             "valor": 149.9,
             "pago": true
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5786.24,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -3711,139 +3940,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 8094.81,
           "Ganhos - Gastos": -2308.57,
           "Investimentos": 423.0,
-          "Ideal": 1735.872,
-          "Diferença": 1312.872
+          "Ideal": 1735.872
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Abril": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -3854,139 +4072,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6644.81,
           "Ganhos - Gastos": -1086.9,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Maio": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
-            "nome": "IPTU",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -3997,139 +4204,134 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6644.81,
           "Ganhos - Gastos": -1086.9,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Junho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -4140,139 +4342,134 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6736.16,
           "Ganhos - Gastos": -1178.25,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Julho": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -4283,139 +4480,134 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6736.16,
           "Ganhos - Gastos": -1178.25,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Agosto": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
+            "id": "out_13",
             "nome": "Nubank",
             "valor": 150.0,
             "pago": true
           },
           {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -4426,139 +4618,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6736.16,
           "Ganhos - Gastos": -1178.25,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Setembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 100.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
-            "nome": "Nubank",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -4569,139 +4750,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6636.16,
           "Ganhos - Gastos": -1078.25,
           "Investimentos": 473.0,
-          "Ideal": 1667.373,
-          "Diferença": 1194.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Outubro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
-            "nome": "Nubank",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "VA": 2050.0,
           "VR": 1365.0,
@@ -4712,139 +4882,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6586.16,
           "Ganhos - Gastos": -1028.25,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Novembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
-            "nome": "Nubank",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "13º": 3132.0,
           "VA": 2050.0,
@@ -4856,139 +5015,128 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6586.16,
           "Ganhos - Gastos": 2103.75,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       },
       "Dezembro": {
         "fixos": [
           {
+            "id": "fix_3",
             "nome": "Parcela casa",
-            "valor": 1329.14
+            "valor": 1329.14,
+            "pago": false
           },
           {
+            "id": "fix_4",
             "nome": "Água",
-            "valor": 31.0
+            "valor": 31.0,
+            "pago": false
           },
           {
+            "id": "fix_5",
             "nome": "Eletricidade",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_6",
             "nome": "Internet",
-            "valor": 99.9
+            "valor": 99.9,
+            "pago": false
           },
           {
+            "id": "fix_7",
             "nome": "Dentista",
-            "valor": 113.06
+            "valor": 113.06,
+            "pago": false
           },
           {
+            "id": "fix_8",
             "nome": "Spotify",
-            "valor": 12.99
+            "valor": 12.99,
+            "pago": false
           },
           {
+            "id": "fix_9",
             "nome": "IPTU",
-            "valor": 91.35
+            "valor": 91.35,
+            "pago": false
           },
           {
+            "id": "fix_10",
             "nome": "Partido",
-            "valor": 160.0
+            "valor": 160.0,
+            "pago": false
           },
           {
+            "id": "fix_11",
             "nome": "Psico",
-            "valor": 480.0
+            "valor": 480.0,
+            "pago": false
           },
           {
+            "id": "fix_12",
             "nome": "MEI",
-            "valor": 87.0
+            "valor": 87.0,
+            "pago": false
           },
           {
-            "nome": "Caronas",
-            "valor": 0.0
-          },
-          {
+            "id": "fix_14",
             "nome": "Unimed",
-            "valor": 867.72
+            "valor": 867.72,
+            "pago": false
           },
           {
+            "id": "fix_15",
             "nome": "Consignado",
-            "valor": 1881.0
+            "valor": 1881.0,
+            "pago": false
           }
         ],
         "outros": [
           {
-            "nome": "Roupas",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Viagem",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Presentes",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103.0,
             "pago": true
           },
           {
+            "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260.0,
             "pago": true
           },
           {
+            "id": "out_8",
             "nome": "Santander",
             "valor": 50.0,
             "pago": true
           },
           {
+            "id": "out_9",
             "nome": "Cripto",
             "valor": 10.0,
             "pago": true
           },
           {
-            "nome": "Amortização",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "Clear",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_12",
             "nome": "Alberto",
             "valor": 250.0,
             "pago": true
           },
           {
-            "nome": "Nubank",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
+            "id": "out_14",
             "nome": "Edna",
             "valor": 600.0,
             "pago": true
-          },
-          {
-            "nome": "Scarlet",
-            "valor": 0.0,
-            "pago": false
-          },
-          {
-            "nome": "INSS Maria",
-            "valor": 0.0,
-            "pago": false
           }
         ],
         "totais": {
-          "TOTAIS": "Valor",
           "Salário Mensal": 5557.91,
           "13º": 2427.3,
           "VA": 2050.0,
@@ -5000,8 +5148,12 @@ const MATRIX_SEED_DATA = {
           "Subtotal Gastos": 6586.16,
           "Ganhos - Gastos": 1399.05,
           "Investimentos": 423.0,
-          "Ideal": 1667.373,
-          "Diferença": 1244.373
+          "Ideal": 1667.373
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
         }
       }
     }

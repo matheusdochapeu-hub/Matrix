@@ -52,40 +52,40 @@
       </div>
     </header>
 
-    <!-- Top KPI Bar -->
+    <!-- Top KPI Bar (Cards Clicáveis para Detalhamento) -->
     <section class="kpi-grid">
-      <div class="kpi-card green">
-        <div class="kpi-label">Saldo / Folga de Caixa <span>💳</span></div>
+      <div class="kpi-card green" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a fórmula e a auditoria do saldo">
+        <div class="kpi-label">Saldo / Folga de Caixa <span>💳 🔍</span></div>
         <div id="kpiSaldo" class="kpi-value">R$ 0,00</div>
         <div class="kpi-sub">Ganhos menos despesas do mês</div>
       </div>
 
-      <div class="kpi-card cyan">
-        <div class="kpi-label">Ganhos no Mês <span>📥</span></div>
+      <div class="kpi-card cyan" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para ver a lista de todas as receitas do mês">
+        <div class="kpi-label">Ganhos no Mês <span>📥 🔍</span></div>
         <div id="kpiGanhos" class="kpi-value">R$ 0,00</div>
         <div class="kpi-sub">USP Líquido + Benefícios</div>
       </div>
 
-      <div class="kpi-card amber">
-        <div class="kpi-label">Gastos Fixos <span>🔒</span></div>
+      <div class="kpi-card amber" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fixos')" title="Clique para ver cada gasto fixo do mês">
+        <div class="kpi-label">Gastos Fixos <span>🔒 🔍</span></div>
         <div id="kpiFixos" class="kpi-value">R$ 0,00</div>
         <div class="kpi-sub">Casa Caixa, Caronas, Unimed, Contas</div>
       </div>
 
-      <div class="kpi-card rose">
-        <div class="kpi-label">Gastos Variáveis <span>🛍️</span></div>
+      <div class="kpi-card rose" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('outros')" title="Clique para ver cada gasto variável e aporte do mês">
+        <div class="kpi-label">Gastos Variáveis <span>🛍️ 🔍</span></div>
         <div id="kpiOutros" class="kpi-value">R$ 0,00</div>
         <div class="kpi-sub">Aportes, Cartões, Família</div>
       </div>
 
-      <div class="kpi-card purple">
-        <div class="kpi-label">Investimentos <span>📈</span></div>
-        <div id="kpiInvestimentos" class="kpi-value">R$ 0,00</div>
-        <div class="kpi-sub">XP, Inter, BB, Santander</div>
+      <div class="kpi-card purple" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para ver o detalhamento da fatura e divisão com a Scarlet">
+        <div class="kpi-label">Fatura Nubank (Mês) <span>💳 🔍</span></div>
+        <div id="kpiFatura" class="kpi-value">R$ 4.500,00</div>
+        <div id="kpiFaturaSub" class="kpi-sub">Scarlet recebe ~R$ 1.100,00</div>
       </div>
 
-      <div class="kpi-card green">
-        <div class="kpi-label">Dívida Caixa (Casa) <span>🏠</span></div>
+      <div class="kpi-card green" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('caixa')" title="Clique para ver o status da dívida da Caixa e amortizações">
+        <div class="kpi-label">Dívida Caixa (Casa) <span>🏠 🔍</span></div>
         <div id="kpiDividaCaixa" class="kpi-value">R$ 157.884,49</div>
         <div class="kpi-sub">271 meses • Price 8,99% a.a.</div>
       </div>
@@ -580,6 +580,17 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- MODAL: DETALHAMENTO DO CARD (DRILLDOWN) -->
+  <div id="drilldownModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 id="drilldownModalTitle">Detalhamento</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div id="drilldownModalContent"></div>
+    </div>
   </div>
 
   <!-- MODAL: ADICIONAR / EDITAR DESPESA -->

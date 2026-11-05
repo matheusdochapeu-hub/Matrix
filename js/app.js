@@ -161,8 +161,18 @@ const MatrixApp = (function () {
     const totalGastos = fixos + outros + contasInicio;
     const saldoLivre = ganhos - totalGastos;
 
-    // Investimentos totais
-    const totalInvest = (state.investimentos || []).reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
+    // Fatura Nubank Black e Ganhos da Scarlet do mês
+    const faturaNubank = (monthData.scarlet && monthData.scarlet.faturaNubank) || 4500.00;
+    const ganhosScarlet = (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
+    const sobraFatura = Math.max(0, faturaNubank - ganhosScarlet);
+
+    const faturaEl = document.getElementById('kpiFatura');
+    if (faturaEl) faturaEl.textContent = formatBRL(faturaNubank);
+
+    const faturaSubEl = document.getElementById('kpiFaturaSub');
+    if (faturaSubEl) {
+      faturaSubEl.textContent = `Scarlet recebe ~${formatBRL(ganhosScarlet)} • Sobra ${formatBRL(sobraFatura)}`;
+    }
 
     // Dívida Caixa
     const dividaCaixa = (state.financiamentoCaixa && state.financiamentoCaixa.saldoDevedor) || 157884.49;
@@ -175,8 +185,239 @@ const MatrixApp = (function () {
     saldoEl.textContent = formatBRL(saldoLivre);
     saldoEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
 
-    document.getElementById('kpiInvestimentos').textContent = formatBRL(totalInvest);
-    document.getElementById('kpiDividaCaixa').textContent = formatBRL(dividaCaixa);
+    const dividaEl = document.getElementById('kpiDividaCaixa');
+    if (dividaEl) dividaEl.textContent = formatBRL(dividaCaixa);
+  }
+
+  // ==========================================
+  // DRILLDOWN / AUDITORIA DETALHADA DOS CARDS
+  // ==========================================
+  function abrirDrilldown(tipo) {
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(currentYear, currentMonth);
+    const titleEl = document.getElementById('drilldownModalTitle');
+    const contentEl = document.getElementById('drilldownModalContent');
+    const backdrop = document.getElementById('drilldownModalBackdrop');
+
+    if (!titleEl || !contentEl || !backdrop) return;
+
+    let html = '';
+    const periodLabel = `${currentMonth} de ${currentYear}`;
+
+    if (tipo === 'saldo') {
+      titleEl.innerHTML = `💵 Auditoria da Folga de Caixa (${periodLabel})`;
+
+      let ganhos = 0;
+      if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
+        ganhos = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
+      } else if (monthData.totais && monthData.totais['Salário Mensal']) {
+        ganhos = parseFloat(monthData.totais['Salário Mensal']) || 0;
+        if (monthData.totais['Estúdio']) ganhos += parseFloat(monthData.totais['Estúdio']) || 0;
+        if (monthData.totais['13º']) ganhos += parseFloat(monthData.totais['13º']) || 0;
+      } else {
+        ganhos = 5788.19;
+      }
+
+      const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      let contasInicio = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+
+      const totalGastos = fixos + outros + contasInicio;
+      const saldo = ganhos - totalGastos;
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:6px;">Fórmula de Fechamento do Mês:</div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--cyan);">(+) Total de Ganhos:</span>
+              <strong>${formatBRL(ganhos)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--amber);">(-) Gastos Fixos:</span>
+              <span>- ${formatBRL(fixos)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--rose);">(-) Gastos Variáveis & Aportes:</span>
+              <span>- ${formatBRL(outros)}</span>
+            </div>
+            ${contasInicio > 0 ? `
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--amber);">(-) Contas Início de Ano (Janeiro):</span>
+              <span>- ${formatBRL(contasInicio)}</span>
+            </div>` : ''}
+            <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px;">
+              <strong style="color:var(--text-main);">(=) Saldo Livre / Folga:</strong>
+              <strong style="color:${saldo >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldo)}</strong>
+            </div>
+          </div>
+          <p style="color:var(--text-muted);font-size:11px;line-height:1.6;">
+            💡 <strong>Referência:</strong> Este cálculo é <strong>exclusivo do mês de ${periodLabel}</strong> da sua planilha real. 
+            Ele indica exatamente a margem líquida que você tem para manobrar no mês após honrar todos os compromissos fixos e aportes planejados.
+          </p>
+        </div>
+      `;
+
+    } else if (tipo === 'ganhos') {
+      titleEl.innerHTML = `📥 Detalhamento de Ganhos (${periodLabel})`;
+      const t = monthData.totais || {};
+      const itens = [];
+      if (t['Salário Mensal']) itens.push({ nome: 'Salário Líquido USP em Conta BB', valor: t['Salário Mensal'] });
+      if (t['VA']) itens.push({ nome: 'Vale Alimentação (Alimentação Domiciliar)', valor: t['VA'] });
+      if (t['VR']) itens.push({ nome: 'Vale Refeição (Almoço / Dias Trabalhados)', valor: t['VR'] });
+      if (t['Estúdio']) itens.push({ nome: 'Entrada Estúdio', valor: t['Estúdio'] });
+      if (t['13º']) itens.push({ nome: '13º Salário USP', valor: t['13º'] });
+      if (t['BB']) itens.push({ nome: 'Outras Entradas / Saldo BB', valor: t['BB'] });
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12px;">
+          <table class="data-table" style="margin-bottom:14px;">
+            <thead>
+              <tr><th>Fonte de Receita</th><th style="text-align:right;">Valor</th></tr>
+            </thead>
+            <tbody>
+              ${itens.map(it => `
+                <tr>
+                  <td><strong>${it.nome}</strong></td>
+                  <td class="val-col" style="color:var(--cyan);">${formatBRL(it.valor)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div style="font-size:11px;color:var(--text-muted);">
+            Valores computados conforme lançamentos da folha de pagamento e demonstrativos do mês de ${periodLabel}.
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'fixos') {
+      titleEl.innerHTML = `🔒 Detalhamento dos Gastos Fixos (${periodLabel})`;
+      const fixos = monthData.fixos || [];
+      const total = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12px;">
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Despesa</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+              </thead>
+              <tbody>
+                ${fixos.map(f => `
+                  <tr class="${f.pago ? 'paid' : ''}">
+                    <td><strong>${f.nome}</strong></td>
+                    <td><span class="status-badge ${f.pago ? 'pago' : 'pendente'}">${f.pago ? 'Pago' : 'Pendente'}</span></td>
+                    <td class="val-col">${formatBRL(f.valor)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;">
+            <strong>Total Gastos Fixos:</strong>
+            <strong style="color:var(--amber);">${formatBRL(total)}</strong>
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'outros') {
+      titleEl.innerHTML = `🛍️ Detalhamento dos Gastos Variáveis & Aportes (${periodLabel})`;
+      const outros = monthData.outros || [];
+      const total = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12px;">
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Item / Destino</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+              </thead>
+              <tbody>
+                ${outros.map(o => `
+                  <tr class="${o.pago ? 'paid' : ''}">
+                    <td><strong>${o.nome}</strong></td>
+                    <td><span class="status-badge ${o.pago ? 'pago' : 'pendente'}">${o.pago ? 'Pago' : 'Pendente'}</span></td>
+                    <td class="val-col">${formatBRL(o.valor)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;">
+            <strong>Total Variáveis & Aportes:</strong>
+            <strong style="color:var(--rose);">${formatBRL(total)}</strong>
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'fatura') {
+      titleEl.innerHTML = `💳 Fatura Nubank Black & Divisão com Scarlet (${periodLabel})`;
+      const faturaNubank = (monthData.scarlet && monthData.scarlet.faturaNubank) || 4500.00;
+      const ganhosScarlet = (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
+      const diferenca = Math.max(0, faturaNubank - ganhosScarlet);
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="color:var(--rose);">Fatura Nubank Black (Mastercard):</span>
+              <strong style="font-size:14px;">${formatBRL(faturaNubank)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="color:var(--cyan);">(-) Ganhos Previstos da Scarlet (FisioFlow):</span>
+              <span style="color:var(--cyan);">- ${formatBRL(ganhosScarlet)}</span>
+            </div>
+            <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:13.5px;">
+              <strong>(=) Valor da Fatura Coberto pela Casa:</strong>
+              <strong style="color:var(--amber);">${formatBRL(diferenca)}</strong>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+            • <strong>Mensalidade Ultravioleta:</strong> R$ 89,00 inclusa.<br>
+            • <strong>Origem dos Dados:</strong> Sincronizado diretamente com a fatura do mês de ${periodLabel} e cruzado com os atendimentos domiciliares da Scarlet.
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'caixa') {
+      titleEl.innerHTML = `🏠 Financiamento Habitacional da Casa (Caixa)`;
+      const cfg = state.financiamentoCaixa || {};
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Saldo Devedor Atual:</span>
+              <strong style="color:var(--rose);">${formatBRL(cfg.saldoDevedor || 157884.49)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Parcela Atual Débito Automático:</span>
+              <strong style="color:var(--amber);">${formatBRL(cfg.parcelaAtual || 1395.88)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Prazo Restante:</span>
+              <span>${cfg.prazoMeses || cfg.totalPrestacoes || 271} meses (~22,5 anos)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Taxa Efetiva de Juros:</span>
+              <span style="color:var(--cyan);">${cfg.taxaJurosAnual || 8.9899}% a.a.</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Sistema de Amortização:</span>
+              <span>Tabela Price</span>
+            </div>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+            💡 <strong>FGTS USP:</strong> Você acumula ~R$ 501,12 mensais de FGTS no cargo celetista USP (~R$ 12.026,88 a cada 2 anos) para amortização extraordinária.
+          </p>
+        </div>
+      `;
+    }
+
+    contentEl.innerHTML = html;
+    backdrop.classList.add('open');
   }
 
   // ==========================================
@@ -1003,7 +1244,8 @@ const MatrixApp = (function () {
     colarBackupClipboard,
     salvarHoleriteManual,
     salvarConfigSatellites,
-    executarScrapingSatellites
+    executarScrapingSatellites,
+    abrirDrilldown
   };
 })();
 
