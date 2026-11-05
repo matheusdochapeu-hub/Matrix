@@ -722,27 +722,92 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const result = ScenarioSimulator.runSimulation(state, null, 14);
 
-    // Render lista de hipóteses/cenários
+    const contaLabels = {
+      bb: 'Banco do Brasil (Salário USP)',
+      nubank_scarlet: 'Nubank Scarlet (Mastercard Black)',
+      nubank_matheus: 'Nubank Matheus',
+      inter: 'Banco Inter (Giro/Pix)',
+      santander: 'Santander (DinDin)',
+      va: 'Cartão VA (Alimentação)',
+      vr: 'Cartão VR (Refeição)',
+      reserva: 'Reserva de Emergência / Invest.',
+      dinheiro: 'Dinheiro Vivo'
+    };
+    const rendaLabels = {
+      salario_usp: 'Salário Líquido USP (Matheus)',
+      ganhos_scarlet: 'Ganhos da Scarlet (FisioFlow)',
+      va_mercado: 'Vale Alimentação (VA Maracaju 88)',
+      vr_almoco: 'Vale Refeição (VR Presencial)',
+      estudio_extra: 'Estúdio / Renda Extra',
+      reserva_aportes: 'Reserva de Emergência',
+      orcamento_geral: 'Orçamento Geral Conjunto'
+    };
+    const tipoLabels = {
+      recorrente: '🔄 Recorrente Mensal',
+      pontual: '🎯 Pontual (Mês Único)',
+      parcelado: '📦 Parcelado'
+    };
+
+    // Render Painel de Correlação por Renda
+    const correlacaoGridEl = document.getElementById('simCorrelacaoRendaGrid');
+    if (correlacaoGridEl && result.correlacaoRendas) {
+      correlacaoGridEl.innerHTML = Object.values(result.correlacaoRendas).map(r => {
+        const hasImpact = r.totalMensal > 0;
+        return `
+          <div style="background:rgba(5,8,7,0.5);border:1px solid ${hasImpact ? 'var(--cyan)' : 'var(--border-dim)'};border-radius:var(--radius-xs);padding:8px 10px;font-family:var(--font-mono);">
+            <div style="font-size:10.5px;color:var(--text-muted);">${r.nome}</div>
+            <div style="font-size:13.5px;font-weight:700;color:${hasImpact ? 'var(--cyan)' : 'var(--text-dim)'};margin-top:2px;">
+              ${hasImpact ? formatBRL(r.totalMensal) + ' /mês' : 'R$ 0,00'}
+            </div>
+            <div style="font-size:9.5px;color:${hasImpact ? 'var(--matrix-green)' : 'var(--text-dim)'};margin-top:2px;">
+              ${r.count > 0 ? `${r.count} cenário(s) correlacionado(s)` : 'Sem impacto direto'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render lista de hipóteses/cenários com suporte a edição, recorrência, conta e correlação de renda
     const scenContainer = document.getElementById('activeScenariosList');
     if (scenContainer) {
-      scenContainer.innerHTML = (state.simulacoesAtivas || []).map(scen => `
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div>
-            <div style="font-weight:700;color:var(--matrix-green);">${scen.titulo}</div>
-            <div style="font-size:11px;color:var(--text-muted);">
-              Valor: ${formatBRL(scen.valorAdotado || scen.valor)} / mês | Início: ${scen.inicio || 'Imediato'}
+      if (!state.simulacoesAtivas || state.simulacoesAtivas.length === 0) {
+        scenContainer.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:14px;font-family:var(--font-mono);font-size:12px;">Nenhum cenário hipotético cadastrado. Clique em "+ Adicionar Hipótese".</div>`;
+      } else {
+        scenContainer.innerHTML = state.simulacoesAtivas.map(scen => {
+          const tipoKey = scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente');
+          const tipoDesc = tipoKey === 'parcelado' ? `📦 Parcelado (${scen.parcelas || 2}x)` : (tipoLabels[tipoKey] || '🔄 Recorrente Mensal');
+          const contaDesc = contaLabels[scen.conta] || scen.conta || 'Nubank Scarlet (Mastercard Black)';
+          const rendaDesc = rendaLabels[scen.renda] || scen.renda || 'Ganhos da Scarlet (FisioFlow)';
+
+          return `
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
+              <div style="flex:1;min-width:260px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+                  <span style="font-weight:700;color:var(--matrix-green);font-size:13px;">${scen.titulo}</span>
+                  <span class="status-badge" style="font-size:10px;background:rgba(56,189,248,0.12);color:var(--cyan);border-color:var(--cyan);">${tipoDesc}</span>
+                </div>
+                <div style="font-size:12px;color:var(--text-main);font-family:var(--font-mono);margin-bottom:4px;">
+                  <strong>Valor Estimado:</strong> <span style="color:var(--cyan);font-weight:700;">${formatBRL(scen.valorAdotado || scen.valor)}</span>
+                  <span style="color:var(--text-muted);"> | Início: ${scen.inicio || '2026-12'}${scen.fim ? ' até ' + scen.fim : ''}</span>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">
+                  <span>🏦 <strong>Conta:</strong> <span style="color:var(--text-main);">${contaDesc}</span></span>
+                  <span>🔗 <strong>Correlação de Renda:</strong> <span style="color:var(--amber);font-weight:600;">${rendaDesc}</span></span>
+                </div>
+                ${scen.observacao ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px;font-style:italic;">💬 ${scen.observacao}</div>` : ''}
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <label style="display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer;font-family:var(--font-mono);margin-right:4px;">
+                  <input type="checkbox" ${scen.ativo !== false ? 'checked' : ''} onchange="MatrixApp.toggleScenarioActive('${scen.id}', this.checked)">
+                  Ativo
+                </label>
+                <button class="btn-icon" title="Editar este cenário" onclick="MatrixApp.openScenarioModal('${scen.id}')">✏️</button>
+                <button class="btn-icon" title="Excluir este cenário" onclick="MatrixApp.removeScenario('${scen.id}')">🗑️</button>
+              </div>
             </div>
-            <div style="font-size:11px;color:var(--text-dim);">${scen.observacao || ''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-              <input type="checkbox" ${scen.ativo !== false ? 'checked' : ''} onchange="MatrixApp.toggleScenarioActive('${scen.id}', this.checked)">
-              Ativo
-            </label>
-            <button class="btn-icon" title="Excluir" onclick="MatrixApp.removeScenario('${scen.id}')">🗑️</button>
-          </div>
-        </div>
-      `).join('');
+          `;
+        }).join('');
+      }
     }
 
     // Render tabela mês a mês da simulação
@@ -1109,6 +1174,12 @@ const MatrixApp = (function () {
     const catSelect = document.getElementById('modalItemCategoria');
     if (catSelect && item.categoria) catSelect.value = item.categoria;
 
+    const contaSelect = document.getElementById('modalItemConta');
+    if (contaSelect && item.conta) contaSelect.value = item.conta;
+
+    const rendaSelect = document.getElementById('modalItemRenda');
+    if (rendaSelect && item.renda) rendaSelect.value = item.renda;
+
     const chkPago = document.getElementById('modalItemPago');
     if (chkPago) chkPago.checked = !!item.pago;
 
@@ -1135,6 +1206,8 @@ const MatrixApp = (function () {
     const nome = document.getElementById('modalItemNome').value.trim();
     const valor = parseFloat(document.getElementById('modalItemValor').value) || 0;
     const cat = document.getElementById('modalItemCategoria').value;
+    const conta = document.getElementById('modalItemConta') ? document.getElementById('modalItemConta').value : 'bb';
+    const renda = document.getElementById('modalItemRenda') ? document.getElementById('modalItemRenda').value : 'salario_usp';
     const pago = document.getElementById('modalItemPago') ? document.getElementById('modalItemPago').checked : false;
 
     if (!nome) {
@@ -1142,13 +1215,15 @@ const MatrixApp = (function () {
       return;
     }
 
+    const payload = { nome, valor, categoria: cat, conta, renda, pago };
+
     if (editId && editId.startsWith('idx_')) {
       const idx = parseInt(editId.replace('idx_', ''), 10);
-      MatrixDB.updateTransactionByIndex(currentYear, currentMonth, tipo, idx, { nome, valor, categoria: cat, pago });
+      MatrixDB.updateTransactionByIndex(currentYear, currentMonth, tipo, idx, payload);
     } else if (editId) {
-      MatrixDB.updateTransaction(currentYear, currentMonth, tipo, editId, { nome, valor, categoria: cat, pago });
+      MatrixDB.updateTransaction(currentYear, currentMonth, tipo, editId, payload);
     } else {
-      MatrixDB.addTransaction(currentYear, currentMonth, tipo, { nome, valor, categoria: cat, pago });
+      MatrixDB.addTransaction(currentYear, currentMonth, tipo, payload);
     }
 
     closeModal('itemModalBackdrop');
@@ -1174,24 +1249,96 @@ const MatrixApp = (function () {
     }
   }
 
-  function addNewScenarioPrompt() {
-    const titulo = prompt('Título do Cenário / Despesa Hipotética (ex: Seguro de Vida Scarlet):');
-    if (!titulo) return;
-    const valor = parseFloat(prompt('Valor Mensal Estimado em R$ (ex: 125):')) || 0;
-    const inicio = prompt('Mês de Início (AAAA-MM, ex: 2026-12):', `${currentYear}-${String(MONTH_NAMES.indexOf(currentMonth) + 1).padStart(2, '0')}`);
+  function openScenarioModal(id = null) {
+    const state = MatrixDB.getState();
+    const scen = id ? (state.simulacoesAtivas || []).find(s => s.id === id) : null;
+
+    document.getElementById('scenModalId').value = scen ? scen.id : '';
+    document.getElementById('scenModalTitulo').value = scen ? scen.titulo : '';
+    document.getElementById('scenModalValor').value = scen ? (scen.valorAdotado || scen.valor || '') : '';
+    
+    const tipo = scen ? (scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente')) : 'recorrente';
+    document.getElementById('scenModalTipo').value = tipo;
+    toggleScenarioModalParcelas(tipo);
+    document.getElementById('scenModalParcelas').value = (scen && scen.parcelas) || 3;
+
+    document.getElementById('scenModalConta').value = (scen && scen.conta) || 'nubank_scarlet';
+    document.getElementById('scenModalRenda').value = (scen && scen.renda) || 'ganhos_scarlet';
+    document.getElementById('scenModalInicio').value = (scen && scen.inicio) || `${currentYear}-12`;
+    document.getElementById('scenModalFim').value = (scen && scen.fim) || '';
+    document.getElementById('scenModalObs').value = (scen && scen.observacao) || '';
+    document.getElementById('scenModalAtivo').checked = scen ? (scen.ativo !== false) : true;
+
+    document.getElementById('scenModalHeaderTitle').textContent = scen ? `Editar Hipótese: ${scen.titulo}` : 'Nova Hipótese / Cenário';
+    document.getElementById('scenarioModalBackdrop').classList.add('open');
+  }
+
+  function toggleScenarioModalParcelas(tipo) {
+    const row = document.getElementById('scenModalParcelasRow');
+    if (row) {
+      row.style.display = tipo === 'parcelado' ? 'block' : 'none';
+    }
+  }
+
+  function saveScenarioFromModal() {
+    const id = document.getElementById('scenModalId').value;
+    const titulo = document.getElementById('scenModalTitulo').value.trim();
+    const valor = parseFloat(document.getElementById('scenModalValor').value) || 0;
+    const tipo = document.getElementById('scenModalTipo').value;
+    const parcelas = parseInt(document.getElementById('scenModalParcelas').value, 10) || 1;
+    const conta = document.getElementById('scenModalConta').value;
+    const renda = document.getElementById('scenModalRenda').value;
+    const inicio = document.getElementById('scenModalInicio').value.trim() || `${currentYear}-12`;
+    const fim = document.getElementById('scenModalFim').value.trim();
+    const obs = document.getElementById('scenModalObs').value.trim();
+    const ativo = document.getElementById('scenModalAtivo').checked;
+
+    if (!titulo) {
+      alert('Informe o título da hipótese ou projeto.');
+      return;
+    }
+    if (valor <= 0) {
+      alert('Informe um valor válido maior que zero.');
+      return;
+    }
 
     const state = MatrixDB.getState();
     if (!state.simulacoesAtivas) state.simulacoesAtivas = [];
-    state.simulacoesAtivas.push({
-      id: 'sim_' + Date.now(),
+
+    const itemData = {
+      id: id || ('sim_' + Date.now()),
       titulo,
       valorAdotado: valor,
+      valor: valor,
+      tipo,
+      recorrente: tipo === 'recorrente',
+      parcelas: tipo === 'parcelado' ? parcelas : undefined,
+      conta,
+      renda,
       inicio,
-      ativo: true,
-      observacao: 'Inserido manualmente'
-    });
+      fim: fim || undefined,
+      observacao: obs,
+      ativo
+    };
+
+    if (id) {
+      const idx = state.simulacoesAtivas.findIndex(s => s.id === id);
+      if (idx >= 0) {
+        state.simulacoesAtivas[idx] = itemData;
+      } else {
+        state.simulacoesAtivas.push(itemData);
+      }
+    } else {
+      state.simulacoesAtivas.push(itemData);
+    }
+
     MatrixDB.saveState(state);
+    closeModal('scenarioModalBackdrop');
     renderSimulator();
+  }
+
+  function addNewScenarioPrompt() {
+    openScenarioModal();
   }
 
   function toggleCalendarDay(dateStr) {
@@ -1475,6 +1622,9 @@ const MatrixApp = (function () {
     closeModal,
     toggleScenarioActive,
     removeScenario,
+    openScenarioModal,
+    saveScenarioFromModal,
+    toggleScenarioModalParcelas,
     addNewScenarioPrompt,
     toggleCalendarDay,
     aplicarCaronasNoMes,

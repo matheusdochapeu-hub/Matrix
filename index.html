@@ -250,16 +250,27 @@
       <div class="matrix-box">
         <div class="box-header">
           <h2>🔮 Laboratório "E se?" — Simulação de Despesas Futuras</h2>
-          <button class="btn-matrix primary" onclick="MatrixApp.addNewScenarioPrompt()">+ Adicionar Hipótese</button>
+          <button class="btn-matrix primary" onclick="MatrixApp.openScenarioModal()">+ Adicionar Hipótese</button>
         </div>
         <p style="color:var(--text-muted);font-size:12px;margin-bottom:14px;">
           Teste o impacto de novos compromissos (ex: o seguro de vida da Scarlet de R$ 100~150) antes de contratá-los. 
-          O simulador aplica a nova despesa sobre o orçamento real mês a mês e aponta instantaneamente onde o caixa fica seguro e onde pode apertar.
+          Defina se o gasto é recorrente ou pontual, de qual conta bancária ele sai e com qual renda está correlacionado.
         </p>
+
+        <!-- Painel de Correlação com Fontes de Renda -->
+        <div id="simCorrelacaoRendaBox" style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;">
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--matrix-green);text-transform:uppercase;margin-bottom:8px;font-weight:700;">
+            🔗 Correlação de Despesas Hipotéticas por Fonte de Renda:
+          </div>
+          <div id="simCorrelacaoRendaGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;"></div>
+        </div>
 
         <!-- Lista de Hipóteses Ativas -->
         <div style="margin-bottom:16px;">
-          <div style="font-size:11px;font-family:var(--font-mono);color:var(--matrix-green);text-transform:uppercase;margin-bottom:6px;">Cenários em Análise:</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:11px;font-family:var(--font-mono);color:var(--matrix-green);text-transform:uppercase;font-weight:700;">Cenários em Análise:</div>
+            <button class="btn-matrix" style="padding:3px 8px;font-size:11px;" onclick="MatrixApp.openScenarioModal()">+ Novo Cenário</button>
+          </div>
           <div id="activeScenariosList"></div>
         </div>
 
@@ -698,6 +709,34 @@
         </select>
       </div>
 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">🏦 De onde sai / entra (Conta):</label>
+          <select id="modalItemConta" class="matrix-select">
+            <option value="bb">Banco do Brasil (Salário USP)</option>
+            <option value="nubank_scarlet">Cartão Nubank Scarlet (Black)</option>
+            <option value="nubank_matheus">Cartão Nubank Matheus</option>
+            <option value="inter">Banco Inter (Pix / Giro)</option>
+            <option value="santander">Banco Santander (DinDin)</option>
+            <option value="caixa">Caixa (Débito Casa)</option>
+            <option value="va">Vale Alimentação (VA)</option>
+            <option value="vr">Vale Refeição (VR)</option>
+            <option value="dinheiro">Dinheiro Vivo / Outro</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">🔗 Renda Vinculada:</label>
+          <select id="modalItemRenda" class="matrix-select">
+            <option value="salario_usp">Salário Líquido USP (Matheus)</option>
+            <option value="ganhos_scarlet">Ganhos Scarlet (FisioFlow)</option>
+            <option value="va_mercado">Vale Alimentação (Maracaju 88)</option>
+            <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
+            <option value="estudio_extra">Estúdio / Renda Extra</option>
+            <option value="orcamento_geral" selected>Orçamento Geral Conjunto</option>
+          </select>
+        </div>
+      </div>
+
       <div style="margin-bottom:16px;">
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;">
           <input type="checkbox" id="modalItemPago">
@@ -708,6 +747,99 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button class="btn-matrix" onclick="MatrixApp.closeModal('itemModalBackdrop')">Cancelar</button>
         <button class="btn-matrix primary" onclick="MatrixApp.saveItemFromModal()">Salvar Lançamento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CRIAR / EDITAR HIPÓTESE DO SIMULADOR (E SE?) -->
+  <div id="scenarioModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width:550px;">
+      <div class="modal-header">
+        <h3 id="scenModalHeaderTitle">Nova Hipótese / Cenário</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <input type="hidden" id="scenModalId" value="">
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Título da Despesa / Projeto:</label>
+        <input type="text" id="scenModalTitulo" class="matrix-input" placeholder="Ex: Seguro de Vida Scarlet, Reforma Banheiro...">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Valor Mensal ou Total (R$):</label>
+          <input type="number" step="0.01" id="scenModalValor" class="matrix-input" placeholder="0,00">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Frequência / Recorrência:</label>
+          <select id="scenModalTipo" class="matrix-select" onchange="MatrixApp.toggleScenarioModalParcelas(this.value)">
+            <option value="recorrente" selected>Recorrente Mensal (Contínuo)</option>
+            <option value="pontual">Pontual / Único (Apenas no mês de início)</option>
+            <option value="parcelado">Parcelado em X Meses</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="scenModalParcelasRow" style="display:none;margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);">Quantidade de Parcelas Mensais:</label>
+        <input type="number" min="2" max="60" id="scenModalParcelas" class="matrix-input" value="3" placeholder="Ex: 3, 6, 10...">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">🏦 De onde vai sair o gasto (Conta / Banco):</label>
+          <select id="scenModalConta" class="matrix-select">
+            <option value="bb">Banco do Brasil (CC Salário USP)</option>
+            <option value="nubank_scarlet" selected>Cartão Nubank Scarlet (Mastercard Black)</option>
+            <option value="nubank_matheus">Cartão Nubank Matheus</option>
+            <option value="inter">Banco Inter (Pix / Giro)</option>
+            <option value="santander">Banco Santander (DinDin)</option>
+            <option value="va">Cartão VA (Alimentação)</option>
+            <option value="vr">Cartão VR (Refeição)</option>
+            <option value="reserva">Reserva de Emergência / Investimentos</option>
+            <option value="dinheiro">Dinheiro Vivo / Caixa Geral</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">🔗 Correlação de Renda (Quem banca?):</label>
+          <select id="scenModalRenda" class="matrix-select">
+            <option value="salario_usp">Salário Líquido USP (Matheus)</option>
+            <option value="ganhos_scarlet" selected>Ganhos da Scarlet (FisioFlow)</option>
+            <option value="va_mercado">Vale Alimentação (VA Maracaju 88)</option>
+            <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
+            <option value="estudio_extra">Estúdio / Renda Extra</option>
+            <option value="reserva_aportes">Reserva de Emergência / Aportes</option>
+            <option value="orcamento_geral">Orçamento Familiar Conjunto</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Mês de Início (AAAA-MM):</label>
+          <input type="text" id="scenModalInicio" class="matrix-input" placeholder="2026-12">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Mês de Término (Opcional):</label>
+          <input type="text" id="scenModalFim" class="matrix-input" placeholder="Deixe em branco p/ contínuo">
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--text-muted);">Observações / Cotações / Justificativa:</label>
+        <input type="text" id="scenModalObs" class="matrix-input" placeholder="Ex: Cotação em andamento entre R$ 100 e R$ 150">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);cursor:pointer;">
+          <input type="checkbox" id="scenModalAtivo" checked>
+          <span style="color:var(--matrix-green);font-weight:600;">Ativar e simular este cenário na projeção</span>
+        </label>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn-matrix" onclick="MatrixApp.closeModal('scenarioModalBackdrop')">Cancelar</button>
+        <button class="btn-matrix primary" onclick="MatrixApp.saveScenarioFromModal()">Salvar Hipótese</button>
       </div>
     </div>
   </div>

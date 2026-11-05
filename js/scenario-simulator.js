@@ -87,19 +87,33 @@ const ScenarioSimulator = (function () {
       const cenariosAplicados = [];
 
       scenarios.forEach(scen => {
-        // Verifica se a simulação se aplica neste mês
-        // scen.inicio pode ser "2026-12" ou data
-        let applies = true;
-        if (scen.inicio) {
-          const [scenY, scenM] = scen.inicio.split('-').map(Number);
-          if (m.year < scenY || (m.year === scenY && m.monthIndex < scenM)) {
-            applies = false;
+        let applies = false;
+        const inicioStr = scen.inicio || '2026-11';
+        const [scenY, scenM] = inicioStr.split('-').map(Number);
+        const tipo = scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente');
+
+        if (tipo === 'pontual') {
+          // Ocorre apenas no mês específico de início
+          if (m.year === scenY && m.monthIndex === scenM) {
+            applies = true;
           }
-        }
-        if (scen.fim) {
-          const [endY, endM] = scen.fim.split('-').map(Number);
-          if (m.year > endY || (m.year === endY && m.monthIndex > endM)) {
-            applies = false;
+        } else if (tipo === 'parcelado') {
+          // Ocorre por N meses a partir do mês de início
+          const parcelas = parseInt(scen.parcelas || 1, 10);
+          const monthDiff = (m.year - scenY) * 12 + (m.monthIndex - scenM);
+          if (monthDiff >= 0 && monthDiff < parcelas) {
+            applies = true;
+          }
+        } else {
+          // Recorrente contínuo
+          if (m.year > scenY || (m.year === scenY && m.monthIndex >= scenM)) {
+            applies = true;
+            if (scen.fim) {
+              const [endY, endM] = scen.fim.split('-').map(Number);
+              if (m.year > endY || (m.year === endY && m.monthIndex > endM)) {
+                applies = false;
+              }
+            }
           }
         }
 
@@ -109,7 +123,10 @@ const ScenarioSimulator = (function () {
           cenariosAplicados.push({
             id: scen.id,
             titulo: scen.titulo,
-            valor: val
+            valor: val,
+            tipo: tipo,
+            conta: scen.conta || 'bb',
+            renda: scen.renda || 'salario_usp'
           });
         }
       });
@@ -143,11 +160,33 @@ const ScenarioSimulator = (function () {
       });
     });
 
+    // Cálculo de correlação com fontes de renda
+    const correlacaoRendas = {
+      salario_usp: { id: 'salario_usp', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
+      ganhos_scarlet: { id: 'ganhos_scarlet', nome: 'Ganhos da Scarlet (FisioFlow)', totalMensal: 0, count: 0 },
+      va_mercado: { id: 'va_mercado', nome: 'Vale Alimentação (VA Maracaju 88)', totalMensal: 0, count: 0 },
+      vr_almoco: { id: 'vr_almoco', nome: 'Vale Refeição (VR Presencial)', totalMensal: 0, count: 0 },
+      estudio_extra: { id: 'estudio_extra', nome: 'Estúdio / Renda Extra', totalMensal: 0, count: 0 },
+      reserva_aportes: { id: 'reserva_aportes', nome: 'Reserva de Emergência / Aportes', totalMensal: 0, count: 0 },
+      orcamento_geral: { id: 'orcamento_geral', nome: 'Orçamento Familiar Geral', totalMensal: 0, count: 0 }
+    };
+
+    scenarios.forEach(scen => {
+      const rKey = scen.renda || 'salario_usp';
+      if (!correlacaoRendas[rKey]) {
+        correlacaoRendas[rKey] = { id: rKey, nome: rKey, totalMensal: 0, count: 0 };
+      }
+      const val = parseFloat(scen.valorAdotado || scen.valor || 0);
+      correlacaoRendas[rKey].totalMensal += val;
+      correlacaoRendas[rKey].count++;
+    });
+
     return {
       scenarios,
       totalMeses: results.length,
       mesesDeficit: results.filter(r => r.saldoSimulado < 0).length,
       impactoTotalCenarios: results.reduce((acc, r) => acc + r.custoCenarios, 0),
+      correlacaoRendas,
       timeline: results
     };
   }
