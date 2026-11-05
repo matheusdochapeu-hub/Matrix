@@ -59,6 +59,105 @@ const MatrixApp = (function () {
     window.addEventListener('offline', () => {
       SyncEngine.updateStatusUI('offline', 'Sem conexão com a internet');
     });
+
+    // PWA Install Prompt Listener
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      const btn = document.getElementById('btnInstallApp');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+  }
+
+  // ==========================================
+  // PWA DOWNLOAD & INSTALAÇÃO
+  // ==========================================
+  let deferredPwaPrompt = null;
+
+  function installPWA() {
+    if (deferredPwaPrompt) {
+      deferredPwaPrompt.prompt();
+      deferredPwaPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('Usuário aceitou a instalação do PWA Matrix');
+        }
+        deferredPwaPrompt = null;
+      });
+      return;
+    }
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      alert('✅ O App Matrix já está instalado e rodando em modo aplicativo nativo no seu dispositivo!');
+      return;
+    }
+
+    const modal = document.getElementById('installAppModalBackdrop');
+    if (modal) modal.classList.add('open');
+  }
+
+  // ==========================================
+  // CUSTOMIZAÇÃO DO NOME DA RENDA EXTRA (ESTÚDIO)
+  // ==========================================
+  function getNomeEstudio() {
+    const state = MatrixDB.getState();
+    return (state.config && state.config.nomeEstudio) ? state.config.nomeEstudio : 'Estúdio';
+  }
+
+  function salvarNomeEstudio(novoNome) {
+    const state = MatrixDB.getState();
+    if (!state.config) state.config = {};
+    const n = (novoNome || '').trim() || 'Estúdio';
+    state.config.nomeEstudio = n;
+    MatrixDB.saveState(state);
+    renderAll();
+  }
+
+  function promptAlterarNomeEstudio() {
+    const atual = getNomeEstudio();
+    const resp = prompt('Defina o nome personalizado para sua fonte de renda extra (ex: Estúdio, Aulas, Consultoria, Bicos):', atual);
+    if (resp !== null) {
+      salvarNomeEstudio(resp);
+    }
+  }
+
+  // ==========================================
+  // SINCRONIZAÇÃO DE DADOS REAIS DOS APPS (FATURAS & FISIOFLOW)
+  // ==========================================
+  function getFaturaNubankMes(ano, mes) {
+    const state = MatrixDB.getState();
+    const monthKey = `${ano}-${mes}`;
+    const monthData = MatrixDB.getMonth(ano, mes);
+    if (monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
+      return parseFloat(monthData.scarlet.faturaNubankManual);
+    }
+    const sat = (state.satellites && state.satellites.faturas);
+    if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
+      return parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal || 0);
+    }
+    // Valores reais extraídos da fatura Nubank Black
+    if (ano === '2026' && mes === 'Novembro') return 4568.57;
+    if (ano === '2026' && mes === 'Dezembro') return 1568.05;
+    if (ano === '2026' && mes === 'Outubro') return 3418.03;
+    if (ano === '2027' && mes === 'Janeiro') return 1628.89;
+    return (monthData.scarlet && monthData.scarlet.faturaNubank) || 4568.57;
+  }
+
+  function getGanhosScarletMes(ano, mes) {
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(ano, mes);
+    if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
+      return parseFloat(monthData.scarlet.ganhosManual);
+    }
+    const mIdx = MONTH_NAMES.indexOf(mes) + 1;
+    const ym = `${ano}-${String(mIdx).padStart(2, '0')}`;
+    const satFisio = state.satellites && state.satellites.fisioflow;
+    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[ym]) {
+      const g = satFisio.ganhosPorMes[ym];
+      const tot = (g.realizado || 0) + (g.aReceber || 0);
+      if (tot > 0) return tot;
+    }
+    return (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
   }
 
   function populateYearSelector() {
@@ -432,13 +531,7 @@ const MatrixApp = (function () {
       }
 
       // 2. Ganhos Scarlet (FisioFlow)
-      let salScarlet = 1100.00;
-      if (monthData.scarlet && monthData.scarlet.ganhos) {
-        salScarlet = parseFloat(monthData.scarlet.ganhos) || salScarlet;
-      } else {
-        const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
-        if (recFisio) salScarlet = parseFloat(recFisio.valor) || salScarlet;
-      }
+      const salScarlet = getGanhosScarletMes(m.ano, m.mes);
 
       // 3. Vale Alimentação - VA (Maracaju 88)
       const va = 2050.00;
@@ -451,7 +544,7 @@ const MatrixApp = (function () {
         if (commute && commute.totalVR) vr = commute.totalVR;
       } catch (e) {}
 
-      // 5. Outros Ganhos (13º Salário, Estúdio, etc.)
+      // 5. Outros Ganhos (13º Salário, Estúdio/Personalizado, etc.)
       let outrosGanhos = 0;
       let outrosLabel = '';
       (monthData.receitas || []).forEach(r => {
@@ -466,16 +559,20 @@ const MatrixApp = (function () {
       // Renda Total Conjunta do Casal
       const rendaTotalConjunta = salMatheus + salScarlet + va + vr + outrosGanhos;
 
-      // Gastos Fixos e Variáveis do mês
+      // Gastos Fixos, Variáveis e Diários do mês
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      const totalGastos = fixos + outros;
+      const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const totalGastos = fixos + outros + diarios;
       const sobraConjunta = rendaTotalConjunta - totalGastos;
 
       return `
         <div class="month-horizon-card ${isCurrent ? 'active-month' : ''}" onclick="MatrixApp.navegarParaMes('${m.ano}', '${m.mes}')" title="Clique para abrir e gerenciar ${m.mes}/${m.ano}">
           <div>
-            <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
+              <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 6px;" onclick="event.stopPropagation();MatrixApp.openEditSaldosModal('${m.ano}', '${m.mes}')" title="Editar saldos e rendas de ${m.mes}/${m.ano}">✏️ Saldos</button>
+            </div>
             <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Renda Conjunta do Casal:</div>
             <div class="horizon-total-renda">${formatBRL(rendaTotalConjunta)}</div>
 
@@ -499,7 +596,7 @@ const MatrixApp = (function () {
               </div>
               ${outrosGanhos > 0 ? `
               <div class="horizon-breakdown-row" style="color:var(--matrix-green-glow);">
-                <span>🎁 <strong>${outrosLabel || 'Outros (13º/Estúdio)'}</strong></span>
+                <span>🎁 <strong>${outrosLabel || getNomeEstudio() || 'Outros'}</strong></span>
                 <span style="color:var(--matrix-green);font-weight:700;">+ ${formatBRL(outrosGanhos)}</span>
               </div>` : ''}
             </div>
@@ -553,8 +650,8 @@ const MatrixApp = (function () {
     const saldoLivre = ganhos - totalGastos;
 
     // Fatura Nubank Black e Ganhos da Scarlet do mês
-    const faturaNubank = (monthData.scarlet && monthData.scarlet.faturaNubank) || 4500.00;
-    const ganhosScarlet = (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
+    const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+    const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
     const sobraFatura = Math.max(0, faturaNubank - ganhosScarlet);
 
     const faturaEl = document.getElementById('kpiFatura');
@@ -755,24 +852,28 @@ const MatrixApp = (function () {
 
     } else if (tipo === 'fatura') {
       titleEl.innerHTML = `💳 Fatura Nubank Black & Auditoria de Economia (${periodLabel})`;
-      const faturaNubank = (monthData.scarlet && monthData.scarlet.faturaNubank) || 4500.00;
-      const ganhosScarlet = (monthData.scarlet && monthData.scarlet.ganhos) || 1100.00;
+      const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+      const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
       const diferenca = Math.max(0, faturaNubank - ganhosScarlet);
 
       const sat = (state.satellites && state.satellites.faturas) || 
         (typeof SatelliteConnectors !== 'undefined' ? SatelliteConnectors.processFaturasData({}) : {});
 
-      const faturaAtual = sat.faturaAtualReal || faturaNubank;
-      const faturasFuturas = sat.faturasFuturasCompromissadas || 6280.00;
-      const metaMensal = sat.limiteMetaMensal || 4000.00;
+      const monthKey = `${currentYear}-${currentMonth}`;
+      const satMonth = sat && sat.faturasPorMes && sat.faturasPorMes[monthKey];
+      const faturaAtual = faturaNubank;
+      const faturasFuturas = sat.faturasFuturasCompromissadas || 1568.05;
+      const metaMensal = sat.limiteMetaMensal || 3000.00;
+      const itensDoMes = (satMonth && satMonth.itens) || [];
+
       const cats = sat.categoriasTotais || {
-        'Alimentação & Gastronomia': 1280.00,
-        'Compras & E-commerce': 1150.00,
-        'Casa & Utilidades': 680.00,
-        'Serviços & Assinaturas': 420.00,
-        'Transporte & Viagem': 380.00,
-        'Vestuário & Moda': 310.00,
-        'Saúde & Farmácia': 190.00,
+        'Alimentação & Gastronomia': 1133.74,
+        'Compras & E-commerce': 765.00,
+        'Transporte & Tag': 480.00,
+        'Vestuário & Moda': 620.00,
+        'Serviços & Assinaturas': 285.00,
+        'Saúde, Estética & Bem-estar': 350.00,
+        'Pet & Veterinário': 178.29,
         'Outros': 90.00
       };
 
@@ -780,11 +881,11 @@ const MatrixApp = (function () {
       const catConfig = {
         'Alimentação & Gastronomia': { icon: '🍔', color: '#f59e0b' },
         'Compras & E-commerce': { icon: '🛒', color: '#06b6d4' },
-        'Casa & Utilidades': { icon: '🏠', color: '#3b82f6' },
-        'Serviços & Assinaturas': { icon: '📱', color: '#ec4899' },
-        'Transporte & Viagem': { icon: '🚗', color: '#8b5cf6' },
+        'Transporte & Tag': { icon: '🚗', color: '#8b5cf6' },
         'Vestuário & Moda': { icon: '👕', color: '#10b981' },
-        'Saúde & Farmácia': { icon: '💊', color: '#ef4444' },
+        'Serviços & Assinaturas': { icon: '📱', color: '#ec4899' },
+        'Saúde, Estética & Bem-estar': { icon: '🩺', color: '#3b82f6' },
+        'Pet & Veterinário': { icon: '🐾', color: '#eab308' },
         'Outros': { icon: '📦', color: '#94a3b8' }
       };
 
@@ -794,11 +895,14 @@ const MatrixApp = (function () {
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,65,0.08);border:1px solid var(--border-glow);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
-              <span class="live-pulse"></span> App Faturas Sincronizado em Tempo Real
+              <span class="live-pulse"></span> App Faturas Sincronizado em Tempo Real (${periodLabel})
             </span>
-            <span class="lock-pill" title="Os lançamentos são gerenciados no app Faturas e refletidos aqui">
-              🔒 Somente Leitura no Matrix
-            </span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button" class="btn-matrix" style="font-size:10.5px;padding:2px 8px;" onclick="MatrixApp.closeModal('drilldownModalBackdrop'); MatrixApp.openEditSaldosModal('${currentYear}','${currentMonth}')">✏️ Editar Fatura / Saldos</button>
+              <span class="lock-pill" title="Os dados desta fatura foram obtidos do aplicativo Faturas">
+                💳 Dados Reais Faturas
+              </span>
+            </div>
           </div>
 
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
@@ -823,6 +927,37 @@ const MatrixApp = (function () {
               <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Coberto via Salário USP</div>
             </div>
           </div>
+
+          <!-- Lançamentos Reais da Fatura Sincronizados -->
+          ${itensDoMes.length > 0 ? `
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--text-main);font-size:13px;">📋 Lançamentos Reais Desta Fatura (${itensDoMes.length} compras)</strong>
+              <span style="font-size:11px;color:var(--cyan);">Soma: ${formatBRL(faturaAtual)}</span>
+            </div>
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table" style="font-size:11px;margin:0;">
+                <thead>
+                  <tr>
+                    <th>Item / Estabelecimento</th>
+                    <th>Categoria</th>
+                    <th>Tipo</th>
+                    <th style="text-align:right;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itensDoMes.map(it => `
+                    <tr>
+                      <td><strong>${it.desc}</strong></td>
+                      <td><span class="status-badge" style="font-size:9.5px;">${it.categoria || 'Geral'}</span></td>
+                      <td>${it.tag === 'parc' ? '📦 Parcelado' : '⚡ À vista'}</td>
+                      <td style="text-align:right;font-weight:bold;color:var(--rose);">${formatBRL(it.valor)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>` : ''}
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1070,13 +1205,24 @@ const MatrixApp = (function () {
 
     // Dinheiro
     dinheiro_vivo: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' },
-    dinheiro: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' }
+    dinheiro: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' },
+
+    // Empréstimos & Financiamentos
+    emprestimo_bancario: { label: 'Empréstimo Bancário', class: 'resgate', icon: '🏦' },
+    emprestimo_consignado: { label: 'Consignado USP', class: 'bb', icon: '🏦' },
+    emprestimo_familiar: { label: 'Empréstimo Familiar', class: 'invest', icon: '🤝' },
+    emprestimo: { label: 'Empréstimo', class: 'resgate', icon: '🏦' }
   };
 
   function renderOrigemBadge(conta, renda, nome, metodo = null) {
     const c = String(conta || '').toLowerCase();
     const r = String(renda || '').toLowerCase();
     const n = String(nome || '').toLowerCase();
+
+    // 0. Empréstimos
+    if (c.includes('emprestimo') || r.includes('emprestimo') || n.includes('empréstimo') || n.includes('emprestimo')) {
+      return '<span class="bank-badge resgate" title="Recursos originados de Empréstimo / Financiamento"><span class="bank-icon">🏦</span> <strong>Empréstimo</strong></span>';
+    }
 
     // 1. Direct match in dictionary
     if (BANK_BADGE_MAP[c]) {
@@ -2087,7 +2233,8 @@ const MatrixApp = (function () {
     const va = parseFloat(t['VA']) || 2050.00;
     const vr = parseFloat(t['VR']) || 1235.00;
     const decimo = parseFloat(t['13º']) || (currentMonth === 'Novembro' ? 1566.00 : 0);
-    const estudio = parseFloat(t['Estúdio']) || 0;
+    const nomeEst = getNomeEstudio();
+    const estudio = parseFloat(t[nomeEst] || t['Estúdio']) || 0;
 
     listEl.innerHTML = `
       <div style="display:flex;justify-content:space-between;padding:4px 0;">
@@ -2109,7 +2256,7 @@ const MatrixApp = (function () {
       </div>` : ''}
       ${estudio > 0 ? `
       <div style="display:flex;justify-content:space-between;padding:4px 0;">
-        <span style="color:var(--text-muted);">Estúdio:</span>
+        <span style="color:var(--text-muted);cursor:pointer;" onclick="MatrixApp.promptAlterarNomeEstudio()" title="Clique para alterar o nome desta renda extra">${nomeEst}: ✏️</span>
         <span>${formatBRL(estudio)}</span>
       </div>` : ''}
     `;
@@ -3913,10 +4060,16 @@ const MatrixApp = (function () {
     const nomeInput = document.getElementById('modalItemNome');
     const catSelect = document.getElementById('modalItemCategoria');
 
+    const optEst = document.getElementById('catOptionEstudio');
+    if (optEst) optEst.textContent = `${getNomeEstudio()} / Renda Extra`;
+
+    const empSec = document.getElementById('modalEmprestimoSection');
+    if (empSec) empSec.style.display = 'none';
+
     if (tipo === 'receita') {
       if (titleEl) titleEl.textContent = '+ Nova Receita / Ganho';
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
-      if (nomeInput) nomeInput.placeholder = 'Ex: Salário USP, 13º Salário, Estúdio, Fisio Scarlet...';
+      if (nomeInput) nomeInput.placeholder = `Ex: Salário USP, 13º Salário, ${getNomeEstudio()}, Empréstimo, Fisio Scarlet...`;
       if (catSelect) catSelect.value = 'Salário / Proventos';
     } else if (tipo === 'fixo') {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Fixo';
@@ -4101,8 +4254,245 @@ const MatrixApp = (function () {
       MatrixDB.saveState(state);
     }
 
+    // INTEGRAÇÃO DE EMPRÉSTIMO & AGENDAMENTO DE PARCELAS FUTURAS
+    const isEmprestimo = (cat === 'Empréstimo') || (conta && conta.startsWith('emprestimo_')) || (renda === 'emprestimo');
+    const chkParcelasEmp = document.getElementById('chkGerarParcelasEmprestimo');
+    const deveGerarParcelas = isEmprestimo && chkParcelasEmp && chkParcelasEmp.checked;
+
+    if (deveGerarParcelas && (!editId || !editId.startsWith('idx_'))) {
+      const numParc = parseInt(document.getElementById('modalEmprestimoNumParcelas').value, 10) || 12;
+      let valParc = parseFloat(document.getElementById('modalEmprestimoValorParcela').value) || 0;
+      if (valParc <= 0 && numParc > 0 && valor > 0) {
+        valParc = Math.round((valor / numParc) * 100) / 100;
+      }
+
+      if (valParc > 0 && numParc > 0) {
+        const curY = parseInt(currentYear, 10);
+        const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+
+        for (let p = 1; p <= numParc; p++) {
+          let targetMIdx = curMIdx + p;
+          let targetY = curY + Math.floor(targetMIdx / 12);
+          targetMIdx = targetMIdx % 12;
+          const targetMes = MONTH_NAMES[targetMIdx];
+          const targetAno = String(targetY);
+
+          MatrixDB.addTransaction(targetAno, targetMes, 'fixo', {
+            nome: `Parcela Empréstimo: ${nome} (${p}/${numParc})`,
+            valor: valParc,
+            categoria: 'Contas',
+            conta: conta === 'emprestimo_consignado' ? 'salario_bb' : 'debito_nubank',
+            renda: 'salario_usp',
+            pago: false
+          });
+        }
+      }
+    }
+
     closeModal('itemModalBackdrop');
     renderAll();
+  }
+
+  function onModalCategoriaChange(cat) {
+    const empSection = document.getElementById('modalEmprestimoSection');
+    const contaSel = document.getElementById('modalItemConta');
+    const rendaSel = document.getElementById('modalItemRenda');
+    if (cat === 'Empréstimo') {
+      if (empSection) empSection.style.display = 'block';
+      if (contaSel) contaSel.value = 'emprestimo_bancario';
+      if (rendaSel) rendaSel.value = 'emprestimo';
+    } else {
+      if (empSection) empSection.style.display = 'none';
+    }
+  }
+
+  function toggleEmprestimoParcelas(checked) {
+    const fields = document.getElementById('modalEmprestimoParcelasFields');
+    if (fields) fields.style.display = checked ? 'grid' : 'none';
+  }
+
+  // ==========================================
+  // EDIÇÃO DE SALDOS, RENDAS E FATURAS (MODAL)
+  // ==========================================
+  let saldosModalTargetAno = null;
+  let saldosModalTargetMes = null;
+
+  function openEditSaldosModal(anoParam = null, mesParam = null) {
+    saldosModalTargetAno = anoParam || currentYear;
+    saldosModalTargetMes = mesParam || currentMonth;
+
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(saldosModalTargetAno, saldosModalTargetMes);
+
+    const titleEl = document.getElementById('saldosModalPeriodo');
+    if (titleEl) titleEl.textContent = `${saldosModalTargetMes} / ${saldosModalTargetAno}`;
+
+    // 1. Salário Matheus
+    let salMatheus = 5788.19;
+    const hol = (state.holerites || []).find(h => (h.ano === saldosModalTargetAno && h.mesNome === saldosModalTargetMes) || h.periodo === `${saldosModalTargetAno}-${saldosModalTargetMes}`);
+    if (hol && hol.liquido) {
+      salMatheus = hol.liquido;
+    } else {
+      const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
+      if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
+    }
+
+    // 2. Ganhos Scarlet
+    const ganhosScarlet = getGanhosScarletMes(saldosModalTargetAno, saldosModalTargetMes);
+
+    // 3. VA & VR
+    const va = 2050.00;
+    let vr = 1235.00;
+    try {
+      const mIdx = MONTH_NAMES.indexOf(saldosModalTargetMes);
+      const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+      const commute = CalendarEngine.calculateCommuteAndVR(parseInt(saldosModalTargetAno, 10), mIdx + 1, customLeaves);
+      if (commute && commute.totalVR) vr = commute.totalVR;
+    } catch (e) {}
+
+    // 4. Ganho Extra / Estúdio
+    const nomeEst = getNomeEstudio();
+    let valExtra = 0;
+    let contaExtra = 'salario_bb';
+    (monthData.receitas || []).forEach(r => {
+      const n = (r.nome || '').toLowerCase();
+      if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio') && !n.includes('va') && !n.includes('alimentação') && !n.includes('vr') && !n.includes('refeição')) {
+        valExtra += (parseFloat(r.valor) || 0);
+        if (r.conta) contaExtra = r.conta;
+      }
+    });
+    if (valExtra === 0 && monthData.totais) {
+      valExtra = parseFloat(monthData.totais[nomeEst] || monthData.totais['Estúdio']) || 0;
+    }
+
+    // 5. Fatura Nubank
+    const fatura = getFaturaNubankMes(saldosModalTargetAno, saldosModalTargetMes);
+
+    // 6. Ajuste
+    const ajuste = monthData.ajusteSaldo || 0;
+
+    const setVal = (id, v) => {
+      const el = document.getElementById(id);
+      if (el) el.value = v != null ? v : '';
+    };
+
+    setVal('saldosSalMatheus', salMatheus);
+    setVal('saldosGanhosScarlet', ganhosScarlet);
+    setVal('saldosVa', va);
+    setVal('saldosVr', vr);
+    setVal('saldosNomeEstudio', nomeEst);
+    setVal('saldosValorEstudio', valExtra > 0 ? valExtra : '');
+    setVal('saldosContaEstudio', contaExtra);
+    setVal('saldosFaturaNubank', fatura);
+    setVal('saldosAjusteConciliacao', ajuste !== 0 ? ajuste : '');
+
+    document.getElementById('saldosEditModalBackdrop').classList.add('open');
+  }
+
+  function salvarSaldosModal() {
+    if (!saldosModalTargetAno || !saldosModalTargetMes) return;
+
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(saldosModalTargetAno, saldosModalTargetMes);
+
+    const salMatheus = parseFloat(document.getElementById('saldosSalMatheus').value) || 5788.19;
+    const ganhosScarlet = parseFloat(document.getElementById('saldosGanhosScarlet').value) || 0;
+    const va = parseFloat(document.getElementById('saldosVa').value) || 2050.00;
+    const vr = parseFloat(document.getElementById('saldosVr').value) || 1235.00;
+    const novoNomeEst = (document.getElementById('saldosNomeEstudio').value || '').trim() || 'Estúdio';
+    const valorExtra = parseFloat(document.getElementById('saldosValorEstudio').value) || 0;
+    const contaExtra = document.getElementById('saldosContaEstudio').value || 'salario_bb';
+    const faturaNubank = parseFloat(document.getElementById('saldosFaturaNubank').value) || 0;
+    const ajuste = parseFloat(document.getElementById('saldosAjusteConciliacao').value) || 0;
+
+    // Salva configuração do nome de renda extra
+    if (!state.config) state.config = {};
+    state.config.nomeEstudio = novoNomeEst;
+
+    // Atualiza scarlet no mês
+    if (!monthData.scarlet) monthData.scarlet = {};
+    monthData.scarlet.ganhos = ganhosScarlet;
+    monthData.scarlet.ganhosManual = ganhosScarlet;
+    monthData.scarlet.faturaNubank = faturaNubank;
+    monthData.scarlet.faturaNubankManual = faturaNubank;
+    monthData.ajusteSaldo = ajuste;
+
+    // Atualiza totais
+    if (!monthData.totais) monthData.totais = {};
+    monthData.totais['Salário Mensal'] = salMatheus;
+    monthData.totais['VA'] = va;
+    monthData.totais['VR'] = vr;
+    monthData.totais['Estúdio'] = valorExtra;
+    monthData.totais[novoNomeEst] = valorExtra;
+
+    // Sincroniza nas receitas do mês
+    if (!monthData.receitas) monthData.receitas = [];
+
+    // Salário Matheus
+    let recSal = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
+    if (recSal) {
+      recSal.valor = salMatheus;
+    } else {
+      monthData.receitas.unshift({
+        id: 'rec_sal_' + saldosModalTargetMes,
+        nome: 'Salário Líquido USP (Matheus)',
+        valor: salMatheus,
+        categoria: 'Salário / Proventos',
+        conta: 'salario_bb',
+        renda: 'salario_usp',
+        pago: true
+      });
+    }
+
+    // Ganhos Scarlet
+    let recFisio = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    if (ganhosScarlet > 0) {
+      if (recFisio) {
+        recFisio.valor = ganhosScarlet;
+      } else {
+        monthData.receitas.push({
+          id: 'rec_fisio_' + saldosModalTargetMes,
+          nome: 'Ganhos Scarlet (FisioFlow)',
+          valor: ganhosScarlet,
+          categoria: 'Atendimentos / Scarlet',
+          conta: 'scarlet_fisio',
+          renda: 'ganhos_scarlet',
+          pago: false
+        });
+      }
+    } else if (recFisio) {
+      recFisio.valor = 0;
+    }
+
+    // Ganho Extra
+    let recExtra = monthData.receitas.find(r => {
+      const n = (r.nome || '').toLowerCase();
+      return n.includes('estúdio') || n.includes('extra') || n.includes(novoNomeEst.toLowerCase());
+    });
+    if (valorExtra > 0) {
+      if (recExtra) {
+        recExtra.nome = novoNomeEst;
+        recExtra.valor = valorExtra;
+        recExtra.conta = contaExtra;
+      } else {
+        monthData.receitas.push({
+          id: 'rec_extra_' + saldosModalTargetMes,
+          nome: novoNomeEst,
+          valor: valorExtra,
+          categoria: 'Renda Extra',
+          conta: contaExtra,
+          renda: 'estudio_extra',
+          pago: true
+        });
+      }
+    } else if (recExtra) {
+      recExtra.valor = 0;
+    }
+
+    MatrixDB.saveState(state);
+    closeModal('saldosEditModalBackdrop');
+    renderAll();
+    alert(`✅ Saldos e rendas de ${saldosModalTargetMes}/${saldosModalTargetAno} atualizados com sucesso!`);
   }
 
   function toggleScenarioActive(scenId, isActive) {
@@ -4894,6 +5284,16 @@ const MatrixApp = (function () {
     removeQuickExpenseByIndex,
     renderRevisaoAnualDezembro,
     exportarRelatorioDezembro,
+    installPWA,
+    getNomeEstudio,
+    salvarNomeEstudio,
+    promptAlterarNomeEstudio,
+    getFaturaNubankMes,
+    getGanhosScarletMes,
+    onModalCategoriaChange,
+    toggleEmprestimoParcelas,
+    openEditSaldosModal,
+    salvarSaldosModal,
     switchTab,
     initSwipeNavigation
   };

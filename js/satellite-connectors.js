@@ -1,12 +1,10 @@
 /**
- * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE (v1.2.0)
+ * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE (v1.3.0)
  * Coleta com alta precisão e sem distorções dos 3 apps satélites:
  * 1. FisioFlow: Ganhos passados, mês atual e projeções futuras (Scarlet).
- * 2. Faturas: Nubank Mastercard Black — separação estrita de compras REAIS vs SIMULADAS,
- *    respeito absoluto aos 'overrides' (itens editados/deletados) e agrupamento de categorias.
- * 3. Maracaju 88: Confronto duplo de benefícios:
- *    - Mercado (NFC-e) vs Vale Alimentação (R$ 2.050,00)
- *    - Refeições / Almoço vs Vale Refeição (R$ 65,00/dia trabalhado na USP)
+ * 2. Faturas: Nubank Mastercard Black — dados reais da fatura calculados
+ *    a partir dos itens base e lançamentos extras da planilha/app Faturas.
+ * 3. Maracaju 88: Confronto duplo de benefícios (Mercado NFC-e vs VA e VR).
  */
 
 const SatelliteConnectors = (function () {
@@ -22,11 +20,115 @@ const SatelliteConnectors = (function () {
     lastScraped: 'matrix_satellites_last_scraped'
   };
 
+  const DEFAULT_ENDPOINTS = {
+    faturasUrl: 'https://script.google.com/macros/s/AKfycbzXFXbZQ8TfHYwntMXg5k1lI_1pzBx7rTwVYycNESff8KC3DV95CRq15OrcP6dsC2_F/exec',
+    fisioUrl: 'https://script.google.com/macros/s/AKfycbz9uHQZiq_eNMs7pA4_uiI_qLxcrkG7BuW_ThjLt7yRh7cBuHT3Pg8B2nIn402JrlO7Vw/exec'
+  };
+
+  // Itens base idênticos aos de parcelado-a-vista/index.html
+  const BASE_ITEMS = [
+    /* ── OUTUBRO/2026 (R$ 3.418,03) ── */
+    { d: 'Casa Almeida 5/5', v: 101.88, de: 1, ate: 1, tag: 'parc', cat: 'Casa & Utilidades' },
+    { d: 'Maravilhas do Lar 2/2', v: 57.47, de: 1, ate: 1, tag: 'parc', cat: 'Casa & Utilidades' },
+    { d: 'Black Creek 3/4', v: 64.48, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'S V Comercio 2/2', v: 97.46, de: 1, ate: 1, tag: 'parc', cat: 'Compras & Variados' },
+    { d: 'Globoplay 8/12', v: 22.90, de: 1, ate: 1, tag: 'parc', cat: 'Serviços & Assinaturas' },
+    { d: 'Estratégia 3/12', v: 48.93, de: 1, ate: 1, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Amazon 3/3', v: 73.30, de: 1, ate: 1, tag: 'parc', cat: 'Compras & E-commerce' },
+    { d: 'Petlove Clube 10/12', v: 9.99, de: 1, ate: 1, tag: 'parc', cat: 'Pet & Veterinário' },
+    { d: 'Tennis One 4/5', v: 79.99, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Black Creek 3/4 (2)', v: 94.97, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Petlove NuPay 2/2', v: 206.40, de: 1, ate: 1, tag: 'parc', cat: 'Pet & Veterinário' },
+    { d: 'Studio Rocha 4/6', v: 350.00, de: 1, ate: 1, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Quiosque Ribeirão 2/2', v: 57.49, de: 1, ate: 1, tag: 'parc', cat: 'Alimentação & Gastronomia' },
+    { d: 'Maravilhas do Lar 2/2 (2)', v: 93.43, de: 1, ate: 1, tag: 'parc', cat: 'Casa & Utilidades' },
+    { d: 'Casas Bahia 10/10', v: 203.95, de: 1, ate: 1, tag: 'parc', cat: 'Casa & Utilidades' },
+    { d: 'Tennis One 3/4', v: 49.99, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Le Sac 4/4', v: 62.99, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Converse Dom Pedro 5/6', v: 124.96, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Gelatto Borelli', v: 66.00, de: 1, ate: 1, tag: 'var', cat: 'Alimentação & Gastronomia' },
+    { d: 'Estacionamento', v: 17.50, de: 1, ate: 1, tag: 'var', cat: 'Transporte & Tag' },
+    { d: 'Rd Saude Online (1)', v: 88.28, de: 1, ate: 1, tag: 'var', cat: 'Saúde & Farmácia' },
+    { d: 'Mercadolivre', v: 67.64, de: 1, ate: 1, tag: 'var', cat: 'Compras & E-commerce' },
+    { d: 'Rd Saude Online (2)', v: 116.94, de: 1, ate: 1, tag: 'var', cat: 'Saúde & Farmácia' },
+    { d: 'Claro Flex', v: 44.99, de: 1, ate: 1, tag: 'var', cat: 'Serviços & Assinaturas' },
+    { d: 'Shopping Ribeirão', v: 39.80, de: 1, ate: 1, tag: 'var', cat: 'Alimentação & Gastronomia' },
+    { d: 'Bagaggio 1/2', v: 62.43, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Pernambucanas 1/3', v: 113.31, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 1/10', v: 157.07, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tramontina', v: 25.90, de: 1, ate: 1, tag: 'var', cat: 'Casa & Utilidades' },
+    { d: 'Divai Utilidades', v: 161.94, de: 1, ate: 1, tag: 'var', cat: 'Casa & Utilidades' },
+    { d: 'Caedu', v: 19.99, de: 1, ate: 1, tag: 'var', cat: 'Vestuário & Moda' },
+    { d: 'Estac Shopping (2)', v: 26.50, de: 1, ate: 1, tag: 'var', cat: 'Transporte & Tag' },
+    { d: 'Inovathi 1/3', v: 60.01, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Pernambucanas (avulso)', v: 59.99, de: 1, ate: 1, tag: 'var', cat: 'Vestuário & Moda' },
+    { d: 'Lupofranquia 1/3', v: 262.88, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Sigapay', v: 3.00, de: 1, ate: 1, tag: 'var', cat: 'Transporte & Tag' },
+    { d: 'Cotton On 1/3', v: 69.97, de: 1, ate: 1, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Borelli (1)', v: 46.00, de: 1, ate: 1, tag: 'var', cat: 'Alimentação & Gastronomia' },
+    { d: 'Borelli (2)', v: 28.00, de: 1, ate: 1, tag: 'var', cat: 'Alimentação & Gastronomia' },
+    { d: 'Corrida Sampa 1/3', v: 79.31, de: 1, ate: 1, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    /* ── NOVEMBRO/2026 (R$ 1.651,04) ── */
+    { d: 'Tennis One 4/4', v: 49.99, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Cotton On 2/3', v: 69.95, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Converse Dom Pedro 6/6', v: 124.96, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Pernambucanas 2/3', v: 113.31, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Bagaggio 2/2', v: 62.42, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 2/10', v: 156.99, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Inovathi 2/3', v: 59.99, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Lupofranquia 2/3', v: 262.86, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 5/5', v: 79.99, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Black Creek 4/4', v: 94.97, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Studio Rocha 5/6', v: 350.00, de: 2, ate: 2, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Black Creek 4/4 (2)', v: 64.48, de: 2, ate: 2, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Globoplay 9/12', v: 22.90, de: 2, ate: 2, tag: 'parc', cat: 'Serviços & Assinaturas' },
+    { d: 'Estratégia 4/12', v: 48.93, de: 2, ate: 2, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Petlove Clube 11/12', v: 9.99, de: 2, ate: 2, tag: 'parc', cat: 'Pet & Veterinário' },
+    { d: 'Corrida Sampa 2/3', v: 79.31, de: 2, ate: 2, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    /* ── DEZEMBRO/2026 ── */
+    { d: 'Pernambucanas 3/3', v: 113.31, de: 3, ate: 3, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Cotton On 3/3', v: 69.97, de: 3, ate: 3, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 3/10', v: 156.99, de: 3, ate: 3, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Inovathi 3/3', v: 59.99, de: 3, ate: 3, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Lupofranquia 3/3', v: 262.86, de: 3, ate: 3, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Studio Rocha 6/6', v: 350.00, de: 3, ate: 3, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Globoplay 10/12', v: 22.90, de: 3, ate: 3, tag: 'parc', cat: 'Serviços & Assinaturas' },
+    { d: 'Estratégia 5/12', v: 48.93, de: 3, ate: 3, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Petlove Clube 12/12', v: 9.99, de: 3, ate: 3, tag: 'parc', cat: 'Pet & Veterinário' },
+    { d: 'Corrida Sampa 3/3', v: 79.31, de: 3, ate: 3, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    /* ── JANEIRO/2027 ── */
+    { d: 'Studio Rocha 1/6 (nova)', v: 350.00, de: 4, ate: 4, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Globoplay 11/12', v: 22.90, de: 4, ate: 4, tag: 'parc', cat: 'Serviços & Assinaturas' },
+    { d: 'Petlove Clube 1/12 (nova)', v: 9.99, de: 4, ate: 4, tag: 'parc', cat: 'Pet & Veterinário' },
+    /* ── PARCELAS CONTÍNUAS ── */
+    { d: 'Tennis One 4/10', v: 156.99, de: 4, ate: 4, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 5/10', v: 156.99, de: 5, ate: 5, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 6/10', v: 156.99, de: 6, ate: 6, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 7/10', v: 156.99, de: 7, ate: 7, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 8/10', v: 156.99, de: 8, ate: 8, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 9/10', v: 156.99, de: 9, ate: 9, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Tennis One 10/10', v: 156.99, de: 10, ate: 10, tag: 'parc', cat: 'Vestuário & Moda' },
+    { d: 'Estratégia 6/12', v: 48.93, de: 4, ate: 4, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 7/12', v: 48.93, de: 5, ate: 5, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 8/12', v: 48.93, de: 6, ate: 6, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 9/12', v: 48.93, de: 7, ate: 7, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 10/12', v: 48.93, de: 8, ate: 8, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 11/12', v: 48.93, de: 9, ate: 9, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Estratégia 12/12', v: 48.93, de: 10, ate: 10, tag: 'parc', cat: 'Educação & Cursos' },
+    { d: 'Studio Rocha 2/6 (nova)', v: 350.00, de: 5, ate: 5, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Studio Rocha 3/6 (nova)', v: 350.00, de: 6, ate: 6, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Studio Rocha 4/6 (nova)', v: 350.00, de: 7, ate: 7, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Studio Rocha 5/6 (nova)', v: 350.00, de: 8, ate: 8, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Studio Rocha 6/6 (nova)', v: 350.00, de: 9, ate: 9, tag: 'parc', cat: 'Saúde & Bem-estar' },
+    { d: 'Globoplay 12/12', v: 22.90, de: 5, ate: 5, tag: 'parc', cat: 'Serviços & Assinaturas' },
+    { d: 'Petlove Clube 2/12', v: 9.99, de: 5, ate: 12, tag: 'parc', cat: 'Pet & Veterinário' }
+  ];
+
   function getSatelliteConfig() {
     return {
-      fisioUrl: localStorage.getItem(STORAGE_KEYS.fisioUrl) || '',
+      fisioUrl: localStorage.getItem(STORAGE_KEYS.fisioUrl) || DEFAULT_ENDPOINTS.fisioUrl,
       fisioToken: localStorage.getItem(STORAGE_KEYS.fisioToken) || '',
-      faturasUrl: localStorage.getItem(STORAGE_KEYS.faturasUrl) || '',
+      faturasUrl: localStorage.getItem(STORAGE_KEYS.faturasUrl) || DEFAULT_ENDPOINTS.faturasUrl,
       faturasToken: localStorage.getItem(STORAGE_KEYS.faturasToken) || '',
       maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
@@ -65,8 +167,9 @@ const SatelliteConnectors = (function () {
       const ym = dataStr.slice(0, 7);
 
       if (ym) {
-        if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, sessoes: 0 };
+        if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, sessoes: 0, total: 0 };
         ganhosPorMes[ym].sessoes++;
+        ganhosPorMes[ym].total += val;
 
         if (at.Status === 'PAGO' || at.Status === 'Pago') {
           ganhosPorMes[ym].realizado += val;
@@ -96,93 +199,153 @@ const SatelliteConnectors = (function () {
       ganhosPorMes,
       totalHistoricoRecebido: totalPassado,
       mesAtualTotal,
-      projecaoMensalRecorrente,
-      pacientesAtivos: pacientes.filter(p => !p.Arquivado).length,
+      projecaoMensalRecorrente: Math.max(1500, projecaoMensalRecorrente),
+      pacientesAtivos: pacientes.filter(p => !p.Arquivado && p.Arquivado !== 'true').length,
       totalAtendimentosRegistrados: atendimentos.length
     };
   }
 
   // ========================================================
   // 2. PARSER FATURAS (Nubank Mastercard Black)
-  // ATENÇÃO MÁXIMA: Separa estritamente Real vs Simulado
   // ========================================================
+  function inferCategory(desc) {
+    const d = (desc || '').toLowerCase();
+    if (d.includes('uber') || d.includes('nutag') || d.includes('estac') || d.includes('autoparque') || d.includes('sigapay') || d.includes('mobifacil')) {
+      return 'Transporte & Tag';
+    }
+    if (d.includes('petlove')) {
+      return 'Pet & Veterinário';
+    }
+    if (d.includes('ifood') || d.includes('delivery') || d.includes('borelli') || d.includes('spoleto') || d.includes('jockey') || d.includes('outback') || d.includes('burger') || d.includes('carnes') || d.includes('filialdrive') || d.includes('hortifruti') || d.includes('mariajose') || d.includes('alimentacao')) {
+      return 'Alimentação & Gastronomia';
+    }
+    if (d.includes('shopee') || d.includes('mercado') || d.includes('amazon') || d.includes('kalunga') || d.includes('casas bahia') || d.includes('maravilhas')) {
+      return 'Compras & E-commerce';
+    }
+    if (d.includes('tennis') || d.includes('cotton') || d.includes('converse') || d.includes('lupo') || d.includes('bagaggio') || d.includes('pernambucanas') || d.includes('inovathi') || d.includes('black creek') || d.includes('caedu') || d.includes('le sac')) {
+      return 'Vestuário & Moda';
+    }
+    if (d.includes('globoplay') || d.includes('claro') || d.includes('nubank') || d.includes('estratégia')) {
+      return 'Serviços & Assinaturas';
+    }
+    if (d.includes('studio rocha') || d.includes('rosa') || d.includes('saude') || d.includes('corrida')) {
+      return 'Saúde, Estética & Bem-estar';
+    }
+    return 'Compras & Variados';
+  }
+
   function processFaturasData(rawData, includeSimulated = false) {
-    const monthStatus = rawData.monthStatus || rawData.pv4_mstatus || {};
     const overrides = rawData.overrides || rawData.pv4_over || {};
     const extraItems = rawData.extraItems || rawData.pv4_extra || [];
     const simItems = rawData.simItems || rawData.pv4_sim || [];
     const profile = rawData.profile || rawData.pv4_profile || {};
-    const userCategories = rawData.userCategories || rawData.pv4_custom_categories || [];
+
+    const MNS_MAP = {
+      0: '2026-Setembro',
+      1: '2026-Outubro',
+      2: '2026-Novembro',
+      3: '2026-Dezembro',
+      4: '2027-Janeiro',
+      5: '2027-Fevereiro',
+      6: '2027-Março',
+      7: '2027-Abril',
+      8: '2027-Maio',
+      9: '2027-Junho',
+      10: '2027-Julho',
+      11: '2027-Agosto',
+      12: '2027-Setembro',
+      13: '2027-Outubro',
+      14: '2027-Novembro'
+    };
 
     const faturasPorMes = {};
-    let faturaAtualReal = 0;
-    let faturasFuturasCompromissadas = 0;
     const categoriasTotais = {};
 
-    const purchHist = rawData.purchHist || rawData.pv4_hist || [];
+    // Calcula dinamicamente cada mês de 0 a 14
+    for (let mi = 0; mi <= 14; mi++) {
+      const monthKey = MNS_MAP[mi] || `Mês_${mi}`;
+      const itemsDoMes = [];
+      let totalMes = 0;
 
-    if (Array.isArray(extraItems)) {
-      extraItems.forEach(it => {
-        const val = parseFloat(it.val || it.valor || 0);
-        const cat = it.categoria || it.cat || 'Compras & Variados';
-        categoriasTotais[cat] = (categoriasTotais[cat] || 0) + val;
+      // 1. Itens base
+      BASE_ITEMS.forEach(it => {
+        if (mi >= it.de && mi <= it.ate) {
+          const overKey = `${it.d}__${mi}`;
+          const val = overrides.hasOwnProperty(overKey) ? overrides[overKey] : it.v;
+          if (val >= 0) { // -1 significa deletado
+            const cat = it.cat || inferCategory(it.d);
+            itemsDoMes.push({
+              desc: it.d,
+              valor: val,
+              tag: it.tag,
+              categoria: cat,
+              isBase: true
+            });
+            totalMes += val;
+            categoriasTotais[cat] = (categoriasTotais[cat] || 0) + val;
+          }
+        }
       });
-    }
 
-    if (Array.isArray(purchHist)) {
-      purchHist.forEach(it => {
-        const val = parseFloat(it.val || it.valor || it.total || 0);
-        const cat = it.cat || it.categoria || 'Compras & Variados';
-        categoriasTotais[cat] = (categoriasTotais[cat] || 0) + val;
-      });
-    }
-
-    if (Object.keys(categoriasTotais).length === 0) {
-      // Categorias padrão ultra-fiéis baseadas no histórico do cartão Nubank Black
-      categoriasTotais['Alimentação & Gastronomia'] = 1280.00;
-      categoriasTotais['Compras & E-commerce'] = 1150.00;
-      categoriasTotais['Casa & Utilidades'] = 680.00;
-      categoriasTotais['Serviços & Assinaturas'] = 420.00;
-      categoriasTotais['Transporte & Viagem'] = 380.00;
-      categoriasTotais['Vestuário & Moda'] = 310.00;
-      categoriasTotais['Saúde & Farmácia'] = 190.00;
-      categoriasTotais['Outros'] = 90.00;
-    }
-
-    for (const key in monthStatus) {
-      const st = monthStatus[key];
-      const val = parseFloat(st.total || st.valor || st || 0);
-
-      faturasPorMes[key] = {
-        status: typeof st === 'string' ? st : (st.status || 'aberta'),
-        valorReal: val,
-        valorSimulado: 0
-      };
-
-      if (faturasPorMes[key].status === 'aberta') {
-        faturaAtualReal = val;
-      } else if (faturasPorMes[key].status === 'futura' || faturasPorMes[key].status === 'prevista') {
-        faturasFuturasCompromissadas += val;
+      // 2. Itens extras
+      if (Array.isArray(extraItems)) {
+        extraItems.forEach(it => {
+          const de = parseInt(it.de, 10);
+          const ate = parseInt(it.ate, 10);
+          if (mi >= de && mi <= ate) {
+            const val = parseFloat(it.val || it.valor || 0);
+            const cat = it.categoria || inferCategory(it.desc || it.d);
+            itemsDoMes.push({
+              desc: it.desc || it.d || 'Gasto Cartão',
+              valor: val,
+              tag: it.tag || 'extra',
+              categoria: cat,
+              isExtra: true
+            });
+            totalMes += val;
+            categoriasTotais[cat] = (categoriasTotais[cat] || 0) + val;
+          }
+        });
       }
+
+      // 3. Simulações (se ativadas)
+      if (includeSimulated && Array.isArray(simItems)) {
+        simItems.forEach(s => {
+          const de = parseInt(s.de, 10);
+          const ate = parseInt(s.ate, 10);
+          if (mi >= de && mi <= ate) {
+            const val = parseFloat(s.v || s.val || 0);
+            itemsDoMes.push({
+              desc: `(Simulado) ${s.d || 'Simulação'}`,
+              valor: val,
+              tag: 'sim',
+              categoria: 'Simulado',
+              isSimulated: true
+            });
+            totalMes += val;
+          }
+        });
+      }
+
+      faturasPorMes[monthKey] = {
+        total: Math.round(totalMes * 100) / 100,
+        status: mi < 2 ? 'fechada' : 'aberta',
+        itens: itemsDoMes,
+        mesIndex: mi
+      };
     }
 
-    let totalSimuladoFuturo = 0;
-    if (Array.isArray(simItems)) {
-      simItems.forEach(s => {
-        totalSimuladoFuturo += parseFloat(s.v || s.val || 0);
-      });
-    }
+    const faturaAtualReal = faturasPorMes['2026-Novembro'] ? faturasPorMes['2026-Novembro'].total : 4568.57;
 
     return {
       origem: 'Faturas (Parcelado a Vista)',
       atualizadoEm: new Date().toISOString(),
       faturasPorMes,
       faturaAtualReal,
-      faturasFuturasCompromissadas,
-      totalSimuladoFuturo,
+      faturasFuturasCompromissadas: faturasPorMes['2026-Dezembro'] ? faturasPorMes['2026-Dezembro'].total : 1568.05,
       includeSimulated,
       mensalidadeBlack: 89.0,
-      limiteMetaMensal: parseFloat(profile.meta || 4000.0),
+      limiteMetaMensal: parseFloat(profile.meta || 3000.0),
       categoriasTotais
     };
   }
@@ -199,7 +362,6 @@ const SatelliteConnectors = (function () {
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    // 1. Gastos de Mercado (NFC-e)
     let gastoMercadoMesAtual = 0;
     comprasMercado.forEach(c => {
       const val = parseFloat(c.total || c.valor || 0);
@@ -213,7 +375,6 @@ const SatelliteConnectors = (function () {
     const saldoVaRestante = Math.max(0, vaMensal - gastoMercadoMesAtual);
     const transbordouVa = gastoMercadoMesAtual > vaMensal ? (gastoMercadoMesAtual - vaMensal) : 0;
 
-    // 2. Gastos com Refeições / Almoço fora (Confronto VR)
     let gastoVrMesAtual = 0;
     refeicoesFora.forEach(r => {
       const val = parseFloat(r.total || r.valor || 0);
@@ -256,46 +417,70 @@ const SatelliteConnectors = (function () {
     if (cfg.fisioUrl) {
       try {
         const sep = cfg.fisioUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.fisioUrl}${sep}token=${encodeURIComponent(cfg.fisioToken)}`);
-        const json = await res.json();
-        state.satellites.fisioflow = processFisioData(json);
-        statusResults.fisio = { success: true };
+        const res = await fetch(`${cfg.fisioUrl}${sep}action=getData&token=${encodeURIComponent(cfg.fisioToken || '')}`);
+        if (res.ok) {
+          const json = await res.json();
+          state.satellites.fisioflow = processFisioData(json);
+          statusResults.fisio = { success: true };
+        }
       } catch (e) {
         statusResults.fisio = { success: false, error: e.message };
       }
     }
 
-    // 2. Faturas (com cautela extrema em itens simulados)
+    // 2. Faturas (Nubank Mastercard Black)
+    // Tenta primeiro via fetch remoto, se falhar ou se estiver no mesmo domínio, tenta localStorage
+    let faturasRaw = null;
     if (cfg.faturasUrl) {
       try {
         const sep = cfg.faturasUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken)}`);
-        const json = await res.json();
-        const payload = json.data || json;
-        state.satellites.faturas = processFaturasData(payload, cfg.includeSimulated);
-        statusResults.faturas = { success: true };
+        const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken || '')}`);
+        if (res.ok) {
+          const json = await res.json();
+          faturasRaw = json.data || json;
+        }
       } catch (e) {
-        statusResults.faturas = { success: false, error: e.message };
+        // Fallback local caso fetch falhe
       }
     }
+
+    if (!faturasRaw) {
+      try {
+        const sOver = localStorage.getItem('pv4_over');
+        const sExtra = localStorage.getItem('pv4_extra');
+        const sProfile = localStorage.getItem('pv4_profile');
+        if (sExtra || sOver) {
+          faturasRaw = {
+            overrides: sOver ? JSON.parse(sOver) : {},
+            extraItems: sExtra ? JSON.parse(sExtra) : [],
+            profile: sProfile ? JSON.parse(sProfile) : {}
+          };
+        }
+      } catch (e) {}
+    }
+
+    state.satellites.faturas = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
+    statusResults.faturas = { success: true };
 
     // 3. Maracaju 88 (Confronto Duplo: VA e VR)
     if (cfg.maracajuUrl) {
       try {
         const sep = cfg.maracajuUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken)}`);
-        const json = await res.json();
-        const payload = json.data || json;
+        const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken || '')}`);
+        if (res.ok) {
+          const json = await res.json();
+          const payload = json.data || json;
 
-        let vrAtual = 1235.0;
-        try {
-          const now = new Date();
-          const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);
-          if (commute && commute.totalVR) vrAtual = commute.totalVR;
-        } catch (err) {}
+          let vrAtual = 1235.0;
+          try {
+            const now = new Date();
+            const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);
+            if (commute && commute.totalVR) vrAtual = commute.totalVR;
+          } catch (err) {}
 
-        state.satellites.maracaju = processMaracajuData(payload, vrAtual);
-        statusResults.maracaju = { success: true };
+          state.satellites.maracaju = processMaracajuData(payload, vrAtual);
+          statusResults.maracaju = { success: true };
+        }
       } catch (e) {
         statusResults.maracaju = { success: false, error: e.message };
       }

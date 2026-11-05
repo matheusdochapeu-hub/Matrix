@@ -32,6 +32,10 @@
       </div>
 
       <div class="header-controls">
+        <button id="btnInstallApp" class="btn-matrix pwa-install-btn" onclick="MatrixApp.installPWA()" title="Instalar / Baixar o App Matrix no Celular ou Computador">
+          <span class="matrix-btn-icon">📲</span> <span>Baixar App</span>
+        </button>
+
         <button id="rainToggleBtn" class="btn-matrix" title="Ligar/Desligar Chuva Digital">⚡ Rain ON</button>
         
         <!-- Year Selector & Add Year -->
@@ -310,9 +314,12 @@
 
           <!-- Bloco: Fechamento Consolidado & Totais Executivos -->
           <div class="fechamento-dashboard-card">
-            <div style="font-size:11px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-              <span>📊 Fechamento Consolidado do Mês</span>
-              <span id="fechamentoMesBadge" class="status-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border:1px solid var(--matrix-green-dim);">Mês Ativo</span>
+            <div style="font-size:11px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span>📊 Fechamento Consolidado do Mês</span>
+                <span id="fechamentoMesBadge" class="status-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border:1px solid var(--matrix-green-dim);">Mês Ativo</span>
+              </div>
+              <button type="button" class="btn-matrix" style="font-size:10.5px;padding:3px 8px;" onclick="MatrixApp.openEditSaldosModal()" title="Editar Saldos, Rendas, Salários e Faturas do Mês">✏️ Editar Saldos</button>
             </div>
 
             <!-- Totais de Fixos e Variáveis abaixo de Receitas e Fechamento -->
@@ -332,8 +339,8 @@
                 <span class="val" id="fechamentoTotalOutros">R$ 0,00</span>
                 <span class="sub" id="fechamentoOutrosSub">0 pagos • 0 pendentes</span>
               </div>
-              <div class="fechamento-stat-box cyan">
-                <span class="label">(=) Saldo Líquido</span>
+              <div class="fechamento-stat-box cyan" style="cursor:pointer;" onclick="MatrixApp.openEditSaldosModal()" title="Clique para editar e calibrar saldos e rendas deste mês">
+                <span class="label">(=) Saldo Líquido ✏️</span>
                 <span class="val" id="fechamentoSaldoLiquido">R$ 0,00</span>
                 <span class="sub" id="fechamentoSaldoSub">Margem pós-despesas</span>
               </div>
@@ -1116,7 +1123,7 @@
 
       <div style="margin-bottom:16px;">
         <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
-        <select id="modalItemCategoria" class="matrix-select">
+        <select id="modalItemCategoria" class="matrix-select" onchange="MatrixApp.onModalCategoriaChange(this.value)">
           <!-- Categorias de Despesas -->
           <option value="Habitação">Habitação (Casa / Condomínio / Financiamento)</option>
           <option value="Transporte">Transporte (Caronas / Carro / Combustível)</option>
@@ -1129,7 +1136,9 @@
           <option value="Salário / Proventos">Salário / Proventos (USP / MPSP)</option>
           <option value="Benefícios">Benefícios (VA / VR)</option>
           <option value="Atendimentos / Scarlet">Atendimentos / Scarlet (FisioFlow)</option>
-          <option value="Renda Extra">Renda Extra (Estúdio / Aulas / Bicos)</option>
+          <option value="Renda Extra" id="catOptionEstudio">Estúdio / Renda Extra</option>
+          <option value="Empréstimo">🏦 Empréstimo / Financiamento (Entrada de Recursos)</option>
+          <option value="Outros Ganhos">🎁 Outros Ganhos / Bonificação / Vendas</option>
           <option value="Rendimentos">Rendimentos / Restituição IRPF / Proventos</option>
           <option value="Outros" selected>Outros</option>
         </select>
@@ -1164,6 +1173,11 @@
               <option value="debito_caixa">🔵 Débito Automático Caixa (Casa)</option>
               <option value="fgts_caixa">🔵 FGTS USP Caixa</option>
             </optgroup>
+            <optgroup label="🏦 Empréstimos & Financiamentos">
+              <option value="emprestimo_bancario">🏦 Empréstimo Pessoal Bancário (BB / Nubank / Inter)</option>
+              <option value="emprestimo_consignado">🏦 Empréstimo Consignado USP</option>
+              <option value="emprestimo_familiar">🤝 Empréstimo Familiar / Terceiros</option>
+            </optgroup>
             <optgroup label="Benefícios (USP / Maracaju 88)">
               <option value="cartao_va">🟢 Cartão VA Alimentação (Maracaju 88)</option>
               <option value="cartao_vr">🍽️ Cartão VR Refeição (Almoço USP)</option>
@@ -1192,6 +1206,8 @@
             <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
             <option value="investimento_resgate">Resgate de Investimento (Tesouro)</option>
             <option value="estudio_extra">Estúdio / Renda Extra</option>
+            <option value="emprestimo">Empréstimo / Recursos Externos</option>
+            <option value="outros_ganhos">Outros Ganhos / Extras</option>
             <option value="orcamento_geral" selected>Orçamento Geral Conjunto</option>
           </select>
         </div>
@@ -1251,6 +1267,26 @@
                 <option value="Scarlet">Scarlet</option>
               </select>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-bloco Dinâmico para Empréstimo: Agendamento de Parcelas Futuras -->
+      <div id="modalEmprestimoSection" style="display:none;background:rgba(234,179,8,0.08);border:1px solid var(--amber);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:14px;">
+        <strong style="color:var(--amber);font-size:12px;display:block;margin-bottom:6px;">🏦 Condições do Empréstimo / Financiamento:</strong>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px 0;">O valor total do empréstimo entra como receita no caixa deste mês. Deseja agendar as parcelas de pagamento automaticamente nos Gastos Fixos dos meses seguintes?</p>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-main);cursor:pointer;margin-bottom:8px;">
+          <input type="checkbox" id="chkGerarParcelasEmprestimo" checked onchange="MatrixApp.toggleEmprestimoParcelas(this.checked)">
+          Programar parcelas automáticas de amortização nos Gastos Fixos
+        </label>
+        <div id="modalEmprestimoParcelasFields" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Qtd. de Parcelas:</label>
+            <input type="number" id="modalEmprestimoNumParcelas" class="input-matrix" value="12" min="1" max="120" style="padding:4px 8px;font-size:12px;">
+          </div>
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Valor da Parcela (R$):</label>
+            <input type="number" step="0.01" id="modalEmprestimoValorParcela" class="input-matrix" placeholder="Ex: 350.00" style="padding:4px 8px;font-size:12px;">
           </div>
         </div>
       </div>
@@ -1611,6 +1647,137 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button type="button" class="btn-matrix" onclick="MatrixApp.closeModal('quickExpenseModalBackdrop')">Cancelar</button>
         <button type="button" class="btn-matrix primary" onclick="MatrixApp.saveQuickExpense()">💾 Salvar Gasto Diário</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR SALDOS, RENDAS E FATURA DO MÊS -->
+  <div id="saldosEditModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="saldosEditModalTitle">✏️ Editar Saldos & Rendas (<span id="saldosModalPeriodo">Novembro / 2026</span>)</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('saldosEditModalBackdrop')">&times;</button>
+      </div>
+
+      <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 14px 0;">
+        Ajuste fino dos saldos e entradas do casal. Toda alteração reflete imediatamente nos KPIs, cartões do horizonte mensal, rastreabilidade e saldo final.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">👨‍💼 Salário USP (Matheus) Líquido:</label>
+          <input type="number" step="0.01" id="saldosSalMatheus" class="matrix-input" placeholder="5788.19">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--cyan);">👩‍⚕️ Ganhos Scarlet (FisioFlow):</label>
+          <input type="number" step="0.01" id="saldosGanhosScarlet" class="matrix-input" placeholder="1100.00">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA - Maracaju):</label>
+          <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2050.00">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR - USP Presencial):</label>
+          <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1235.00">
+        </div>
+      </div>
+
+      <!-- Customização Completa do Ganho Extra (Estúdio, Aulas, etc.) -->
+      <div style="background:rgba(5,8,7,0.6);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:block;margin-bottom:4px;">
+          🎁 Renda Extra / Outros Ganhos (Personalize o Nome):
+        </label>
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Nome do Ganho (ex: Estúdio, Aulas, Consultoria):</label>
+            <input type="text" id="saldosNomeEstudio" class="matrix-input" placeholder="Estúdio" style="font-size:12px;">
+          </div>
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Valor no Mês (R$):</label>
+            <input type="number" step="0.01" id="saldosValorEstudio" class="matrix-input" placeholder="0.00" style="font-size:12px;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--text-muted);">De onde vem esse dinheiro (Conta / Banco de Entrada):</label>
+          <select id="saldosContaEstudio" class="matrix-select" style="font-size:11.5px;">
+            <option value="salario_bb">🟡 Banco do Brasil (Conta Corrente)</option>
+            <option value="debito_nubank">🟣 Nubank</option>
+            <option value="debito_inter">🟠 Banco Inter</option>
+            <option value="debito_santander">🔴 Santander</option>
+            <option value="emprestimo_bancario">🏦 Empréstimo / Financiamento</option>
+            <option value="dinheiro_vivo">💵 Dinheiro Vivo / Carteira</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Fatura Nubank Black (Dados Reais do Faturas) -->
+      <div style="background:rgba(130,10,209,0.08);border:1px solid #820ad1;padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <strong style="color:#d8b4fe;font-size:12px;">💳 Fatura Nubank Black (Mastercard)</strong>
+          <span style="font-size:10px;color:var(--cyan);background:rgba(6,182,212,0.15);padding:2px 6px;border-radius:4px;">App Faturas Real</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Valor da Fatura (R$):</label>
+            <input type="number" step="0.01" id="saldosFaturaNubank" class="matrix-input" placeholder="4568.57" style="font-size:12.5px;font-weight:bold;color:var(--text-main);">
+          </div>
+          <div style="display:flex;flex-direction:column;justify-content:center;">
+            <span style="font-size:10px;color:var(--text-muted);">
+              Valor sincronizado diretamente da planilha/app Faturas. Você pode alterar manualmente aqui se desejar.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--text-muted);">Ajuste / Conciliação Bancária com Extrato Real (R$):</label>
+        <input type="number" step="0.01" id="saldosAjusteConciliacao" class="matrix-input" placeholder="0.00" title="Valor positivo ou negativo para calibrar o saldo livre ao extrato do banco">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn-matrix" onclick="MatrixApp.closeModal('saldosEditModalBackdrop')">Cancelar</button>
+        <button type="button" class="btn-matrix primary" onclick="MatrixApp.salvarSaldosModal()">💾 Salvar Saldos & Rendas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INSTALAÇÃO & DOWNLOAD DO APP PWA -->
+  <div id="installAppModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>📲 Baixar & Instalar App Matrix</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('installAppModalBackdrop')">&times;</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-main);line-height:1.6;margin-bottom:16px;">
+        <p style="margin-top:0;">
+          O <strong>Matrix Finance 360</strong> pode ser instalado no seu celular ou computador como um <strong>aplicativo nativo</strong>, com carregamento ultrarrápido e funcionamento offline!
+        </p>
+        
+        <div style="background:rgba(0,255,102,0.06);border:1px solid var(--matrix-green-dim);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:10px;">
+          <strong style="color:var(--matrix-green);display:block;margin-bottom:4px;">🤖 No Android (Google Chrome / Brave):</strong>
+          1. Toque nos <strong>3 pontinhos (⋮)</strong> no canto superior direito do navegador.<br>
+          2. Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.<br>
+          3. O ícone oficial do Matrix aparecerá na sua tela de apps!
+        </div>
+
+        <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.3);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:10px;">
+          <strong style="color:var(--cyan);display:block;margin-bottom:4px;">🍏 No iPhone / iPad (Safari):</strong>
+          1. Toque no botão de <strong>Compartilhar (ícone do quadrado com seta para cima ⎘)</strong> na barra inferior.<br>
+          2. Role as opções e toque em <strong>"Adicionar à Tela de Início" (+)</strong>.<br>
+          3. Toque em "Adicionar" no canto superior direito.
+        </div>
+
+        <div style="background:rgba(234,179,8,0.06);border:1px solid rgba(234,179,8,0.3);padding:10px 12px;border-radius:var(--radius-xs);">
+          <strong style="color:var(--amber);display:block;margin-bottom:4px;">💻 No Computador (Chrome / Edge):</strong>
+          1. Clique no ícone de <strong>instalação (+)</strong> na barra de endereços (ao lado da estrela de favoritos).<br>
+          2. Clique em <strong>"Instalar"</strong> para abrir o app em janela limpa e dedicada.
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button type="button" class="btn-matrix primary" onclick="MatrixApp.closeModal('installAppModalBackdrop')">Entendido! 👍</button>
       </div>
     </div>
   </div>

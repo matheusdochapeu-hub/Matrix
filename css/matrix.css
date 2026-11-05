@@ -1914,3 +1914,36 @@ body {
   padding-left: 28px !important;
   color: var(--text-muted);
 }
+
+/* ===================================================
+   BOTÃO DE INSTALAÇÃO PWA / DOWNLOAD DO APP
+   =================================================== */
+.pwa-install-btn {
+  background: linear-gradient(135deg, rgba(0, 255, 102, 0.15), rgba(6, 182, 212, 0.15));
+  border: 1px solid var(--matrix-green);
+  color: var(--matrix-green);
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  animation: pwaPulse 3s infinite alternate;
+  cursor: pointer;
+}
+
+.pwa-install-btn:hover {
+  background: var(--matrix-green);
+  color: #050807;
+  box-shadow: 0 0 16px rgba(0, 255, 102, 0.6);
+}
+
+@keyframes pwaPulse {
+  0% { box-shadow: 0 0 6px rgba(0, 255, 102, 0.2); }
+  100% { box-shadow: 0 0 14px rgba(0, 255, 102, 0.45); }
+}
+
+@media (max-width: 600px) {
+  .pwa-install-btn span:not(.matrix-btn-icon) {
+    display: inline-block;
+    font-size: 10px;
+  }
+}

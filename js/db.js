@@ -101,6 +101,8 @@ const MatrixDB = (function () {
 
     if (memoryCache) {
       sanitizeState(memoryCache);
+      if (!memoryCache.config) memoryCache.config = {};
+      if (!memoryCache.config.nomeEstudio) memoryCache.config.nomeEstudio = 'Estúdio';
     }
 
     // Compatibilidade e enriquecimento automático de titularidade (Matheus & Scarlet)
