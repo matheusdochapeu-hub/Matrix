@@ -199,7 +199,10 @@ const MatrixApp = (function () {
     const yearSelect = document.getElementById('yearSelect');
     if (!yearSelect) return;
 
-    const allYears = MatrixDB.getAllYears();
+    let allYears = MatrixDB.getAllYears().filter(y => parseInt(y, 10) >= 2025);
+    if (parseInt(currentYear, 10) < 2025) {
+      currentYear = '2025';
+    }
     if (!allYears.includes(String(currentYear))) {
       allYears.push(String(currentYear));
       allYears.sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
@@ -222,12 +225,17 @@ const MatrixApp = (function () {
   }
 
   function promptAddNewYear() {
-    const years = MatrixDB.getAllYears().map(y => parseInt(y, 10));
-    const nextYearSuggestion = String(Math.max(...years) + 1);
+    const years = MatrixDB.getAllYears().map(y => parseInt(y, 10)).filter(y => y >= 2025);
+    const nextYearSuggestion = String(Math.max(...years, 2027) + 1);
     const novoAno = prompt('Informe o ano que deseja planejar e projetar (ex: 2028, 2029):', nextYearSuggestion);
     if (!novoAno || isNaN(parseInt(novoAno, 10))) return;
 
-    const anoStr = String(parseInt(novoAno, 10));
+    const anoInt = parseInt(novoAno, 10);
+    if (anoInt < 2025) {
+      alert('O aplicativo opera estritamente com dados a partir de 2025.');
+      return;
+    }
+    const anoStr = String(anoInt);
     const allYears = MatrixDB.getAllYears();
 
     if (!allYears.includes(anoStr)) {
@@ -442,7 +450,9 @@ const MatrixApp = (function () {
     const yearSelect = document.getElementById('yearSelect');
     if (yearSelect) {
       yearSelect.addEventListener('change', (e) => {
-        currentYear = e.target.value;
+        const val = e.target.value;
+        if (parseInt(val, 10) < 2025) return;
+        currentYear = val;
         calSelectedYear = currentYear;
         const allYears = MatrixDB.getAllYears();
         if (!allYears.includes(currentYear)) {
@@ -483,8 +493,13 @@ const MatrixApp = (function () {
     let idx = MONTH_NAMES.indexOf(currentMonth);
     idx += direction;
     if (idx < 0) {
+      const prevYear = parseInt(currentYear, 10) - 1;
+      if (prevYear < 2025) {
+        // Limite temporal mínimo: não há dados para 2024 e anos anteriores
+        return;
+      }
       idx = 11;
-      currentYear = String(parseInt(currentYear, 10) - 1);
+      currentYear = String(prevYear);
     } else if (idx > 11) {
       idx = 0;
       currentYear = String(parseInt(currentYear, 10) + 1);
@@ -507,6 +522,16 @@ const MatrixApp = (function () {
   function updateMonthDisplay() {
     const el = document.getElementById('currentMonthDisplay');
     if (el) el.textContent = `${currentMonth} / ${currentYear}`;
+
+    // Desabilitar navegação regressiva caso estejamos em Janeiro / 2025
+    const prevBtn = document.getElementById('prevMonthBtn');
+    if (prevBtn) {
+      const isAtMinTimeline = (String(currentYear) === '2025' && currentMonth === 'Janeiro');
+      prevBtn.disabled = isAtMinTimeline;
+      prevBtn.style.opacity = isAtMinTimeline ? '0.35' : '1';
+      prevBtn.style.cursor = isAtMinTimeline ? 'not-allowed' : 'pointer';
+      prevBtn.title = isAtMinTimeline ? 'Timeline inicia em 2025 (2024 e anteriores não possuem dados)' : 'Mês anterior';
+    }
   }
 
   function renderAll() {
@@ -530,23 +555,27 @@ const MatrixApp = (function () {
     const curY = parseInt(currentYear, 10);
     const curMIdx = MONTH_NAMES.indexOf(currentMonth);
 
-    // Gerar sequência de 6 meses (do mês anterior até 4 meses adiante)
-    const monthsSequence = [];
-    for (let offset = -1; offset <= 4; offset++) {
+    // Gerar sequência de até 6 meses com início estrito em 2025 em diante
+    let monthsSequence = [];
+    const startOffset = (curY === 2025 && curMIdx === 0) ? 0 : -1;
+    for (let offset = startOffset; offset <= startOffset + 5; offset++) {
       let targetMIdx = curMIdx + offset;
       let targetY = curY;
-      if (targetMIdx < 0) {
+      while (targetMIdx < 0) {
         targetMIdx += 12;
         targetY -= 1;
-      } else if (targetMIdx > 11) {
+      }
+      while (targetMIdx > 11) {
         targetMIdx -= 12;
         targetY += 1;
       }
-      monthsSequence.push({
-        ano: String(targetY),
-        mes: MONTH_NAMES[targetMIdx],
-        mesIdx: targetMIdx
-      });
+      if (targetY >= 2025) {
+        monthsSequence.push({
+          ano: String(targetY),
+          mes: MONTH_NAMES[targetMIdx],
+          mesIdx: targetMIdx
+        });
+      }
     }
 
     const state = MatrixDB.getState();

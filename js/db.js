@@ -55,6 +55,12 @@ const MatrixDB = (function () {
     if (!state || !state.anos) return state;
     let mutated = false;
     for (const ano in state.anos) {
+      // Regra Estrita: 2024 e anos anteriores não possuem dados e são expurgados
+      if (parseInt(ano, 10) < 2025) {
+        delete state.anos[ano];
+        mutated = true;
+        continue;
+      }
       for (const mes in state.anos[ano]) {
         const m = state.anos[ano][mes];
         if (!m) continue;
@@ -343,12 +349,15 @@ const MatrixDB = (function () {
     const s = getState();
     const yearsSet = new Set(['2025', '2026', '2027']);
     if (s.anos) {
-      Object.keys(s.anos).forEach(y => yearsSet.add(String(y)));
+      Object.keys(s.anos).forEach(y => {
+        if (parseInt(y, 10) >= 2025) yearsSet.add(String(y));
+      });
     }
-    return Array.from(yearsSet).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    return Array.from(yearsSet).filter(y => parseInt(y, 10) >= 2025).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   }
 
   function createYear(targetYear, cloneFromYear = null) {
+    if (parseInt(targetYear, 10) < 2025) return;
     const s = getState();
     if (!s.anos) s.anos = {};
     const ty = String(targetYear);
