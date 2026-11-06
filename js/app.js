@@ -1096,6 +1096,68 @@ const MatrixApp = (function () {
         : '⚠️ Caixa negativo no mês: verificar necessidade de remanejamento';
     }
 
+    // 5.1 Cálculo da Sobra Pessoal do Matheus (suas contas + transferência pra Scarlet, sem a fatura Nubank dela)
+    const ganhosMatheus = salMatheus + outrosGanhos;
+
+    // Identifica transferência enviada do Matheus para a Scarlet no mês
+    let transfScarlet = 0;
+    const itemTransfScarlet = [...(monthData.fixos || []), ...(monthData.outros || [])].find(it => {
+      const n = (it.nome || '').toLowerCase().trim();
+      const desc = (it.descricao || '').toLowerCase();
+      return n === 'scarlet' || n === 'nubank scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
+    });
+    if (itemTransfScarlet) {
+      transfScarlet = parseFloat(itemTransfScarlet.valor) || 0;
+    }
+
+    // Gastos próprios do Matheus (todas as despesas da casa/pessoais, sem a fatura da Scarlet)
+    let gastosPropriosMatheus = 0;
+    (monthData.fixos || []).forEach(f => {
+      const n = (f.nome || '').toLowerCase().trim();
+      const titular = (f.titular || '').toLowerCase();
+      if (titular !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
+        gastosPropriosMatheus += (parseFloat(f.valor) || 0);
+      }
+    });
+
+    (monthData.outros || []).forEach(o => {
+      const n = (o.nome || '').toLowerCase().trim();
+      const titular = (o.titular || '').toLowerCase();
+      if (titular !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
+        gastosPropriosMatheus += (parseFloat(o.valor) || 0);
+      }
+    });
+
+    (monthData.diarios || []).forEach(d => {
+      const titular = (d.titular || '').toLowerCase();
+      const conta = (d.conta || '').toLowerCase();
+      if (titular !== 'scarlet' && conta !== 'credito_nubank_scarlet') {
+        gastosPropriosMatheus += (parseFloat(d.valor) || 0);
+      }
+    });
+
+    if (contasInicio > 0) {
+      gastosPropriosMatheus += contasInicio;
+    }
+
+    const totalGastosMatheus = gastosPropriosMatheus + transfScarlet;
+    const sobraMatheus = ganhosMatheus - totalGastosMatheus;
+
+    const topSobraMatheusEl = document.getElementById('topSobraMatheusVal');
+    if (topSobraMatheusEl) {
+      topSobraMatheusEl.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      topSobraMatheusEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const topMatheusReceitasEl = document.getElementById('topMatheusReceitasVal');
+    if (topMatheusReceitasEl) topMatheusReceitasEl.textContent = formatBRL(ganhosMatheus);
+
+    const topMatheusGastosEl = document.getElementById('topMatheusGastosVal');
+    if (topMatheusGastosEl) topMatheusGastosEl.textContent = `- ${formatBRL(gastosPropriosMatheus)}`;
+
+    const topMatheusTransfEl = document.getElementById('topMatheusTransfScarletVal');
+    if (topMatheusTransfEl) topMatheusTransfEl.textContent = `- ${formatBRL(transfScarlet)}`;
+
     // 6. Retrocompatibilidade para seletores legados
     const kpiGanhos = document.getElementById('kpiGanhos');
     if (kpiGanhos) kpiGanhos.textContent = formatBRL(ganhosPecunia);
@@ -1228,6 +1290,105 @@ const MatrixApp = (function () {
         </div>
       `;
 
+    } else if (tipo === 'sobra_matheus') {
+      titleEl.innerHTML = `👨 Auditoria da Sobra Pessoal • Matheus (${periodLabel})`;
+      const salMatheusVal = getSalarioLiquidoMes(currentYear, currentMonth);
+      let outrosGanhosVal = 0;
+      (monthData.receitas || []).forEach(r => {
+        if (!isBeneficioNaoPecunia(r)) {
+          const n = (r.nome || '').toLowerCase();
+          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+            outrosGanhosVal += (parseFloat(r.valor) || 0);
+          }
+        }
+      });
+      const ganhosMatheusTot = salMatheusVal + outrosGanhosVal;
+
+      let transfScarletVal = 0;
+      const itemTransf = [...(monthData.fixos || []), ...(monthData.outros || [])].find(it => {
+        const n = (it.nome || '').toLowerCase().trim();
+        const desc = (it.descricao || '').toLowerCase();
+        return n === 'scarlet' || n === 'nubank scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
+      });
+      if (itemTransf) transfScarletVal = parseFloat(itemTransf.valor) || 0;
+
+      let fixosMatheusTot = 0;
+      (monthData.fixos || []).forEach(f => {
+        const n = (f.nome || '').toLowerCase().trim();
+        const tit = (f.titular || '').toLowerCase();
+        if (tit !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
+          fixosMatheusTot += (parseFloat(f.valor) || 0);
+        }
+      });
+
+      let outrosMatheusTot = 0;
+      (monthData.outros || []).forEach(o => {
+        const n = (o.nome || '').toLowerCase().trim();
+        const tit = (o.titular || '').toLowerCase();
+        if (tit !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
+          outrosMatheusTot += (parseFloat(o.valor) || 0);
+        }
+      });
+
+      let diariosMatheusTot = 0;
+      (monthData.diarios || []).forEach(d => {
+        const tit = (d.titular || '').toLowerCase();
+        const cta = (d.conta || '').toLowerCase();
+        if (tit !== 'scarlet' && cta !== 'credito_nubank_scarlet') {
+          diariosMatheusTot += (parseFloat(d.valor) || 0);
+        }
+      });
+
+      let contasInicioVal = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicioVal = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+
+      const gastosPropriosTot = fixosMatheusTot + outrosMatheusTot + diariosMatheusTot + contasInicioVal;
+      const gastosGeraisMatheus = gastosPropriosTot + transfScarletVal;
+      const sobraFinalMatheus = ganhosMatheusTot - gastosGeraisMatheus;
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.8;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:8px;">Fluxo Financeiro Pessoal (Matheus):</div>
+            
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--cyan);">(+) Salário Líquido USP + Renda Extra:</span>
+              <strong>${formatBRL(ganhosMatheusTot)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--amber);">(-) Gastos Fixos (Parcela Casa, Contas):</span>
+              <span>- ${formatBRL(fixosMatheusTot)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--rose);">(-) Gastos Variáveis (Cartão BB/Nubank, Aportes):</span>
+              <span>- ${formatBRL(outrosMatheusTot + diariosMatheusTot)}</span>
+            </div>
+            ${contasInicioVal > 0 ? `
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--amber);">(-) Contas Início de Ano (Jan):</span>
+              <span>- ${formatBRL(contasInicioVal)}</span>
+            </div>` : ''}
+            <div style="display:flex;justify-content:space-between;border-top:1px dashed rgba(255,255,255,0.08);padding-top:4px;margin-top:4px;">
+              <span style="color:#f59e0b;">(-) Transferência para Scarlet:</span>
+              <strong style="color:#f59e0b;">- ${formatBRL(transfScarletVal)}</strong>
+            </div>
+
+            <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px;">
+              <strong style="color:var(--text-main);">(=) Sobra Pessoal (Matheus):</strong>
+              <strong style="color:${sobraFinalMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraFinalMatheus >= 0 ? '+' : ''}${formatBRL(sobraFinalMatheus)}</strong>
+            </div>
+          </div>
+
+          <div style="background:rgba(6,182,212,0.08);border:1px solid var(--cyan);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+            <div style="font-weight:700;color:var(--cyan);font-size:11.5px;margin-bottom:4px;">💡 Regra de Isolamento Pessoal:</div>
+            <div style="color:var(--text-dim);font-size:11px;line-height:1.5;">
+              Este cálculo mede exatamente o que sobra do <strong>seu salário</strong> após honrar todas as suas contas pessoais e a quantia que você transferiu para a Scarlet. A fatura do cartão Nubank da Scarlet e o faturamento dela no FisioFlow <strong>não impactam este saldo pessoal</strong>.
+            </div>
+          </div>
+        </div>
+      `;
     } else if (tipo === 'ganhos') {
       titleEl.innerHTML = `📥 Detalhamento de Ganhos em Pecúnia (${periodLabel})`;
       const todasReceitas = (monthData.receitas && monthData.receitas.length > 0)

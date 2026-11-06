@@ -207,15 +207,15 @@
           </div>
         </div>
 
-        <!-- COLUNA 3: SOBRA NO MÊS (FOLGA REAL DE CAIXA) -->
-        <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a fórmula e conciliação completa da sobra de caixa">
+        <!-- COLUNA 3: SOBRA NO MÊS & SOBRA MATHEUS -->
+        <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a conciliação da sobra de caixa do casal">
           <div class="unified-card-header">
             <span class="unified-card-title">💵 Sobra no Mês</span>
             <span class="unified-badge green" id="topSobraStatusBadge">Superávit</span>
           </div>
 
           <div class="unified-card-main-val green-glow" id="topSobraNoMesVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topSobraNoMesSub">Folga real em conta após pagar todos os gastos</div>
+          <div class="unified-card-sub" id="topSobraNoMesSub">Folga conjunta do casal em conta</div>
 
           <div class="unified-sobra-box">
             <div class="sobra-calc-line">
@@ -228,12 +228,39 @@
             </div>
             <div class="sobra-divider"></div>
             <div class="sobra-calc-line total">
-              <span>(=) Sobra em Caixa:</span>
+              <span>(=) Sobra do Casal:</span>
               <strong id="topSobraCalcFinal" style="color:var(--matrix-green);">R$ 0,00</strong>
             </div>
           </div>
 
-          <div class="unified-sobra-footer" id="topSobraFooterMsg">
+          <!-- SUB-CARD DEDICADO: O QUE SOBRA PRA MIM (MATHEUS) -->
+          <div style="margin-top:10px;background:rgba(5,8,7,0.88);border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-xs);padding:9px 10px;box-shadow:inset 0 0 10px rgba(0,255,102,0.05);cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('sobra_matheus');" title="Clique para ver a auditoria detalhada da sua sobra pessoal">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="font-size:11.5px;font-weight:700;color:var(--cyan);display:flex;align-items:center;gap:5px;">
+                <span>👨</span> Sobra pra Mim (Matheus)
+              </span>
+              <strong id="topSobraMatheusVal" style="font-size:14px;color:var(--matrix-green);font-family:var(--font-mono);font-weight:800;">R$ 0,00</strong>
+            </div>
+            <div style="font-size:9.5px;color:var(--text-muted);line-height:1.3;margin-bottom:6px;">
+              Suas contas + transf. p/ Scarlet (exclui Nubank dela)
+            </div>
+            <div style="font-family:var(--font-mono);font-size:10px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:6px;">
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text-muted);">(+) Salário USP + Extras:</span>
+                <strong id="topMatheusReceitasVal" style="color:var(--text-bright);">R$ 0,00</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text-muted);">(-) Suas Contas (Fixos + Outros):</span>
+                <strong id="topMatheusGastosVal" style="color:var(--rose);">- R$ 0,00</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text-muted);">(-) Transf. para Scarlet:</span>
+                <strong id="topMatheusTransfScarletVal" style="color:var(--amber);">- R$ 0,00</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="unified-sobra-footer" id="topSobraFooterMsg" style="margin-top:8px;">
             ✅ Caixa positivo: dinheiro livre para aportes ou reserva
           </div>
         </div>
