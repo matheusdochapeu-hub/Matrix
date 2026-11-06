@@ -2021,6 +2021,15 @@ const MATRIX_SEED_DATA = {
       "observacao": "Cotação em andamento entre R$ 100 e R$ 150"
     }
   ],
+  "calendarioCustom": {
+    "overrides": {
+      "2026-10-28": {
+        "tipo": "presencial",
+        "motivo": "Trabalho Presencial (Dia do Servidor trabalhado)"
+      }
+    },
+    "folgas": []
+  },
   "anos": {
     "2025": {
       "Fevereiro": {

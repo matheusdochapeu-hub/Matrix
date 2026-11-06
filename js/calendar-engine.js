@@ -79,6 +79,23 @@ const CalendarEngine = (function () {
     return day === 0 || day === 6; // 0 = Domingo, 6 = Sábado
   }
 
+  // Localiza override customizado por data (suporta objeto .overrides ou array .folgas)
+  function getOverrideForDate(customData, dateStr) {
+    if (!customData) return null;
+    if (customData.overrides && customData.overrides[dateStr]) {
+      return customData.overrides[dateStr];
+    }
+    const list = Array.isArray(customData) ? customData : (Array.isArray(customData.folgas) ? customData.folgas : []);
+    const found = list.find(item => item && (item.data === dateStr || item.date === dateStr));
+    if (found) {
+      return {
+        tipo: found.tipo || 'folga',
+        motivo: found.motivo || 'Folga / Férias'
+      };
+    }
+    return null;
+  }
+
   function getMonthDaysInfo(year, monthIndex, customLeaves = []) {
     // monthIndex: 1 to 12
     const totalDays = new Date(year, monthIndex, 0).getDate();
@@ -97,14 +114,14 @@ const CalendarEngine = (function () {
       let isHoliday = false;
       let holidayDesc = '';
 
-      // Verifica feriado fixo
+      // 1. Verifica feriado fixo oficial
       const fix = FIXED_HOLIDAYS.find(h => h.month === monthIndex && h.day === d);
       if (fix) {
         isHoliday = true;
         holidayDesc = fix.desc;
       }
 
-      // Verifica feriado móvel
+      // 2. Verifica feriado móvel
       if (!isHoliday) {
         const mov = movables.find(m => m.date.getMonth() === (monthIndex - 1) && m.date.getDate() === d);
         if (mov) {
@@ -113,28 +130,105 @@ const CalendarEngine = (function () {
         }
       }
 
-      // Verifica recesso USP
+      // 3. Verifica recesso USP
       const inRecess = isUspRecess(year, monthIndex, d);
       if (inRecess && !holidayDesc) {
         holidayDesc = 'Recesso USP de Final de Ano';
       }
 
-      // Verifica folgas/férias customizadas
+      // Snapshot dos atributos padrão oficiais USP
+      const defaultIsHoliday = isHoliday;
+      const defaultHolidayDesc = holidayDesc;
+      const defaultInRecess = inRecess;
+      const defaultIsWeekend = isWk;
+      const defaultIsWorkDay = !isWk && !isHoliday && !inRecess;
+
+      // 4. Verifica override customizado do usuário
       const dateStr = `${year}-${String(monthIndex).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const custom = customLeaves.find(cl => cl.data === dateStr);
+      const override = getOverrideForDate(customLeaves, dateStr);
+
       let isCustomLeave = false;
       let customLeaveDesc = '';
-      if (custom) {
-        isCustomLeave = true;
-        customLeaveDesc = custom.motivo || 'Folga / Férias';
-        customLeavesCount++;
+      let isWorkDay = defaultIsWorkDay;
+      let statusTipo = 'workday';
+
+      if (override) {
+        const tipo = (override.tipo || '').toLowerCase();
+        if (tipo === 'presencial' || tipo === 'trabalho' || tipo === 'trabalho_presencial') {
+          // Usuário trabalhou presencialmente (mesmo sendo feriado ou fim de semana)
+          isWorkDay = true;
+          isHoliday = false;
+          holidayDesc = '';
+          inRecess = false;
+          isCustomLeave = false;
+          statusTipo = 'workday';
+        } else if (tipo === 'abonada') {
+          isWorkDay = false;
+          isHoliday = false;
+          inRecess = false;
+          isCustomLeave = true;
+          customLeaveDesc = override.motivo || 'Falta Abonada';
+          statusTipo = 'abonada';
+          customLeavesCount++;
+        } else if (tipo === 'folga') {
+          isWorkDay = false;
+          isHoliday = false;
+          inRecess = false;
+          isCustomLeave = true;
+          customLeaveDesc = override.motivo || 'Folga';
+          statusTipo = 'folga';
+          customLeavesCount++;
+        } else if (tipo === 'ferias') {
+          isWorkDay = false;
+          isHoliday = false;
+          inRecess = false;
+          isCustomLeave = true;
+          customLeaveDesc = override.motivo || 'Férias';
+          statusTipo = 'ferias';
+          customLeavesCount++;
+        } else if (tipo === 'feriado') {
+          isWorkDay = false;
+          isHoliday = true;
+          inRecess = false;
+          isCustomLeave = false;
+          holidayDesc = override.motivo || 'Feriado';
+          statusTipo = 'holiday';
+          holidaysCount++;
+        } else if (tipo === 'fim_semana') {
+          isWorkDay = false;
+          isHoliday = false;
+          inRecess = false;
+          isCustomLeave = false;
+          statusTipo = 'weekend';
+        } else {
+          // Fallback para regra padrão
+          if (isWk) {
+            statusTipo = 'weekend';
+          } else if (isHoliday) {
+            statusTipo = 'holiday';
+            holidaysCount++;
+          } else if (inRecess) {
+            statusTipo = 'recess';
+            holidaysCount++;
+          } else {
+            statusTipo = 'workday';
+          }
+        }
+      } else {
+        // Sem override: segue regra padrão oficial USP
+        if (isWk) {
+          statusTipo = 'weekend';
+        } else if (isHoliday) {
+          statusTipo = 'holiday';
+          holidaysCount++;
+        } else if (inRecess) {
+          statusTipo = 'recess';
+          holidaysCount++;
+        } else {
+          statusTipo = 'workday';
+        }
       }
 
-      if (isHoliday || inRecess) {
-        holidaysCount++;
-      }
-
-      const isWorkDay = !isWk && !isHoliday && !inRecess && !isCustomLeave;
       if (isWorkDay) {
         workingDaysCount++;
       }
@@ -150,7 +244,16 @@ const CalendarEngine = (function () {
         inRecess,
         isCustomLeave,
         customLeaveDesc,
-        isWorkDay
+        isWorkDay,
+        statusTipo,
+        override,
+        defaultInfo: {
+          isWorkDay: defaultIsWorkDay,
+          isHoliday: defaultIsHoliday,
+          holidayDesc: defaultHolidayDesc,
+          inRecess: defaultInRecess,
+          isWeekend: defaultIsWeekend
+        }
       });
     }
 

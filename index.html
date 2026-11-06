@@ -749,11 +749,11 @@
 
         <!-- Banner Informativo de Mês Ativo & Auto-Save -->
         <div id="calSaveNotification" class="cal-notification-banner">
-          <span>📅 Editando: <strong id="calBannerMonthText">Novembro de 2026</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>
+          <span>📅 Editando: <strong id="calBannerMonthText">Novembro de 2026</strong>. Toque em qualquer dia para alterar (presencial, folga, abonada, feriado). Salvamento e recálculo automáticos.</span>
         </div>
 
         <!-- KPI Resumo do Mês Selecionado -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="cal-kpis-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">DIAS ÚTEIS TRABALHADOS:</div>
             <div id="calDiasUteis" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">0 dias</div>
@@ -774,11 +774,12 @@
 
         <!-- Legenda Visual -->
         <div class="cal-legend-bar">
-          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--matrix-green);"></span> 🚗 Presencial USP (R$ 60/R$ 65)</span>
-          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--purple);"></span> 🏖️ Folga / Férias (Customizável)</span>
-          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--amber);"></span> 🎉 Feriado SP / São Carlos</span>
-          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--cyan);"></span> 🏛️ Recesso USP (18/12 a 04/01)</span>
-          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(255,255,255,0.2);"></span> 💤 Fim de Semana (Dom / Sáb)</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--matrix-green);"></span> 🚗 Presencial USP (R$ 60 + VR)</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--cyan);"></span> 📝 Falta Abonada</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--purple);"></span> 🏖️ Folga / Férias</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--amber);"></span> 🎉 Feriado SP / SC</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(56,189,248,0.7);"></span> 🏛️ Recesso USP</span>
+          <span class="cal-legend-item"><span class="cal-legend-dot" style="background:rgba(255,255,255,0.2);"></span> 💤 Fim de Semana</span>
         </div>
 
         <!-- Calendário em Grade de 7 Colunas (Domingo a Sábado) -->
@@ -1891,6 +1892,122 @@
       <div style="display:flex;justify-content:flex-end;gap:10px;">
         <button type="button" class="btn-matrix" onclick="MatrixApp.closeModal('saldosEditModalBackdrop')">Cancelar</button>
         <button type="button" class="btn-matrix primary" onclick="MatrixApp.salvarSaldosModal()">💾 Salvar Saldos & Rendas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR STATUS DO DIA NO CALENDÁRIO USP -->
+  <div id="calDayEditModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="calModalDayTitle" style="margin:0;font-size:16px;">Editar Dia</h3>
+          <div id="calModalDaySubtitle" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;"></div>
+        </div>
+        <button class="close-btn" onclick="MatrixApp.closeModal('calDayEditModalBackdrop')">&times;</button>
+      </div>
+
+      <input type="hidden" id="calModalDateStr" value="">
+
+      <!-- Status Padrão Oficial USP -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;font-size:11px;font-family:var(--font-mono);">
+        <span style="color:var(--text-muted);">Padrão Oficial USP: </span>
+        <span id="calModalDefaultStatus" style="font-weight:600;color:var(--text-main);"></span>
+      </div>
+
+      <!-- Seletor de Opções de Status -->
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);display:block;margin-bottom:6px;">Selecione a Classificação deste dia:</label>
+        <div class="cal-status-selector-grid">
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="presencial">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">🚗</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--matrix-green);">Trabalho Presencial (USP)</span>
+                <span class="cal-status-sub">Dia normal trabalhado • Gera Carona (R$ 60) e VR (R$ 65)</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="abonada">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">📝</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--cyan);">Falta Abonada</span>
+                <span class="cal-status-sub">Abonada pelo serviço público • Sem Carona/VR</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="folga">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">🏖️</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--purple);">Folga</span>
+                <span class="cal-status-sub">Folga programada • Não gera Carona nem VR</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="ferias">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">✈️</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--purple);">Férias</span>
+                <span class="cal-status-sub">Período de férias regulamentares • Sem Carona/VR</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="feriado">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">🎉</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--amber);">Feriado / Ponto Facultativo</span>
+                <span class="cal-status-sub">Feriado ou facultativo • Sem Carona/VR</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="fim_semana">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">💤</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--text-muted);">Fim de Semana / Descanso</span>
+                <span class="cal-status-sub">Sábado ou Domingo sem expediente presencial</span>
+              </div>
+            </div>
+          </label>
+
+          <label class="cal-status-option-card">
+            <input type="radio" name="calDayStatusRadio" value="padrao">
+            <div class="cal-status-card-inner">
+              <span class="cal-status-icon">↺</span>
+              <div class="cal-status-info">
+                <span class="cal-status-name" style="color:var(--text-main);">Restaurar Padrão Oficial USP</span>
+                <span class="cal-status-sub">Remove alterações e restaura a classificação original</span>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Observação Opcional -->
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);display:block;margin-bottom:4px;">Observação / Motivo (Opcional):</label>
+        <input type="text" id="calModalMotivo" class="matrix-input" placeholder="Ex: Dia trabalhado normalmente, banco de horas, etc.">
+      </div>
+
+      <!-- Ações -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button type="button" class="btn-matrix" onclick="MatrixApp.closeModal('calDayEditModalBackdrop')">Cancelar</button>
+        <button type="button" class="btn-matrix primary" onclick="MatrixApp.salvarStatusDiaCalendario()">💾 Salvar e Recalcular</button>
       </div>
     </div>
   </div>

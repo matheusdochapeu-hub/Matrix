@@ -46,6 +46,32 @@ const MatrixApp = (function () {
   }
 
   function init() {
+    // Garantir que 2026-10-28 (Dia do Servidor) é reconhecido como trabalho presencial normal
+    try {
+      const state = MatrixDB.getState();
+      if (!state.calendarioCustom) state.calendarioCustom = { overrides: {}, folgas: [] };
+      if (!state.calendarioCustom.overrides) state.calendarioCustom.overrides = {};
+      if (!state.calendarioCustom.overrides['2026-10-28']) {
+        state.calendarioCustom.overrides['2026-10-28'] = {
+          tipo: 'presencial',
+          motivo: 'Trabalho Presencial (Dia do Servidor trabalhado)'
+        };
+        const commute = CalendarEngine.calculateCommuteAndVR(2026, 10, state.calendarioCustom);
+        const octData = MatrixDB.getMonth('2026', 'Outubro');
+        if (octData) {
+          if (!octData.fixos) octData.fixos = [];
+          let caronaItem = octData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
+          if (caronaItem) caronaItem.valor = commute.totalCaronas;
+          if (!octData.totais) octData.totais = {};
+          octData.totais['VR'] = commute.totalVR;
+          MatrixDB.saveMonth('2026', 'Outubro', octData);
+        }
+        MatrixDB.saveState(state);
+      }
+    } catch (e) {
+      console.warn('Erro ao inicializar override do calendário:', e);
+    }
+
     populateYearSelector();
     setupEventListeners();
     updateMonthDisplay();
@@ -695,7 +721,7 @@ const MatrixApp = (function () {
       // 4. Vale Refeição - VR (calculado pelo calendário USP ou R$ 1.235)
       let vr = 1235.00;
       try {
-        const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+        const customLeaves = state.calendarioCustom || [];
         const commute = CalendarEngine.calculateCommuteAndVR(parseInt(m.ano, 10), m.mesIdx + 1, customLeaves);
         if (commute && commute.totalVR) vr = commute.totalVR;
       } catch (e) {}
@@ -807,7 +833,7 @@ const MatrixApp = (function () {
     let vr = 1235.00;
     try {
       const curMIdx = MONTH_NAMES.indexOf(currentMonth);
-      const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+      const customLeaves = state.calendarioCustom || [];
       const commute = CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), curMIdx + 1, customLeaves);
       if (commute && commute.totalVR) vr = commute.totalVR;
     } catch (e) {}
@@ -3156,7 +3182,7 @@ const MatrixApp = (function () {
     const monthIndex = MONTH_NAMES.indexOf(calSelectedMonth) + 1;
     const yearNum = parseInt(calSelectedYear, 10);
     const state = MatrixDB.getState();
-    const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+    const customData = state.calendarioCustom || { overrides: {}, folgas: [] };
 
     // Preenche seletor de meses
     const mSelect = document.getElementById('calMonthSelect');
@@ -3183,7 +3209,7 @@ const MatrixApp = (function () {
     const bannerText = document.getElementById('calBannerMonthText');
     if (bannerText) bannerText.textContent = `${calSelectedMonth} de ${calSelectedYear}`;
 
-    const commute = CalendarEngine.calculateCommuteAndVR(yearNum, monthIndex, customLeaves);
+    const commute = CalendarEngine.calculateCommuteAndVR(yearNum, monthIndex, customData);
 
     const diasUteisEl = document.getElementById('calDiasUteis');
     if (diasUteisEl) diasUteisEl.textContent = `${commute.workingDaysCount} dias`;
@@ -3228,43 +3254,73 @@ const MatrixApp = (function () {
     // 2. Dias do mês corrente (1 a totalDays)
     commute.days.forEach(d => {
       let cellTypeClass = 'workday';
-      let tag = '🚗 Presencial USP';
+      let tagShort = '🚗 USP';
+      let tagFull = '🚗 Presencial USP';
       let detail = '<span>Carona R$ 60</span><span>VR R$ 65</span>';
-      let tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Presencial na USP São Carlos. Clique para marcar folga/férias.`;
+      let tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Presencial na USP São Carlos. Clique para alterar status.`;
 
-      if (d.isWeekend) {
+      if (d.statusTipo === 'weekend') {
         cellTypeClass = 'weekend';
-        tag = '💤 Fim de Semana';
+        tagShort = '💤 Fim Sem';
+        tagFull = '💤 Fim de Semana';
         detail = '<span>Descanso</span>';
-        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Fim de semana. Clique para marcar evento ou folga.`;
-      } else if (d.isCustomLeave) {
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Fim de semana. Clique para alterar status.`;
+      } else if (d.statusTipo === 'abonada') {
+        cellTypeClass = 'custom-abonada';
+        tagShort = '📝 Abonada';
+        tagFull = `📝 ${d.customLeaveDesc || 'Falta Abonada'}`;
+        detail = '<span style="color:var(--cyan);font-weight:600;">Falta Abonada</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Falta Abonada. Sem Carona/VR. Clique para alterar.`;
+      } else if (d.statusTipo === 'folga') {
         cellTypeClass = 'custom-leave';
-        tag = `🏖️ ${d.customLeaveDesc}`;
-        detail = '<span style="color:var(--purple);font-weight:600;">Folga / Férias</span>';
-        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): ${d.customLeaveDesc}. Clique para remover ou alterar.`;
-      } else if (d.isHoliday) {
+        tagShort = '🏖️ Folga';
+        tagFull = `🏖️ ${d.customLeaveDesc || 'Folga'}`;
+        detail = '<span style="color:var(--purple);font-weight:600;">Folga</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Folga (${d.customLeaveDesc}). Clique para alterar.`;
+      } else if (d.statusTipo === 'ferias') {
+        cellTypeClass = 'custom-ferias';
+        tagShort = '✈️ Férias';
+        tagFull = `✈️ ${d.customLeaveDesc || 'Férias'}`;
+        detail = '<span style="color:var(--purple);font-weight:600;">Férias</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Férias (${d.customLeaveDesc}). Clique para alterar.`;
+      } else if (d.statusTipo === 'holiday') {
         cellTypeClass = 'holiday';
-        tag = `🎉 ${d.holidayDesc}`;
+        tagShort = '🎉 Feriado';
+        tagFull = `🎉 ${d.holidayDesc || 'Feriado'}`;
         detail = '<span style="color:var(--amber);">Feriado</span>';
-        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Feriado (${d.holidayDesc}). Sem expediente.`;
-      } else if (d.inRecess) {
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Feriado (${d.holidayDesc}). Clique para transformar em trabalho presencial.`;
+      } else if (d.statusTipo === 'recess') {
         cellTypeClass = 'recess';
-        tag = '🏛️ Recesso USP';
+        tagShort = '🏛️ Recesso';
+        tagFull = '🏛️ Recesso USP';
         detail = '<span style="color:var(--cyan);">Recesso Fim de Ano</span>';
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Recesso oficial USP de fim de ano.`;
+      } else if (d.statusTipo === 'workday') {
+        cellTypeClass = 'workday';
+        tagShort = '🚗 USP';
+        tagFull = '🚗 Presencial USP';
+        detail = '<span>Carona R$ 60</span><span>VR R$ 65</span>';
+        tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Presencial na USP São Carlos. Clique para transformar em folga, abonada, etc.`;
       }
 
       const isToday = isCurrentYearNow && isCurrentMonthNow && d.day === currentDayNow;
       const todayClass = isToday ? 'today' : '';
-      const todayBadge = isToday ? '<span style="font-size:9px;background:var(--matrix-green);color:#050807;padding:1px 5px;border-radius:3px;font-weight:700;">HOJE</span>' : '';
+      const todayBadge = isToday ? '<span class="cal-today-badge">HOJE</span>' : '';
+      const overrideDot = d.override ? '<span class="cal-override-dot" title="Status alterado manualmente">●</span>' : '';
 
       gridHtml += `
-        <div class="cal-day-cell ${cellTypeClass} ${todayClass}" onclick="MatrixApp.toggleCalendarDay('${d.dateStr}')" title="${tooltip}">
+        <div class="cal-day-cell ${cellTypeClass} ${todayClass} ${d.override ? 'has-override' : ''}" onclick="MatrixApp.abrirModalEditarDia('${d.dateStr}')" title="${tooltip}">
           <div class="cal-day-top">
             <span class="cal-day-num">${d.day}</span>
-            ${todayBadge}
+            <div class="cal-day-badges">
+              ${overrideDot}
+              ${todayBadge}
+            </div>
           </div>
-          <div class="cal-day-status">${tag}</div>
+          <div class="cal-day-status">
+            <span class="cal-status-short">${tagShort}</span>
+            <span class="cal-status-full">${tagFull}</span>
+          </div>
           <div class="cal-day-footer">${detail}</div>
         </div>
       `;
@@ -4877,7 +4933,7 @@ const MatrixApp = (function () {
     let vr = 1235.00;
     try {
       const mIdx = MONTH_NAMES.indexOf(saldosModalTargetMes);
-      const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+      const customLeaves = state.calendarioCustom || [];
       const commute = CalendarEngine.calculateCommuteAndVR(parseInt(saldosModalTargetAno, 10), mIdx + 1, customLeaves);
       if (commute && commute.totalVR) vr = commute.totalVR;
     } catch (e) {}
@@ -5138,45 +5194,124 @@ const MatrixApp = (function () {
     openScenarioModal();
   }
 
-  function toggleCalendarDay(dateStr) {
+  function abrirModalEditarDia(dateStr) {
     if (!dateStr) return;
+    const parts = dateStr.split('-');
+    const yearNum = parseInt(parts[0], 10);
+    const monthIdx = parseInt(parts[1], 10);
+    const dayNum = parseInt(parts[2], 10);
+    const monthName = MONTH_NAMES[monthIdx - 1];
+
+    const state = MatrixDB.getState();
+    const info = CalendarEngine.getMonthDaysInfo(yearNum, monthIdx, state.calendarioCustom);
+    const dayObj = (info.days || []).find(d => d.day === dayNum);
+    if (!dayObj) return;
+
+    const dateInput = document.getElementById('calModalDateStr');
+    if (dateInput) dateInput.value = dateStr;
+
+    const titleEl = document.getElementById('calModalDayTitle');
+    if (titleEl) titleEl.textContent = `Dia ${dayNum} de ${monthName} de ${yearNum}`;
+
+    const subtitleEl = document.getElementById('calModalDaySubtitle');
+    if (subtitleEl) subtitleEl.textContent = `${dayObj.dayOfWeekStr}-feira • Classificação do Dia`;
+
+    // Status padrão oficial
+    let defaultStatusText = '🚗 Trabalho Presencial USP (Normal)';
+    if (dayObj.defaultInfo.isHoliday) {
+      defaultStatusText = `🎉 Feriado Oficial (${dayObj.defaultInfo.holidayDesc})`;
+    } else if (dayObj.defaultInfo.inRecess) {
+      defaultStatusText = '🏛️ Recesso Oficial de Fim de Ano da USP';
+    } else if (dayObj.defaultInfo.isWeekend) {
+      defaultStatusText = '💤 Fim de Semana (Descanso)';
+    }
+
+    const defaultStatusEl = document.getElementById('calModalDefaultStatus');
+    if (defaultStatusEl) defaultStatusEl.textContent = defaultStatusText;
+
+    // Seleciona o radio button correspondente
+    let selectedTipo = 'padrao';
+    let motivoTexto = '';
+
+    if (dayObj.override) {
+      selectedTipo = dayObj.override.tipo || 'presencial';
+      motivoTexto = dayObj.override.motivo || '';
+    } else {
+      if (dayObj.statusTipo === 'workday') selectedTipo = 'presencial';
+      else if (dayObj.statusTipo === 'holiday') selectedTipo = 'feriado';
+      else if (dayObj.statusTipo === 'weekend') selectedTipo = 'fim_semana';
+      else selectedTipo = 'padrao';
+    }
+
+    const radio = document.querySelector(`input[name="calDayStatusRadio"][value="${selectedTipo}"]`);
+    if (radio) {
+      radio.checked = true;
+    } else {
+      const padraoRadio = document.querySelector('input[name="calDayStatusRadio"][value="padrao"]');
+      if (padraoRadio) padraoRadio.checked = true;
+    }
+
+    const motivoInput = document.getElementById('calModalMotivo');
+    if (motivoInput) motivoInput.value = motivoTexto;
+
+    // Abre o modal
+    const modal = document.getElementById('calDayEditModalBackdrop');
+    if (modal) modal.classList.add('open');
+  }
+
+  function salvarStatusDiaCalendario() {
+    const dateInput = document.getElementById('calModalDateStr');
+    if (!dateInput || !dateInput.value) return;
+    const dateStr = dateInput.value;
+
     const parts = dateStr.split('-');
     const yearStr = parts[0];
     const monthIdx = parseInt(parts[1], 10);
     const monthName = MONTH_NAMES[monthIdx - 1];
-    const dayNum = parseInt(parts[2], 10);
+
+    const selectedRadio = document.querySelector('input[name="calDayStatusRadio"]:checked');
+    const tipo = selectedRadio ? selectedRadio.value : 'padrao';
+
+    const motivoInput = document.getElementById('calModalMotivo');
+    const customMotivo = motivoInput ? motivoInput.value.trim() : '';
 
     const state = MatrixDB.getState();
-    if (!state.calendarioCustom) state.calendarioCustom = { folgas: [] };
-    const folgas = state.calendarioCustom.folgas;
+    if (!state.calendarioCustom) state.calendarioCustom = { overrides: {}, folgas: [] };
+    if (!state.calendarioCustom.overrides) state.calendarioCustom.overrides = {};
+    if (!Array.isArray(state.calendarioCustom.folgas)) state.calendarioCustom.folgas = [];
 
-    const existingIdx = folgas.findIndex(f => f.data === dateStr);
-    let folgaAlterada = false;
-
-    if (existingIdx >= 0) {
-      const currentMotivo = folgas[existingIdx].motivo || 'Folga / Férias';
-      const action = confirm(`O dia ${dayNum}/${monthIdx}/${yearStr} está registrado como "${currentMotivo}".\n\nDeseja REMOVER esta folga e restaurar como dia normal?`);
-      if (action) {
-        folgas.splice(existingIdx, 1);
-        folgaAlterada = true;
-      }
+    if (tipo === 'padrao') {
+      delete state.calendarioCustom.overrides[dateStr];
+      state.calendarioCustom.folgas = state.calendarioCustom.folgas.filter(f => f.data !== dateStr);
     } else {
-      const motivo = prompt(`Marcar Ausência / Folga / Férias no dia ${dayNum}/${monthIdx}/${yearStr}:\nInforme o motivo:`, 'Folga / Férias');
-      if (motivo !== null && motivo.trim() !== '') {
-        folgas.push({ data: dateStr, motivo: motivo.trim() });
-        folgaAlterada = true;
+      let defaultLabel = 'Trabalho Presencial (USP)';
+      if (tipo === 'folga') defaultLabel = 'Folga';
+      else if (tipo === 'ferias') defaultLabel = 'Férias';
+      else if (tipo === 'abonada') defaultLabel = 'Falta Abonada';
+      else if (tipo === 'feriado') defaultLabel = 'Feriado / Ponto Facultativo';
+      else if (tipo === 'fim_semana') defaultLabel = 'Fim de Semana';
+
+      const finalMotivo = customMotivo || defaultLabel;
+
+      state.calendarioCustom.overrides[dateStr] = {
+        tipo: tipo,
+        motivo: finalMotivo
+      };
+
+      state.calendarioCustom.folgas = state.calendarioCustom.folgas.filter(f => f.data !== dateStr);
+      if (tipo === 'folga' || tipo === 'ferias' || tipo === 'abonada') {
+        state.calendarioCustom.folgas.push({
+          data: dateStr,
+          tipo: tipo,
+          motivo: finalMotivo
+        });
       }
     }
 
-    if (!folgaAlterada) return;
-
-    // 1. Salva folgas no estado global do MatrixDB
     MatrixDB.saveState(state);
 
-    // 2. Recalcula Caronas e VR para o mês específico alterado (Ex: Outubro salva Outubro, Novembro salva Novembro)
-    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIdx, folgas);
+    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIdx, state.calendarioCustom);
 
-    // 3. Atualiza os gastos fixos (Caronas) e totais (VR) desse mês específico no MatrixDB
     const monthData = MatrixDB.getMonth(yearStr, monthName);
     if (!monthData.fixos) monthData.fixos = [];
     let caronaItem = monthData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
@@ -5197,25 +5332,28 @@ const MatrixApp = (function () {
 
     MatrixDB.saveMonth(yearStr, monthName, monthData);
 
-    // 4. Se estiver visualizando o mesmo mês no fluxo de caixa geral, sincroniza os cards e tabelas
+    closeModal('calDayEditModalBackdrop');
+
     if (yearStr === currentYear && monthName === currentMonth) {
       renderFluxoCaixa();
       renderKpiCards();
     }
 
-    // 5. Re-renderiza o calendário
     renderCalendar();
 
-    // 6. Feedback visual elegante de confirmação na interface
     const banner = document.getElementById('calSaveNotification');
     if (banner) {
       banner.classList.add('saved-flash');
-      banner.innerHTML = `<span>✅ <strong>${monthName} de ${yearStr} SALVO E RECALCULADO!</strong> ${commute.workingDaysCount} dias úteis • Caronas: ${formatBRL(commute.totalCaronas)} • VR: ${formatBRL(commute.totalVR)}</span>`;
+      banner.innerHTML = `<span>✅ <strong>${monthName}/${yearStr} ATUALIZADO COM SUCESSO!</strong> ${commute.workingDaysCount} dias úteis • Caronas: ${formatBRL(commute.totalCaronas)} • VR: ${formatBRL(commute.totalVR)}</span>`;
       setTimeout(() => {
         banner.classList.remove('saved-flash');
-        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>`;
+        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Toque em qualquer dia para alterar (presencial, folga, abonada, feriado). Salvamento e recálculo automáticos.</span>`;
       }, 4000);
     }
+  }
+
+  function toggleCalendarDay(dateStr) {
+    abrirModalEditarDia(dateStr);
   }
 
   function aplicarCaronasNoMes() {
@@ -5223,8 +5361,7 @@ const MatrixApp = (function () {
     const monthName = calSelectedMonth || currentMonth;
     const monthIndex = MONTH_NAMES.indexOf(monthName) + 1;
     const state = MatrixDB.getState();
-    const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
-    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIndex, customLeaves);
+    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIndex, state.calendarioCustom);
 
     // Atualiza ou insere o item "Caronas" nos gastos fixos do mês em edição
     const monthData = MatrixDB.getMonth(yearStr, monthName);
@@ -5827,6 +5964,9 @@ const MatrixApp = (function () {
     toggleEmprestimoParcelas,
     openEditSaldosModal,
     salvarSaldosModal,
+    abrirModalEditarDia,
+    salvarStatusDiaCalendario,
+    toggleCalendarDay,
     switchTab,
     initSwipeNavigation
   };
