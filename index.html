@@ -723,52 +723,55 @@
     <!-- TAB 4: CALENDÁRIO & CARONAS -->
     <section id="tab-calendario" class="tab-content">
       <div class="matrix-box">
-        <div class="box-header">
-          <h2>📅 Calendário Oficial USP São Carlos & Deslocamento</h2>
-          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Inteligência de Dias Úteis</span>
+        <div class="cal-box-header">
+          <h2 class="cal-header-title">📅 Calendário USP & Caronas</h2>
+          <span class="box-badge cal-header-badge">Dias Úteis & Ciclo Salarial</span>
         </div>
 
-        <!-- Barra de Navegação e Seleção de Mês e Ano -->
-        <div class="calendar-controls-bar">
-          <div class="cal-nav-group">
-            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(-1)" title="Ir para o mês anterior">◀ Anterior</button>
-            <div class="cal-month-badge">
-              <span style="font-size:16px;">📅</span>
-              <span id="calCurrentMonthTitle" class="cal-month-title">Novembro / 2026</span>
-              <span class="cal-badge-pill">USP São Carlos</span>
+        <!-- Barra de Navegação e Controles em Linha Única -->
+        <div class="cal-toolbar">
+          <div class="cal-nav-row">
+            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(-1)" title="Mês anterior">◀ Anterior</button>
+            <div class="cal-current-badge">
+              <span id="calCurrentMonthTitle" class="cal-month-title-text">Novembro / 2026</span>
+              <span class="cal-badge-usp">USP São Carlos</span>
             </div>
-            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(1)" title="Ir para o próximo mês">Próximo ▶</button>
+            <button class="btn-matrix secondary btn-cal-nav" onclick="MatrixApp.navCalendarMonth(1)" title="Próximo mês">Próximo ▶</button>
           </div>
-          <div class="cal-selectors-group">
-            <select id="calMonthSelect" class="matrix-select cal-select" onchange="MatrixApp.onCalMonthChange(this.value)" title="Selecionar Mês"></select>
-            <select id="calYearSelect" class="matrix-select cal-select" onchange="MatrixApp.onCalYearChange(this.value)" title="Selecionar Ano"></select>
-            <button class="btn-matrix secondary" onclick="MatrixApp.resetCalendarToCurrent()" title="Retornar ao mês atual do sistema">Hoje</button>
-            <button class="btn-matrix primary" onclick="MatrixApp.aplicarCaronasNoMes()" title="Sincronizar Caronas e VR deste mês no Fluxo de Caixa">💾 Sincronizar Mês no Fluxo</button>
+          <div class="cal-actions-row">
+            <select id="calMonthSelect" class="matrix-select cal-select-inline" onchange="MatrixApp.onCalMonthChange(this.value)" title="Mês"></select>
+            <select id="calYearSelect" class="matrix-select cal-select-inline" onchange="MatrixApp.onCalYearChange(this.value)" title="Ano"></select>
+            <button class="btn-matrix secondary btn-cal-today" onclick="MatrixApp.resetCalendarToCurrent()" title="Mês Atual">Hoje</button>
+            <button class="btn-matrix primary btn-cal-sync" onclick="MatrixApp.aplicarCaronasNoMes()" title="Sincronizar no Fluxo">💾 Sincronizar</button>
           </div>
         </div>
 
-        <!-- Banner Informativo de Mês Ativo & Auto-Save -->
+        <!-- Banner Informativo sem quebras -->
         <div id="calSaveNotification" class="cal-notification-banner">
-          <span>📅 Editando: <strong id="calBannerMonthText">Novembro de 2026</strong>. Toque em qualquer dia para alterar (presencial, folga, abonada, feriado). Salvamento e recálculo automáticos.</span>
+          <span class="cal-banner-inline">📅 <strong id="calBannerMonthText">Novembro de 2026</strong> • Toque em qualquer dia para alterar (presencial, folga, abonada, feriado).</span>
         </div>
 
-        <!-- KPI Resumo do Mês Selecionado -->
-        <div class="cal-kpis-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:14px;">
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">DIAS ÚTEIS TRABALHADOS:</div>
-            <div id="calDiasUteis" style="font-size:18px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">0 dias</div>
+        <!-- KPI Resumo do Mês Selecionado (VR Mês Civil vs Caronas Ciclo Salarial) -->
+        <div class="cal-kpis-grid">
+          <div class="cal-kpi-card">
+            <div class="cal-kpi-label">Dias Úteis (Mês Civil)</div>
+            <div id="calDiasUteis" class="cal-kpi-val green">0 dias</div>
+            <div id="calDiasUteisSub" class="cal-kpi-sub">01 a 30 no mês</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">CUSTO CARONAS (R$ 60/DIA):</div>
-            <div id="calCaronasTotal" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 0,00</div>
+          <div class="cal-kpi-card">
+            <div class="cal-kpi-label">Vale Refeição (R$ 65/dia)</div>
+            <div id="calVRTotal" class="cal-kpi-val cyan">R$ 0,00</div>
+            <div id="calVRSub" class="cal-kpi-sub">Dias no mês civil</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">VALE REFEIÇÃO (R$ 65/DIA):</div>
-            <div id="calVRTotal" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+          <div class="cal-kpi-card">
+            <div class="cal-kpi-label">Dias Carona (Ciclo Salário)</div>
+            <div id="calDiasCarona" class="cal-kpi-val amber">0 dias</div>
+            <div id="calDiasCaronaSub" class="cal-kpi-sub">Entre salários</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:140px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">FOLGAS / FERIADOS / RECESSO:</div>
-            <div id="calFolgasTotal" style="font-size:18px;font-weight:700;color:var(--purple);font-family:var(--font-mono);">0 dias</div>
+          <div class="cal-kpi-card">
+            <div class="cal-kpi-label">Caronas (R$ 60/dia)</div>
+            <div id="calCaronasTotal" class="cal-kpi-val rose">R$ 0,00</div>
+            <div id="calCaronasSub" class="cal-kpi-sub">Custo no ciclo salarial</div>
           </div>
         </div>
 

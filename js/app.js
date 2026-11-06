@@ -3211,21 +3211,34 @@ const MatrixApp = (function () {
 
     const commute = CalendarEngine.calculateCommuteAndVR(yearNum, monthIndex, customData);
 
+    // VR: Baseado nos dias úteis do mês civil (01/M a 31/M)
     const diasUteisEl = document.getElementById('calDiasUteis');
-    if (diasUteisEl) diasUteisEl.textContent = `${commute.workingDaysCount} dias`;
+    if (diasUteisEl) diasUteisEl.textContent = `${commute.vrWorkingDaysCount} dias`;
 
-    const caronasEl = document.getElementById('calCaronasTotal');
-    if (caronasEl) caronasEl.textContent = formatBRL(commute.totalCaronas);
+    const diasUteisSub = document.getElementById('calDiasUteisSub');
+    if (diasUteisSub) diasUteisSub.textContent = `01 a ${commute.totalDays} no mês`;
 
     const vrEl = document.getElementById('calVRTotal');
     if (vrEl) vrEl.textContent = formatBRL(commute.totalVR);
 
-    const folgasEl = document.getElementById('calFolgasTotal');
-    if (folgasEl) {
-      const naoUteis = commute.totalDays - commute.workingDaysCount;
-      const countFolgas = commute.customLeavesCount || 0;
-      folgasEl.textContent = `${naoUteis} dias (${countFolgas} folgas)`;
+    const vrSub = document.getElementById('calVRSub');
+    if (vrSub) vrSub.textContent = `${commute.vrWorkingDaysCount} dias x R$ 65`;
+
+    // Caronas: Baseado nos dias úteis entre salários (4º dia útil de M a 3º dia útil de M+1)
+    const diasCaronaEl = document.getElementById('calDiasCarona');
+    if (diasCaronaEl) diasCaronaEl.textContent = `${commute.commuteWorkingDaysCount} dias`;
+
+    const diasCaronaSub = document.getElementById('calDiasCaronaSub');
+    if (diasCaronaSub) {
+      const cycleLabel = commute.salaryCycle ? commute.salaryCycle.cycleRangeLabel : '';
+      diasCaronaSub.textContent = `Ciclo: ${cycleLabel}`;
     }
+
+    const caronasEl = document.getElementById('calCaronasTotal');
+    if (caronasEl) caronasEl.textContent = formatBRL(commute.totalCaronas);
+
+    const caronasSub = document.getElementById('calCaronasSub');
+    if (caronasSub) caronasSub.textContent = `${commute.commuteWorkingDaysCount} dias x R$ 60`;
 
     // Render Grid dos Dias em 7 Colunas (Domingo a Sábado)
     const gridEl = document.getElementById('calendarDaysGrid');
@@ -5344,10 +5357,11 @@ const MatrixApp = (function () {
     const banner = document.getElementById('calSaveNotification');
     if (banner) {
       banner.classList.add('saved-flash');
-      banner.innerHTML = `<span>✅ <strong>${monthName}/${yearStr} ATUALIZADO COM SUCESSO!</strong> ${commute.workingDaysCount} dias úteis • Caronas: ${formatBRL(commute.totalCaronas)} • VR: ${formatBRL(commute.totalVR)}</span>`;
+      const cycleTxt = commute.salaryCycle ? commute.salaryCycle.cycleRangeLabel : '';
+      banner.innerHTML = `<span class="cal-banner-inline">✅ <strong>${monthName}/${yearStr} ATUALIZADO!</strong> VR: ${formatBRL(commute.totalVR)} (${commute.vrWorkingDaysCount}d) • Caronas: ${formatBRL(commute.totalCaronas)} (${commute.commuteWorkingDaysCount}d no ciclo ${cycleTxt})</span>`;
       setTimeout(() => {
         banner.classList.remove('saved-flash');
-        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Toque em qualquer dia para alterar (presencial, folga, abonada, feriado). Salvamento e recálculo automáticos.</span>`;
+        banner.innerHTML = `<span class="cal-banner-inline">📅 <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong> • Toque em qualquer dia para alterar (presencial, folga, abonada, feriado).</span>`;
       }, 4000);
     }
   }
@@ -5394,10 +5408,11 @@ const MatrixApp = (function () {
     const banner = document.getElementById('calSaveNotification');
     if (banner) {
       banner.classList.add('saved-flash');
-      banner.innerHTML = `<span>✅ <strong>Caronas e VR de ${monthName}/${yearStr} sincronizados no Fluxo de Caixa!</strong> (${commute.workingDaysCount} dias úteis | Caronas: ${formatBRL(commute.totalCaronas)} | VR: ${formatBRL(commute.totalVR)})</span>`;
+      const cycleTxt = commute.salaryCycle ? commute.salaryCycle.cycleRangeLabel : '';
+      banner.innerHTML = `<span class="cal-banner-inline">✅ <strong>Sincronizado no Fluxo!</strong> VR Mês: ${formatBRL(commute.totalVR)} (${commute.vrWorkingDaysCount}d) • Caronas: ${formatBRL(commute.totalCaronas)} (${commute.commuteWorkingDaysCount}d no ciclo ${cycleTxt})</span>`;
       setTimeout(() => {
         banner.classList.remove('saved-flash');
-        banner.innerHTML = `<span>📅 Editando: <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong>. Clique em qualquer dia para marcar ou remover folgas/férias. As alterações deste mês salvam e recalculam automaticamente.</span>`;
+        banner.innerHTML = `<span class="cal-banner-inline">📅 <strong id="calBannerMonthText">${calSelectedMonth} de ${calSelectedYear}</strong> • Toque em qualquer dia para alterar (presencial, folga, abonada, feriado).</span>`;
       }, 4000);
     } else {
       alert(`Caronas (${formatBRL(commute.totalCaronas)}) e VR (${formatBRL(commute.totalVR)}) sincronizados com sucesso para ${monthName}/${yearStr}!`);

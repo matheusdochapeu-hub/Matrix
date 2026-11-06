@@ -294,22 +294,81 @@ const CalendarEngine = (function () {
     };
   }
 
+  function getSalaryCycleInfo(year, monthIndex, customLeaves = []) {
+    // 1. Mês corrente
+    const currentMonthInfo = getMonthDaysInfo(year, monthIndex, customLeaves);
+    const currentWorkingDays = currentMonthInfo.days.filter(d => d.isWorkDay);
+
+    // O 4º dia útil do mês corrente (dia do pagamento do salário)
+    const paydayIndex = 3; // 4º dia útil (0-indexed)
+    const startDayObj = (currentWorkingDays.length >= 4) ? currentWorkingDays[paydayIndex] : (currentWorkingDays[0] || { day: 1, dateStr: `${year}-${String(monthIndex).padStart(2, '0')}-01` });
+
+    // 2. Mês subsequente
+    const nextYear = monthIndex === 12 ? year + 1 : year;
+    const nextMonthIndex = monthIndex === 12 ? 1 : monthIndex + 1;
+    const nextMonthInfo = getMonthDaysInfo(nextYear, nextMonthIndex, customLeaves);
+    const nextWorkingDays = nextMonthInfo.days.filter(d => d.isWorkDay);
+
+    // O 3º dia útil do mês subsequente (um dia antes do 4º dia útil / pagamento)
+    const endDayObj = (nextWorkingDays.length >= 3) ? nextWorkingDays[paydayIndex - 1] : (nextWorkingDays[0] || { day: 1, dateStr: `${nextYear}-${String(nextMonthIndex).padStart(2, '0')}-01` });
+
+    // 3. Dias úteis no ciclo salarial:
+    // Parte A: Dias do mês corrente a partir do startDayObj.day (inclusive) até o fim do mês
+    const daysInCurrentMonth = currentMonthInfo.days.filter(d => d.day >= startDayObj.day && d.isWorkDay);
+
+    // Parte B: Dias do mês subsequente a partir do dia 1 até endDayObj.day (inclusive)
+    const daysInNextMonth = nextMonthInfo.days.filter(d => d.day <= endDayObj.day && d.isWorkDay);
+
+    const cycleWorkingDaysCount = daysInCurrentMonth.length + daysInNextMonth.length;
+    const caronaUnit = 60.0;
+    const totalCaronas = cycleWorkingDaysCount * caronaUnit;
+
+    const startFormatted = `${String(startDayObj.day).padStart(2, '0')}/${String(monthIndex).padStart(2, '0')}`;
+    const endFormatted = `${String(endDayObj.day).padStart(2, '0')}/${String(nextMonthIndex).padStart(2, '0')}`;
+    const cycleRangeLabel = `${startFormatted} a ${endFormatted}`;
+
+    return {
+      startDay: startDayObj.day,
+      startDateStr: startDayObj.dateStr,
+      startFormatted,
+      endDay: endDayObj.day,
+      endDateStr: endDayObj.dateStr,
+      endFormatted,
+      cycleRangeLabel,
+      cycleWorkingDaysCount,
+      daysInCurrentMonthCount: daysInCurrentMonth.length,
+      daysInNextMonthCount: daysInNextMonth.length,
+      caronaUnit,
+      totalCaronas
+    };
+  }
+
   function calculateCommuteAndVR(year, monthIndex, customLeaves = []) {
     const info = getMonthDaysInfo(year, monthIndex, customLeaves);
+    const cycle = getSalaryCycleInfo(year, monthIndex, customLeaves);
+
     const caronaUnit = 60.0;
     const vrUnit = 65.0;
     const vaMensal = 2050.0;
 
-    const totalCaronas = info.workingDaysCount * caronaUnit;
-    const totalVR = info.workingDaysCount * vrUnit;
+    // VR: conta dias úteis trabalhados no Mês Civil (01/M a 31/M)
+    const vrWorkingDaysCount = info.workingDaysCount;
+    const totalVR = vrWorkingDaysCount * vrUnit;
+
+    // Caronas: conta dias úteis entre salários (4º dia útil de M até 3º dia útil de M+1)
+    const commuteWorkingDaysCount = cycle.cycleWorkingDaysCount;
+    const totalCaronas = cycle.totalCaronas;
 
     return {
       ...info,
-      caronaUnit,
       vrUnit,
+      vrWorkingDaysCount,
+      totalVR,
       vaMensal,
+      caronaUnit,
+      commuteWorkingDaysCount,
       totalCaronas,
-      totalVR
+      salaryCycle: cycle
     };
   }
 
@@ -317,6 +376,7 @@ const CalendarEngine = (function () {
     MONTH_NAMES,
     FIXED_HOLIDAYS,
     getMonthDaysInfo,
+    getSalaryCycleInfo,
     calculateCommuteAndVR
   };
 })();
