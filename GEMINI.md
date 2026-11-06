@@ -51,5 +51,9 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - O modal inclui barra de abas interativas no topo para alternar instantaneamente entre `Todos`, `Fixos`, `Variáveis` e `Diários`.
 - Cliques diretos nas linhas individuais do card no painel filtram diretamente a categoria desejada.
 
-## 8. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v42`) e confirmar zero erros de execução.
+## 8. Chips dos Pilares Satélites no Mobile
+- A barra de chips satélites (`.unified-satellites-bar`) no mobile adota container flex com scroll horizontal suave (`overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none`).
+- Preserva rigorosamente as proporções, altura alinhada (`42px`), ícones (`15px`), tipografia e espaçamentos do desktop em todos os 3 chips (Faturas Nubank, Fisio Scarlet e Casa Maracaju VA & VR), eliminando compressões e quebras de linhas desiguais.
+
+## 9. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v43`) e confirmar zero erros de execução.
