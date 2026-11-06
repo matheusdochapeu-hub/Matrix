@@ -188,7 +188,7 @@ const AmortizationEngine = (function () {
       const totalMeses = (refDate.mesIndex - 1) + meses;
       const anoCalculado = refDate.ano + Math.floor(totalMeses / 12);
       const mesCalculado = totalMeses % 12;
-      return `${MONTH_NAMES[mesCalculado]} de ${anoCalculado}`;
+      return `${MONTH_NAMES[mesCalculado]} / ${anoCalculado}`;
     }
 
     const dataQuitacaoOriginal = calcDataQuitacao(prazoAtual);
@@ -537,17 +537,37 @@ const AmortizationEngine = (function () {
     if (isNaN(mTotal) || mTotal <= 0) return 'Quitado';
     const anos = Math.floor(mTotal / 12);
     const m = mTotal % 12;
+    const pStr = mTotal === 1 ? '1 parcela' : `${mTotal} parcelas`;
     if (anos > 0 && m > 0) {
       const anoStr = anos === 1 ? 'ano' : 'anos';
       const mesStr = m === 1 ? 'mês' : 'meses';
-      return `${mTotal} meses (${anos} ${anoStr} e ${m} ${mesStr})`;
+      return `${anos} ${anoStr} e ${m} ${mesStr} (${pStr})`;
     }
     if (anos > 0) {
       const anoStr = anos === 1 ? 'ano' : 'anos';
-      return `${mTotal} meses (${anos} ${anoStr})`;
+      return `${anos} ${anoStr} (${pStr})`;
     }
     const mesStr = mTotal === 1 ? 'mês' : 'meses';
-    return `${mTotal} ${mesStr}`;
+    return `${mTotal} ${mesStr} (${pStr})`;
+  }
+
+  function formatarTempoPoupado(meses) {
+    const mTotal = parseInt(meses, 10);
+    if (isNaN(mTotal) || mTotal <= 0) return 'Nenhum';
+    const anos = Math.floor(mTotal / 12);
+    const m = mTotal % 12;
+    const pStr = mTotal === 1 ? '1 parcela' : `${mTotal} parcelas`;
+    if (anos > 0 && m > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      const mesStr = m === 1 ? 'mês' : 'meses';
+      return `${anos} ${anoStr} e ${m} ${mesStr} a menos (${pStr})`;
+    }
+    if (anos > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      return `${anos} ${anoStr} a menos (${pStr})`;
+    }
+    const mesStr = mTotal === 1 ? 'mês' : 'meses';
+    return `${mTotal} ${mesStr} a menos (${pStr})`;
   }
 
     function getStatusForMonth(targetYear, targetMonthIndex, userConfig = {}) {
@@ -680,6 +700,7 @@ const AmortizationEngine = (function () {
     executarSimulacaoCompleta,
     simularAbatimentoFgts,
     formatarPrazoExtenso,
+    formatarTempoPoupado,
     getStatusForMonth,
     gerarRelatorioHTML
   };

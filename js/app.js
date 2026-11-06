@@ -33,17 +33,40 @@ const MatrixApp = (function () {
     if (isNaN(mTotal) || mTotal <= 0) return 'Quitado';
     const anos = Math.floor(mTotal / 12);
     const m = mTotal % 12;
+    const pStr = mTotal === 1 ? '1 parcela' : `${mTotal} parcelas`;
     if (anos > 0 && m > 0) {
       const anoStr = anos === 1 ? 'ano' : 'anos';
       const mesStr = m === 1 ? 'mês' : 'meses';
-      return `${mTotal} meses (${anos} ${anoStr} e ${m} ${mesStr})`;
+      return `${anos} ${anoStr} e ${m} ${mesStr} (${pStr})`;
     }
     if (anos > 0) {
       const anoStr = anos === 1 ? 'ano' : 'anos';
-      return `${mTotal} meses (${anos} ${anoStr})`;
+      return `${anos} ${anoStr} (${pStr})`;
     }
     const mesStr = mTotal === 1 ? 'mês' : 'meses';
-    return `${mTotal} ${mesStr}`;
+    return `${mTotal} ${mesStr} (${pStr})`;
+  }
+
+  function formatarTempoPoupado(meses) {
+    if (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.formatarTempoPoupado) {
+      return AmortizationEngine.formatarTempoPoupado(meses);
+    }
+    const mTotal = parseInt(meses, 10);
+    if (isNaN(mTotal) || mTotal <= 0) return '0 meses';
+    const anos = Math.floor(mTotal / 12);
+    const m = mTotal % 12;
+    const pStr = mTotal === 1 ? '1 parcela' : `${mTotal} parcelas`;
+    if (anos > 0 && m > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      const mesStr = m === 1 ? 'mês' : 'meses';
+      return `${anos} ${anoStr} e ${m} ${mesStr} a menos (${pStr})`;
+    }
+    if (anos > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      return `${anos} ${anoStr} a menos (${pStr})`;
+    }
+    const mesStr = mTotal === 1 ? 'mês' : 'meses';
+    return `${mTotal} ${mesStr} a menos (${pStr})`;
   }
 
   // Regra Fundamental de Pecúnia: VA e VR são vales de alimentação, NÃO entram na conta de dinheiro em conta
@@ -3608,7 +3631,7 @@ const MatrixApp = (function () {
     if (resNovoPrazo) resNovoPrazo.textContent = formatarPrazoExtenso(sim.novoPrazo);
 
     const resMesesPoupados = document.getElementById('resMesesPoupados');
-    if (resMesesPoupados) resMesesPoupados.textContent = formatarPrazoExtenso(sim.mesesPoupados);
+    if (resMesesPoupados) resMesesPoupados.textContent = formatarTempoPoupado(sim.mesesPoupados);
 
     const resNovaData = document.getElementById('resNovaDataQuitacao');
     if (resNovaData) resNovaData.textContent = sim.dataQuitacaoNova;
