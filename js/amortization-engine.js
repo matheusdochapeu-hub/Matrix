@@ -431,11 +431,11 @@ const AmortizationEngine = (function () {
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Novo Prazo Restante</div>
-      <div class="kpi-value blue">${simulacao.novoPrazo} meses (~${simulacao.novoPrazoAnos} anos)</div>
+      <div class="kpi-value blue">${formatarPrazoExtenso(simulacao.novoPrazo)}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Meses Poupados</div>
-      <div class="kpi-value green">${simulacao.mesesPoupados} meses (~${simulacao.anosPoupados} anos)</div>
+      <div class="kpi-value green">${formatarPrazoExtenso(simulacao.mesesPoupados)}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Economia Estimada em Juros</div>
@@ -455,7 +455,7 @@ const AmortizationEngine = (function () {
     </tr>
     <tr>
       <th>Data de Quitação Original</th>
-      <td>${simulacao.dataQuitacaoOriginal} (Prazo original: ${simulacao.prazoOriginal} meses / ~${simulacao.prazoOriginalAnos} anos)</td>
+      <td>${simulacao.dataQuitacaoOriginal} (Prazo original: ${formatarPrazoExtenso(simulacao.prazoOriginal)})</td>
     </tr>
     <tr>
       <th>Nova Data de Quitação</th>
@@ -476,9 +476,9 @@ const AmortizationEngine = (function () {
     <tbody>
       <tr>
         <td><strong>Prazo até Quitar</strong></td>
-        <td style="text-align:right;">${simulacao.prazoOriginal} meses (~${simulacao.prazoOriginalAnos} anos)</td>
-        <td style="text-align:right;font-weight:700;color:#0284c7;">${simulacao.novoPrazo} meses (~${simulacao.novoPrazoAnos} anos)</td>
-        <td style="text-align:right;font-weight:700;color:#059669;">${simulacao.mesesPoupados} meses (~${simulacao.anosPoupados} anos)</td>
+        <td style="text-align:right;">${formatarPrazoExtenso(simulacao.prazoOriginal)}</td>
+        <td style="text-align:right;font-weight:700;color:#0284c7;">${formatarPrazoExtenso(simulacao.novoPrazo)}</td>
+        <td style="text-align:right;font-weight:700;color:#059669;">${formatarPrazoExtenso(simulacao.mesesPoupados)}</td>
       </tr>
       <tr>
         <td><strong>Juros Totais Pagos</strong></td>
@@ -528,7 +528,29 @@ const AmortizationEngine = (function () {
    * Janeiro/2027 = 269 parcelas, e assim sucessivamente.
    * Amortizações extraordinárias registradas reduzem adicionalmente o saldo e o prazo.
    */
-  function getStatusForMonth(targetYear, targetMonthIndex, userConfig = {}) {
+  /**
+   * Converte número de meses no formato exato por extenso (ex: 271 -> "271 meses (22 anos e 7 meses)")
+   * Sem aproximações ("~"), sem quebras desnecessárias.
+   */
+  function formatarPrazoExtenso(meses) {
+    const mTotal = parseInt(meses, 10);
+    if (isNaN(mTotal) || mTotal <= 0) return 'Quitado';
+    const anos = Math.floor(mTotal / 12);
+    const m = mTotal % 12;
+    if (anos > 0 && m > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      const mesStr = m === 1 ? 'mês' : 'meses';
+      return `${mTotal} meses (${anos} ${anoStr} e ${m} ${mesStr})`;
+    }
+    if (anos > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      return `${mTotal} meses (${anos} ${anoStr})`;
+    }
+    const mesStr = mTotal === 1 ? 'mês' : 'meses';
+    return `${mTotal} ${mesStr}`;
+  }
+
+    function getStatusForMonth(targetYear, targetMonthIndex, userConfig = {}) {
     const cfg = { ...DEFAULT_CONFIG, ...userConfig };
     const baseYear = 2026;
     const baseMonthIndex = 11; // Novembro = 11
@@ -657,6 +679,7 @@ const AmortizationEngine = (function () {
     gerarAmortizacoesExtras,
     executarSimulacaoCompleta,
     simularAbatimentoFgts,
+    formatarPrazoExtenso,
     getStatusForMonth,
     gerarRelatorioHTML
   };

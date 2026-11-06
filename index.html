@@ -807,55 +807,54 @@
     <!-- TAB 5: FINANCIAMENTO CAIXA -->
     <section id="tab-financiamento" class="tab-content">
       <div class="matrix-box">
-        <div class="box-header">
-          <h2>🏠 Financiamento Habitacional da Casa (Caixa Econômica)</h2>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span id="caixaMesAtivoBadge" class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Novembro / 2026</span>
-            <span class="box-badge" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.4);">Tabela Price Oficial</span>
+        <div class="box-header" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <h2 style="font-size:15px;white-space:nowrap;margin:0;">🏠 Financiamento Caixa</h2>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
+            <span id="caixaMesAtivoBadge" class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);white-space:nowrap;font-size:10.5px;padding:2px 7px;">Novembro / 2026</span>
+            <span class="box-badge" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.4);white-space:nowrap;font-size:10.5px;padding:2px 7px;">Tabela Price</span>
           </div>
         </div>
 
         <!-- Indicadores Contratuais Atuais -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;margin-bottom:18px;">
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">SALDO DEVEDOR ATUAL:</div>
-            <div id="caixaSaldoDevedor" style="font-size:18px;font-weight:700;color:var(--rose);font-family:var(--font-mono);">R$ 157.884,49</div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:12px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:4px;white-space:nowrap;">SALDO DEVEDOR</div>
+            <div id="caixaSaldoDevedor" style="font-size:16px;font-weight:700;color:var(--rose);font-family:var(--font-mono);white-space:nowrap;">R$ 157.884,49</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PRAZO RESTANTE ORIGINAL:</div>
-            <div id="caixaPrazoMeses" style="font-size:18px;font-weight:700;color:var(--text-main);font-family:var(--font-mono);">271 meses (~23 anos)</div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:4px;white-space:nowrap;">PARCELA ATUAL</div>
+            <div id="caixaParcelaAtual" style="font-size:16px;font-weight:700;color:var(--amber);font-family:var(--font-mono);white-space:nowrap;">R$ 1.395,88</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PARCELA ATUAL:</div>
-            <div id="caixaParcelaAtual" style="font-size:18px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 1.395,88</div>
-          </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">TAXA EFETIVA:</div>
-            <div id="caixaTaxaJuros" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">8,9899% a.a.</div>
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);grid-column:1 / -1;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;white-space:nowrap;">PRAZO RESTANTE</span>
+              <span id="caixaTaxaJuros" style="font-size:10.5px;color:var(--cyan);font-family:var(--font-mono);white-space:nowrap;">Taxa: 8,9899% a.a.</span>
+            </div>
+            <div id="caixaPrazoMeses" style="font-size:14.5px;font-weight:700;color:var(--text-bright);font-family:var(--font-mono);white-space:nowrap;">271 meses (22 anos e 7 meses)</div>
           </div>
         </div>
 
         <!-- Bloco FGTS Celetista USP -->
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:18px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
-            <div style="font-weight:700;color:var(--matrix-green);">💰 Abatimento com FGTS da USP (Direito a cada 2 anos)</div>
-            <span class="box-badge" style="color:var(--cyan);border-color:var(--cyan);">Depósito R$ 501,12/mês</span>
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:nowrap;">
+            <span style="font-weight:700;color:var(--matrix-green);font-size:12.5px;white-space:nowrap;">💰 FGTS USP (a cada 2 anos)</span>
+            <span class="box-badge" style="color:var(--cyan);border-color:var(--cyan);font-size:10.5px;padding:1px 6px;white-space:nowrap;">R$ 501,12/mês</span>
           </div>
-          <p style="font-size:12px;color:var(--text-muted);margin:0;">
-            Como funcionário celetista da USP, seu holerite gera <strong>R$ 501,12</strong> de FGTS mensal. A cada 24 meses acumulam-se aproximadamente <strong id="fgtsEstimado24m" style="color:var(--matrix-green);">R$ 12.026,88</strong> para abater diretamente no saldo devedor, gerando economia massiva de juros futuros.
-          </p>
+          <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;">
+            Acúmulo de 24 meses: <strong id="fgtsEstimado24m" style="color:var(--matrix-green);">R$ 12.026,88</strong> para amortização direta do saldo devedor.
+          </div>
         </div>
 
         <!-- Simulador Multimodal de Amortização Extraordinária -->
         <div class="sim-config-box">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--border-dim);padding-bottom:8px;flex-wrap:nowrap;">
             <div>
-              <div style="font-weight:700;color:var(--cyan);font-size:15px;">⚡ Simulador Avançado de Amortização Extraordinária</div>
-              <div style="font-size:11px;color:var(--text-muted);">Simule valores iguais, intercalados, sazonais ou mês a mês e exporte o laudo em PDF.</div>
+              <div style="font-weight:700;color:var(--cyan);font-size:13.5px;white-space:nowrap;">⚡ Simulador de Amortização</div>
+              <div style="font-size:10.5px;color:var(--text-muted);white-space:nowrap;">Aportes extras e redução bancária</div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn-matrix" onclick="MatrixApp.salvarSimulacaoAtualPrompt()" title="Salvar este cenário no banco local">💾 Salvar Simulação</button>
-              <button class="btn-matrix primary" onclick="MatrixApp.baixarRelatorioPDFAtual()" title="Gerar e baixar laudo executivo em PDF">📄 Baixar PDF</button>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn-matrix" style="padding:4px 9px;font-size:11px;white-space:nowrap;" onclick="MatrixApp.salvarSimulacaoAtualPrompt()" title="Salvar este cenário">💾 Salvar</button>
+              <button class="btn-matrix primary" style="padding:4px 9px;font-size:11px;white-space:nowrap;" onclick="MatrixApp.baixarRelatorioPDFAtual()" title="Baixar laudo em PDF">📄 PDF</button>
             </div>
           </div>
 
@@ -974,28 +973,28 @@
           <!-- PAINEL DE RESULTADOS EM TEMPO REAL -->
           <div class="sim-results-grid">
             <div class="sim-result-item">
-              <span class="sim-result-label">🎯 NOVO PRAZO (MESES RESTANTES):</span>
-              <span id="resNovoPrazo" class="sim-result-value highlight-blue">0 meses</span>
+              <span class="sim-result-label">🎯 NOVO PRAZO:</span>
+              <span id="resNovoPrazo" class="sim-result-value highlight-blue" style="font-size:14px;white-space:nowrap;">0 meses</span>
             </div>
             <div class="sim-result-item">
-              <span class="sim-result-label">⏳ MESES POUPADOS:</span>
-              <span id="resMesesPoupados" class="sim-result-value highlight-green">0 meses</span>
+              <span class="sim-result-label">⏳ TEMPO POUPADO:</span>
+              <span id="resMesesPoupados" class="sim-result-value highlight-green" style="font-size:14px;white-space:nowrap;">0 meses</span>
             </div>
             <div class="sim-result-item">
-              <span class="sim-result-label">📅 NOVA DATA DE QUITAÇÃO:</span>
-              <span id="resNovaDataQuitacao" class="sim-result-value highlight-blue">--</span>
+              <span class="sim-result-label">📅 QUITAÇÃO ESTIMADA:</span>
+              <span id="resNovaDataQuitacao" class="sim-result-value highlight-blue" style="font-size:14px;white-space:nowrap;">--</span>
             </div>
             <div class="sim-result-item">
-              <span class="sim-result-label">💰 ECONOMIA DE JUROS ESTIMADA:</span>
-              <span id="resEconomiaJuros" class="sim-result-value highlight-green">R$ 0,00</span>
+              <span class="sim-result-label">💰 ECONOMIA DE JUROS:</span>
+              <span id="resEconomiaJuros" class="sim-result-value highlight-green" style="font-size:15px;white-space:nowrap;">R$ 0,00</span>
             </div>
             <div class="sim-result-item">
-              <span class="sim-result-label">💵 NOVO TOTAL PAGO ATÉ QUITAR:</span>
-              <span id="resNovoTotalPago" class="sim-result-value">R$ 0,00</span>
+              <span class="sim-result-label">💵 TOTAL PAGO:</span>
+              <span id="resNovoTotalPago" class="sim-result-value" style="font-size:15px;white-space:nowrap;">R$ 0,00</span>
             </div>
             <div class="sim-result-item">
-              <span class="sim-result-label">📊 TOTAL APORTADO EXTRA:</span>
-              <span id="resTotalAportado" class="sim-result-value" style="color:var(--amber);">R$ 0,00</span>
+              <span class="sim-result-label">📊 TOTAL APORTADO:</span>
+              <span id="resTotalAportado" class="sim-result-value" style="color:var(--amber);font-size:15px;white-space:nowrap;">R$ 0,00</span>
             </div>
           </div>
 

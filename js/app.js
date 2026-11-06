@@ -25,6 +25,27 @@ const MatrixApp = (function () {
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function formatarPrazoExtenso(meses) {
+    if (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.formatarPrazoExtenso) {
+      return AmortizationEngine.formatarPrazoExtenso(meses);
+    }
+    const mTotal = parseInt(meses, 10);
+    if (isNaN(mTotal) || mTotal <= 0) return 'Quitado';
+    const anos = Math.floor(mTotal / 12);
+    const m = mTotal % 12;
+    if (anos > 0 && m > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      const mesStr = m === 1 ? 'mês' : 'meses';
+      return `${mTotal} meses (${anos} ${anoStr} e ${m} ${mesStr})`;
+    }
+    if (anos > 0) {
+      const anoStr = anos === 1 ? 'ano' : 'anos';
+      return `${mTotal} meses (${anos} ${anoStr})`;
+    }
+    const mesStr = mTotal === 1 ? 'mês' : 'meses';
+    return `${mTotal} ${mesStr}`;
+  }
+
   // Regra Fundamental de Pecúnia: VA e VR são vales de alimentação, NÃO entram na conta de dinheiro em conta
   function isBeneficioNaoPecunia(itemOuNome) {
     if (typeof MatrixDB !== 'undefined' && typeof MatrixDB.isBeneficioNaoPecunia === 'function') {
@@ -1648,7 +1669,7 @@ const MatrixApp = (function () {
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--text-muted);">Prazo Restante:</span>
-              <span style="color:var(--matrix-green);font-weight:700;">${statusMes.prazo} parcelas (~${(statusMes.prazo / 12).toFixed(1)} anos)</span>
+              <span style="color:var(--matrix-green);font-weight:700;">${formatarPrazoExtenso(statusMes.prazo)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--text-muted);">Taxa Efetiva de Juros:</span>
@@ -1663,7 +1684,7 @@ const MatrixApp = (function () {
             📊 <strong>Evolução Temporal:</strong> Em Novembro/2026 são <strong>271 parcelas</strong> (R$ 157.884,49). Conforme o mês avança, 1 parcela é paga e o saldo devedor é abatido.
           </div>
           <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:0;">
-            💡 <strong>FGTS USP:</strong> Você acumula ~R$ 501,12 mensais de FGTS (~R$ 12.026,88 a cada 2 anos) para amortização extraordinária.
+            💡 <strong>FGTS USP:</strong> R$ 501,12 mensais de FGTS (R$ 12.026,88 a cada 24 meses) para amortização extraordinária.
           </p>
         </div>
       `;
@@ -3437,20 +3458,20 @@ const MatrixApp = (function () {
 
     const mesBadge = document.getElementById('caixaMesAtivoBadge');
     if (mesBadge) {
-      mesBadge.textContent = `${currentMonth} / ${currentYear} (${statusCaixa.prazo}m)`;
+      mesBadge.textContent = `${currentMonth} / ${currentYear}`;
     }
 
     const saldoEl = document.getElementById('caixaSaldoDevedor');
     if (saldoEl) saldoEl.textContent = formatBRL(statusCaixa.saldo);
 
     const prazoEl = document.getElementById('caixaPrazoMeses');
-    if (prazoEl) prazoEl.textContent = `${statusCaixa.prazo} meses (~${(statusCaixa.prazo / 12).toFixed(1)} anos)`;
+    if (prazoEl) prazoEl.textContent = formatarPrazoExtenso(statusCaixa.prazo);
 
     const parcelaEl = document.getElementById('caixaParcelaAtual');
     if (parcelaEl) parcelaEl.textContent = formatBRL(statusCaixa.parcela);
 
     const taxaEl = document.getElementById('caixaTaxaJuros');
-    if (taxaEl) taxaEl.textContent = `${cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899}% a.a.`;
+    if (taxaEl) taxaEl.textContent = `Taxa: ${cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899}% a.a.`;
 
     // Simulação FGTS (24 meses de depósitos USP = 24 * 501.12 = R$ 12.026,88)
     const saldoFgts24m = (cfg.fgtsMensalUsp || 501.12) * 24;
@@ -3584,10 +3605,10 @@ const MatrixApp = (function () {
 
     // Atualiza KPIs da interface
     const resNovoPrazo = document.getElementById('resNovoPrazo');
-    if (resNovoPrazo) resNovoPrazo.textContent = `${sim.novoPrazo} meses (~${sim.novoPrazoAnos} anos)`;
+    if (resNovoPrazo) resNovoPrazo.textContent = formatarPrazoExtenso(sim.novoPrazo);
 
     const resMesesPoupados = document.getElementById('resMesesPoupados');
-    if (resMesesPoupados) resMesesPoupados.textContent = `${sim.mesesPoupados} meses (~${sim.anosPoupados} anos)`;
+    if (resMesesPoupados) resMesesPoupados.textContent = formatarPrazoExtenso(sim.mesesPoupados);
 
     const resNovaData = document.getElementById('resNovaDataQuitacao');
     if (resNovaData) resNovaData.textContent = sim.dataQuitacaoNova;
@@ -3685,7 +3706,7 @@ const MatrixApp = (function () {
           <div>
             <div style="font-weight:700;font-size:14px;color:var(--text-main);">${sim.nome}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-              Salva em: ${dt} • Novo Prazo: <strong style="color:var(--cyan);">${res.novoPrazo || 0} meses</strong> (~${res.novoPrazoAnos || 0} anos) • Poupados: <strong style="color:var(--matrix-green);">${res.mesesPoupados || 0} meses</strong>
+              Salva em: ${dt} • Novo Prazo: <strong style="color:var(--cyan);">${formatarPrazoExtenso(res.novoPrazo || 0)}</strong> • Poupados: <strong style="color:var(--matrix-green);">${formatarPrazoExtenso(res.mesesPoupados || 0)}</strong>
             </div>
             <div style="font-size:11px;color:var(--matrix-green);font-weight:600;margin-top:2px;">
               Economia em Juros: ${formatBRL(res.economiaJuros || 0)} • Quitação: ${res.dataQuitacaoNova || '--'}
