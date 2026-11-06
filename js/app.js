@@ -2264,7 +2264,7 @@ const MatrixApp = (function () {
 
     } else if (tipo === 'fisioflow') {
       titleEl.innerHTML = `🩺 Consolidado Financeiro FisioFlow (Scarlet) (${periodLabel})`;
-      const sat = (state.satellites && state.satellites.fisioflow) || 
+      const sat = (state.satellites && (state.satellites.fisioflow || state.satellites.fisio)) || 
         (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : {});
 
       const curMIdx = MONTH_NAMES.indexOf(currentMonth);
@@ -2276,14 +2276,15 @@ const MatrixApp = (function () {
       }
       const prevMesNome = MONTH_NAMES[prevMIdx];
       const ganhosMes = getGanhosScarletMes(currentYear, currentMonth);
-      const projecao = sat.projecaoMensalRecorrente || 1500.00;
-      const totalHistorico = sat.totalHistoricoRecebido || 10315.00;
-      const pacAtivos = sat.pacientesAtivos || 8;
+      const capacidadeBase = sat.capacidadeMensalRecorrente || sat.projecaoMensalRecorrente || 4400.00;
+      const ganhoPossivel = sat.ganhoPossivelMes || capacidadeBase;
+      const totalHistorico = sat.totalHistoricoRecebido || 10505.00;
+      const pacAtivos = sat.pacientesAtivos || 7;
       const ganhosMap = (sat.ganhosPorMes && Object.keys(sat.ganhosPorMes).length > 0) ? sat.ganhosPorMes : {
-        '2026-08': { realizado: 4670, aReceber: 0, sessoes: 38 },
-        '2026-09': { realizado: 3700, aReceber: 0, sessoes: 30 },
-        '2026-10': { realizado: 1140, aReceber: 0, sessoes: 10 },
-        '2026-11': { realizado: 805, aReceber: 0, sessoes: 7 }
+        '2026-08': { realizado: 4670, aReceber: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
+        '2026-09': { realizado: 3700, aReceber: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
+        '2026-10': { realizado: 950, aReceber: 190, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
+        '2026-11': { realizado: 995, aReceber: 0, previsto: 4200, sessoes: 11, total: 995, ganhoPossivel: 5195 }
       };
 
       html = `
@@ -2303,10 +2304,12 @@ const MatrixApp = (function () {
               <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosMes)}</div>
               <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Faturamento ${prevMesNome}/${prevYear}</div>
             </div>
-            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Projeção Recorrente</div>
-              <div style="font-size:15px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(projecao)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Capacidade atual</div>
+            <div style="background:var(--bg-card);border:1px solid rgba(0,255,102,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:0 0 10px rgba(0,255,102,0.06);">
+              <div style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:flex;align-items:center;gap:4px;">
+                <span>🎯</span> Ganho Possível (FisioFlow)
+              </div>
+              <div style="font-size:16px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(ganhoPossivel)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Capacidade: ${formatBRL(capacidadeBase)}/mês (${pacAtivos} pac.)</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Pacientes Ativos</div>
@@ -2321,18 +2324,18 @@ const MatrixApp = (function () {
           </div>
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
               <strong style="color:var(--text-main);font-size:13px;">📈 Conciliação FisioFlow &rarr; Caixa Matrix</strong>
               <span style="font-size:11px;color:var(--text-muted);">Histórico Total: ${formatBRL(totalHistorico)}</span>
             </div>
-            <div style="max-height:220px;overflow-y:auto;">
-              <table class="data-table">
+            <div style="max-height:220px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+              <table class="data-table" style="width:100%;min-width:320px;border-collapse:collapse;">
                 <thead>
-                  <tr>
-                    <th>Atendimentos (FisioFlow)</th>
-                    <th>Entrada no Caixa (Matrix)</th>
-                    <th>Sessões</th>
-                    <th style="text-align:right;">Total Faturado</th>
+                  <tr style="border-bottom:1px solid var(--border-dim);">
+                    <th style="padding:6px 8px;font-size:10.5px;text-align:left;white-space:nowrap;">Competência</th>
+                    <th style="padding:6px 8px;font-size:10.5px;text-align:left;white-space:nowrap;">Caixa Matrix</th>
+                    <th style="padding:6px 8px;font-size:10.5px;text-align:center;white-space:nowrap;">Sessões</th>
+                    <th style="padding:6px 8px;font-size:10.5px;text-align:right;white-space:nowrap;">Total Faturado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2349,15 +2352,18 @@ const MatrixApp = (function () {
                     const destMesNome = MONTH_NAMES[destM - 1];
                     const tot = (dados.realizado || 0) + (dados.aReceber || 0);
                     const isTargetMonth = (String(destY) === String(currentYear) && destMesNome === currentMonth);
+                    const possivelTxt = dados.previsto ? ` <span style="font-size:9.5px;color:var(--matrix-green);display:block;font-weight:normal;">(Possível: ${formatBRL(dados.ganhoPossivel || (tot + dados.previsto))})</span>` : '';
                     return `
                       <tr style="${isTargetMonth ? 'background:rgba(6,182,212,0.12);font-weight:bold;' : ''}">
-                        <td><strong>${formatMesAnoBR(ym)}</strong></td>
-                        <td>
+                        <td style="padding:6px 8px;white-space:nowrap;"><strong>${formatMesAnoBR(ym)}</strong></td>
+                        <td style="padding:6px 8px;white-space:nowrap;">
                           <span style="color:var(--cyan);font-weight:600;">${destMesNome} / ${destY}</span>
                           ${isTargetMonth ? ' <span style="color:var(--matrix-green);font-size:10px;">● Mês Selecionado</span>' : ''}
                         </td>
-                        <td>${dados.sessoes || '-'} sessões</td>
-                        <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(tot)}</td>
+                        <td style="padding:6px 8px;text-align:center;white-space:nowrap;">${dados.sessoes || '-'} sessões</td>
+                        <td class="val-col" style="padding:6px 8px;color:var(--cyan);font-weight:700;text-align:right;white-space:nowrap;">
+                          ${formatBRL(tot)}${possivelTxt}
+                        </td>
                       </tr>
                     `;
                   }).join('')}
@@ -2367,7 +2373,7 @@ const MatrixApp = (function () {
           </div>
 
           <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, e o faturamento de Novembro (R$ 805) financia Dezembro.
+            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, enquanto o faturamento em andamento de Novembro (com ganho possível de até R$ 5.195 e capacidade de R$ 4.400/mês com 7 pacientes ativos) financiará Dezembro.
           </div>
         </div>
       `;
@@ -6045,7 +6051,7 @@ function onModalCategoriaChange(catVal) {
     }
     if (sat.fisioflow) {
       if (document.getElementById('satFisioMesAtual')) document.getElementById('satFisioMesAtual').textContent = formatBRL(sat.fisioflow.mesAtualTotal);
-      if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.projecaoMensalRecorrente);
+      if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.ganhoPossivelMes || sat.fisioflow.capacidadeMensalRecorrente || sat.fisioflow.projecaoMensalRecorrente || 4400.00);
     }
 
     // 2. Faturas (Nubank Black)

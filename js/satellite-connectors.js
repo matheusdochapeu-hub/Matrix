@@ -157,16 +157,19 @@ const SatelliteConnectors = (function () {
     origem: 'FisioFlow',
     atualizadoEm: new Date().toISOString(),
     ganhosPorMes: {
-      '2026-08': { realizado: 4670, aReceber: 0, sessoes: 38, total: 4670 },
-      '2026-09': { realizado: 3700, aReceber: 0, sessoes: 30, total: 3700 },
-      '2026-10': { realizado: 1140, aReceber: 0, sessoes: 10, total: 1140 },
-      '2026-11': { realizado: 805, aReceber: 0, sessoes: 7, total: 805 }
+      '2026-08': { realizado: 4670, aReceber: 0, previsto: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
+      '2026-09': { realizado: 3700, aReceber: 0, previsto: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
+      '2026-10': { realizado: 950, aReceber: 190, previsto: 0, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
+      '2026-11': { realizado: 995, aReceber: 0, previsto: 4200, sessoes: 11, total: 995, ganhoPossivel: 5195 }
     },
-    totalHistoricoRecebido: 10315.00,
-    mesAtualTotal: 805.00,
-    projecaoMensalRecorrente: 1500.00,
-    pacientesAtivos: 8,
-    totalAtendimentosRegistrados: 85
+    totalHistoricoRecebido: 10505.00,
+    mesAtualTotal: 995.00,
+    mesAtualPrevisto: 4200.00,
+    ganhoPossivelMes: 5195.00,
+    capacidadeMensalRecorrente: 4400.00,
+    projecaoMensalRecorrente: 4400.00,
+    pacientesAtivos: 7,
+    totalAtendimentosRegistrados: 115
   };
 
   function getBaselineFisioData() {
@@ -176,6 +179,7 @@ const SatelliteConnectors = (function () {
   function processFisioData(rawData) {
     const atendimentos = (rawData && rawData.atendimentos) || [];
     const pacientes = (rawData && rawData.pacientes) || [];
+    const agendamentos = (rawData && rawData.agendamentos) || [];
 
     if (!atendimentos.length && !pacientes.length) {
       return getBaselineFisioData();
@@ -184,6 +188,7 @@ const SatelliteConnectors = (function () {
     const ganhosPorMes = {};
     let totalPassado = 0;
     let mesAtualTotal = 0;
+    let mesAtualPrevisto = 0;
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -193,11 +198,11 @@ const SatelliteConnectors = (function () {
       const ym = dataStr.slice(0, 7);
 
       if (ym) {
-        if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, sessoes: 0, total: 0 };
+        if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, previsto: 0, sessoes: 0, total: 0, ganhoPossivel: 0 };
         ganhosPorMes[ym].sessoes++;
         ganhosPorMes[ym].total += val;
 
-        if (at.Status === 'PAGO' || at.Status === 'Pago') {
+        if (at.Status === 'PAGO' || at.Status === 'Pago' || at.Status === 'Recebido') {
           ganhosPorMes[ym].realizado += val;
           totalPassado += val;
         } else {
@@ -210,14 +215,40 @@ const SatelliteConnectors = (function () {
       }
     });
 
-    let projecaoMensalRecorrente = 0;
-    pacientes.forEach(p => {
-      if (!p.Arquivado && p.Arquivado !== 'true') {
-        const valPadrao = parseFloat(p.ValorPadrao) || 120;
-        const freq = parseInt(p.FrequenciaSemanal, 10) || 1;
-        projecaoMensalRecorrente += (valPadrao * freq * 4);
+    agendamentos.forEach(ag => {
+      const val = parseFloat(ag.Valor) || 0;
+      const dataStr = String(ag.Data || '');
+      const ym = dataStr.slice(0, 7);
+      if (ym && ag.Status !== 'Cancelado') {
+        if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, previsto: 0, sessoes: 0, total: 0, ganhoPossivel: 0 };
+        ganhosPorMes[ym].previsto += val;
+        if (ym === curYearMonth) {
+          mesAtualPrevisto += val;
+        }
       }
     });
+
+    Object.keys(ganhosPorMes).forEach(ym => {
+      ganhosPorMes[ym].ganhoPossivel = (ganhosPorMes[ym].total || 0) + (ganhosPorMes[ym].previsto || 0);
+    });
+
+    let capacidadeMensalRecorrente = 0;
+    let pacAtivosCount = 0;
+    pacientes.forEach(p => {
+      const isArq = p.Arquivado === 'Sim' || p.Arquivado === 'true' || p.Arquivado === true;
+      if (!isArq) {
+        pacAtivosCount++;
+        const valPadrao = parseFloat(p.ValorPadrao) || 95;
+        const freqStr = String(p.FrequenciaSemanal || '');
+        let fNum = 1;
+        if (freqStr.includes('3')) fNum = 3;
+        else if (freqStr.includes('2')) fNum = 2;
+        else if (freqStr.includes('1')) fNum = 1;
+        capacidadeMensalRecorrente += (valPadrao * fNum * 4);
+      }
+    });
+
+    const ganhoPossivelMes = mesAtualTotal + mesAtualPrevisto;
 
     return {
       origem: 'FisioFlow',
@@ -225,8 +256,11 @@ const SatelliteConnectors = (function () {
       ganhosPorMes,
       totalHistoricoRecebido: totalPassado,
       mesAtualTotal,
-      projecaoMensalRecorrente: Math.max(1500, projecaoMensalRecorrente),
-      pacientesAtivos: pacientes.filter(p => !p.Arquivado && p.Arquivado !== 'true').length,
+      mesAtualPrevisto,
+      ganhoPossivelMes: ganhoPossivelMes > 0 ? ganhoPossivelMes : (capacidadeMensalRecorrente || 4400.00),
+      capacidadeMensalRecorrente: capacidadeMensalRecorrente || 4400.00,
+      projecaoMensalRecorrente: capacidadeMensalRecorrente || 4400.00,
+      pacientesAtivos: pacAtivosCount || 7,
       totalAtendimentosRegistrados: atendimentos.length
     };
   }
