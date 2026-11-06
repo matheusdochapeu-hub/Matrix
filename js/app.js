@@ -3734,18 +3734,25 @@ const MatrixApp = (function () {
   // ==========================================
   // 3. SIMULADOR "E SE?" (PROJEÇÕES FUTURAS)
   // ==========================================
+  let currentSimVisao = 'consolidado'; // 'consolidado' | 'matheus' | 'scarlet' | 'va' | 'vr'
+
+  function setSimuladorVisao(visao) {
+    currentSimVisao = visao || 'consolidado';
+    renderSimulator();
+  }
+
   function renderSimulator() {
     const state = MatrixDB.getState();
     const result = ScenarioSimulator.runSimulation(state, null, 14);
 
     const contaLabels = {
-      bb: 'Banco do Brasil (Salário USP)',
+      bb: 'Banco do Brasil (Salário USP • Matheus)',
       nubank_scarlet: 'Nubank Scarlet (Mastercard Black)',
       nubank_matheus: 'Nubank Matheus',
-      inter: 'Banco Inter (Giro/Pix)',
-      santander: 'Santander (DinDin)',
-      va: 'Cartão VA (Alimentação)',
-      vr: 'Cartão VR (Refeição)',
+      inter: 'Banco Inter (Giro/Pix • Matheus)',
+      santander: 'Santander (DinDin • Matheus)',
+      va: 'Cartão VA (Alimentação USP)',
+      vr: 'Cartão VR (Refeição USP)',
       reserva: 'Reserva de Emergência / Invest.',
       dinheiro: 'Dinheiro Vivo'
     };
@@ -3754,7 +3761,7 @@ const MatrixApp = (function () {
       ganhos_scarlet: 'Ganhos da Scarlet (FisioFlow)',
       va_mercado: 'Vale Alimentação (VA Maracaju 88)',
       vr_almoco: 'Vale Refeição (VR Presencial)',
-      estudio_extra: 'Renda Extra',
+      estudio_extra: 'Renda Extra (Matheus)',
       reserva_aportes: 'Reserva de Emergência',
       orcamento_geral: 'Orçamento Geral Conjunto'
     };
@@ -3764,14 +3771,28 @@ const MatrixApp = (function () {
       parcelado: '📦 Parcelado'
     };
 
-    // Render Painel de Correlação por Renda
+    // 1. Atualizar Abas de Visão do Simulador (Segmented Vision Tabs)
+    const visionBtns = document.querySelectorAll('.sim-vision-btn');
+    visionBtns.forEach(btn => {
+      if (btn.getAttribute('data-vision') === currentSimVisao) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // 2. Render Painel de Correlação por Renda (Interativo: clique filtra a visão)
     const correlacaoGridEl = document.getElementById('simCorrelacaoRendaGrid');
     if (correlacaoGridEl && result.correlacaoRendas) {
       correlacaoGridEl.innerHTML = Object.values(result.correlacaoRendas).map(r => {
         const hasImpact = r.totalMensal > 0;
+        const isCurrentActive = (currentSimVisao === r.pilar);
         return `
-          <div style="background:rgba(5,8,7,0.5);border:1px solid ${hasImpact ? 'var(--cyan)' : 'var(--border-dim)'};border-radius:var(--radius-xs);padding:8px 10px;font-family:var(--font-mono);">
-            <div style="font-size:10.5px;color:var(--text-muted);">${r.nome}</div>
+          <div onclick="MatrixApp.setSimuladorVisao('${r.pilar || 'consolidado'}')" title="Toque para filtrar a simulação nesta fonte" style="cursor:pointer;background:rgba(5,8,7,0.5);border:1px solid ${isCurrentActive ? 'var(--matrix-green)' : (hasImpact ? 'var(--cyan)' : 'var(--border-dim)')};border-radius:var(--radius-xs);padding:8px 10px;font-family:var(--font-mono);transition:all 0.15s ease;">
+            <div style="font-size:10.5px;color:${isCurrentActive ? 'var(--matrix-green)' : 'var(--text-muted)'};font-weight:${isCurrentActive ? '700' : 'normal'};display:flex;justify-content:space-between;align-items:center;">
+              <span>${r.nome}</span>
+              ${isCurrentActive ? '<span style="font-size:9px;color:var(--matrix-green);">[ATIVO]</span>' : ''}
+            </div>
             <div style="font-size:13.5px;font-weight:700;color:${hasImpact ? 'var(--cyan)' : 'var(--text-dim)'};margin-top:2px;">
               ${hasImpact ? formatBRL(r.totalMensal) + ' /mês' : 'R$ 0,00'}
             </div>
@@ -3783,7 +3804,7 @@ const MatrixApp = (function () {
       }).join('');
     }
 
-    // Render lista de hipóteses/cenários com suporte a edição, recorrência, conta e correlação de renda
+    // 3. Render lista de hipóteses/cenários com tags de identificação de conta
     const scenContainer = document.getElementById('activeScenariosList');
     if (scenContainer) {
       if (!state.simulacoesAtivas || state.simulacoesAtivas.length === 0) {
@@ -3795,12 +3816,23 @@ const MatrixApp = (function () {
           const contaDesc = contaLabels[scen.conta] || scen.conta || 'Nubank Scarlet (Mastercard Black)';
           const rendaDesc = rendaLabels[scen.renda] || scen.renda || 'Ganhos da Scarlet (FisioFlow)';
 
+          const pilar = ScenarioSimulator.getScenarioPilar(scen);
+          let pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(56,189,248,0.12);color:var(--cyan);border-color:var(--cyan);">👨 Conta Matheus</span>`;
+          if (pilar === 'scarlet') {
+            pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(236,72,153,0.12);color:#f472b6;border-color:#f472b6;">👩 Conta Scarlet</span>`;
+          } else if (pilar === 'va') {
+            pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(245,158,11,0.12);color:var(--amber);border-color:var(--amber);">🛒 Vale Alimentação</span>`;
+          } else if (pilar === 'vr') {
+            pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(168,85,247,0.12);color:#c084fc;border-color:#a855f7;">🍽️ Vale Refeição</span>`;
+          }
+
           return `
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
               <div style="flex:1;min-width:260px;">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
                   <span style="font-weight:700;color:var(--matrix-green);font-size:13px;">${scen.titulo}</span>
-                  <span class="status-badge" style="font-size:10px;background:rgba(56,189,248,0.12);color:var(--cyan);border-color:var(--cyan);">${tipoDesc}</span>
+                  ${pilarBadge}
+                  <span class="status-badge" style="font-size:10px;background:rgba(0,255,102,0.08);color:var(--matrix-green);border-color:var(--matrix-green-dim);">${tipoDesc}</span>
                 </div>
                 <div style="font-size:12px;color:var(--text-main);font-family:var(--font-mono);margin-bottom:4px;">
                   <strong>Valor Estimado:</strong> <span style="color:var(--cyan);font-weight:700;">${formatBRL(scen.valorAdotado || scen.valor)}</span>
@@ -3826,28 +3858,132 @@ const MatrixApp = (function () {
       }
     }
 
-    // Render tabela mês a mês da simulação (linhas clicáveis para raio-x e diagnóstico)
+    // 4. Configurar Títulos e Cabeçalhos Dinâmicos da Tabela de acordo com a Visão Ativa
+    const thGanhos = document.getElementById('simThGanhos');
+    const thGastos = document.getElementById('simThGastos');
+    const thSimulado = document.getElementById('simThSimulado');
+    const thSaldo = document.getElementById('simThSaldo');
+
+    let labelRenda = 'Renda';
+    let labelGastos = 'Gastos';
+    let labelSimulado = 'Simulado';
+    let labelSaldo = 'Saldo';
+
+    if (currentSimVisao === 'matheus') {
+      if (thGanhos) thGanhos.textContent = 'Salário USP + Extras';
+      if (thGastos) thGastos.textContent = 'Gastos Próprios + Transf.';
+      if (thSimulado) thSimulado.textContent = 'Cenários Matheus';
+      if (thSaldo) thSaldo.textContent = 'Sobra pra Mim';
+      labelRenda = 'USP / Extras:';
+      labelGastos = 'Gastos Próprios:';
+      labelSimulado = 'Cenários:';
+      labelSaldo = 'Sobra pra Mim:';
+    } else if (currentSimVisao === 'scarlet') {
+      if (thGanhos) thGanhos.textContent = 'Faturamento FisioFlow';
+      if (thGastos) thGastos.textContent = 'Fatura Nubank Scarlet';
+      if (thSimulado) thSimulado.textContent = 'Cenários Scarlet';
+      if (thSaldo) thSaldo.textContent = 'Sobra Scarlet';
+      labelRenda = 'FisioFlow:';
+      labelGastos = 'Fatura Nubank:';
+      labelSimulado = 'Cenários Scarlet:';
+      labelSaldo = 'Sobra Scarlet:';
+    } else if (currentSimVisao === 'va') {
+      if (thGanhos) thGanhos.textContent = 'Crédito VA USP';
+      if (thGastos) thGastos.textContent = 'Supermercado Base';
+      if (thSimulado) thSimulado.textContent = 'Cenários em VA';
+      if (thSaldo) thSaldo.textContent = 'Saldo VA Restante';
+      labelRenda = 'Crédito USP:';
+      labelGastos = 'Mercado Base:';
+      labelSimulado = 'Cenários VA:';
+      labelSaldo = 'Saldo VA:';
+    } else if (currentSimVisao === 'vr') {
+      if (thGanhos) thGanhos.textContent = 'Crédito VR USP';
+      if (thGastos) thGastos.textContent = 'Refeições Base';
+      if (thSimulado) thSimulado.textContent = 'Cenários em VR';
+      if (thSaldo) thSaldo.textContent = 'Saldo VR Restante';
+      labelRenda = 'Crédito USP:';
+      labelGastos = 'Refeições Base:';
+      labelSimulado = 'Cenários VR:';
+      labelSaldo = 'Saldo VR:';
+    } else {
+      // Consolidado Casal
+      if (thGanhos) thGanhos.textContent = 'Ganhos Casal';
+      if (thGastos) thGastos.textContent = 'Gastos Casal';
+      if (thSimulado) thSimulado.textContent = 'Custo Simulado';
+      if (thSaldo) thSaldo.textContent = 'Saldo Conjunto';
+      labelRenda = 'Renda Casal:';
+      labelGastos = 'Gastos Casal:';
+      labelSimulado = 'Simulado Casal:';
+      labelSaldo = 'Saldo Conjunto:';
+    }
+
+    // 5. Render Tabela Mês a Mês da Simulação
     const simTbody = document.getElementById('simulationTableBody');
     if (simTbody) {
       simTbody.innerHTML = result.timeline.map(row => {
+        let viewGanhos = row.ganhosBase;
+        let viewGastos = row.totalGastosBase;
+        let viewSimulado = row.custoCenarios;
+        let viewSaldo = row.saldoSimulado;
+        let viewStatus = row.statusAlerta;
+
+        if (currentSimVisao === 'matheus') {
+          viewGanhos = row.contas.matheus.ganhos;
+          viewGastos = row.contas.matheus.gastos;
+          viewSimulado = row.contas.matheus.custoCenarios;
+          viewSaldo = row.contas.matheus.saldoSimulado;
+          viewStatus = row.contas.matheus.statusAlerta;
+        } else if (currentSimVisao === 'scarlet') {
+          viewGanhos = row.contas.scarlet.ganhos;
+          viewGastos = row.contas.scarlet.gastos;
+          viewSimulado = row.contas.scarlet.custoCenarios;
+          viewSaldo = row.contas.scarlet.saldoSimulado;
+          viewStatus = row.contas.scarlet.statusAlerta;
+        } else if (currentSimVisao === 'va') {
+          viewGanhos = row.contas.va.ganhos;
+          viewGastos = row.contas.va.gastos;
+          viewSimulado = row.contas.va.custoCenarios;
+          viewSaldo = row.contas.va.saldoSimulado;
+          viewStatus = row.contas.va.statusAlerta;
+        } else if (currentSimVisao === 'vr') {
+          viewGanhos = row.contas.vr.ganhos;
+          viewGastos = row.contas.vr.gastos;
+          viewSimulado = row.contas.vr.custoCenarios;
+          viewSaldo = row.contas.vr.saldoSimulado;
+          viewStatus = row.contas.vr.statusAlerta;
+        }
+
         let statusBadge = '<span class="status-badge pago">Folga OK</span>';
         let rowClass = 'class="clickable-row sim-row sim-row-ok"';
-        if (row.statusAlerta === 'deficit') {
+        if (viewStatus === 'deficit') {
           statusBadge = '<span class="status-badge danger">Déficit</span>';
           rowClass = 'class="clickable-row sim-row sim-row-deficit"';
-        } else if (row.statusAlerta === 'atencao') {
+        } else if (viewStatus === 'atencao') {
           statusBadge = '<span class="status-badge pendente">Atenção</span>';
           rowClass = 'class="clickable-row sim-row sim-row-atencao"';
         }
 
         const fullLabel = `${row.monthName} ${row.year}`;
 
+        // Detalhamento individual das contas para a visão consolidada
+        const breakdownHtml = (currentSimVisao === 'consolidado') ? `
+          <div class="sim-accounts-breakdown">
+            <span class="sim-acc-badge matheus" title="Sobra pra Mim (Matheus)">👨 ${formatBRL(row.contas.matheus.saldoSimulado)}</span>
+            <span class="sim-acc-badge scarlet" title="Sobra da Scarlet">👩 ${formatBRL(row.contas.scarlet.saldoSimulado)}</span>
+            <span class="sim-acc-badge va" title="Saldo VA Alimentação">🛒 ${formatBRL(row.contas.va.saldoSimulado)}</span>
+            <span class="sim-acc-badge vr" title="Saldo VR Refeição">🍽️ ${formatBRL(row.contas.vr.saldoSimulado)}</span>
+          </div>
+        ` : '';
+
         return `
-          <tr ${rowClass} onclick="MatrixApp.abrirRaioXSimulador('${row.year}', '${row.monthName}')" title="Toque para ver o Raio-X & Diagnóstico de ${fullLabel}">
+          <tr ${rowClass} onclick="MatrixApp.abrirRaioXSimulador('${row.year}', '${row.monthName}')" title="Toque para ver o Raio-X & Diagnóstico segregado de ${fullLabel}">
             <td class="sim-cell-header">
               <div class="sim-header-wrap">
                 <span class="sim-icon">🔍</span>
-                <strong class="sim-month-text">${fullLabel}</strong>
+                <div>
+                  <strong class="sim-month-text">${fullLabel}</strong>
+                  ${breakdownHtml}
+                </div>
               </div>
               <div class="sim-mobile-actions">
                 ${statusBadge}
@@ -3856,21 +3992,21 @@ const MatrixApp = (function () {
                 </button>
               </div>
             </td>
-            <td class="val-col sim-cell-val" data-label="Ganhos">
-              <span class="sim-label-mobile">Renda:</span>
-              <span class="sim-num-val">${formatBRL(row.ganhosBase)}</span>
+            <td class="val-col sim-cell-val" data-label="${labelRenda}">
+              <span class="sim-label-mobile">${labelRenda}</span>
+              <span class="sim-num-val">${formatBRL(viewGanhos)}</span>
             </td>
-            <td class="val-col sim-cell-val" data-label="Gastos">
-              <span class="sim-label-mobile">Gastos:</span>
-              <span class="sim-num-val">${formatBRL(row.totalGastosBase)}</span>
+            <td class="val-col sim-cell-val" data-label="${labelGastos}">
+              <span class="sim-label-mobile">${labelGastos}</span>
+              <span class="sim-num-val">${formatBRL(viewGastos)}</span>
             </td>
-            <td class="val-col sim-cell-val" data-label="Simulado" style="color:var(--cyan);">
-              <span class="sim-label-mobile">Simulado:</span>
-              <span class="sim-num-val">${row.custoCenarios > 0 ? '+ ' + formatBRL(row.custoCenarios) : '—'}</span>
+            <td class="val-col sim-cell-val" data-label="${labelSimulado}" style="color:var(--cyan);">
+              <span class="sim-label-mobile">${labelSimulado}</span>
+              <span class="sim-num-val">${viewSimulado > 0 ? '+ ' + formatBRL(viewSimulado) : '—'}</span>
             </td>
-            <td class="val-col sim-cell-val sim-saldo-val" data-label="Saldo Final" style="font-weight:700;color:${row.saldoSimulado >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">
-              <span class="sim-label-mobile">Saldo:</span>
-              <span class="sim-num-val">${formatBRL(row.saldoSimulado)}</span>
+            <td class="val-col sim-cell-val sim-saldo-val" data-label="${labelSaldo}" style="font-weight:700;color:${viewSaldo >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">
+              <span class="sim-label-mobile">${labelSaldo}</span>
+              <span class="sim-num-val">${formatBRL(viewSaldo)}</span>
             </td>
             <td class="sim-desktop-actions-col" style="text-align:center;white-space:nowrap;">
               ${statusBadge}
@@ -3883,14 +4019,45 @@ const MatrixApp = (function () {
       }).join('');
     }
 
-    // KPI do simulador
-    const simImpactoEl = document.getElementById('simTotalImpacto');
-    if (simImpactoEl) simImpactoEl.textContent = formatBRL(result.impactoTotalCenarios);
+    // 6. Atualizar Indicadores de Impacto (KPIs) de acordo com a conta ativa
+    const pilarData = (result.porConta && result.porConta[currentSimVisao]) || result.porConta.consolidado;
 
+    const titleImpactoEl = document.getElementById('simKpiImpactoTitle');
+    const simImpactoEl = document.getElementById('simTotalImpacto');
+    if (titleImpactoEl && simImpactoEl) {
+      if (currentSimVisao === 'matheus') titleImpactoEl.textContent = 'CUSTO CENÁRIOS MATHEUS NO HORIZONTE:';
+      else if (currentSimVisao === 'scarlet') titleImpactoEl.textContent = 'CUSTO CENÁRIOS SCARLET NO HORIZONTE:';
+      else if (currentSimVisao === 'va') titleImpactoEl.textContent = 'CUSTO EXTRA EM VA NO HORIZONTE:';
+      else if (currentSimVisao === 'vr') titleImpactoEl.textContent = 'CUSTO EXTRA EM VR NO HORIZONTE:';
+      else titleImpactoEl.textContent = 'CUSTO TOTAL NO HORIZONTE (CASAL):';
+
+      simImpactoEl.textContent = formatBRL(pilarData.impactoTotalCenarios);
+    }
+
+    const titleDeficitEl = document.getElementById('simKpiDeficitTitle');
     const simDeficitEl = document.getElementById('simMesesDeficit');
-    if (simDeficitEl) {
-      simDeficitEl.textContent = `${result.mesesDeficit} de ${result.totalMeses} meses`;
-      simDeficitEl.style.color = result.mesesDeficit > 0 ? 'var(--rose)' : 'var(--matrix-green)';
+    if (titleDeficitEl && simDeficitEl) {
+      if (currentSimVisao === 'matheus') titleDeficitEl.textContent = 'MESES COM DÉFICIT (MATHEUS):';
+      else if (currentSimVisao === 'scarlet') titleDeficitEl.textContent = 'MESES COM DÉFICIT (SCARLET):';
+      else if (currentSimVisao === 'va') titleDeficitEl.textContent = 'MESES COM DÉFICIT (VA):';
+      else if (currentSimVisao === 'vr') titleDeficitEl.textContent = 'MESES COM DÉFICIT (VR):';
+      else titleDeficitEl.textContent = 'MESES COM DÉFICIT (CASAL):';
+
+      simDeficitEl.textContent = `${pilarData.mesesDeficit} de ${result.totalMeses} meses`;
+      simDeficitEl.style.color = pilarData.mesesDeficit > 0 ? 'var(--rose)' : 'var(--matrix-green)';
+    }
+
+    const titleMediaEl = document.getElementById('simKpiMediaTitle');
+    const simMediaEl = document.getElementById('simSaldoMedio');
+    if (titleMediaEl && simMediaEl) {
+      if (currentSimVisao === 'matheus') titleMediaEl.textContent = 'SOBRA MÉDIA PRA MIM (MATHEUS):';
+      else if (currentSimVisao === 'scarlet') titleMediaEl.textContent = 'SOBRA MÉDIA SCARLET:';
+      else if (currentSimVisao === 'va') titleMediaEl.textContent = 'SALDO MÉDIO DISPONÍVEL (VA):';
+      else if (currentSimVisao === 'vr') titleMediaEl.textContent = 'SALDO MÉDIO DISPONÍVEL (VR):';
+      else titleMediaEl.textContent = 'SOBRA MÉDIA MENSAL (CASAL):';
+
+      simMediaEl.textContent = formatBRL(pilarData.saldoMedio);
+      simMediaEl.style.color = pilarData.saldoMedio >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
   }
 
@@ -4027,39 +4194,137 @@ const MatrixApp = (function () {
 
     const topDespesas = todasDespesas.slice(0, 6);
 
+    const rowContas = monthSimRow && monthSimRow.contas ? monthSimRow.contas : {
+      matheus: { ganhos: totalReceitas, gastos: totalFixos, custoCenarios: 0, saldoSimulado: saldoFinal },
+      scarlet: { ganhos: 0, gastos: 0, custoCenarios: 0, saldoSimulado: 0 },
+      va: { ganhos: 2050, gastos: 0, custoCenarios: 0, saldoSimulado: 2050 },
+      vr: { ganhos: 1105, gastos: 0, custoCenarios: 0, saldoSimulado: 1105 }
+    };
+
     let html = `
       <div style="font-family:var(--font-mono);font-size:12px;">
-        <!-- Card Resumo de Fechamento -->
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-          <div style="display:flex;justify-content:space-between;padding:3px 0;">
-            <span style="color:var(--cyan);">(+) Rendas e Receitas Totais:</span>
-            <strong style="color:var(--cyan);">${formatBRL(totalReceitas)}</strong>
+        <!-- 1. Grid Segregado por Contas (Matheus, Scarlet, Benefícios VA & VR) -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;margin-bottom:14px;">
+          <!-- 👨 Matheus -->
+          <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-weight:700;color:var(--cyan);font-size:12px;">👨 Eu (Matheus • USP)</span>
+              <span class="status-badge ${rowContas.matheus.saldoSimulado >= 0 ? 'pago' : 'danger'}" style="font-size:9.5px;">
+                ${rowContas.matheus.saldoSimulado >= 0 ? 'Folga' : 'Déficit'}
+              </span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Renda USP + Extras:</span>
+              <span style="color:var(--text-main);">${formatBRL(rowContas.matheus.ganhos)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Gastos Próprios + Transf.:</span>
+              <span style="color:var(--text-main);">- ${formatBRL(rowContas.matheus.gastos)}</span>
+            </div>
+            ${rowContas.matheus.custoCenarios > 0 ? `
+              <div style="font-size:11px;color:var(--cyan);display:flex;justify-content:space-between;padding:2px 0;">
+                <span>Cenários Matheus:</span>
+                <span>- ${formatBRL(rowContas.matheus.custoCenarios)}</span>
+              </div>
+            ` : ''}
+            <div style="border-top:1px dashed rgba(56,189,248,0.3);margin:5px 0 3px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Sobra pra Mim:</span>
+              <span style="color:${rowContas.matheus.saldoSimulado >= 0 ? 'var(--cyan)' : 'var(--rose)'};">${formatBRL(rowContas.matheus.saldoSimulado)}</span>
+            </div>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0;">
-            <span style="color:var(--amber);">(-) Gastos Fixos da Casa:</span>
-            <span>- ${formatBRL(totalFixos)}</span>
+
+          <!-- 👩 Scarlet -->
+          <div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-weight:700;color:#f472b6;font-size:12px;">👩 Scarlet (FisioFlow)</span>
+              <span class="status-badge ${rowContas.scarlet.saldoSimulado >= 0 ? 'pago' : 'danger'}" style="font-size:9.5px;">
+                ${rowContas.scarlet.saldoSimulado >= 0 ? 'Folga' : 'Déficit'}
+              </span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Faturamento FisioFlow:</span>
+              <span style="color:var(--text-main);">${formatBRL(rowContas.scarlet.ganhos)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Fatura Nubank Scarlet:</span>
+              <span style="color:var(--text-main);">- ${formatBRL(rowContas.scarlet.gastos)}</span>
+            </div>
+            ${rowContas.scarlet.custoCenarios > 0 ? `
+              <div style="font-size:11px;color:#f472b6;display:flex;justify-content:space-between;padding:2px 0;">
+                <span>Cenários Scarlet:</span>
+                <span>- ${formatBRL(rowContas.scarlet.custoCenarios)}</span>
+              </div>
+            ` : ''}
+            <div style="border-top:1px dashed rgba(236,72,153,0.3);margin:5px 0 3px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Sobra Scarlet:</span>
+              <span style="color:${rowContas.scarlet.saldoSimulado >= 0 ? '#f472b6' : 'var(--rose)'};">${formatBRL(rowContas.scarlet.saldoSimulado)}</span>
+            </div>
           </div>
-          <div style="display:flex;justify-content:space-between;padding:3px 0;">
-            <span style="color:var(--rose);">(-) Gastos Variáveis & Outros:</span>
-            <span>- ${formatBRL(totalOutros)}</span>
-          </div>
-          ${contasInicio > 0 ? `
-          <div style="display:flex;justify-content:space-between;padding:3px 0;">
-            <span style="color:var(--amber);">(-) Contas Início de Ano (Sazonal):</span>
-            <span>- ${formatBRL(contasInicio)}</span>
-          </div>` : ''}
-          ${custoCenarios > 0 ? `
-          <div style="display:flex;justify-content:space-between;padding:3px 0;color:var(--cyan);">
-            <span>(-) Hipóteses / Cenários Simulados:</span>
-            <span>- ${formatBRL(custoCenarios)}</span>
-          </div>` : ''}
-          <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:13.5px;">
-            <strong style="color:var(--text-main);">(=) Saldo Líquido Previsto:</strong>
-            <strong style="color:${saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldoFinal)}</strong>
+
+          <!-- 🍽️ Benefícios (VA & VR) -->
+          <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-weight:700;color:var(--amber);font-size:12px;">🍽️ Benefícios (VA & VR)</span>
+              <span class="status-badge pago" style="font-size:9.5px;">Ativo USP</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Recarga VA (Supermercado):</span>
+              <span style="color:var(--amber);">${formatBRL(rowContas.va.ganhos)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+              <span>Recarga VR (Almoço Presencial):</span>
+              <span style="color:#c084fc;">${formatBRL(rowContas.vr.ganhos)}</span>
+            </div>
+            ${(rowContas.va.custoCenarios > 0 || rowContas.vr.custoCenarios > 0) ? `
+              <div style="font-size:11px;color:var(--amber);display:flex;justify-content:space-between;padding:2px 0;">
+                <span>Cenários Alimentação:</span>
+                <span>- ${formatBRL(rowContas.va.custoCenarios + rowContas.vr.custoCenarios)}</span>
+              </div>
+            ` : ''}
+            <div style="border-top:1px dashed rgba(245,158,11,0.3);margin:5px 0 3px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Saldo Benefícios:</span>
+              <span style="color:var(--amber);">${formatBRL(rowContas.va.saldoSimulado + rowContas.vr.saldoSimulado)}</span>
+            </div>
           </div>
         </div>
 
-        <!-- Diagnóstico -->
+        <!-- Card Resumo Consolidado Casal -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+          <div style="font-weight:700;color:var(--matrix-green);font-size:12px;margin-bottom:8px;">⚖️ Balanço Consolidado do Casal (Conta Corrente):</div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--cyan);">(+) Rendas Pecuniárias do Casal:</span>
+            <strong style="color:var(--cyan);">${formatBRL(totalReceitas)}</strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--amber);">(-) Gastos Fixos e Contas da Casa:</span>
+            <span>- ${formatBRL(totalFixos)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:3px 0;">
+            <span style="color:var(--amber);">(-) Gastos Variáveis (Faturas de Cartão):</span>
+            <span>- ${formatBRL(totalOutros)}</span>
+          </div>
+          ${contasInicio > 0 ? `
+            <div style="display:flex;justify-content:space-between;padding:3px 0;">
+              <span style="color:var(--rose);">(-) Contas Início de Ano (IPTU/IPVA):</span>
+              <span style="color:var(--rose);">- ${formatBRL(contasInicio)}</span>
+            </div>
+          ` : ''}
+          ${custoCenarios > 0 ? `
+            <div style="display:flex;justify-content:space-between;padding:3px 0;">
+              <span style="color:var(--cyan);">(-) Cenários Hipotéticos Ativos:</span>
+              <span style="color:var(--cyan);">- ${formatBRL(custoCenarios)}</span>
+            </div>
+          ` : ''}
+          <div style="border-top:1px dashed var(--border-dim);margin:8px 0 6px 0;"></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;">
+            <span style="color:var(--text-main);">Saldo Conjunto Simulado:</span>
+            <span style="color:${saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldoFinal)}</span>
+          </div>
+        </div>
+
         ${diagnosticoHtml}
 
         <!-- Botão de Ação Direta para o Fluxo de Caixa -->
@@ -7527,6 +7792,10 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     promptAlterarNomeEstudio,
     getFaturaNubankMes,
     getGanhosScarletMes,
+    calcSobraMatheus,
+    isGastoDaScarlet,
+    isTransferenciaParaScarlet,
+    setSimuladorVisao,
     onModalCategoriaChange,
     toggleEmprestimoParcelas,
     openEditSaldosModal,

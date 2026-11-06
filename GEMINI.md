@@ -62,5 +62,17 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
   - Conciliação FisioFlow e relatórios exibem competências em `MM/AAAA` (ex: `08/2026`, `11/2026`).
   - Utilitários globais `formatMesAnoBR`, `parseMesAnoBR`, `formatDataBR` e `maskMesAno` garantem interoperabilidade transparente sem quebrar persistência de dados.
 
-## 10. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v44`) e confirmar zero erros de execução.
+## 10. Segregação Rigorosa de Contas no Simulador 'E se?' (Projeções Futuras)
+- O Laboratório de Projeções (`#tab-simulador`) agora segrega integralmente os fluxos de caixa e custos simulados entre as contas:
+  1. 👨 **Eu (Matheus • USP)**: Salário líquido USP + 13º + rendas extras vs Gastos próprios fixos/variáveis/diários + transferência para Scarlet + início de ano. Apresenta o impacto dos cenários do Matheus e a sua **Sobra pra Mim**.
+  2. 👩 **Scarlet (FisioFlow)**: Faturamento FisioFlow vs Fatura Nubank Scarlet. Apresenta os cenários exclusivos da Scarlet (ex: Seguro de Vida Scarlet, parcelas de tênis) e a sobra real da conta dela.
+  3. 🛒 **Vale Alimentação (VA)**: Crédito mensal USP (R$ 2.050/mês) vs compras de supermercado e cenários em VA.
+  4. 🍽️ **Vale Refeição (VR)**: Crédito mensal USP (R$ 1.105/mês) vs almoço presencial e cenários em VR.
+  5. ⚖️ **Consolidado (Casal)**: Visão integrada das finanças domésticas em conta corrente, com badges individuais por conta em cada mês (`👨 Matheus | 👩 Scarlet | 🛒 VA | 🍽️ VR`).
+- Seletor de visão rápida no topo (`.sim-vision-bar`) com botões dedicados e responsivos no mobile.
+- Cards de KPI adaptam dinamicamente título, valores e sobra média estimada para a conta selecionada.
+- Clique em qualquer card do grid de Correlação de Renda filtra imediatamente para a conta correspondente.
+- Modal Raio-X do Simulador detalha lado a lado a situação financeira de cada conta e da união do casal.
+
+## 11. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v45`) e confirmar zero erros de execução.

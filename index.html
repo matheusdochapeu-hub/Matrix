@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=44">
+  <link rel="stylesheet" href="css/matrix.css?v=45">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -620,14 +620,38 @@
         </div>
 
         <!-- Indicadores de Impacto -->
+        <!-- Seletor de Visão de Contas (Segmented Vision Tabs) -->
+        <div class="sim-vision-bar" id="simVisionBar">
+          <button type="button" class="sim-vision-btn active" data-vision="consolidado" onclick="MatrixApp.setSimuladorVisao('consolidado')">
+            <span>⚖️</span> <span>Consolidado (Casal)</span>
+          </button>
+          <button type="button" class="sim-vision-btn" data-vision="matheus" onclick="MatrixApp.setSimuladorVisao('matheus')">
+            <span>👨</span> <span>Eu (Matheus • USP)</span>
+          </button>
+          <button type="button" class="sim-vision-btn" data-vision="scarlet" onclick="MatrixApp.setSimuladorVisao('scarlet')">
+            <span>👩</span> <span>Scarlet (FisioFlow)</span>
+          </button>
+          <button type="button" class="sim-vision-btn" data-vision="va" onclick="MatrixApp.setSimuladorVisao('va')">
+            <span>🛒</span> <span>Vale Alimentação (VA)</span>
+          </button>
+          <button type="button" class="sim-vision-btn" data-vision="vr" onclick="MatrixApp.setSimuladorVisao('vr')">
+            <span>🍽️</span> <span>Vale Refeição (VR)</span>
+          </button>
+        </div>
+
+        <!-- Indicadores de Impacto -->
         <div class="sim-kpi-grid">
           <div class="sim-kpi-card">
-            <div class="sim-kpi-title">CUSTO TOTAL NO HORIZONTE:</div>
+            <div id="simKpiImpactoTitle" class="sim-kpi-title">CUSTO TOTAL NO HORIZONTE:</div>
             <div id="simTotalImpacto" class="sim-kpi-val" style="color:var(--cyan);">R$ 0,00</div>
           </div>
           <div class="sim-kpi-card">
-            <div class="sim-kpi-title">MESES COM DÉFICIT:</div>
+            <div id="simKpiDeficitTitle" class="sim-kpi-title">MESES COM DÉFICIT:</div>
             <div id="simMesesDeficit" class="sim-kpi-val">0 meses</div>
+          </div>
+          <div class="sim-kpi-card">
+            <div id="simKpiMediaTitle" class="sim-kpi-title">SOBRA MÉDIA ESTIMADA:</div>
+            <div id="simSaldoMedio" class="sim-kpi-val" style="color:var(--matrix-green);">R$ 0,00</div>
           </div>
         </div>
 
@@ -636,12 +660,12 @@
           <table class="data-table sim-data-table" id="simulationTable">
             <thead>
               <tr>
-                <th style="width:20%;">Mês / Ano</th>
-                <th style="width:16%;text-align:right;">Ganhos Base</th>
-                <th style="width:16%;text-align:right;">Gastos Atuais</th>
-                <th style="width:16%;text-align:right;">Custo Simulado</th>
-                <th style="width:16%;text-align:right;">Novo Saldo</th>
-                <th style="width:16%;text-align:center;">Folga / Ação</th>
+                <th style="width:20%;" id="simThMes">Mês / Ano</th>
+                <th style="width:16%;text-align:right;" id="simThGanhos">Ganhos Base</th>
+                <th style="width:16%;text-align:right;" id="simThGastos">Gastos Atuais</th>
+                <th style="width:16%;text-align:right;" id="simThSimulado">Custo Simulado</th>
+                <th style="width:16%;text-align:right;" id="simThSaldo">Novo Saldo</th>
+                <th style="width:16%;text-align:center;" id="simThAcao">Folga / Ação</th>
               </tr>
             </thead>
             <tbody id="simulationTableBody"></tbody>
@@ -2378,16 +2402,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=44"></script>
-  <script src="js/matrix-rain.js?v=44"></script>
-  <script src="js/db.js?v=44"></script>
-  <script src="js/calendar-engine.js?v=44"></script>
-  <script src="js/amortization-engine.js?v=44"></script>
-  <script src="js/scenario-simulator.js?v=44"></script>
-  <script src="js/pdf-reader.js?v=44"></script>
-  <script src="js/satellite-connectors.js?v=44"></script>
-  <script src="js/sync-engine.js?v=44"></script>
-  <script src="js/app.js?v=44"></script>
+  <script src="js/seed-data.js?v=45"></script>
+  <script src="js/matrix-rain.js?v=45"></script>
+  <script src="js/db.js?v=45"></script>
+  <script src="js/calendar-engine.js?v=45"></script>
+  <script src="js/amortization-engine.js?v=45"></script>
+  <script src="js/scenario-simulator.js?v=45"></script>
+  <script src="js/pdf-reader.js?v=45"></script>
+  <script src="js/satellite-connectors.js?v=45"></script>
+  <script src="js/sync-engine.js?v=45"></script>
+  <script src="js/app.js?v=45"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>

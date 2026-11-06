@@ -1,7 +1,12 @@
 /**
  * MATRIX FINANCE - "WHAT-IF" SCENARIO SIMULATOR (PROJEÇÕES FUTURAS)
- * O laboratório de projeção: teste despesas hipotéticas (ex: seguro de vida da Scarlet R$ 100~150)
- * em cascata pelos próximos 12 a 24 meses e veja o impacto instantâneo na folga de caixa.
+ * Laboratório de projeções financeiras: teste despesas hipotéticas (ex: seguro de vida da Scarlet R$ 100~150,
+ * parcelas de cartão, investimentos futuros) segregando rigorosamente as contas bancárias e fontes de renda:
+ * 👨 Eu (Matheus • Salário USP / BB / Inter)
+ * 👩 Scarlet (FisioFlow / Cartão Nubank Scarlet)
+ * 🛒 Vale Alimentação (VA - Casa Maracaju 88)
+ * 🍽️ Vale Refeição (VR Presencial)
+ * ⚖️ Consolidado do Casal
  */
 
 const ScenarioSimulator = (function () {
@@ -10,8 +15,79 @@ const ScenarioSimulator = (function () {
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
+  const PILAR_CONFIG = {
+    matheus: {
+      id: 'matheus',
+      nome: 'Eu (Matheus • USP)',
+      icon: '👨',
+      cor: 'var(--cyan)',
+      descricao: 'Salário USP, BB, Inter, contas fixas próprias e Sobra pra Mim'
+    },
+    scarlet: {
+      id: 'scarlet',
+      nome: 'Scarlet (FisioFlow)',
+      icon: '👩',
+      cor: '#f472b6',
+      descricao: 'Faturamento de Fisioterapia e Fatura Nubank Scarlet'
+    },
+    va: {
+      id: 'va',
+      nome: 'Vale Alimentação (VA)',
+      icon: '🛒',
+      cor: 'var(--amber)',
+      descricao: 'Crédito USP R$ 2.050/mês para supermercado e feira'
+    },
+    vr: {
+      id: 'vr',
+      nome: 'Vale Refeição (VR)',
+      icon: '🍽️',
+      cor: '#c084fc',
+      descricao: 'Crédito USP R$ 1.105/mês para almoço nos dias presenciais'
+    },
+    reserva: {
+      id: 'reserva',
+      nome: 'Reserva & Aportes',
+      icon: '🏛️',
+      cor: 'var(--matrix-green)',
+      descricao: 'Aportes e investimentos na poupança BB / Tesouro'
+    }
+  };
+
+  /**
+   * Determina o pilar/proprietário da conta ou fonte de renda vinculada ao cenário hipotético.
+   * Regra estrita: separa Scarlet, Matheus (Eu), VA e VR.
+   */
+  function getScenarioPilar(scen) {
+    if (!scen) return 'matheus';
+    const conta = (scen.conta || '').toLowerCase();
+    const renda = (scen.renda || '').toLowerCase();
+    const tit = (scen.titulo || '').toLowerCase();
+
+    // 1. Scarlet (FisioFlow / Nubank Scarlet)
+    if (conta === 'nubank_scarlet' || renda === 'ganhos_scarlet' || tit.includes('scarlet') || tit.includes('fisio')) {
+      return 'scarlet';
+    }
+
+    // 2. Vale Alimentação (VA)
+    if (conta === 'va' || renda === 'va_mercado' || tit.includes(' va') || tit.includes('alimentação') || tit.includes('supermercado')) {
+      return 'va';
+    }
+
+    // 3. Vale Refeição (VR)
+    if (conta === 'vr' || renda === 'vr_almoco' || tit.includes(' vr') || tit.includes('refeição') || tit.includes('almoço')) {
+      return 'vr';
+    }
+
+    // 4. Reserva / Investimentos
+    if (conta === 'reserva' || renda === 'reserva_aportes') {
+      return 'reserva';
+    }
+
+    // 5. Padrão: Matheus (BB CC Salário USP, Nubank Matheus, Inter, Santander)
+    return 'matheus';
+  }
+
   function getMonthChronologicalList(startYear = 2026, startMonthIndex = 11, totalMonths = 14) {
-    // Retorna a sequência cronológica de meses a partir de startMonthIndex (1 a 12)
     const list = [];
     let curY = startYear;
     let curM = startMonthIndex;
@@ -34,165 +110,356 @@ const ScenarioSimulator = (function () {
     return list;
   }
 
+  function parseYearMonth(str) {
+    if (!str) return [2026, 11];
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      const mm = parseInt(parts[0], 10) || 1;
+      let yyyy = parseInt(parts[1], 10) || 2026;
+      if (yyyy < 100) yyyy += 2000;
+      return [yyyy, mm];
+    }
+    const parts = str.split('-');
+    const yyyy = parseInt(parts[0], 10) || 2026;
+    const mm = parseInt(parts[1], 10) || 1;
+    return [yyyy, mm];
+  }
+
+  function isBeneficioNaoPecunia(r) {
+    if (!r) return false;
+    if (typeof MatrixDB !== 'undefined' && MatrixDB.isBeneficioNaoPecunia) {
+      return MatrixDB.isBeneficioNaoPecunia(r);
+    }
+    const n = (r.nome || '').toLowerCase();
+    return /vale\s*(aliment|refei)|\bva\b|\bvr\b|maracaju/i.test(n);
+  }
+
+  function isGastoDaScarlet(it) {
+    if (!it) return false;
+    const n = (it.nome || '').toLowerCase().trim();
+    const tit = (it.titular || '').toLowerCase();
+    return tit === 'scarlet' || n === 'nubank scarlet';
+  }
+
+  function isTransferenciaParaScarlet(it) {
+    if (!it) return false;
+    const n = (it.nome || '').toLowerCase().trim();
+    const desc = (it.descricao || '').toLowerCase();
+    return n === 'scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
+  }
+
+  function getGanhosScarletCalculados(ano, mesName, monthData, state) {
+    if (typeof MatrixApp !== 'undefined' && MatrixApp.getGanhosScarletMes) {
+      const val = MatrixApp.getGanhosScarletMes(ano, mesName);
+      if (typeof val === 'number' && val > 0) return val;
+    }
+    if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
+      const manual = parseFloat(monthData.scarlet.ganhosManual);
+      if (!isNaN(manual) && manual > 0) return manual;
+    }
+    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
+      return parseFloat(recFisio.valor);
+    }
+    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
+      return monthData.scarlet.ganhos;
+    }
+    if (state.satellites && state.satellites.fisioflow && state.satellites.fisioflow.projecaoMensalRecorrente) {
+      return state.satellites.fisioflow.projecaoMensalRecorrente;
+    }
+    return 1500; // Baseline estimado da Scarlet no FisioFlow
+  }
+
   function runSimulation(state, activeScenarios = null, totalMonths = 14) {
     const scenarios = activeScenarios || (state.simulacoesAtivas || []).filter(s => s.ativo !== false);
-    const timeline = getMonthChronologicalList(2026, 10, totalMonths); // Começa em Out/2026
+    const timeline = getMonthChronologicalList(2026, 10, totalMonths); // Inicia em Outubro/2026
 
     const results = [];
 
     timeline.forEach(m => {
       const yearStr = String(m.year);
-      const monthData = (state.anos[yearStr] && state.anos[yearStr][m.monthName]) || { fixos: [], outros: [], totais: {} };
+      const monthData = (state.anos[yearStr] && state.anos[yearStr][m.monthName]) || { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
 
-      // Ganhos Base em Pecúnia (Dinheiro Líquido - Exclui VA e VR)
-      let ganhosBase = 0;
+      // ==========================================
+      // 1. CONTA 👨 EU (MATHEUS • USP)
+      // ==========================================
+      let matheusGanhos = 0;
       if (monthData.receitas && monthData.receitas.length > 0) {
-        ganhosBase = monthData.receitas
-          .filter(r => !(typeof MatrixDB !== 'undefined' && MatrixDB.isBeneficioNaoPecunia ? MatrixDB.isBeneficioNaoPecunia(r) : /vale\s*(aliment|refei)|\bva\b|\bvr\b/i.test(r.nome)))
-          .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
-        ganhosBase = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
-      } else if (monthData.totais && monthData.totais['Salário Mensal']) {
-        ganhosBase = parseFloat(monthData.totais['Salário Mensal']) || 0;
-        const extraVal = parseFloat(monthData.totais['Renda Extra'] || monthData.totais['Estúdio']) || 0;
-        if (extraVal) ganhosBase += extraVal;
-        if (monthData.totais['13º']) ganhosBase += parseFloat(monthData.totais['13º']) || 0;
-      } else {
-        // Fallback salário base USP
-        ganhosBase = (state.perfil && (state.perfil.salarioBase + (state.perfil.auxilioSaude || 0))) || 5788.19;
+        monthData.receitas.forEach(r => {
+          if (isBeneficioNaoPecunia(r)) return;
+          const n = (r.nome || '').toLowerCase();
+          if (n.includes('scarlet') || n.includes('fisio')) return;
+          matheusGanhos += parseFloat(r.valor) || 0;
+        });
+      }
+      if (!matheusGanhos) {
+        matheusGanhos = (state.perfil && (state.perfil.salarioBase + (state.perfil.auxilioSaude || 0))) || 5788.19;
+        if (m.monthIndex === 12) matheusGanhos += 1280; // 2ª parcela 13º salário USP
       }
 
-      // Gastos Fixos Base
-      let fixosTotal = 0;
-      if (monthData.totais && monthData.totais['Total Gastos Fixos']) {
-        fixosTotal = parseFloat(monthData.totais['Total Gastos Fixos']) || 0;
-      } else if (Array.isArray(monthData.fixos)) {
-        fixosTotal = monthData.fixos.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      }
+      const fixosPropriosMatheus = (monthData.fixos || [])
+        .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it))
+        .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
 
-      // Gastos Outros/Variáveis Base
-      let outrosTotal = 0;
-      if (monthData.totais && monthData.totais['Total Outros Gastos']) {
-        outrosTotal = parseFloat(monthData.totais['Total Outros Gastos']) || 0;
-      } else if (Array.isArray(monthData.outros)) {
-        outrosTotal = monthData.outros.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      }
+      const outrosPropriosMatheus = (monthData.outros || [])
+        .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it))
+        .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
 
-      // Contas de Início de Ano (em Janeiro)
-      let contasInicioAnoTotal = 0;
+      const diariosMatheus = (monthData.diarios || [])
+        .filter(d => (d.titular || '').toLowerCase() !== 'scarlet' && (d.conta || '').toLowerCase() !== 'credito_nubank_scarlet')
+        .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+
+      const transfParaScarlet = [...(monthData.fixos || []), ...(monthData.outros || [])]
+        .filter(isTransferenciaParaScarlet)
+        .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+
+      let contasInicioAnoMatheus = 0;
       if (m.monthIndex === 1 && monthData.totais && monthData.totais['Contas Inicio Ano']) {
-        contasInicioAnoTotal = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+        contasInicioAnoMatheus = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
       }
 
-      const totalGastosBase = fixosTotal + outrosTotal + contasInicioAnoTotal;
-      const saldoBase = ganhosBase - totalGastosBase;
+      const matheusGastosBase = fixosPropriosMatheus + outrosPropriosMatheus + diariosMatheus + transfParaScarlet + contasInicioAnoMatheus;
+      const matheusSaldoBase = matheusGanhos - matheusGastosBase;
 
-      // Calcular Despesas Hipotéticas dos Cenários Ativos
-      let custoCenarios = 0;
+      // ==========================================
+      // 2. CONTA 👩 SCARLET (FISIOFLOW / NUBANK)
+      // ==========================================
+      const scarletGanhos = getGanhosScarletCalculados(yearStr, m.monthName, monthData, state);
+      const scarletFaturaNubank = (monthData.outros || [])
+        .filter(isGastoDaScarlet)
+        .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const scarletDiarios = (monthData.diarios || [])
+        .filter(d => (d.titular || '').toLowerCase() === 'scarlet' || (d.conta || '').toLowerCase() === 'credito_nubank_scarlet')
+        .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+      const scarletGastosBase = scarletFaturaNubank + scarletDiarios;
+      const scarletSaldoBase = scarletGanhos - scarletGastosBase;
+
+      // ==========================================
+      // 3. CONTA 🛒 VALE ALIMENTAÇÃO (VA USP)
+      // ==========================================
+      const vaGanhos = (state.perfil && state.perfil.vaMensal) || 2050.00;
+      const vaGastosBase = (monthData.diarios || [])
+        .filter(d => (d.conta || '').toLowerCase() === 'va')
+        .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+      const vaSaldoBase = vaGanhos - vaGastosBase;
+
+      // ==========================================
+      // 4. CONTA 🍽️ VALE REFEIÇÃO (VR USP)
+      // ==========================================
+      const vrGanhos = 1105.00;
+      const vrGastosBase = (monthData.diarios || [])
+        .filter(d => (d.conta || '').toLowerCase() === 'vr')
+        .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+      const vrSaldoBase = vrGanhos - vrGastosBase;
+
+      // ==========================================
+      // 5. PROCESSAMENTO DE CENÁRIOS ATIVOS NO MÊS
+      // ==========================================
+      let matheusCustoCen = 0;
+      let scarletCustoCen = 0;
+      let vaCustoCen = 0;
+      let vrCustoCen = 0;
+      let consolidadoCustoCen = 0;
       const cenariosAplicados = [];
 
       scenarios.forEach(scen => {
         let applies = false;
-        function parseYearMonth(str) {
-          if (!str) return [2026, 11];
-          if (str.includes('/')) {
-            const parts = str.split('/');
-            const mm = parseInt(parts[0], 10) || 1;
-            let yyyy = parseInt(parts[1], 10) || 2026;
-            if (yyyy < 100) yyyy += 2000;
-            return [yyyy, mm];
-          }
-          const parts = str.split('-');
-          const yyyy = parseInt(parts[0], 10) || 2026;
-          const mm = parseInt(parts[1], 10) || 1;
-          return [yyyy, mm];
-        }
         const [scenY, scenM] = parseYearMonth(scen.inicio || '2026-11');
         const tipo = scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente');
 
         if (tipo === 'pontual') {
-          // Ocorre apenas no mês específico de início
-          if (m.year === scenY && m.monthIndex === scenM) {
-            applies = true;
-          }
+          if (m.year === scenY && m.monthIndex === scenM) applies = true;
         } else if (tipo === 'parcelado') {
-          // Ocorre por N meses a partir do mês de início
           const parcelas = parseInt(scen.parcelas || 1, 10);
           const monthDiff = (m.year - scenY) * 12 + (m.monthIndex - scenM);
-          if (monthDiff >= 0 && monthDiff < parcelas) {
-            applies = true;
-          }
+          if (monthDiff >= 0 && monthDiff < parcelas) applies = true;
         } else {
-          // Recorrente contínuo
           if (m.year > scenY || (m.year === scenY && m.monthIndex >= scenM)) {
             applies = true;
             if (scen.fim) {
               const [endY, endM] = parseYearMonth(scen.fim);
-              if (m.year > endY || (m.year === endY && m.monthIndex > endM)) {
-                applies = false;
-              }
+              if (m.year > endY || (m.year === endY && m.monthIndex > endM)) applies = false;
             }
           }
         }
 
         if (applies) {
           const val = parseFloat(scen.valorAdotado || scen.valor || 0);
-          custoCenarios += val;
+          const pilar = getScenarioPilar(scen);
+
+          if (pilar === 'matheus') matheusCustoCen += val;
+          else if (pilar === 'scarlet') scarletCustoCen += val;
+          else if (pilar === 'va') vaCustoCen += val;
+          else if (pilar === 'vr') vrCustoCen += val;
+
+          // Cenários pecuniários entram no consolidado do casal
+          if (pilar === 'matheus' || pilar === 'scarlet') {
+            consolidadoCustoCen += val;
+          }
+
           cenariosAplicados.push({
             id: scen.id,
             titulo: scen.titulo,
             valor: val,
-            tipo: tipo,
-            conta: scen.conta || 'bb',
-            renda: scen.renda || 'salario_usp'
+            tipo,
+            pilar,
+            conta: scen.conta || 'nubank_scarlet',
+            renda: scen.renda || 'ganhos_scarlet'
           });
         }
       });
 
-      const totalGastosSimulado = totalGastosBase + custoCenarios;
-      const saldoSimulado = ganhosBase - totalGastosSimulado;
-      const diferenca = saldoSimulado - saldoBase;
+      // Saldos simulados finais por conta
+      const matheusSaldoSim = matheusSaldoBase - matheusCustoCen;
+      const matheusStatus = matheusSaldoSim < 0 ? 'deficit' : (matheusSaldoSim < 200 ? 'atencao' : 'seguro');
 
-      // Classificação do status de folga financeira
-      let statusAlerta = 'seguro'; // verde
-      if (saldoSimulado < 0) {
-        statusAlerta = 'deficit'; // vermelho (estourou orçamento)
-      } else if (saldoSimulado < 200) {
-        statusAlerta = 'atencao'; // amarelo (margem apertada)
-      }
+      const scarletSaldoSim = scarletSaldoBase - scarletCustoCen;
+      const scarletStatus = scarletSaldoSim < 0 ? 'deficit' : (scarletSaldoSim < 100 ? 'atencao' : 'seguro');
+
+      const vaSaldoSim = vaSaldoBase - vaCustoCen;
+      const vaStatus = vaSaldoSim < 0 ? 'deficit' : (vaSaldoSim < 100 ? 'atencao' : 'seguro');
+
+      const vrSaldoSim = vrSaldoBase - vrCustoCen;
+      const vrStatus = vrSaldoSim < 0 ? 'deficit' : (vrSaldoSim < 50 ? 'atencao' : 'seguro');
+
+      // Balanço Consolidado (Casal em Conta Corrente)
+      const casalGanhosBase = matheusGanhos + scarletGanhos;
+      const casalGastosBase = matheusGastosBase + scarletGastosBase - transfParaScarlet;
+      const casalSaldoBase = casalGanhosBase - casalGastosBase;
+      const casalSaldoSim = casalGanhosBase - casalGastosBase - consolidadoCustoCen;
+      const casalStatus = casalSaldoSim < 0 ? 'deficit' : (casalSaldoSim < 200 ? 'atencao' : 'seguro');
 
       results.push({
         ...m,
-        ganhosBase,
-        fixosTotal,
-        outrosTotal,
-        contasInicioAnoTotal,
-        totalGastosBase,
-        saldoBase,
-        custoCenarios,
-        cenariosAplicados,
-        totalGastosSimulado,
-        saldoSimulado,
-        diferenca,
-        statusAlerta
+        // Consolidado do casal (compatibilidade legada)
+        ganhosBase: casalGanhosBase,
+        totalGastosBase: casalGastosBase,
+        custoCenarios: consolidadoCustoCen,
+        saldoBase: casalSaldoBase,
+        saldoSimulado: casalSaldoSim,
+        statusAlerta: casalStatus,
+        diferenca: casalSaldoSim - casalSaldoBase,
+
+        // Contas e Pilares Segregados
+        contas: {
+          matheus: {
+            id: 'matheus',
+            nome: 'Eu (Matheus • USP)',
+            icon: '👨',
+            ganhos: matheusGanhos,
+            gastos: matheusGastosBase,
+            custoCenarios: matheusCustoCen,
+            saldoBase: matheusSaldoBase,
+            saldoSimulado: matheusSaldoSim,
+            statusAlerta: matheusStatus
+          },
+          scarlet: {
+            id: 'scarlet',
+            nome: 'Scarlet (FisioFlow)',
+            icon: '👩',
+            ganhos: scarletGanhos,
+            gastos: scarletGastosBase,
+            custoCenarios: scarletCustoCen,
+            saldoBase: scarletSaldoBase,
+            saldoSimulado: scarletSaldoSim,
+            statusAlerta: scarletStatus
+          },
+          va: {
+            id: 'va',
+            nome: 'Vale Alimentação (VA)',
+            icon: '🛒',
+            ganhos: vaGanhos,
+            gastos: vaGastosBase,
+            custoCenarios: vaCustoCen,
+            saldoBase: vaSaldoBase,
+            saldoSimulado: vaSaldoSim,
+            statusAlerta: vaStatus
+          },
+          vr: {
+            id: 'vr',
+            nome: 'Vale Refeição (VR)',
+            icon: '🍽️',
+            ganhos: vrGanhos,
+            gastos: vrGastosBase,
+            custoCenarios: vrCustoCen,
+            saldoBase: vrSaldoBase,
+            saldoSimulado: vrSaldoSim,
+            statusAlerta: vrStatus
+          }
+        },
+        cenariosAplicados
       });
     });
 
+    // Indicadores Agregados por Conta
+    const porConta = {
+      consolidado: {
+        id: 'consolidado',
+        nome: 'Consolidado (Casal)',
+        icon: '⚖️',
+        cor: 'var(--matrix-green)',
+        impactoTotalCenarios: results.reduce((acc, r) => acc + r.custoCenarios, 0),
+        mesesDeficit: results.filter(r => r.saldoSimulado < 0).length,
+        saldoMedio: results.reduce((acc, r) => acc + r.saldoSimulado, 0) / (results.length || 1),
+        countCenarios: scenarios.filter(s => getScenarioPilar(s) === 'matheus' || getScenarioPilar(s) === 'scarlet').length
+      },
+      matheus: {
+        id: 'matheus',
+        nome: 'Eu (Matheus • USP)',
+        icon: '👨',
+        cor: 'var(--cyan)',
+        impactoTotalCenarios: results.reduce((acc, r) => acc + r.contas.matheus.custoCenarios, 0),
+        mesesDeficit: results.filter(r => r.contas.matheus.saldoSimulado < 0).length,
+        saldoMedio: results.reduce((acc, r) => acc + r.contas.matheus.saldoSimulado, 0) / (results.length || 1),
+        countCenarios: scenarios.filter(s => getScenarioPilar(s) === 'matheus').length
+      },
+      scarlet: {
+        id: 'scarlet',
+        nome: 'Scarlet (FisioFlow)',
+        icon: '👩',
+        cor: '#f472b6',
+        impactoTotalCenarios: results.reduce((acc, r) => acc + r.contas.scarlet.custoCenarios, 0),
+        mesesDeficit: results.filter(r => r.contas.scarlet.saldoSimulado < 0).length,
+        saldoMedio: results.reduce((acc, r) => acc + r.contas.scarlet.saldoSimulado, 0) / (results.length || 1),
+        countCenarios: scenarios.filter(s => getScenarioPilar(s) === 'scarlet').length
+      },
+      va: {
+        id: 'va',
+        nome: 'Vale Alimentação (VA)',
+        icon: '🛒',
+        cor: 'var(--amber)',
+        impactoTotalCenarios: results.reduce((acc, r) => acc + r.contas.va.custoCenarios, 0),
+        mesesDeficit: results.filter(r => r.contas.va.saldoSimulado < 0).length,
+        saldoMedio: results.reduce((acc, r) => acc + r.contas.va.saldoSimulado, 0) / (results.length || 1),
+        countCenarios: scenarios.filter(s => getScenarioPilar(s) === 'va').length
+      },
+      vr: {
+        id: 'vr',
+        nome: 'Vale Refeição (VR)',
+        icon: '🍽️',
+        cor: '#c084fc',
+        impactoTotalCenarios: results.reduce((acc, r) => acc + r.contas.vr.custoCenarios, 0),
+        mesesDeficit: results.filter(r => r.contas.vr.saldoSimulado < 0).length,
+        saldoMedio: results.reduce((acc, r) => acc + r.contas.vr.saldoSimulado, 0) / (results.length || 1),
+        countCenarios: scenarios.filter(s => getScenarioPilar(s) === 'vr').length
+      }
+    };
+
     // Cálculo de correlação com fontes de renda
     const correlacaoRendas = {
-      salario_usp: { id: 'salario_usp', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
-      ganhos_scarlet: { id: 'ganhos_scarlet', nome: 'Ganhos Scarlet', totalMensal: 0, count: 0 },
-      va_mercado: { id: 'va_mercado', nome: 'Vale Alimentação (VA)', totalMensal: 0, count: 0 },
-      vr_almoco: { id: 'vr_almoco', nome: 'Vale Refeição (VR)', totalMensal: 0, count: 0 },
-      estudio_extra: { id: 'estudio_extra', nome: 'Renda Extra', totalMensal: 0, count: 0 },
-      reserva_aportes: { id: 'reserva_aportes', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 },
-      orcamento_geral: { id: 'orcamento_geral', nome: 'Orçamento Geral', totalMensal: 0, count: 0 }
+      salario_usp: { id: 'salario_usp', pilar: 'matheus', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
+      ganhos_scarlet: { id: 'ganhos_scarlet', pilar: 'scarlet', nome: 'Ganhos Scarlet (FisioFlow)', totalMensal: 0, count: 0 },
+      va_mercado: { id: 'va_mercado', pilar: 'va', nome: 'Vale Alimentação (VA)', totalMensal: 0, count: 0 },
+      vr_almoco: { id: 'vr_almoco', pilar: 'vr', nome: 'Vale Refeição (VR)', totalMensal: 0, count: 0 },
+      estudio_extra: { id: 'estudio_extra', pilar: 'matheus', nome: 'Renda Extra', totalMensal: 0, count: 0 },
+      reserva_aportes: { id: 'reserva_aportes', pilar: 'reserva', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 },
+      orcamento_geral: { id: 'orcamento_geral', pilar: 'consolidado', nome: 'Orçamento Geral', totalMensal: 0, count: 0 }
     };
 
     scenarios.forEach(scen => {
       const rKey = scen.renda || 'salario_usp';
       if (!correlacaoRendas[rKey]) {
-        correlacaoRendas[rKey] = { id: rKey, nome: rKey, totalMensal: 0, count: 0 };
+        correlacaoRendas[rKey] = { id: rKey, pilar: getScenarioPilar(scen), nome: rKey, totalMensal: 0, count: 0 };
       }
       const val = parseFloat(scen.valorAdotado || scen.valor || 0);
       correlacaoRendas[rKey].totalMensal += val;
@@ -202,8 +469,10 @@ const ScenarioSimulator = (function () {
     return {
       scenarios,
       totalMeses: results.length,
-      mesesDeficit: results.filter(r => r.saldoSimulado < 0).length,
-      impactoTotalCenarios: results.reduce((acc, r) => acc + r.custoCenarios, 0),
+      mesesDeficit: porConta.consolidado.mesesDeficit,
+      impactoTotalCenarios: porConta.consolidado.impactoTotalCenarios,
+      saldoMedio: porConta.consolidado.saldoMedio,
+      porConta,
       correlacaoRendas,
       timeline: results
     };
@@ -211,6 +480,8 @@ const ScenarioSimulator = (function () {
 
   return {
     MONTH_NAMES,
+    PILAR_CONFIG,
+    getScenarioPilar,
     getMonthChronologicalList,
     runSimulation
   };

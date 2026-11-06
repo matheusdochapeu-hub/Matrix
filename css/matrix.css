@@ -1641,6 +1641,110 @@ body {
 /* ===================================================
    SIMULADOR "E SE?" - COMPONENTES & TABELA RESPONSIVA
    =================================================== */
+/* Seletor de Visão de Contas no Simulador (Segmented Vision Tabs) */
+.sim-vision-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+  padding: 2px 0 4px 0;
+}
+.sim-vision-bar::-webkit-scrollbar {
+  display: none;
+}
+.sim-vision-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.sim-vision-btn:hover {
+  border-color: var(--matrix-green);
+  color: var(--text-main);
+  background: rgba(0, 255, 65, 0.05);
+}
+.sim-vision-btn.active {
+  background: rgba(0, 255, 65, 0.12) !important;
+  border-color: var(--matrix-green) !important;
+  color: var(--matrix-green) !important;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+}
+.sim-vision-btn[data-vision="matheus"].active {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-color: var(--cyan) !important;
+  color: var(--cyan) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+.sim-vision-btn[data-vision="scarlet"].active {
+  background: rgba(236, 72, 153, 0.12) !important;
+  border-color: #f472b6 !important;
+  color: #f472b6 !important;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
+}
+.sim-vision-btn[data-vision="va"].active {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: var(--amber) !important;
+  color: var(--amber) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+.sim-vision-btn[data-vision="vr"].active {
+  background: rgba(168, 85, 247, 0.12) !important;
+  border-color: #a855f7 !important;
+  color: #c084fc !important;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+}
+
+/* Detalhamento de Contas na Linha do Consolidado */
+.sim-accounts-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 5px;
+}
+.sim-acc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  padding: 1.5px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.sim-acc-badge.matheus {
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--cyan);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+.sim-acc-badge.scarlet {
+  background: rgba(236, 72, 153, 0.1);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+.sim-acc-badge.va {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.sim-acc-badge.vr {
+  background: rgba(168, 85, 247, 0.1);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
 .sim-kpi-grid {
   display: flex;
   gap: 12px;
