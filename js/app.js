@@ -6049,6 +6049,86 @@ const MatrixApp = (function () {
   }
 
   function setupModalListeners() {
+    let isHandlingPopstate = false;
+    let modalHistoryCount = 0;
+
+    // Empilha um estado guarda inicial para evitar que o botão Voltar feche o app acidentalmente
+    if (typeof window !== 'undefined' && window.history && typeof window.history.pushState === 'function') {
+      try {
+        window.history.replaceState({ matrixRoot: true }, '', window.location.href);
+        window.history.pushState({ matrixGuard: true }, '', window.location.href);
+      } catch (e) {}
+    }
+
+    // Observa abertura e fechamento de todos os modais (.matrix-modal-backdrop)
+    if (typeof MutationObserver !== 'undefined') {
+      const backdrops = document.querySelectorAll('.matrix-modal-backdrop');
+      backdrops.forEach(backdrop => {
+        backdrop._wasOpen = backdrop.classList.contains('open');
+        const observer = new MutationObserver(() => {
+          const isOpen = backdrop.classList.contains('open');
+          if (isOpen === backdrop._wasOpen) return;
+          backdrop._wasOpen = isOpen;
+
+          if (isOpen) {
+            if (!isHandlingPopstate && window.history && typeof window.history.pushState === 'function') {
+              modalHistoryCount++;
+              try {
+                window.history.pushState({ matrixModalId: backdrop.id, depth: modalHistoryCount }, '', window.location.href);
+              } catch (e) {}
+            }
+          } else {
+            if (!isHandlingPopstate && modalHistoryCount > 0 && window.history && typeof window.history.back === 'function') {
+              modalHistoryCount--;
+              isHandlingPopstate = true;
+              try {
+                window.history.back();
+              } catch (e) {
+                isHandlingPopstate = false;
+              }
+              setTimeout(() => { isHandlingPopstate = false; }, 100);
+            }
+          }
+        });
+        observer.observe(backdrop, { attributes: true, attributeFilter: ['class'] });
+      });
+    }
+
+    // Intercepta o botão Voltar do celular (Android/iOS) e do navegador para fechar apenas o modal aberto
+    window.addEventListener('popstate', () => {
+      if (isHandlingPopstate) {
+        isHandlingPopstate = false;
+        return;
+      }
+      const openModals = Array.from(document.querySelectorAll('.matrix-modal-backdrop.open'));
+      if (openModals.length > 0) {
+        isHandlingPopstate = true;
+        const topModal = openModals[openModals.length - 1];
+        topModal._wasOpen = false;
+        topModal.classList.remove('open');
+        if (modalHistoryCount > 0) modalHistoryCount--;
+        setTimeout(() => { isHandlingPopstate = false; }, 60);
+        return;
+      }
+      // Mantém a trava do histórico ativa para não fechar o app ao clicar em Voltar
+      if (window.history && typeof window.history.pushState === 'function') {
+        try {
+          window.history.pushState({ matrixGuard: true }, '', window.location.href);
+        } catch (e) {}
+      }
+    });
+
+    // Tecla ESC fecha apenas o modal aberto no topo
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModals = Array.from(document.querySelectorAll('.matrix-modal-backdrop.open'));
+        if (openModals.length > 0) {
+          const topModal = openModals[openModals.length - 1];
+          topModal.classList.remove('open');
+        }
+      }
+    });
+
     document.querySelectorAll('.close-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const backdrop = e.target.closest('.matrix-modal-backdrop');
