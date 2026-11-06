@@ -748,11 +748,50 @@ const MatrixApp = (function () {
   }
 
   // ==========================================
-  // 1. KPIS & CARDS DE TOPO
+  // 1. KPIS & CARDS DE TOPO (PAINEL UNIFICADO)
   // ==========================================
   function renderKPIs() {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
+
+    // 1. Salário Matheus (USP ou MPSP Líquido do Holerite)
+    let salMatheus = 5788.19;
+    const hol = (state.holerites || []).find(h => (h.ano === currentYear && h.mesNome === currentMonth) || h.periodo === `${currentYear}-${currentMonth}`);
+    if (hol && hol.liquido) {
+      salMatheus = hol.liquido;
+    } else {
+      const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
+      if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
+    }
+
+    // 2. Ganhos Scarlet (FisioFlow)
+    const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
+
+    // 3. Vale Alimentação - VA (Maracaju 88)
+    const va = 2050.00;
+
+    // 4. Vale Refeição - VR (calculado pelo calendário USP ou R$ 1.235)
+    let vr = 1235.00;
+    try {
+      const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+      const customLeaves = (state.calendarioCustom && state.calendarioCustom.folgas) || [];
+      const commute = CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), curMIdx + 1, customLeaves);
+      if (commute && commute.totalVR) vr = commute.totalVR;
+    } catch (e) {}
+
+    // 5. Outros Ganhos em Pecúnia (13º, Férias proporcionais, Estúdio/Personalizado, etc.)
+    let outrosGanhos = 0;
+    let outrosLabel = '';
+    (monthData.receitas || []).forEach(r => {
+      if (!isBeneficioNaoPecunia(r)) {
+        const n = (r.nome || '').toLowerCase();
+        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+          const val = parseFloat(r.valor) || 0;
+          outrosGanhos += val;
+          if (val > 0 && !outrosLabel) outrosLabel = r.nome;
+        }
+      }
+    });
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
     let ganhosPecunia = 0;
@@ -767,17 +806,13 @@ const MatrixApp = (function () {
           ganhosPecunia += val;
         }
       });
-    } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
-      ganhosPecunia = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
-      beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
-    } else if (monthData.totais && monthData.totais['Salário Mensal']) {
-      ganhosPecunia = parseFloat(monthData.totais['Salário Mensal']) || 0;
-      if (monthData.totais['Estúdio']) ganhosPecunia += parseFloat(monthData.totais['Estúdio']) || 0;
-      if (monthData.totais['13º']) ganhosPecunia += parseFloat(monthData.totais['13º']) || 0;
-      beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
     } else {
-      ganhosPecunia = 5788.19;
-      beneficiosNaoPecunia = 3285.00;
+      ganhosPecunia = salMatheus + ganhosScarlet + outrosGanhos;
+      beneficiosNaoPecunia = va + vr;
+    }
+
+    if (beneficiosNaoPecunia === 0) {
+      beneficiosNaoPecunia = va + vr;
     }
 
     // Gastos Fixos
@@ -797,40 +832,164 @@ const MatrixApp = (function () {
 
     // Fatura Nubank Black e Ganhos da Scarlet do mês
     const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
-    const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
     const sobraFatura = Math.max(0, faturaNubank - ganhosScarlet);
+
+    // Dívida Caixa
+    const dividaCaixa = (state.financiamentoCaixa && state.financiamentoCaixa.saldoDevedor) || 157884.49;
+
+    // ==========================================
+    // ATUALIZAÇÃO DO PAINEL UNIFICADO DE TOPO
+    // ==========================================
+    // 1. Badge de Período Ativo
+    const badgeEl = document.getElementById('topActivePeriodBadge');
+    if (badgeEl) badgeEl.textContent = `${currentMonth} / ${currentYear}`;
+
+    // 2. Pilares Satélites no Topo
+    const satFatEl = document.getElementById('topSatFaturaVal');
+    if (satFatEl) satFatEl.textContent = formatBRL(faturaNubank);
+
+    const satFisioEl = document.getElementById('topSatFisioVal');
+    if (satFisioEl) satFisioEl.textContent = formatBRL(ganhosScarlet);
+
+    const satCasaEl = document.getElementById('topSatCasaVal');
+    if (satCasaEl) satCasaEl.textContent = formatBRL(dividaCaixa);
+
+    // 3. Card 1: Ganhos Conjuntos em Pecúnia
+    const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
+    if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(ganhosPecunia);
+
+    const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub');
+    if (rConjuntaSubEl) {
+      rConjuntaSubEl.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em benefícios)`;
+    }
+
+    const salMatheusEl = document.getElementById('topSalMatheusVal');
+    if (salMatheusEl) salMatheusEl.textContent = formatBRL(salMatheus);
+
+    const origemSalLabel = document.getElementById('topOrigemSalarioLabel');
+    if (origemSalLabel) {
+      const isMpsp = (currentYear === '2025' || (currentYear === '2026' && ['Janeiro','Fevereiro','Março','Abril','Maio','Junho'].includes(currentMonth)));
+      origemSalLabel.textContent = isMpsp ? 'MPSP' : 'USP';
+    }
+
+    const salScarletEl = document.getElementById('topSalScarletVal');
+    if (salScarletEl) salScarletEl.textContent = formatBRL(ganhosScarlet);
+
+    const outrosEl = document.getElementById('topOutrosVal');
+    if (outrosEl) {
+      outrosEl.textContent = outrosGanhos > 0 ? `+ ${formatBRL(outrosGanhos)}` : 'R$ 0,00';
+    }
+
+    const labelEstudio = document.getElementById('topLabelEstudio');
+    if (labelEstudio) {
+      labelEstudio.textContent = outrosLabel || getNomeEstudio() || 'Outros Ganhos';
+    }
+
+    const totalBenEl = document.getElementById('topTotalBeneficiosVal');
+    if (totalBenEl) totalBenEl.textContent = formatBRL(beneficiosNaoPecunia);
+
+    const vaEl = document.getElementById('topVaVal');
+    if (vaEl) vaEl.textContent = formatBRL(va);
+
+    const vrEl = document.getElementById('topVrVal');
+    if (vrEl) vrEl.textContent = formatBRL(vr);
+
+    // 4. Card 2: Gastos Totais (Equação: Fixos + Variáveis = Totais)
+    const eqFixosEl = document.getElementById('topEqFixos');
+    if (eqFixosEl) eqFixosEl.textContent = formatBRL(fixos);
+
+    const eqOutrosEl = document.getElementById('topEqOutros');
+    if (eqOutrosEl) eqOutrosEl.textContent = formatBRL(outros + diarios);
+
+    const gastosTotaisEl = document.getElementById('topGastosTotaisVal');
+    if (gastosTotaisEl) gastosTotaisEl.textContent = formatBRL(totalGastos);
+
+    const resumoFixosEl = document.getElementById('topResumoFixosVal');
+    if (resumoFixosEl) resumoFixosEl.textContent = formatBRL(fixos);
+
+    const resumoOutrosEl = document.getElementById('topResumoOutrosVal');
+    if (resumoOutrosEl) resumoOutrosEl.textContent = formatBRL(outros + diarios);
+
+    const contasInicioRow = document.getElementById('topContasInicioRow');
+    const contasInicioVal = document.getElementById('topContasInicioVal');
+    if (contasInicioRow && contasInicioVal) {
+      if (contasInicio > 0) {
+        contasInicioRow.style.display = 'flex';
+        contasInicioVal.textContent = formatBRL(contasInicio);
+      } else {
+        contasInicioRow.style.display = 'none';
+      }
+    }
+
+    // 5. Card 3: Sobra no Mês
+    const sobraValEl = document.getElementById('topSobraNoMesVal');
+    if (sobraValEl) {
+      sobraValEl.textContent = `${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}`;
+      sobraValEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const sobraSubEl = document.getElementById('topSobraNoMesSub');
+    if (sobraSubEl) {
+      sobraSubEl.textContent = saldoLivre >= 0 
+        ? 'Folga real em conta após pagar todos os gastos'
+        : 'Atenção: saídas superam receitas líquidas em conta';
+    }
+
+    const sobraBadge = document.getElementById('topSobraStatusBadge');
+    if (sobraBadge) {
+      sobraBadge.textContent = saldoLivre >= 0 ? 'Superávit' : 'Déficit';
+      sobraBadge.className = saldoLivre >= 0 ? 'unified-badge green' : 'unified-badge rose';
+    }
+
+    const sobraCalcGanhos = document.getElementById('topSobraCalcGanhos');
+    if (sobraCalcGanhos) sobraCalcGanhos.textContent = formatBRL(ganhosPecunia);
+
+    const sobraCalcGastos = document.getElementById('topSobraCalcGastos');
+    if (sobraCalcGastos) sobraCalcGastos.textContent = `- ${formatBRL(totalGastos)}`;
+
+    const sobraCalcFinal = document.getElementById('topSobraCalcFinal');
+    if (sobraCalcFinal) {
+      sobraCalcFinal.textContent = `${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}`;
+      sobraCalcFinal.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const sobraFooterMsg = document.getElementById('topSobraFooterMsg');
+    if (sobraFooterMsg) {
+      sobraFooterMsg.textContent = saldoLivre >= 0 
+        ? '✅ Caixa positivo: dinheiro livre para aportes ou reserva'
+        : '⚠️ Caixa negativo no mês: verificar necessidade de remanejamento';
+    }
+
+    // 6. Retrocompatibilidade para seletores legados
+    const kpiGanhos = document.getElementById('kpiGanhos');
+    if (kpiGanhos) kpiGanhos.textContent = formatBRL(ganhosPecunia);
+
+    const kpiGanhosSub = document.getElementById('kpiGanhosSub');
+    if (kpiGanhosSub) kpiGanhosSub.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em VA/VR)`;
+
+    const kpiFixos = document.getElementById('kpiFixos');
+    if (kpiFixos) kpiFixos.textContent = formatBRL(fixos);
+
+    const kpiOutros = document.getElementById('kpiOutros');
+    if (kpiOutros) kpiOutros.textContent = formatBRL(outros + diarios);
+
+    const saldoEl = document.getElementById('kpiSaldo');
+    if (saldoEl) {
+      saldoEl.textContent = formatBRL(saldoLivre);
+      saldoEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const kpiSaldoSub = document.getElementById('kpiSaldoSub');
+    if (kpiSaldoSub) kpiSaldoSub.textContent = `Folga real em conta (pecúnia)`;
 
     const faturaEl = document.getElementById('kpiFatura');
     if (faturaEl) faturaEl.textContent = formatBRL(faturaNubank);
 
     const faturaSubEl = document.getElementById('kpiFaturaSub');
     if (faturaSubEl) {
-      if (faturaNubank > 0) {
-        faturaSubEl.textContent = `Scarlet recebe ~${formatBRL(ganhosScarlet)} • Sobra ${formatBRL(sobraFatura)}`;
-      } else {
-        faturaSubEl.textContent = 'Sem fatura neste período';
-      }
-    }
-
-    // Dívida Caixa
-    const dividaCaixa = (state.financiamentoCaixa && state.financiamentoCaixa.saldoDevedor) || 157884.49;
-
-    document.getElementById('kpiGanhos').textContent = formatBRL(ganhosPecunia);
-    const kpiGanhosSub = document.getElementById('kpiGanhosSub');
-    if (kpiGanhosSub) {
-      kpiGanhosSub.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em VA/VR)`;
-    }
-
-    document.getElementById('kpiFixos').textContent = formatBRL(fixos);
-    document.getElementById('kpiOutros').textContent = formatBRL(outros + diarios);
-    
-    const saldoEl = document.getElementById('kpiSaldo');
-    saldoEl.textContent = formatBRL(saldoLivre);
-    saldoEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
-
-    const kpiSaldoSub = document.getElementById('kpiSaldoSub');
-    if (kpiSaldoSub) {
-      kpiSaldoSub.textContent = `Folga real em conta (pecúnia)`;
+      faturaSubEl.textContent = faturaNubank > 0 
+        ? `Scarlet recebe ~${formatBRL(ganhosScarlet)} • Sobra ${formatBRL(sobraFatura)}`
+        : 'Sem fatura neste período';
     }
 
     const dividaEl = document.getElementById('kpiDividaCaixa');
@@ -4237,7 +4396,7 @@ const MatrixApp = (function () {
   function togglePaidByIndex(ano, mes, tipo, index) {
     MatrixDB.togglePaidByIndex(ano, mes, tipo, index);
     renderFluxoCaixa();
-    renderKpis();
+    renderKPIs();
   }
 
   function removeItem(ano, mes, tipo, id) {

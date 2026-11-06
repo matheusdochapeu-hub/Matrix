@@ -58,42 +58,180 @@
       </div>
     </header>
 
-    <!-- Top KPI Bar (Cards Clicáveis para Detalhamento) -->
-    <section class="kpi-grid">
-      <div class="kpi-card green" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a fórmula e a auditoria do saldo">
-        <div class="kpi-label">Saldo / Folga de Caixa <span>💳 🔍</span></div>
-        <div id="kpiSaldo" class="kpi-value">R$ 0,00</div>
-        <div id="kpiSaldoSub" class="kpi-sub">Folga líquida em conta (pecúnia)</div>
+    <!-- PAINEL SUPERIOR UNIFICADO: RENDA CONJUNTA, GASTOS E SOBRAS DO MÊS -->
+    <section id="unifiedTopExecutivePanel" class="unified-top-panel">
+      <!-- Linha Superior: Contexto do Mês, Ações e os 3 Pilares Satélites -->
+      <div class="unified-top-header">
+        <div class="unified-title-wrap">
+          <h2 class="unified-title">
+            <span>👥 Renda & Orçamento Conjunto</span>
+            <span class="unified-period-badge" id="topActivePeriodBadge">Outubro / 2026</span>
+          </h2>
+          <div class="unified-subtitle">
+            Fluxo unificado Matheus + Scarlet • Conciliação bancária e sobras em tempo real
+          </div>
+        </div>
+
+        <!-- Os 3 Pilares Satélites como Chips Interativos de Status -->
+        <div class="unified-satellites-bar">
+          <!-- 1. Faturas Nubank -->
+          <div class="sat-chip purple" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para abrir auditoria da fatura Nubank Black">
+            <span class="sat-chip-icon">💳</span>
+            <div class="sat-chip-body">
+              <span class="sat-chip-label">Faturas Nubank</span>
+              <strong class="sat-chip-val" id="topSatFaturaVal">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <!-- 2. Fisio Scarlet -->
+          <div class="sat-chip cyan" onclick="MatrixApp.abrirDrilldown('fisioflow')" title="Clique para abrir demonstrativo do FisioFlow">
+            <span class="sat-chip-icon">🩺</span>
+            <div class="sat-chip-body">
+              <span class="sat-chip-label">Fisio Scarlet</span>
+              <strong class="sat-chip-val" id="topSatFisioVal">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <!-- 3. Casa Maracaju (Financiamento Caixa & Amortizações) -->
+          <div class="sat-chip green" onclick="MatrixApp.abrirDrilldown('caixa')" title="Clique para abrir status da dívida da Caixa e amortizações">
+            <span class="sat-chip-icon">🏠</span>
+            <div class="sat-chip-body">
+              <span class="sat-chip-label">Casa Maracaju</span>
+              <strong class="sat-chip-val" id="topSatCasaVal">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="kpi-card cyan" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para ver a lista de todas as receitas do mês">
-        <div class="kpi-label">Ganhos em Pecúnia <span>📥 🔍</span></div>
-        <div id="kpiGanhos" class="kpi-value">R$ 0,00</div>
-        <div id="kpiGanhosSub" class="kpi-sub">Dinheiro líquido para pagar contas</div>
+      <!-- Grade Principal de 3 Colunas Executivas -->
+      <div class="unified-main-grid">
+        
+        <!-- COLUNA 1: GANHOS CONJUNTOS EM PECÚNIA -->
+        <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar todas as receitas em conta">
+          <div class="unified-card-header">
+            <span class="unified-card-title">📥 Ganhos em Pecúnia (Casal)</span>
+            <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth)">✏️ Saldos</span>
+          </div>
+          <div class="unified-card-main-val" id="topRendaConjuntaVal">R$ 0,00</div>
+          <div class="unified-card-sub" id="topRendaSub">Líquido em conta para pagar contas</div>
+          
+          <!-- Detalhamento das Fontes em Pecúnia -->
+          <div class="unified-breakdown-list">
+            <div class="unified-row">
+              <span>👨‍💼 Salário Matheus (<span id="topOrigemSalarioLabel">USP</span>)</span>
+              <strong id="topSalMatheusVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row">
+              <span>👩‍⚕️ Ganhos Scarlet (Fisio)</span>
+              <strong style="color:var(--cyan);" id="topSalScarletVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topOutrosRow">
+              <span>🎁 <span id="topOutrosLabel">Estúdio / Renda Extra</span></span>
+              <strong style="color:var(--matrix-green);" id="topOutrosVal">+ R$ 0,00</strong>
+            </div>
+          </div>
+
+          <!-- Benefícios Alimentação (Não Pecúnia) -->
+          <div class="unified-benefits-block">
+            <div class="unified-benefits-header">
+              <span>🛒 Alimentação (Não-Pecúnia):</span>
+              <strong id="topTotalBeneficiosVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row benefits-sub">
+              <span>🥗 VA (Maracaju 88)</span>
+              <span id="topVaVal">R$ 0,00</span>
+            </div>
+            <div class="unified-row benefits-sub">
+              <span>🍽️ VR (Almoço)</span>
+              <span id="topVrVal">R$ 0,00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA 2: GASTOS TOTAIS (FIXOS + VARIÁVEIS = GASTOS TOTAIS) -->
+        <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('fixos')" title="Clique para ver a auditoria de gastos fixos e variáveis">
+          <div class="unified-card-header">
+            <span class="unified-card-title">🔒 Gastos Totais do Mês</span>
+            <span class="unified-badge amber">Fixos + Variáveis</span>
+          </div>
+          
+          <!-- Equação Visual: Gastos Fixos + Gastos Variáveis = Gastos Totais -->
+          <div class="unified-equation-banner">
+            <div class="eq-part">
+              <span class="eq-label">Gastos Fixos</span>
+              <strong class="eq-val" id="topEqFixos">R$ 0,00</strong>
+            </div>
+            <span class="eq-op">+</span>
+            <div class="eq-part">
+              <span class="eq-label">Gastos Variáveis</span>
+              <strong class="eq-val" id="topEqOutros">R$ 0,00</strong>
+            </div>
+            <span class="eq-op">=</span>
+          </div>
+
+          <div class="unified-card-main-val" style="color:var(--rose);" id="topGastosTotaisVal">R$ 0,00</div>
+          <div class="unified-card-sub" id="topGastosTotaisSub">Total de saídas do mês em dinheiro</div>
+
+          <div class="unified-breakdown-list" style="margin-top:8px;">
+            <div class="unified-row">
+              <span>🔒 Parcela Casa, Caronas, Contas</span>
+              <strong id="topResumoFixosVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row">
+              <span>🛍️ Aportes, Cartões, Família</span>
+              <strong id="topResumoOutrosVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topContasInicioRow" style="display:none;">
+              <span>⚠️ Contas Início de Ano (Jan)</span>
+              <strong id="topContasInicioVal">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA 3: SOBRA NO MÊS (FOLGA REAL DE CAIXA) -->
+        <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a fórmula e conciliação completa da sobra de caixa">
+          <div class="unified-card-header">
+            <span class="unified-card-title">💵 Sobra no Mês</span>
+            <span class="unified-badge green" id="topSobraStatusBadge">Superávit</span>
+          </div>
+
+          <div class="unified-card-main-val green-glow" id="topSobraNoMesVal">R$ 0,00</div>
+          <div class="unified-card-sub" id="topSobraNoMesSub">Folga real em conta após pagar todos os gastos</div>
+
+          <div class="unified-sobra-box">
+            <div class="sobra-calc-line">
+              <span>(+) Ganhos Conjuntos:</span>
+              <strong id="topSobraCalcGanhos">R$ 0,00</strong>
+            </div>
+            <div class="sobra-calc-line">
+              <span>(-) Gastos Totais:</span>
+              <strong id="topSobraCalcGastos" style="color:var(--rose);">- R$ 0,00</strong>
+            </div>
+            <div class="sobra-divider"></div>
+            <div class="sobra-calc-line total">
+              <span>(=) Sobra em Caixa:</span>
+              <strong id="topSobraCalcFinal" style="color:var(--matrix-green);">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="unified-sobra-footer" id="topSobraFooterMsg">
+            ✅ Caixa positivo: dinheiro livre para aportes ou reserva
+          </div>
+        </div>
+
       </div>
 
-      <div class="kpi-card amber" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fixos')" title="Clique para ver cada gasto fixo do mês">
-        <div class="kpi-label">Gastos Fixos <span>🔒 🔍</span></div>
-        <div id="kpiFixos" class="kpi-value">R$ 0,00</div>
-        <div class="kpi-sub">Casa Caixa, Caronas, Unimed, Contas</div>
-      </div>
-
-      <div class="kpi-card rose" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('outros')" title="Clique para ver cada gasto variável e aporte do mês">
-        <div class="kpi-label">Gastos Variáveis <span>🛍️ 🔍</span></div>
-        <div id="kpiOutros" class="kpi-value">R$ 0,00</div>
-        <div class="kpi-sub">Aportes, Cartões, Família</div>
-      </div>
-
-      <div class="kpi-card purple" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para ver o detalhamento da fatura e divisão com a Scarlet">
-        <div class="kpi-label">Fatura Nubank (Mês) <span>💳 🔍</span></div>
-        <div id="kpiFatura" class="kpi-value">R$ 4.500,00</div>
-        <div id="kpiFaturaSub" class="kpi-sub">Scarlet recebe ~R$ 1.100,00</div>
-      </div>
-
-      <div class="kpi-card green" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('caixa')" title="Clique para ver o status da dívida da Caixa e amortizações">
-        <div class="kpi-label">Dívida Caixa (Casa) <span>🏠 🔍</span></div>
-        <div id="kpiDividaCaixa" class="kpi-value">R$ 157.884,49</div>
-        <div class="kpi-sub">271 meses • Price 8,99% a.a.</div>
+      <!-- Elementos ocultos para retrocompatibilidade de seletores legados -->
+      <div style="display:none;">
+        <span id="kpiSaldo"></span>
+        <span id="kpiSaldoSub"></span>
+        <span id="kpiGanhos"></span>
+        <span id="kpiGanhosSub"></span>
+        <span id="kpiFixos"></span>
+        <span id="kpiOutros"></span>
+        <span id="kpiFatura"></span>
+        <span id="kpiFaturaSub"></span>
+        <span id="kpiDividaCaixa"></span>
       </div>
     </section>
 
@@ -126,15 +264,15 @@
     <div id="tabsCarouselViewport" class="tabs-carousel-viewport">
       <!-- TAB 1: FLUXO DE CAIXA MENSAL -->
       <main id="tab-fluxo" class="tab-content active">
-      <!-- ÁREA INICIAL: CARDS MENSAIS DA RENDA CONJUNTA (MATHEUS + SCARLET) -->
+      <!-- ÁREA INICIAL: LINHA DO TEMPO & PROJEÇÕES MENSAIS -->
       <section id="areaInicialMeses" class="matrix-box" style="margin-bottom:18px;background:linear-gradient(180deg, rgba(5,8,7,0.98), rgba(9,18,13,0.95));border:1px solid rgba(0,255,102,0.25);">
         <div class="box-header" style="margin-bottom:8px;padding-bottom:8px;flex-wrap:wrap;gap:10px;">
           <div>
             <h2 style="font-size:14px;color:var(--matrix-green);display:flex;align-items:center;gap:8px;">
-              <span>👥 Renda & Orçamento Conjunto do Casal (Matheus + Scarlet)</span>
+              <span>📅 Linha do Tempo & Projeções Mensais (Matheus + Scarlet)</span>
             </h2>
             <p style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-              Projeção mensal do dinheiro que teremos juntos mês a mês. Clique em qualquer mês para abrir o detalhamento.
+              Navegue pelos meses de 2025 e 2026. Clique em qualquer mês para atualizar o painel executivo superior e as tabelas financeiras.
             </p>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
