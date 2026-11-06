@@ -959,15 +959,29 @@ const MatrixApp = (function () {
     const satFisioEl = document.getElementById('topSatFisioVal');
     if (satFisioEl) satFisioEl.textContent = formatBRL(ganhosScarlet);
 
+    // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR)
+    const satMaracaju = (state.satellites && state.satellites.maracaju) || {
+      saldoVaRestante: 1659.59,
+      saldoVrRestante: 1235.00,
+      gastoMercadoMesAtual: 390.41,
+      gastoVrMesAtual: 0.00
+    };
+    const vaAtual = satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 1659.59;
+    const vrAtual = satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1235.00;
+
     const satCasaEl = document.getElementById('topSatCasaVal');
-    if (satCasaEl) satCasaEl.textContent = formatBRL(dividaCaixa);
+    const satVaEl = document.getElementById('topSatVaVal');
+    const satVrEl = document.getElementById('topSatVrVal');
+    if (satVaEl && satVrEl) {
+      satVaEl.textContent = `VA ${formatBRL(vaAtual)}`;
+      satVrEl.textContent = `VR ${formatBRL(vrAtual)}`;
+    } else if (satCasaEl) {
+      satCasaEl.innerHTML = `<span style="color:var(--matrix-green);">VA ${formatBRL(vaAtual)}</span> <span style="color:var(--cyan);margin-left:4px;">VR ${formatBRL(vrAtual)}</span>`;
+    }
 
-    const satCasaPrazoEl = document.getElementById('topSatCasaPrazo');
-    if (satCasaPrazoEl) satCasaPrazoEl.textContent = `${statusCaixaMes.prazo}m`;
-
-    const satCasaChip = satCasaEl ? satCasaEl.closest('.sat-chip') : null;
+    const satCasaChip = (satCasaEl || satVaEl) ? (satCasaEl || satVaEl).closest('.sat-chip') : null;
     if (satCasaChip) {
-      satCasaChip.setAttribute('title', `Dívida Caixa em ${currentMonth}/${currentYear}: ${formatBRL(dividaCaixa)} (${statusCaixaMes.prazo} parcelas restantes)`);
+      satCasaChip.setAttribute('title', `Casa Maracaju: Saldo VA ${formatBRL(vaAtual)} (Gasto Mercado: ${formatBRL(satMaracaju.gastoMercadoMesAtual || 0)}) • Saldo VR ${formatBRL(vrAtual)} (Gasto Refeições: ${formatBRL(satMaracaju.gastoVrMesAtual || 0)})`);
     }
 
     // 3. Card 1: Ganhos Conjuntos em Pecúnia
@@ -1662,6 +1676,100 @@ const MatrixApp = (function () {
 
           <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
             💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, e o faturamento de Novembro (R$ 805) financia Dezembro.
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'maracaju') {
+      titleEl.innerHTML = `🏡 Casa Maracaju 88 • Benefícios VA e VR (${periodLabel})`;
+      const sat = (state.satellites && state.satellites.maracaju) || {
+        saldoVaRestante: 1659.59,
+        saldoVrRestante: 1235.00,
+        gastoMercadoMesAtual: 390.41,
+        gastoVrMesAtual: 0.00,
+        vaMensal: 2050.00,
+        vrCreditadoNoMes: 1235.00
+      };
+
+      const vaCred = sat.vaMensal || 2050.00;
+      const vaGasto = sat.gastoMercadoMesAtual || 390.41;
+      const vaSaldo = sat.saldoVaRestante != null ? sat.saldoVaRestante : (vaCred - vaGasto);
+
+      const vrCred = sat.vrCreditadoNoMes || 1235.00;
+      const vrGasto = sat.gastoVrMesAtual || 0.00;
+      const vrSaldo = sat.saldoVrRestante != null ? sat.saldoVrRestante : (vrCred - vrGasto);
+
+      const notasRecentes = [
+        { mercado: 'Carrefour', data: '03/11/2026', metodo: 'Cartão VA', valor: 280.66 },
+        { mercado: 'Padaria Nossa Senhora Aparecida', data: '03/11/2026', metodo: 'Cartão VA', valor: 46.96 },
+        { mercado: 'Açougue Fumaça', data: '03/11/2026', metodo: 'Cartão VA', valor: 62.79 }
+      ];
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,65,0.08);border:1px solid var(--border-glow);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
+              <span class="live-pulse"></span> App Casa Maracaju 88 Conectado
+            </span>
+            <span class="lock-pill" style="border-color:var(--matrix-green);color:var(--matrix-green);">
+              🥗 Gestão de Benefícios
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Saldo Disponível VA</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(vaSaldo)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Crédito: ${formatBRL(vaCred)}</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Mercado Gasto (NFC-e)</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(vaGasto)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">3 notas auditadas</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Saldo Disponível VR</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(vrSaldo)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Crédito: ${formatBRL(vrCred)}</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Refeições Gastas (VR)</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--text-main);margin-top:2px;">${formatBRL(vrGasto)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Almoços e trabalho</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <strong style="color:var(--text-main);font-size:13px;">🧾 Compras e Notas NFC-e (Casa Maracaju 88)</strong>
+              <span style="font-size:11px;color:var(--text-muted);">Mês Atual</span>
+            </div>
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Estabelecimento</th>
+                    <th>Data</th>
+                    <th>Forma</th>
+                    <th style="text-align:right;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${notasRecentes.map(n => `
+                    <tr>
+                      <td><strong>${n.mercado}</strong></td>
+                      <td style="color:var(--text-muted);">${n.data}</td>
+                      <td><span class="status-badge pago" style="font-size:9.5px;">${n.metodo}</span></td>
+                      <td class="val-col" style="color:var(--matrix-green);font-weight:700;">${formatBRL(n.valor)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
+            💡 <em>Regra de Benefícios:</em> As despesas de mercado e alimentação da Casa Maracaju debitam exclusivamente dos saldos de VA e VR, não retirando nenhum centavo da conta corrente em pecúnia.
           </div>
         </div>
       `;
