@@ -327,10 +327,17 @@ const SatelliteConnectors = (function () {
         });
       }
 
+      const categoriasDoMes = {};
+      itemsDoMes.forEach(it => {
+        const cat = it.categoria || inferCategory(it.desc || it.d);
+        categoriasDoMes[cat] = Math.round(((categoriasDoMes[cat] || 0) + it.valor) * 100) / 100;
+      });
+
       faturasPorMes[monthKey] = {
         total: Math.round(totalMes * 100) / 100,
         status: mi < 2 ? 'fechada' : 'aberta',
         itens: itemsDoMes,
+        categorias: categoriasDoMes,
         mesIndex: mi
       };
     }

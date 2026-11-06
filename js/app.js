@@ -1084,26 +1084,57 @@ const MatrixApp = (function () {
       const metaMensal = sat.limiteMetaMensal || 3000.00;
       const itensDoMes = (satMonth && satMonth.itens) || [];
 
-      const cats = sat.categoriasTotais || {
-        'Alimentação & Gastronomia': 1133.74,
-        'Compras & E-commerce': 765.00,
-        'Transporte & Tag': 480.00,
-        'Vestuário & Moda': 620.00,
-        'Serviços & Assinaturas': 285.00,
-        'Saúde, Estética & Bem-estar': 350.00,
-        'Pet & Veterinário': 178.29,
-        'Outros': 90.00
-      };
+      // Distribuição por categoria ESTRITAMENTE do mês referente
+      let cats = {};
+      if (satMonth && satMonth.categorias && Object.keys(satMonth.categorias).length > 0) {
+        cats = Object.assign({}, satMonth.categorias);
+      } else if (itensDoMes && itensDoMes.length > 0) {
+        itensDoMes.forEach(it => {
+          const c = it.categoria || 'Geral';
+          cats[c] = (cats[c] || 0) + (parseFloat(it.valor) || 0);
+        });
+      } else {
+        // Se o App Faturas não tiver itens isolados para este mês,
+        // agrupa os gastos variáveis e diários reais do mês ativo no Matrix
+        const mObj = MatrixDB.getMonth(currentYear, currentMonth);
+        const cardExpenses = [
+          ...(mObj.outros || []),
+          ...(mObj.diarios || [])
+        ].filter(it => it && it.valor > 0 && !MatrixDB.isSummaryOrTotalItem(it.nome));
+
+        if (cardExpenses.length > 0) {
+          cardExpenses.forEach(it => {
+            const c = it.categoria || 'Gastos Variados';
+            cats[c] = (cats[c] || 0) + (parseFloat(it.valor) || 0);
+          });
+        }
+      }
+
+      // Se ainda estiver vazio, mas há valor de fatura ativo
+      if (Object.keys(cats).length === 0 && faturaAtual > 0) {
+        cats = { 'Cartão de Crédito Nubank': faturaAtual };
+      }
 
       const totalCats = Object.values(cats).reduce((a, b) => a + (parseFloat(b) || 0), 0) || faturaAtual;
       const catConfig = {
         'Alimentação & Gastronomia': { icon: '🍔', color: '#f59e0b' },
+        'Alimentação & Lanches': { icon: '🍔', color: '#f59e0b' },
+        'Alimentação': { icon: '🍔', color: '#f59e0b' },
         'Compras & E-commerce': { icon: '🛒', color: '#06b6d4' },
         'Transporte & Tag': { icon: '🚗', color: '#8b5cf6' },
+        'Transporte': { icon: '🚗', color: '#8b5cf6' },
         'Vestuário & Moda': { icon: '👕', color: '#10b981' },
         'Serviços & Assinaturas': { icon: '📱', color: '#ec4899' },
+        'Saúde & Bem-estar': { icon: '🩺', color: '#3b82f6' },
         'Saúde, Estética & Bem-estar': { icon: '🩺', color: '#3b82f6' },
+        'Saúde & Farmácia': { icon: '💊', color: '#10b981' },
+        'Saúde': { icon: '🩺', color: '#3b82f6' },
         'Pet & Veterinário': { icon: '🐾', color: '#eab308' },
+        'Casa & Utilidades': { icon: '🏠', color: '#22c55e' },
+        'Habitação': { icon: '🏠', color: '#10b981' },
+        'Educação & Cursos': { icon: '📚', color: '#6366f1' },
+        'Compras & Variados': { icon: '🛍️', color: '#f97316' },
+        'Lazer': { icon: '🎉', color: '#ec4899' },
         'Outros': { icon: '📦', color: '#94a3b8' }
       };
 
@@ -1178,10 +1209,15 @@ const MatrixApp = (function () {
           </div>` : ''}
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-              <strong style="color:var(--text-main);font-size:13px;">📊 Distribuição por Categorias (App Faturas)</strong>
-              <span style="font-size:11px;color:var(--text-muted);">Total Mapeado: ${formatBRL(totalCats)}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+              <strong style="color:var(--text-main);font-size:13px;">📊 Distribuição por Categorias — ${currentMonth}/${currentYear}</strong>
+              <span style="font-size:11px;color:var(--matrix-green);background:rgba(0,255,65,0.08);padding:2px 8px;border-radius:10px;border:1px solid var(--border-glow);">Total do Mês: ${formatBRL(totalCats)}</span>
             </div>
+            ${sortedCats.length === 0 ? `
+              <div style="color:var(--text-muted);font-size:11px;text-align:center;padding:12px 0;">
+                Nenhum lançamento categorizado registrado para ${currentMonth}/${currentYear}.
+              </div>
+            ` : `
             <div style="display:flex;flex-direction:column;gap:10px;">
               ${sortedCats.map(([catName, val]) => {
                 const pct = totalCats > 0 ? ((val / totalCats) * 100).toFixed(1) : 0;
@@ -1199,6 +1235,7 @@ const MatrixApp = (function () {
                 `;
               }).join('')}
             </div>
+            `}
           </div>
 
           <div style="background:linear-gradient(180deg, rgba(234,179,8,0.08) 0%, rgba(20,20,20,0.6) 100%);border:1px solid var(--amber);padding:14px;border-radius:var(--radius-sm);margin-bottom:12px;">
