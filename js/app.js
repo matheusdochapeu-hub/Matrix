@@ -186,33 +186,56 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(ano, mes);
 
-    // 1. Override manual explícito
-    if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
-      return parseFloat(monthData.scarlet.ganhosManual) || 0;
+    // Regra de Fluxo de Caixa FisioFlow (+1 mês):
+    // Os atendimentos gerados pela Scarlet no mês M-1 entram como recurso líquido
+    // disponível para pagamento das contas no mês M.
+    // Exemplo:
+    // - Outubro/2026 no FisioFlow (R$ 1.140,00) -> entra no Caixa de Novembro/2026.
+    // - Novembro/2026 no FisioFlow (R$ 805,00) -> entra no Caixa de Dezembro/2026.
+    const curMIdx = MONTH_NAMES.indexOf(mes);
+    let prevMIdx = curMIdx - 1;
+    let prevYear = parseInt(ano, 10);
+    if (prevMIdx < 0) {
+      prevMIdx = 11;
+      prevYear -= 1;
     }
+    const prevYm = `${prevYear}-${String(prevMIdx + 1).padStart(2, '0')}`;
 
-    // 2. Receita explícita registrada nas receitas do mês
-    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
-    if (recFisio && recFisio.valor != null) {
-      return parseFloat(recFisio.valor) || 0;
-    }
+    // 1. Dados dos Satélites (FisioFlow) com defasagem de +1 mês
+    const satFisio = (state.satellites && state.satellites.fisioflow) ||
+      (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
 
-    // 3. Dados dos Satélites (FisioFlow)
-    const mIdx = MONTH_NAMES.indexOf(mes) + 1;
-    const ym = `${ano}-${String(mIdx).padStart(2, '0')}`;
-    const satFisio = state.satellites && state.satellites.fisioflow;
-    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[ym]) {
-      const g = satFisio.ganhosPorMes[ym];
+    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[prevYm]) {
+      const g = satFisio.ganhosPorMes[prevYm];
       const tot = (g.realizado || 0) + (g.aReceber || 0);
       if (tot > 0) return tot;
     }
 
-    // 4. Valor numérico gravado no mês
-    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
+    // 2. Override manual explícito para este mês de caixa
+    if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
+      const manual = parseFloat(monthData.scarlet.ganhosManual);
+      if (!isNaN(manual) && manual > 0) return manual;
+    }
+
+    // 3. Receita explícita registrada nas receitas do mês
+    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
+      return parseFloat(recFisio.valor);
+    }
+
+    // 4. Valor gravado no mês anterior no MatrixDB (caso tenha havido override manual prévio no mês de origem)
+    const prevMonthData = MatrixDB.getMonth(String(prevYear), MONTH_NAMES[prevMIdx]);
+    if (prevMonthData && prevMonthData.scarlet && prevMonthData.scarlet.ganhosManual != null && prevMonthData.scarlet.ganhosManual !== '') {
+      const prevManual = parseFloat(prevMonthData.scarlet.ganhosManual);
+      if (!isNaN(prevManual) && prevManual > 0) return prevManual;
+    }
+
+    // 5. Valor gravado no mês
+    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
       return monthData.scarlet.ganhos;
     }
 
-    // 5. Sem dados existentes: NUNCA inventar dados (retornar 0)
+    // 6. Sem dados existentes: NUNCA inventar dados (retornar 0)
     return 0;
   }
 
@@ -1444,36 +1467,43 @@ const MatrixApp = (function () {
     } else if (tipo === 'fisioflow') {
       titleEl.innerHTML = `🩺 Consolidado Financeiro FisioFlow (Scarlet) (${periodLabel})`;
       const sat = (state.satellites && state.satellites.fisioflow) || 
-        (typeof SatelliteConnectors !== 'undefined' ? SatelliteConnectors.processFisioData({}) : {});
+        (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : {});
 
-      const ganhosMes = (monthData.scarlet && monthData.scarlet.ganhos) || sat.mesAtualTotal || 1100.00;
+      const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+      let prevMIdx = curMIdx - 1;
+      let prevYear = parseInt(currentYear, 10);
+      if (prevMIdx < 0) {
+        prevMIdx = 11;
+        prevYear -= 1;
+      }
+      const prevMesNome = MONTH_NAMES[prevMIdx];
+      const ganhosMes = getGanhosScarletMes(currentYear, currentMonth);
       const projecao = sat.projecaoMensalRecorrente || 1500.00;
-      const totalHistorico = sat.totalHistoricoRecebido || 14500.00;
+      const totalHistorico = sat.totalHistoricoRecebido || 10315.00;
       const pacAtivos = sat.pacientesAtivos || 8;
-      const ganhosMap = sat.ganhosPorMes || {
-        '2026-07': { realizado: 1050, aReceber: 0, sessoes: 10 },
-        '2026-08': { realizado: 1100, aReceber: 0, sessoes: 11 },
-        '2026-09': { realizado: 1250, aReceber: 0, sessoes: 12 },
-        '2026-10': { realizado: 1100, aReceber: 240, sessoes: 12 },
-        '2026-11': { realizado: 1100, aReceber: 360, sessoes: 13 }
+      const ganhosMap = (sat.ganhosPorMes && Object.keys(sat.ganhosPorMes).length > 0) ? sat.ganhosPorMes : {
+        '2026-08': { realizado: 4670, aReceber: 0, sessoes: 38 },
+        '2026-09': { realizado: 3700, aReceber: 0, sessoes: 30 },
+        '2026-10': { realizado: 1140, aReceber: 0, sessoes: 10 },
+        '2026-11': { realizado: 805, aReceber: 0, sessoes: 7 }
       };
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(6,182,212,0.08);border:1px solid var(--cyan);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <span style="color:var(--cyan);display:flex;align-items:center;gap:6px;font-weight:bold;">
-              <span class="live-pulse" style="background:var(--cyan);"></span> Conexão FisioFlow Ativa (Apenas Financeiro)
+              <span class="live-pulse" style="background:var(--cyan);"></span> Conexão FisioFlow Ativa (Regra +1 Mês)
             </span>
-            <span class="lock-pill" style="border-color:var(--cyan);color:var(--cyan);" title="Prontuários e atendimentos clínicos não são expostos no Matrix">
-              🛡️ Sigilo Clínico Preservado
+            <span class="lock-pill" style="border-color:var(--cyan);color:var(--cyan);" title="O que é faturado no mês M é utilizado no caixa do mês M+1">
+              📅 Ciclo: Fatura em M &rarr; Caixa em M+1
             </span>
           </div>
 
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Faturamento Mês</div>
+              <div style="font-size:11px;color:var(--text-muted);">Disponível no Caixa (${currentMonth})</div>
               <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosMes)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Entrada no orçamento</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Faturamento ${prevMesNome}/${prevYear}</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Projeção Recorrente</div>
@@ -1494,35 +1524,52 @@ const MatrixApp = (function () {
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <strong style="color:var(--text-main);font-size:13px;">📈 Faturamento Mensal Consolidado</strong>
+              <strong style="color:var(--text-main);font-size:13px;">📈 Conciliação FisioFlow &rarr; Caixa Matrix</strong>
               <span style="font-size:11px;color:var(--text-muted);">Histórico Total: ${formatBRL(totalHistorico)}</span>
             </div>
             <div style="max-height:220px;overflow-y:auto;">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Competência</th>
-                    <th>Volume de Sessões</th>
-                    <th style="text-align:right;">Faturamento Realizado</th>
-                    <th style="text-align:right;">A Receber</th>
+                    <th>Atendimentos (FisioFlow)</th>
+                    <th>Entrada no Caixa (Matrix)</th>
+                    <th>Sessões</th>
+                    <th style="text-align:right;">Total Faturado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${Object.entries(ganhosMap).map(([ym, dados]) => `
-                    <tr>
-                      <td><strong>${ym}</strong></td>
-                      <td>${dados.sessoes || '-'} sessões concluídas</td>
-                      <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(dados.realizado || 0)}</td>
-                      <td class="val-col" style="color:var(--amber);">${formatBRL(dados.aReceber || 0)}</td>
-                    </tr>
-                  `).join('')}
+                  ${Object.entries(ganhosMap).map(([ym, dados]) => {
+                    const parts = ym.split('-');
+                    const yN = parseInt(parts[0], 10);
+                    const mN = parseInt(parts[1], 10);
+                    let destM = mN + 1;
+                    let destY = yN;
+                    if (destM > 12) {
+                      destM = 1;
+                      destY += 1;
+                    }
+                    const destMesNome = MONTH_NAMES[destM - 1];
+                    const tot = (dados.realizado || 0) + (dados.aReceber || 0);
+                    const isTargetMonth = (String(destY) === String(currentYear) && destMesNome === currentMonth);
+                    return `
+                      <tr style="${isTargetMonth ? 'background:rgba(6,182,212,0.12);font-weight:bold;' : ''}">
+                        <td><strong>${ym}</strong></td>
+                        <td>
+                          <span style="color:var(--cyan);font-weight:600;">${destMesNome} / ${destY}</span>
+                          ${isTargetMonth ? ' <span style="color:var(--matrix-green);font-size:10px;">● Mês Selecionado</span>' : ''}
+                        </td>
+                        <td>${dados.sessoes || '-'} sessões</td>
+                        <td class="val-col" style="color:var(--cyan);font-weight:700;">${formatBRL(tot)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
                 </tbody>
               </table>
             </div>
           </div>
 
           <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-            🔒 <em>Privacidade médica e sigilo profissional:</em> Conforme estabelecido, atendimentos clínicos individuais, prontuários e nomes de pacientes permanecem restritos ao FisioFlow, mantendo apenas a conciliação financeira consolidada no Matrix.
+            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, e o faturamento de Novembro (R$ 805) financia Dezembro.
           </div>
         </div>
       `;
