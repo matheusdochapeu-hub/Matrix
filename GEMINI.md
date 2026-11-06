@@ -38,5 +38,9 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - Ao digitar a descrição de um gasto nos formulários de lançamento rápido ou edição de despesas, o app prediz e seleciona automaticamente a categoria memorizada (`MatrixDB.predictCategory`), exibindo o indicador `✨ Lembrado: [Categoria]`.
 - Se o usuário alterar a categoria manualmente, a nova preferência é imediatamente aprendida e gravada no `localStorage` (`matrix_category_memory`) e no banco local.
 
-## 6. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v40`) e confirmar zero erros de execução.
+## 6. Simplificação de Origens de Recursos nos Lançamentos
+- O seletor duplicado "De onde sai / entra" foi permanentemente removido do modal `#itemModalBackdrop`.
+- A classificação do recurso é regida exclusivamente pelo campo **"Renda Vinculada"** (`#modalItemRenda`), simplificando a UX e eliminando duplicidades conceituais entre contas bancárias e fontes pagadoras.
+
+## 7. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v41`) e confirmar zero erros de execução.

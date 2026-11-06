@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=40">
+  <link rel="stylesheet" href="css/matrix.css?v=41">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1513,73 +1513,19 @@
         </select>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-        <div>
-          <label style="font-size:11px;color:var(--text-muted);">De onde sai / entra:</label>
-          <select id="modalItemConta" class="matrix-select" onchange="MatrixApp.onModalContaChange(this.value)">
-            <optgroup label="🟣 Nubank">
-              <option value="debito_nubank">🟣 Débito Nubank</option>
-              <option value="credito_nubank_matheus">🟣 Crédito Matheus</option>
-              <option value="credito_nubank_scarlet">🟣 Crédito Scarlet</option>
-              <option value="pix_nubank">🟣 Pix Nubank</option>
-            </optgroup>
-            <optgroup label="🟡 Banco do Brasil">
-              <option value="salario_bb" selected>🟡 Salário BB</option>
-              <option value="debito_bb">🟡 Débito BB</option>
-              <option value="pix_bb">🟡 Pix BB</option>
-              <option value="boleto_bb">🟡 Boleto BB</option>
-            </optgroup>
-            <optgroup label="🟠 Banco Inter">
-              <option value="debito_inter">🟠 Débito Inter</option>
-              <option value="pix_inter">🟠 Pix Inter</option>
-              <option value="cdb_inter">🟠 CDB Inter</option>
-            </optgroup>
-            <optgroup label="🔴 Santander">
-              <option value="debito_santander">🔴 Débito Santander</option>
-              <option value="pix_santander">🔴 Pix Santander</option>
-            </optgroup>
-            <optgroup label="🔵 Caixa">
-              <option value="debito_caixa">🔵 Débito Caixa</option>
-              <option value="fgts_caixa">🔵 FGTS Caixa</option>
-            </optgroup>
-            <optgroup label="🏦 Empréstimos">
-              <option value="emprestimo_bancario">🏦 Empréstimo Bancário</option>
-              <option value="emprestimo_consignado">🏦 Consignado USP</option>
-              <option value="emprestimo_familiar">🤝 Empréstimo Familiar</option>
-            </optgroup>
-            <optgroup label="Benefícios">
-              <option value="cartao_va">🟢 Cartão VA</option>
-              <option value="cartao_vr">🍽️ Cartão VR</option>
-            </optgroup>
-            <optgroup label="Scarlet">
-              <option value="scarlet_fisio">🩺 Fisio Scarlet</option>
-            </optgroup>
-            <optgroup label="Investimentos">
-              <option value="resgate_tesouro_reserva">📉 Resgate Tesouro</option>
-              <option value="tesouro_renda">📈 Tesouro Renda+</option>
-              <option value="tesouro_selic">📈 Tesouro Selic</option>
-              <option value="acoes_b3">📊 Ações B3</option>
-              <option value="investimento_aporte">📈 Aporte Investimentos</option>
-            </optgroup>
-            <optgroup label="Outros">
-              <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
-            </optgroup>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--text-muted);">Renda Vinculada:</label>
-          <select id="modalItemRenda" class="matrix-select">
-            <option value="salario_usp">Salário Matheus</option>
-            <option value="ganhos_scarlet">Ganhos Scarlet</option>
-            <option value="va_mercado">Vale Alimentação (VA)</option>
-            <option value="vr_almoco">Vale Refeição (VR)</option>
-            <option value="investimento_resgate">Resgate Investimento</option>
-            <option value="estudio_extra">Renda Extra</option>
-            <option value="emprestimo">Empréstimo</option>
-            <option value="outros_ganhos">Outros Ganhos</option>
-            <option value="orcamento_geral" selected>Orçamento Geral</option>
-          </select>
-        </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Renda Vinculada:</label>
+        <select id="modalItemRenda" class="matrix-select" onchange="MatrixApp.onModalRendaChange(this.value)">
+          <option value="salario_usp">Salário Matheus</option>
+          <option value="ganhos_scarlet">Ganhos Scarlet</option>
+          <option value="va_mercado">Vale Alimentação (VA)</option>
+          <option value="vr_almoco">Vale Refeição (VR)</option>
+          <option value="investimento_resgate">Resgate Investimento</option>
+          <option value="estudio_extra">Renda Extra</option>
+          <option value="emprestimo">Empréstimo</option>
+          <option value="outros_ganhos">Outros Ganhos</option>
+          <option value="orcamento_geral" selected>Orçamento Geral</option>
+        </select>
       </div>
 
       <!-- Seletor Explicito de Status (Pendente / Pago) -->
@@ -2432,16 +2378,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=40"></script>
-  <script src="js/matrix-rain.js?v=40"></script>
-  <script src="js/db.js?v=40"></script>
-  <script src="js/calendar-engine.js?v=40"></script>
-  <script src="js/amortization-engine.js?v=40"></script>
-  <script src="js/scenario-simulator.js?v=40"></script>
-  <script src="js/pdf-reader.js?v=40"></script>
-  <script src="js/satellite-connectors.js?v=40"></script>
-  <script src="js/sync-engine.js?v=40"></script>
-  <script src="js/app.js?v=40"></script>
+  <script src="js/seed-data.js?v=41"></script>
+  <script src="js/matrix-rain.js?v=41"></script>
+  <script src="js/db.js?v=41"></script>
+  <script src="js/calendar-engine.js?v=41"></script>
+  <script src="js/amortization-engine.js?v=41"></script>
+  <script src="js/scenario-simulator.js?v=41"></script>
+  <script src="js/pdf-reader.js?v=41"></script>
+  <script src="js/satellite-connectors.js?v=41"></script>
+  <script src="js/sync-engine.js?v=41"></script>
+  <script src="js/app.js?v=41"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>

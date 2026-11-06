@@ -5312,6 +5312,20 @@ const MatrixApp = (function () {
     }
   }
 
+  function onModalRendaChange(val) {
+    const chk = document.getElementById('chkModalInvestLink');
+    const sub = document.getElementById('modalInvestSubFields');
+    const op = document.getElementById('modalInvestOperacao');
+    const at = document.getElementById('modalInvestAtivoSelect');
+
+    if (val === 'investimento_resgate') {
+      if (chk) chk.checked = true;
+      if (sub) sub.style.display = 'block';
+      if (op) op.value = 'resgate';
+      if (at) at.value = 'Tesouro Reserva';
+    }
+  }
+
   function toggleModalInvestSubFields(checked) {
     const sub = document.getElementById('modalInvestSubFields');
     if (sub) sub.style.display = checked ? 'block' : 'none';
@@ -5415,7 +5429,23 @@ const MatrixApp = (function () {
     if (contaSelect && item.conta) contaSelect.value = item.conta;
 
     const rendaSelect = document.getElementById('modalItemRenda');
-    if (rendaSelect && item.renda) rendaSelect.value = item.renda;
+    if (rendaSelect) {
+      if (item.renda) {
+        rendaSelect.value = item.renda;
+      } else if (item.conta) {
+        const c = String(item.conta).toLowerCase();
+        if (c.includes('emprestimo')) rendaSelect.value = 'emprestimo';
+        else if (c === 'cartao_va' || c === 'va') rendaSelect.value = 'va_mercado';
+        else if (c === 'cartao_vr' || c === 'vr') rendaSelect.value = 'vr_almoco';
+        else if (c.includes('scarlet') || c.includes('fisio')) rendaSelect.value = 'ganhos_scarlet';
+        else if (c.includes('resgate')) rendaSelect.value = 'investimento_resgate';
+        else if (c.includes('extra')) rendaSelect.value = 'estudio_extra';
+        else if (c.includes('salario') || c === 'salario_bb' || c === 'bb') rendaSelect.value = 'salario_usp';
+        else rendaSelect.value = 'orcamento_geral';
+      } else {
+        rendaSelect.value = 'orcamento_geral';
+      }
+    }
 
     // Status Pago / Pendente via radio buttons
     const isPago = !!item.pago;
@@ -5465,8 +5495,21 @@ const MatrixApp = (function () {
     const nome = document.getElementById('modalItemNome').value.trim();
     const valor = parseFloat(document.getElementById('modalItemValor').value) || 0;
     const cat = document.getElementById('modalItemCategoria').value;
-    const conta = document.getElementById('modalItemConta') ? document.getElementById('modalItemConta').value : 'bb';
     const renda = document.getElementById('modalItemRenda') ? document.getElementById('modalItemRenda').value : 'salario_usp';
+    let conta = 'salario_bb';
+    if (renda === 'emprestimo') conta = 'emprestimo_familiar';
+    else if (renda === 'va_mercado') conta = 'cartao_va';
+    else if (renda === 'vr_almoco') conta = 'cartao_vr';
+    else if (renda === 'ganhos_scarlet') conta = 'scarlet_fisio';
+    else if (renda === 'investimento_resgate') conta = 'resgate_tesouro_reserva';
+    else if (renda === 'estudio_extra') conta = 'pix_inter';
+    else if (renda === 'outros_ganhos') conta = 'outros';
+    else if (renda === 'orcamento_geral') conta = 'orcamento_geral';
+    else conta = 'salario_bb';
+
+    if (document.getElementById('modalItemConta')) {
+      conta = document.getElementById('modalItemConta').value;
+    }
     const pago = document.getElementById('modalItemStatusPago') ? document.getElementById('modalItemStatusPago').checked : false;
 
     if (!nome) {
@@ -7125,6 +7168,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     toggleHoleriteAccordion,
     excluirHolerite,
     onModalContaChange,
+    onModalRendaChange,
     toggleModalInvestSubFields,
     isFaturasItem,
     alertFaturasReadOnly,
