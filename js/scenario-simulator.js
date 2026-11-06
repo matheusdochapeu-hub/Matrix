@@ -149,8 +149,8 @@ const ScenarioSimulator = (function () {
   }
 
   function getGanhosScarletCalculados(ano, mesName, monthData, state) {
-    if (typeof MatrixApp !== 'undefined' && MatrixApp.getGanhosScarletMes) {
-      const val = MatrixApp.getGanhosScarletMes(ano, mesName);
+    if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getGanhosScarletMes) {
+      const val = window.MatrixApp.getGanhosScarletMes(ano, mesName);
       if (typeof val === 'number' && val > 0) return val;
     }
     if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {

@@ -180,27 +180,68 @@ const MatrixApp = (function () {
     }
 
     try {
+      const state = MatrixDB.getState();
+      if (!state.satellites) state.satellites = {};
+      const maracajuObsoleto = !state.satellites.maracaju ||
+        state.satellites.maracaju.saldoVaRestante === 1659.59 ||
+        state.satellites.maracaju.saldoVaRestante === 2050 ||
+        state.satellites.maracaju.saldoVrRestante === 1170 ||
+        state.satellites.maracaju.saldoVrRestante === 1105 ||
+        state.satellites.maracaju.saldoVrRestante === 1235 ||
+        !state.satellites.maracaju.cicloVigente ||
+        state.satellites.maracaju.cicloVigente !== '2026-11';
+      if (maracajuObsoleto) {
+        state.satellites.maracaju = {
+          origem: 'Maracaju 88',
+          atualizadoEm: new Date().toISOString(),
+          cicloVigente: '2026-11',
+          creditDate: '2026-11-06',
+          vaMensal: 2050.00,
+          vaRollover: 9.84,
+          vaTotal: 2059.84,
+          gastoMercadoMesAtual: 0.00,
+          saldoVaRestante: 2059.84,
+          transbordouVa: 0,
+          vrCreditadoNoMes: 1105.00,
+          vrRollover: 0.16,
+          vrTotal: 1105.16,
+          vrDays: 17,
+          gastoVrMesAtual: 0.00,
+          saldoVrRestante: 1105.16,
+          transbordouVr: 0,
+          totalBeneficios: 3165.00,
+          totalDisponivel: 3165.00,
+          gastoMercadoCicloAnterior: 390.41,
+          gastoVrCicloAnterior: 0.00,
+          reformasAndamento: 0,
+          manutencoesCarro: 0
+        };
+        MatrixDB.saveState(state);
+      }
+
       const novData = MatrixDB.getMonth('2026', 'Novembro');
       if (novData) {
         let changedNov = false;
         if (!novData.totais) novData.totais = {};
-        if (novData.totais['VR'] === 1235 || !novData.totais['VR'] || novData.totais['VR'] === 1105) {
+        if (novData.vrManual == null && novData.totais['VR'] !== 1105.16) {
           novData.totais['VR'] = 1105.16;
           changedNov = true;
         }
-        if (novData.totais['VA'] === 2050 || !novData.totais['VA']) {
+        if (novData.vaManual == null && novData.totais['VA'] !== 2059.84) {
           novData.totais['VA'] = 2059.84;
           changedNov = true;
         }
         if (novData.receitas) {
-          const rVr = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('vr') || (r.nome || '').toLowerCase().includes('refei'));
-          if (rVr && (rVr.valor === 1235 || !rVr.valor || rVr.valor === 1105)) {
+          let rVr = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('vr') || (r.nome || '').toLowerCase().includes('refei') || (r.id && r.id.includes('rec_vr')));
+          if (rVr && novData.vrManual == null && rVr.valor !== 1105.16) {
             rVr.valor = 1105.16;
+            rVr.naoPecunia = true;
             changedNov = true;
           }
-          const rVa = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('va') || (r.nome || '').toLowerCase().includes('alimenta'));
-          if (rVa && (rVa.valor === 2050 || !rVa.valor)) {
+          let rVa = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('va') || (r.nome || '').toLowerCase().includes('alimenta') || (r.id && r.id.includes('rec_va')));
+          if (rVa && novData.vaManual == null && rVa.valor !== 2059.84) {
             rVa.valor = 2059.84;
+            rVa.naoPecunia = true;
             changedNov = true;
           }
         }
@@ -1107,14 +1148,22 @@ const MatrixApp = (function () {
 
       // 3. Vale Alimentação - VA (Casa Maracaju 88)
       let va = 2050.00;
-      if (m.ano === '2026' && m.mes === 'Novembro') va = 2059.84;
-      if (monthData.totais && monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+      if (m.ano === '2026' && m.mes === 'Novembro') {
+        va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
+          ? state.satellites.maracaju.saldoVaRestante
+          : 2059.84;
+      } else if (monthData.totais && monthData.totais['VA'] != null) {
+        va = parseFloat(monthData.totais['VA']) || va;
+      }
       if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
       // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
       let vr = 1105.00;
-      if (m.ano === '2026' && m.mes === 'Novembro') vr = 1105.16;
-      if (monthData.totais && monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
+      if (m.ano === '2026' && m.mes === 'Novembro') {
+        vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
+          ? state.satellites.maracaju.saldoVrRestante
+          : 1105.16;
+      } else if (monthData.totais && monthData.totais['VR'] != null) {
         vr = parseFloat(monthData.totais['VR']) || vr;
       }
       if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
@@ -1214,14 +1263,22 @@ const MatrixApp = (function () {
 
     // 3. Vale Alimentação - VA (Casa Maracaju 88)
     let va = 2050.00;
-    if (currentYear === '2026' && currentMonth === 'Novembro') va = 2059.84;
-    if (monthData.totais && monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+    if (currentYear === '2026' && currentMonth === 'Novembro') {
+      va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
+        ? state.satellites.maracaju.saldoVaRestante
+        : 2059.84;
+    } else if (monthData.totais && monthData.totais['VA'] != null) {
+      va = parseFloat(monthData.totais['VA']) || va;
+    }
     if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
     // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
     let vr = 1105.00;
-    if (currentYear === '2026' && currentMonth === 'Novembro') vr = 1105.16;
-    if (monthData.totais && monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
+    if (currentYear === '2026' && currentMonth === 'Novembro') {
+      vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
+        ? state.satellites.maracaju.saldoVrRestante
+        : 1105.16;
+    } else if (monthData.totais && monthData.totais['VR'] != null) {
       vr = parseFloat(monthData.totais['VR']) || vr;
     }
     if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
@@ -1242,24 +1299,26 @@ const MatrixApp = (function () {
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
     let ganhosPecunia = 0;
-    let beneficiosNaoPecunia = 0;
+    // O total de benefícios não-pecúnia é rigorosamente a soma exata dos valores atuais de VA e VR
+    const beneficiosNaoPecunia = Math.round((va + vr) * 100) / 100;
 
     if (monthData.receitas && monthData.receitas.length > 0) {
       monthData.receitas.forEach(it => {
         const val = parseFloat(it.valor) || 0;
-        if (isBeneficioNaoPecunia(it)) {
-          beneficiosNaoPecunia += val;
-        } else {
+        if (!isBeneficioNaoPecunia(it)) {
           ganhosPecunia += val;
+        } else {
+          // Mantém as receitas de benefícios do array em total conformidade com os valores vigentes
+          const n = (it.nome || '').toLowerCase();
+          if (n.includes('va') || n.includes('alimenta')) {
+            it.valor = va;
+          } else if (n.includes('vr') || n.includes('refei')) {
+            it.valor = vr;
+          }
         }
       });
     } else {
       ganhosPecunia = salMatheus + ganhosScarlet + outrosGanhos;
-      beneficiosNaoPecunia = va + vr;
-    }
-
-    if (beneficiosNaoPecunia === 0) {
-      beneficiosNaoPecunia = va + vr;
     }
 
     // Gastos Fixos
@@ -1310,8 +1369,12 @@ const MatrixApp = (function () {
       gastoMercadoMesAtual: 0.00,
       gastoVrMesAtual: 0.00
     };
-    const vaAtual = satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 2059.84;
-    const vrAtual = satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1105.16;
+    const vaAtual = (currentYear === '2026' && currentMonth === 'Novembro')
+      ? (monthData.vaManual != null ? monthData.vaManual : (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 2059.84))
+      : va;
+    const vrAtual = (currentYear === '2026' && currentMonth === 'Novembro')
+      ? (monthData.vrManual != null ? monthData.vrManual : (satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1105.16))
+      : vr;
 
     const satCasaEl = document.getElementById('topSatCasaVal');
     const satVaEl = document.getElementById('topSatVaVal');
@@ -1515,28 +1578,39 @@ const MatrixApp = (function () {
     if (tipo === 'saldo') {
       titleEl.innerHTML = `💵 Auditoria da Folga de Caixa (${periodLabel})`;
 
+      let va = 2050.00;
+      let vr = 1105.00;
+      if (currentYear === '2026' && currentMonth === 'Novembro') {
+        va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
+          ? state.satellites.maracaju.saldoVaRestante
+          : 2059.84;
+        vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
+          ? state.satellites.maracaju.saldoVrRestante
+          : 1105.16;
+      } else if (monthData.totais) {
+        if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+        if (monthData.totais['VR'] != null) vr = parseFloat(monthData.totais['VR']) || vr;
+      }
+      if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
+      if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
+      const beneficiosNaoPecunia = Math.round((va + vr) * 100) / 100;
+
       let ganhosPecunia = 0;
-      let beneficiosNaoPecunia = 0;
       if (monthData.receitas && monthData.receitas.length > 0) {
         monthData.receitas.forEach(it => {
           const val = parseFloat(it.valor) || 0;
-          if (isBeneficioNaoPecunia(it)) {
-            beneficiosNaoPecunia += val;
-          } else {
+          if (!isBeneficioNaoPecunia(it)) {
             ganhosPecunia += val;
           }
         });
       } else if (monthData.totais && monthData.totais['Subtotal Ganhos']) {
         ganhosPecunia = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
-        beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
       } else if (monthData.totais && monthData.totais['Salário Mensal']) {
         ganhosPecunia = parseFloat(monthData.totais['Salário Mensal']) || 0;
         if (monthData.totais['Estúdio']) ganhosPecunia += parseFloat(monthData.totais['Estúdio']) || 0;
         if (monthData.totais['13º']) ganhosPecunia += parseFloat(monthData.totais['13º']) || 0;
-        beneficiosNaoPecunia = (parseFloat(monthData.totais['VA']) || 0) + (parseFloat(monthData.totais['VR']) || 0);
       } else {
         ganhosPecunia = 5788.19;
-        beneficiosNaoPecunia = 3285.00;
       }
 
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
@@ -6584,22 +6658,12 @@ function onModalCategoriaChange(catVal) {
     let vr = 1105.00;
 
     if (saldosModalTargetAno === '2026' && saldosModalTargetMes === 'Novembro') {
-      va = 2059.84;
-      vr = 1105.16;
-    }
-
-    if (satMaracaju && saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
-      if (satMaracaju.saldoVaRestante != null) va = satMaracaju.saldoVaRestante;
-      else if (satMaracaju.vaTotal != null) va = satMaracaju.vaTotal;
-
-      if (satMaracaju.saldoVrRestante != null) vr = satMaracaju.saldoVrRestante;
-      else if (satMaracaju.vrTotal != null) vr = satMaracaju.vrTotal;
-    }
-
-    if (monthData.totais) {
-      if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
-      if (monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
-        vr = parseFloat(monthData.totais['VR']) || vr;
+      va = (satMaracaju && satMaracaju.saldoVaRestante != null) ? satMaracaju.saldoVaRestante : 2059.84;
+      vr = (satMaracaju && satMaracaju.saldoVrRestante != null) ? satMaracaju.saldoVrRestante : 1105.16;
+    } else {
+      if (monthData.totais) {
+        if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+        if (monthData.totais['VR'] != null) vr = parseFloat(monthData.totais['VR']) || vr;
       }
     }
     if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;

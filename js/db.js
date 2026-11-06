@@ -204,7 +204,15 @@ const MatrixDB = (function () {
     // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};
-      if (!memoryCache.satellites.maracaju || memoryCache.satellites.maracaju.saldoVaRestante === 1659.59) {
+      const maracajuObsoleto = !memoryCache.satellites.maracaju ||
+        memoryCache.satellites.maracaju.saldoVaRestante === 1659.59 ||
+        memoryCache.satellites.maracaju.saldoVaRestante === 2050 ||
+        memoryCache.satellites.maracaju.saldoVrRestante === 1170 ||
+        memoryCache.satellites.maracaju.saldoVrRestante === 1105 ||
+        memoryCache.satellites.maracaju.saldoVrRestante === 1235 ||
+        !memoryCache.satellites.maracaju.cicloVigente ||
+        memoryCache.satellites.maracaju.cicloVigente !== '2026-11';
+      if (maracajuObsoleto) {
         memoryCache.satellites.maracaju = {
           origem: 'Maracaju 88',
           atualizadoEm: new Date().toISOString(),
