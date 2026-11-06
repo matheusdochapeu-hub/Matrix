@@ -893,8 +893,13 @@ const MatrixApp = (function () {
     const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
     const sobraFatura = Math.max(0, faturaNubank - ganhosScarlet);
 
-    // Dívida Caixa
-    const dividaCaixa = (state.financiamentoCaixa && state.financiamentoCaixa.saldoDevedor) || 157884.49;
+    // Dívida Caixa e Prazo dinâmicos para o mês ativo (evolução temporal Price)
+    const curMIdxNum = MONTH_NAMES.indexOf(currentMonth) + 1;
+    const curYNum = parseInt(currentYear, 10) || 2026;
+    const statusCaixaMes = (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.getStatusForMonth)
+      ? AmortizationEngine.getStatusForMonth(curYNum, curMIdxNum, state.financiamentoCaixa)
+      : { saldo: 157884.49, prazo: 271, parcela: 1395.88 };
+    const dividaCaixa = statusCaixaMes.saldo;
 
     // ==========================================
     // ATUALIZAÇÃO DO PAINEL UNIFICADO DE TOPO
@@ -912,6 +917,14 @@ const MatrixApp = (function () {
 
     const satCasaEl = document.getElementById('topSatCasaVal');
     if (satCasaEl) satCasaEl.textContent = formatBRL(dividaCaixa);
+
+    const satCasaPrazoEl = document.getElementById('topSatCasaPrazo');
+    if (satCasaPrazoEl) satCasaPrazoEl.textContent = `${statusCaixaMes.prazo}m`;
+
+    const satCasaChip = satCasaEl ? satCasaEl.closest('.sat-chip') : null;
+    if (satCasaChip) {
+      satCasaChip.setAttribute('title', `Dívida Caixa em ${currentMonth}/${currentYear}: ${formatBRL(dividaCaixa)} (${statusCaixaMes.prazo} parcelas restantes)`);
+    }
 
     // 3. Card 1: Ganhos Conjuntos em Pecúnia
     const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
@@ -1610,34 +1623,47 @@ const MatrixApp = (function () {
       `;
 
     } else if (tipo === 'caixa') {
-      titleEl.innerHTML = `🏠 Financiamento Habitacional da Casa (Caixa)`;
+      const curMIdxNum = MONTH_NAMES.indexOf(currentMonth) + 1;
+      const curYNum = parseInt(currentYear, 10) || 2026;
       const cfg = state.financiamentoCaixa || {};
+      const statusMes = (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.getStatusForMonth)
+        ? AmortizationEngine.getStatusForMonth(curYNum, curMIdxNum, cfg)
+        : { saldo: cfg.saldoDevedor || 157884.49, prazo: 271, parcela: 1395.88 };
+
+      titleEl.innerHTML = `🏠 Financiamento Habitacional da Casa (Caixa)`;
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--text-muted);">Saldo Devedor Atual:</span>
-              <strong style="color:var(--rose);">${formatBRL(cfg.saldoDevedor || 157884.49)}</strong>
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:6px;margin-bottom:6px;">
+              <span style="color:var(--text-muted);">Mês de Referência:</span>
+              <strong style="color:var(--matrix-green);">${currentMonth} / ${currentYear}</strong>
             </div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--text-muted);">Parcela Atual Débito Automático:</span>
-              <strong style="color:var(--amber);">${formatBRL(cfg.parcelaAtual || 1395.88)}</strong>
+              <span style="color:var(--text-muted);">Saldo Devedor neste Mês:</span>
+              <strong style="color:var(--rose);">${formatBRL(statusMes.saldo)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Parcela Débito Automático:</span>
+              <strong style="color:var(--amber);">${formatBRL(statusMes.parcela)}</strong>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--text-muted);">Prazo Restante:</span>
-              <span>${cfg.prazoMeses || cfg.totalPrestacoes || 271} meses (~22,5 anos)</span>
+              <span style="color:var(--matrix-green);font-weight:700;">${statusMes.prazo} parcelas (~${(statusMes.prazo / 12).toFixed(1)} anos)</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--text-muted);">Taxa Efetiva de Juros:</span>
               <span style="color:var(--cyan);">${cfg.taxaJurosAnual || 8.9899}% a.a.</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--text-muted);">Sistema de Amortização:</span>
-              <span>Tabela Price</span>
+              <span style="color:var(--text-muted);">Sistema Contratual:</span>
+              <span>Tabela Price (Caixa Econômica)</span>
             </div>
           </div>
-          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;">
-            💡 <strong>FGTS USP:</strong> Você acumula ~R$ 501,12 mensais de FGTS no cargo celetista USP (~R$ 12.026,88 a cada 2 anos) para amortização extraordinária.
+          <div style="background:rgba(0,255,102,0.04);border:1px solid rgba(0,255,102,0.15);padding:10px 12px;border-radius:6px;margin-bottom:12px;font-size:11.5px;line-height:1.6;color:var(--text-bright);">
+            📊 <strong>Evolução Temporal:</strong> Em Novembro/2026 são <strong>271 parcelas</strong> (R$ 157.884,49). Conforme o mês avança, 1 parcela é paga e o saldo devedor é abatido.
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin:0;">
+            💡 <strong>FGTS USP:</strong> Você acumula ~R$ 501,12 mensais de FGTS (~R$ 12.026,88 a cada 2 anos) para amortização extraordinária.
           </p>
         </div>
       `;
@@ -3403,14 +3429,25 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const cfg = state.financiamentoCaixa || AmortizationEngine.DEFAULT_CONFIG;
 
+    const curMIdxNum = MONTH_NAMES.indexOf(currentMonth) + 1;
+    const curYNum = parseInt(currentYear, 10) || 2026;
+    const statusCaixa = (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.getStatusForMonth)
+      ? AmortizationEngine.getStatusForMonth(curYNum, curMIdxNum, cfg)
+      : { saldo: cfg.saldoDevedor || 157884.49, prazo: cfg.prazoMeses || 271, parcela: cfg.parcelaAtual || 1395.88 };
+
+    const mesBadge = document.getElementById('caixaMesAtivoBadge');
+    if (mesBadge) {
+      mesBadge.textContent = `${currentMonth} / ${currentYear} (${statusCaixa.prazo}m)`;
+    }
+
     const saldoEl = document.getElementById('caixaSaldoDevedor');
-    if (saldoEl) saldoEl.textContent = formatBRL(cfg.saldoDevedor);
+    if (saldoEl) saldoEl.textContent = formatBRL(statusCaixa.saldo);
 
     const prazoEl = document.getElementById('caixaPrazoMeses');
-    if (prazoEl) prazoEl.textContent = `${cfg.prazoMeses || cfg.totalPrestacoes || 271} meses (~${Math.round((cfg.prazoMeses || cfg.totalPrestacoes || 271) / 12)} anos)`;
+    if (prazoEl) prazoEl.textContent = `${statusCaixa.prazo} meses (~${(statusCaixa.prazo / 12).toFixed(1)} anos)`;
 
     const parcelaEl = document.getElementById('caixaParcelaAtual');
-    if (parcelaEl) parcelaEl.textContent = formatBRL(cfg.parcelaAtual);
+    if (parcelaEl) parcelaEl.textContent = formatBRL(statusCaixa.parcela);
 
     const taxaEl = document.getElementById('caixaTaxaJuros');
     if (taxaEl) taxaEl.textContent = `${cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899}% a.a.`;

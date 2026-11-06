@@ -96,7 +96,10 @@
           <div class="sat-chip green" onclick="MatrixApp.abrirDrilldown('caixa')" title="Clique para abrir status da dívida da Caixa e amortizações">
             <span class="sat-chip-icon">🏠</span>
             <div class="sat-chip-body">
-              <span class="sat-chip-label">Casa Maracaju</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+                <span class="sat-chip-label">Casa Maracaju</span>
+                <span id="topSatCasaPrazo" style="font-size:9.5px;color:var(--text-dim);font-family:var(--font-mono);font-weight:600;">271m</span>
+              </div>
               <strong class="sat-chip-val" id="topSatCasaVal">R$ 0,00</strong>
             </div>
           </div>
@@ -806,7 +809,10 @@
       <div class="matrix-box">
         <div class="box-header">
           <h2>🏠 Financiamento Habitacional da Casa (Caixa Econômica)</h2>
-          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Tabela Price Oficial</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="caixaMesAtivoBadge" class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Novembro / 2026</span>
+            <span class="box-badge" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.4);">Tabela Price Oficial</span>
+          </div>
         </div>
 
         <!-- Indicadores Contratuais Atuais -->

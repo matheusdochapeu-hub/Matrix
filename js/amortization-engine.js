@@ -519,6 +519,135 @@ const AmortizationEngine = (function () {
 </html>`;
   }
 
+  /**
+   * Calcula a posição dinâmica do financiamento (saldo devedor, prazo restante e parcela)
+   * para qualquer mês e ano em relação ao baseline de Novembro/2026.
+   * Regra: Novembro/2026 = 271 parcelas (R$ 157.884,49).
+   * Mês anterior (Outubro/2026) = 272 parcelas (saldo maior).
+   * Mês posterior (Dezembro/2026) = 270 parcelas (saldo amortizado).
+   * Janeiro/2027 = 269 parcelas, e assim sucessivamente.
+   * Amortizações extraordinárias registradas reduzem adicionalmente o saldo e o prazo.
+   */
+  function getStatusForMonth(targetYear, targetMonthIndex, userConfig = {}) {
+    const cfg = { ...DEFAULT_CONFIG, ...userConfig };
+    const baseYear = 2026;
+    const baseMonthIndex = 11; // Novembro = 11
+
+    const baseSaldo = cfg.saldoDevedor || 157884.49;
+    const basePrazo = cfg.prazoMeses || cfg.totalPrestacoes || 271;
+    const baseParcelaTotal = cfg.parcelaAtual || 1395.88;
+    const taxaAnual = cfg.taxaJurosAnual || cfg.taxaAnual || 8.9899;
+    const taxaMensal = getTaxaMensal(taxaAnual);
+
+    const baseParcelaPura = calcularParcelaPrice(baseSaldo, basePrazo, taxaMensal);
+    const custosAcessorios = Math.max(0, baseParcelaTotal - baseParcelaPura);
+
+    // Diferença em meses entre o mês alvo e Novembro/2026
+    const deltaM = (targetYear - baseYear) * 12 + (targetMonthIndex - baseMonthIndex);
+
+    if (deltaM === 0) {
+      return {
+        ano: targetYear,
+        mesIdx: targetMonthIndex,
+        deltaM: 0,
+        saldo: baseSaldo,
+        prazo: basePrazo,
+        parcela: baseParcelaTotal,
+        parcelaPura: baseParcelaPura,
+        custosAcessorios,
+        taxaAnual,
+        taxaMensal
+      };
+    } else if (deltaM > 0) {
+      // Avanço no tempo (Dezembro/2026, 2027, etc.)
+      let s = baseSaldo;
+      let p = basePrazo;
+      let pPura = baseParcelaPura;
+      const extras = cfg.amortizacoesExtras || [];
+
+      for (let m = 1; m <= deltaM; m++) {
+        if (s <= 0.01) {
+          s = 0;
+          p = 0;
+          break;
+        }
+
+        const juros = s * taxaMensal;
+        let amort = pPura - juros;
+        if (amort > s) amort = s;
+        s -= amort;
+        p -= 1;
+
+        // Verifica amortização extraordinária neste mês
+        const extraAno = baseYear + Math.floor((baseMonthIndex - 1 + m) / 12);
+        const extraMes = ((baseMonthIndex - 1 + m) % 12) + 1;
+        const extrasDoMes = extras.filter(e => {
+          if (e.ano && e.mes) return e.ano === extraAno && e.mes === extraMes;
+          return e.mes === m;
+        });
+
+        if (extrasDoMes.length > 0) {
+          const totalExtra = extrasDoMes.reduce((acc, curr) => acc + (parseFloat(curr.valor) || 0), 0);
+          const abatido = Math.min(totalExtra, s);
+          s -= abatido;
+
+          const tipoReducao = extrasDoMes[0].tipo || 'prazo';
+          if (tipoReducao === 'prazo') {
+            if (s > 0 && pPura > 0) {
+              const novoPrazo = Math.ceil(
+                Math.log(pPura / (pPura - s * taxaMensal)) / Math.log(1 + taxaMensal)
+              );
+              if (!isNaN(novoPrazo) && isFinite(novoPrazo) && novoPrazo > 0) {
+                p = Math.min(p, novoPrazo);
+              }
+            }
+          } else {
+            if (s > 0 && p > 0) {
+              pPura = calcularParcelaPrice(s, p, taxaMensal);
+            }
+          }
+        }
+      }
+
+      return {
+        ano: targetYear,
+        mesIdx: targetMonthIndex,
+        deltaM,
+        saldo: Math.max(0, s),
+        prazo: Math.max(0, p),
+        parcela: s > 0 ? (pPura + custosAcessorios) : 0,
+        parcelaPura: pPura,
+        custosAcessorios,
+        taxaAnual,
+        taxaMensal
+      };
+    } else {
+      // Regressão no tempo (Outubro/2026 = 272, Setembro/2026 = 273, 2025...)
+      let s = baseSaldo;
+      let p = basePrazo;
+      const steps = Math.abs(deltaM);
+
+      for (let m = 0; m < steps; m++) {
+        // Fórmula de reversão da Tabela Price: Saldo anterior antes da amortização
+        s = (s + baseParcelaPura) / (1 + taxaMensal);
+        p += 1;
+      }
+
+      return {
+        ano: targetYear,
+        mesIdx: targetMonthIndex,
+        deltaM,
+        saldo: s,
+        prazo: p,
+        parcela: baseParcelaTotal,
+        parcelaPura: baseParcelaPura,
+        custosAcessorios,
+        taxaAnual,
+        taxaMensal
+      };
+    }
+  }
+
   return {
     DEFAULT_CONFIG,
     MONTH_NAMES,
@@ -528,6 +657,7 @@ const AmortizationEngine = (function () {
     gerarAmortizacoesExtras,
     executarSimulacaoCompleta,
     simularAbatimentoFgts,
+    getStatusForMonth,
     gerarRelatorioHTML
   };
 })();
