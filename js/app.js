@@ -4400,12 +4400,13 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const customData = state.calendarioCustom || { overrides: {}, folgas: [] };
 
-    // Preenche seletor de meses
+    // Preenche seletor de meses (respeitando o limite temporal mínimo de Outubro/2026)
     const mSelect = document.getElementById('calMonthSelect');
     if (mSelect) {
-      if (!mSelect.options || mSelect.options.length === 0) {
-        mSelect.innerHTML = MONTH_NAMES.map(m => `<option value="${m}">${m}</option>`).join('');
-      }
+      const availableMonths = (String(calSelectedYear) === '2026')
+        ? MONTH_NAMES.slice(9) // Outubro, Novembro, Dezembro
+        : MONTH_NAMES;
+      mSelect.innerHTML = availableMonths.map(m => `<option value="${m}">${m}</option>`).join('');
       mSelect.value = calSelectedMonth;
     }
 
@@ -4424,6 +4425,15 @@ const MatrixApp = (function () {
 
     const bannerText = document.getElementById('calBannerMonthText');
     if (bannerText) bannerText.textContent = `${calSelectedMonth} de ${calSelectedYear}`;
+
+    // Atualiza estado do botão Anterior no Calendário (desabilita em Outubro/2026)
+    const prevCalBtn = document.querySelector('.btn-cal-nav[onclick*="-1"]');
+    if (prevCalBtn) {
+      const isAtMin = (String(calSelectedYear) === '2026' && calSelectedMonth === 'Outubro');
+      prevCalBtn.disabled = isAtMin;
+      prevCalBtn.style.opacity = isAtMin ? '0.35' : '1';
+      prevCalBtn.style.cursor = isAtMin ? 'not-allowed' : 'pointer';
+    }
 
     const commute = CalendarEngine.calculateCommuteAndVR(yearNum, monthIndex, customData);
 
@@ -4572,11 +4582,16 @@ const MatrixApp = (function () {
   }
 
   function navCalendarMonth(direction) {
+    if (direction < 0 && String(calSelectedYear) === '2026' && calSelectedMonth === 'Outubro') {
+      return; // Trava estrita: Outubro/2026 é o início
+    }
     let idx = MONTH_NAMES.indexOf(calSelectedMonth);
     idx += direction;
     if (idx < 0) {
+      const prevY = parseInt(calSelectedYear, 10) - 1;
+      if (prevY < 2026) return;
       idx = 11;
-      calSelectedYear = String(parseInt(calSelectedYear, 10) - 1);
+      calSelectedYear = String(prevY);
     } else if (idx > 11) {
       idx = 0;
       calSelectedYear = String(parseInt(calSelectedYear, 10) + 1);
@@ -4590,6 +4605,9 @@ const MatrixApp = (function () {
 
   function onCalMonthChange(m) {
     if (m && MONTH_NAMES.includes(m)) {
+      if (String(calSelectedYear) === '2026' && MONTH_NAMES.indexOf(m) < 9) {
+        m = 'Outubro';
+      }
       calSelectedMonth = m;
       currentMonth = calSelectedMonth;
       updateMonthDisplay();
@@ -4601,15 +4619,27 @@ const MatrixApp = (function () {
     if (y) {
       calSelectedYear = String(y);
       currentYear = calSelectedYear;
+      if (calSelectedYear === '2026' && MONTH_NAMES.indexOf(calSelectedMonth) < 9) {
+        calSelectedMonth = 'Outubro';
+        currentMonth = 'Outubro';
+      }
       updateMonthDisplay();
       renderAll();
     }
   }
 
   function resetCalendarToCurrent() {
+    const now = new Date();
+    const realYear = String(now.getFullYear());
+    const realMonth = MONTH_NAMES[now.getMonth()] || 'Novembro';
+    const targetY = parseInt(realYear, 10) < 2026 ? '2026' : realYear;
+
+    currentYear = targetY;
+    currentMonth = (targetY === '2026' && MONTH_NAMES.indexOf(realMonth) < 9) ? 'Outubro' : realMonth;
     calSelectedYear = currentYear;
     calSelectedMonth = currentMonth;
-    renderCalendar();
+    updateMonthDisplay();
+    renderAll();
   }
 
   // ==========================================
@@ -6683,7 +6713,8 @@ const MatrixApp = (function () {
 
     if (yearStr === currentYear && monthName === currentMonth) {
       renderFluxoCaixa();
-      renderKpiCards();
+      renderKPIs();
+      renderMonthlyHorizonCards();
     }
 
     renderCalendar();

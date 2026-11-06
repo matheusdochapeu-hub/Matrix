@@ -131,7 +131,7 @@ const CalendarEngine = (function () {
       }
 
       // 3. Verifica recesso USP
-      const inRecess = isUspRecess(year, monthIndex, d);
+      let inRecess = isUspRecess(year, monthIndex, d);
       if (inRecess && !holidayDesc) {
         holidayDesc = 'Recesso USP de Final de Ano';
       }
