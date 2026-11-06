@@ -1042,44 +1042,71 @@
     <!-- TAB 6: INVESTIMENTOS 360 -->
     <section id="tab-investimentos" class="tab-content">
       <div class="matrix-box">
-        <div class="box-header">
-          <h2>📈 Mapa Integrado de Investimentos (Matheus & Scarlet)</h2>
-          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);">Patrimônio 360°</span>
+        <div class="box-header" style="flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          <h2 style="font-size:15px;white-space:nowrap;margin:0;">📈 Investimentos do Casal</h2>
+          <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);font-size:10.5px;padding:2px 7px;white-space:nowrap;">Consolidado</span>
         </div>
 
-        <!-- KPIs Resumo de Patrimônio (Consolidado, Matheus e Scarlet) -->
-        <div class="invest-kpi-bar">
-          <div class="invest-kpi-card">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">PATRIMÔNIO TOTAL CASAL:</div>
-            <div id="invPatrimonioTotal" style="font-size:20px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+        <!-- KPIs Resumo de Patrimônio (Consolidado, Reserva, Matheus e Scarlet) -->
+        <div class="invest-kpi-bar" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:12px;">
+          <div class="invest-kpi-card" style="padding:10px 12px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:3px;white-space:nowrap;">PATRIMÔNIO TOTAL</div>
+            <div id="invPatrimonioTotal" style="font-size:16px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);white-space:nowrap;">R$ 0,00</div>
           </div>
-          <div class="invest-kpi-card">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">👨 PATRIMÔNIO MATHEUS:</div>
-            <div id="invMatheusTotal" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+          <div class="invest-kpi-card" style="padding:10px 12px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:3px;white-space:nowrap;">RESERVA IMEDIATA</div>
+            <div id="invReservaTotal" style="font-size:16px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);white-space:nowrap;">R$ 0,00</div>
           </div>
-          <div class="invest-kpi-card">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">👩 PATRIMÔNIO SCARLET:</div>
-            <div id="invScarletTotal" style="font-size:18px;font-weight:700;color:#f472b6;font-family:var(--font-mono);">R$ 0,00</div>
+          <div class="invest-kpi-card" style="padding:10px 12px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:3px;white-space:nowrap;">👨 MATHEUS</div>
+            <div id="invMatheusTotal" style="font-size:15px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);white-space:nowrap;">R$ 0,00</div>
           </div>
-          <div class="invest-kpi-card">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">ESTIMATIVA NO VENCIMENTO / 2055:</div>
-            <div id="invProjecaoTotal" style="font-size:18px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 0,00</div>
+          <div class="invest-kpi-card" style="padding:10px 12px;">
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:3px;white-space:nowrap;">👩 SCARLET</div>
+            <div id="invScarletTotal" style="font-size:15px;font-weight:700;color:#f472b6;font-family:var(--font-mono);white-space:nowrap;">R$ 0,00</div>
           </div>
         </div>
 
-        <!-- Barra de Filtros, Agrupamento e Ações -->
-        <div class="invest-controls-toolbar">
-          <div class="invest-filter-group">
-            <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-right:4px;">TITULAR:</span>
-            <button class="invest-filter-btn active" id="btnFilterTitularTodos" onclick="MatrixApp.setInvestFilter('todos')">Todos (Consolidado)</button>
+        <!-- Alocação Real por Horizonte e Vencimento -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-main);margin-bottom:8px;font-family:var(--font-mono);">
+            🎯 Horizontes de Vencimento e Prazos Reais:
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:8px;">
+            <div style="background:rgba(0,255,102,0.04);border:1px solid rgba(0,255,102,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">LIQUIDEZ DIÁRIA (100% SELIC)</div>
+              <div id="invHorizLiquidez" style="font-size:13.5px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Reservas Matheus & Scarlet</div>
+            </div>
+            <div style="background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">APOSENTADORIA (2055)</div>
+              <div id="invHorizRenda2055" style="font-size:13.5px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+              <div id="invHorizRenda2055Proj" style="font-size:9px;color:var(--cyan);margin-top:2px;">Tesouro Renda+ (IPCA+6,5%)</div>
+            </div>
+            <div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">MÉDIO PRAZO (2027-2028)</div>
+              <div id="invHorizMedio" style="font-size:13.5px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CDB Scarlet, DinDin e Proventos</div>
+            </div>
+            <div style="background:rgba(168,85,247,0.04);border:1px solid rgba(168,85,247,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">RENDA VARIÁVEL (B3 & CRIPTO)</div>
+              <div id="invHorizVariavel" style="font-size:13.5px;font-weight:700;color:#c084fc;font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CSNA3, MGLU3 e Bitcoin</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Filtros e Ações -->
+        <div class="invest-controls-toolbar" style="padding:8px 10px;margin-bottom:12px;gap:8px;">
+          <div class="invest-filter-group" style="gap:4px;">
+            <button class="invest-filter-btn active" id="btnFilterTitularTodos" onclick="MatrixApp.setInvestFilter('todos')">Todos</button>
             <button class="invest-filter-btn" id="btnFilterTitularMatheus" onclick="MatrixApp.setInvestFilter('Matheus')">👨 Matheus</button>
             <button class="invest-filter-btn" id="btnFilterTitularScarlet" onclick="MatrixApp.setInvestFilter('Scarlet')">👩 Scarlet</button>
-            <span style="border-left:1px solid var(--border-dim);height:18px;margin:0 4px;"></span>
-            <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()">📦 Agrupar Ativos Iguais</button>
+            <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()" style="margin-left:4px;">📦 Agrupar</button>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn-matrix primary" onclick="MatrixApp.openNewInvestmentModal()">+ Novo Investimento</button>
-            <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="color:var(--cyan);border-color:var(--cyan);text-decoration:none;" title="Abrir Portfólio oficial no Google Finance">📈 Google Finance ↗</a>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn-matrix primary" style="padding:4px 9px;font-size:11px;white-space:nowrap;" onclick="MatrixApp.openNewInvestmentModal()">+ Novo</button>
+            <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="padding:4px 9px;font-size:11px;color:var(--cyan);border-color:var(--cyan);text-decoration:none;white-space:nowrap;" title="Google Finance">📈 Google Finance ↗</a>
           </div>
         </div>
 
@@ -1112,7 +1139,7 @@
           </div>
           <!-- Gráfico 3: Projeção de Crescimento Patrimonial -->
           <div class="invest-chart-card">
-            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">📈 Projeção com Rendimentos Compostos</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:8px;">📈 Distribuição por Prazos e Vencimentos Reais</div>
             <div id="chartProjecaoContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
         </div>

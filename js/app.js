@@ -3870,43 +3870,46 @@ const MatrixApp = (function () {
     const val = parseFloat(inv.valorAtual) || 0;
     const cat = (inv.categoria || '').toLowerCase();
     const ativo = (inv.ativo || '').toLowerCase();
+    const venc = (inv.vencimento || '').toLowerCase();
 
-    if (ativo.includes('renda+') || ativo.includes('2055')) {
+    if (ativo.includes('renda+') || ativo.includes('2055') || venc.includes('2055')) {
       const fv = val * Math.pow(1 + 0.065, 29);
       const rendaMensal20Anos = fv / 148;
       return {
         valorFuturo: fv,
-        texto: `${formatBRL(fv)} (Renda est. ~${formatBRL(rendaMensal20Anos)}/mês por 20 anos a partir de 2055)`
+        texto: `Vencimento 2055: ${formatBRL(fv)} (IPCA + 6,5% a.a.)`
       };
-    } else if (cat.includes('reserva') || cat.includes('renda fixa') || ativo.includes('cdb') || ativo.includes('selic')) {
-      const fv = val * Math.pow(1 + 0.1075, 2);
+    } else if (venc.includes('liquidez') || cat.includes('reserva') || ativo.includes('selic')) {
+      return {
+        valorFuturo: val,
+        texto: `Liquidez imediata (100% Selic)`
+      };
+    } else if (ativo.includes('cdb') || venc.includes('2027')) {
+      const fv = val * Math.pow(1 + 0.1075, 1);
       return {
         valorFuturo: fv,
-        texto: `${formatBRL(fv)} em 2 anos (a ~10,75% a.a.)`
+        texto: `Vencimento 2027: ${formatBRL(fv)} (~10,75% a.a.)`
       };
     } else if (cat.includes('capitalização') || ativo.includes('dindin')) {
       const fv = val + (36 * 50) + 120;
       return {
         valorFuturo: fv,
-        texto: `${formatBRL(fv)} no resgate final (36 meses)`
+        texto: `Resgate em 2028 (36 meses): ${formatBRL(fv)}`
       };
     } else if (cat.includes('ações') || ativo.includes('csna') || ativo.includes('mglu')) {
-      const fv = val * 1.35;
       return {
-        valorFuturo: fv,
-        texto: `${formatBRL(fv)} (Projeção analistas + proventos)`
+        valorFuturo: val,
+        texto: `Cotação de mercado + proventos B3`
       };
     } else if (cat.includes('cripto') || ativo.includes('btc')) {
-      const fv = val * 2.5;
       return {
-        valorFuturo: fv,
-        texto: `${formatBRL(fv)} (Ciclo de alta Halving)`
+        valorFuturo: val,
+        texto: `Custódia de longo prazo`
       };
     } else {
-      const fv = val * 1.15;
       return {
-        valorFuturo: fv,
-        texto: `${formatBRL(fv)} (Projeção conservadora)`
+        valorFuturo: val,
+        texto: inv.rentabilidadeContratada || 'Ativo em custódia'
       };
     }
   }
@@ -3918,15 +3921,35 @@ const MatrixApp = (function () {
     const totalGeral = invList.reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
     const totalMatheus = invList.filter(it => it.titular === 'Matheus').reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
     const totalScarlet = invList.filter(it => it.titular === 'Scarlet').reduce((acc, it) => acc + (parseFloat(it.valorAtual) || 0), 0);
-    
-    let totalProjetado = 0;
+
+    // Separação rigorosa por horizonte e prazos reais
+    let totalLiquidez = 0;
+    let totalRenda2055 = 0;
+    let totalMedioPrazo = 0;
+    let totalVariavel = 0;
+
     invList.forEach(it => {
-      const est = estimarValorVencimento(it);
-      totalProjetado += est.valorFuturo;
+      const val = parseFloat(it.valorAtual) || 0;
+      const cat = (it.categoria || '').toLowerCase();
+      const atv = (it.ativo || '').toLowerCase();
+      const venc = (it.vencimento || '').toLowerCase();
+
+      if (atv.includes('renda+') || atv.includes('2055') || venc.includes('2055')) {
+        totalRenda2055 += val;
+      } else if (venc.includes('liquidez') || cat.includes('reserva') || atv.includes('selic')) {
+        totalLiquidez += val;
+      } else if (cat.includes('ações') || cat.includes('cripto') || atv.includes('btc') || atv.includes('csna') || atv.includes('mglu')) {
+        totalVariavel += val;
+      } else {
+        totalMedioPrazo += val;
+      }
     });
 
     const totEl = document.getElementById('invPatrimonioTotal');
     if (totEl) totEl.textContent = formatBRL(totalGeral);
+
+    const resEl = document.getElementById('invReservaTotal');
+    if (resEl) resEl.textContent = formatBRL(totalLiquidez);
 
     const matheusEl = document.getElementById('invMatheusTotal');
     if (matheusEl) matheusEl.textContent = formatBRL(totalMatheus);
@@ -3934,11 +3957,32 @@ const MatrixApp = (function () {
     const scarletEl = document.getElementById('invScarletTotal');
     if (scarletEl) scarletEl.textContent = formatBRL(totalScarlet);
 
-    const projEl = document.getElementById('invProjecaoTotal');
-    if (projEl) projEl.textContent = formatBRL(totalProjetado);
+    // Horizontes reais
+    const hLiqEl = document.getElementById('invHorizLiquidez');
+    if (hLiqEl) hLiqEl.textContent = formatBRL(totalLiquidez);
+
+    const hRendaEl = document.getElementById('invHorizRenda2055');
+    if (hRendaEl) hRendaEl.textContent = formatBRL(totalRenda2055);
+
+    const hRendaProjEl = document.getElementById('invHorizRenda2055Proj');
+    if (hRendaProjEl) {
+      const fv2055 = totalRenda2055 * Math.pow(1 + 0.065, 29);
+      hRendaProjEl.textContent = `Est. 2055: ${formatBRL(fv2055)}`;
+    }
+
+    const hMedEl = document.getElementById('invHorizMedio');
+    if (hMedEl) hMedEl.textContent = formatBRL(totalMedioPrazo);
+
+    const hVarEl = document.getElementById('invHorizVariavel');
+    if (hVarEl) hVarEl.textContent = formatBRL(totalVariavel);
 
     renderStockCards(invList);
-    renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet);
+    renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet, {
+      liquidez: totalLiquidez,
+      renda2055: totalRenda2055,
+      medioPrazo: totalMedioPrazo,
+      variavel: totalVariavel
+    });
     renderInvestTable(invList);
   }
 
@@ -4018,7 +4062,7 @@ const MatrixApp = (function () {
     `;
   }
 
-  function renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet) {
+  function renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet, horizontes = {}) {
     const cTitular = document.getElementById('chartTitularContainer');
     const cCat = document.getElementById('chartCategoriaContainer');
     const cProj = document.getElementById('chartProjecaoContainer');
@@ -4079,24 +4123,18 @@ const MatrixApp = (function () {
       cCat.innerHTML = rows || '<div style="font-size:11px;color:var(--text-muted);">Sem dados.</div>';
     }
 
-    // 3. Gráfico Projeção de Crescimento Patrimonial
+    // 3. Gráfico de Horizontes Reais de Vencimento
     if (cProj) {
-      const hoje = totalGeral;
-      const em1Ano = totalGeral * 1.1075; // +10.75%
-      const em3Anos = totalGeral * 1.358; // +35.8%
-      const em5Anos = totalGeral * 1.666; // +66.6%
-      let aposentadoria2055 = 0;
-      invList.forEach(it => {
-        const est = estimarValorVencimento(it);
-        aposentadoria2055 += est.valorFuturo;
-      });
+      const hz = horizontes || { liquidez: 0, renda2055: 0, medioPrazo: 0, variavel: 0 };
+      const fv2055 = hz.renda2055 * Math.pow(1 + 0.065, 29);
 
       const marcos = [
-        { label: 'Hoje', val: hoje, color: 'var(--text-muted)' },
-        { label: '+1 Ano', val: em1Ano, color: 'var(--cyan)' },
-        { label: '+3 Anos', val: em3Anos, color: 'var(--amber)' },
-        { label: '+5 Anos', val: em5Anos, color: 'var(--matrix-green)' },
-        { label: '2055 (Aposentadoria)', val: aposentadoria2055, color: 'var(--purple)' }
+        { label: 'Total Hoje (Consolidado)', val: totalGeral, color: 'var(--matrix-green)' },
+        { label: 'Liquidez Diária (Reservas)', val: hz.liquidez, color: 'var(--cyan)' },
+        { label: 'Médio Prazo (2027 a 2028)', val: hz.medioPrazo, color: 'var(--amber)' },
+        { label: 'Renda Variável (B3 & Cripto)', val: hz.variavel, color: '#c084fc' },
+        { label: 'Tesouro Renda+ 2055 (Atual)', val: hz.renda2055, color: 'var(--purple)' },
+        { label: 'Tesouro Renda+ (Estimado 2055)', val: fv2055, color: 'var(--blue)' }
       ];
 
       const maxVal = Math.max(...marcos.map(m => m.val), 1);
