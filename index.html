@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=43">
+  <link rel="stylesheet" href="css/matrix.css?v=44">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1678,12 +1678,12 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <div>
-          <label style="font-size:11px;color:var(--text-muted);">Mês de Início (AAAA-MM):</label>
-          <input type="text" id="scenModalInicio" class="matrix-input" placeholder="2026-12">
+          <label style="font-size:11px;color:var(--text-muted);">Mês de Início (MM/AAAA):</label>
+          <input type="text" id="scenModalInicio" class="matrix-input" placeholder="12/2026" maxlength="7" oninput="MatrixApp.maskMesAno(this)">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text-muted);">Mês de Término (Opcional):</label>
-          <input type="text" id="scenModalFim" class="matrix-input" placeholder="Deixe em branco p/ contínuo">
+          <label style="font-size:11px;color:var(--text-muted);">Mês de Término (MM/AAAA - Opcional):</label>
+          <input type="text" id="scenModalFim" class="matrix-input" placeholder="Ex: 06/2027 (ou em branco)" maxlength="7" oninput="MatrixApp.maskMesAno(this)">
         </div>
       </div>
 
@@ -2378,16 +2378,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=43"></script>
-  <script src="js/matrix-rain.js?v=43"></script>
-  <script src="js/db.js?v=43"></script>
-  <script src="js/calendar-engine.js?v=43"></script>
-  <script src="js/amortization-engine.js?v=43"></script>
-  <script src="js/scenario-simulator.js?v=43"></script>
-  <script src="js/pdf-reader.js?v=43"></script>
-  <script src="js/satellite-connectors.js?v=43"></script>
-  <script src="js/sync-engine.js?v=43"></script>
-  <script src="js/app.js?v=43"></script>
+  <script src="js/seed-data.js?v=44"></script>
+  <script src="js/matrix-rain.js?v=44"></script>
+  <script src="js/db.js?v=44"></script>
+  <script src="js/calendar-engine.js?v=44"></script>
+  <script src="js/amortization-engine.js?v=44"></script>
+  <script src="js/scenario-simulator.js?v=44"></script>
+  <script src="js/pdf-reader.js?v=44"></script>
+  <script src="js/satellite-connectors.js?v=44"></script>
+  <script src="js/sync-engine.js?v=44"></script>
+  <script src="js/app.js?v=44"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>

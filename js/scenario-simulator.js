@@ -93,8 +93,21 @@ const ScenarioSimulator = (function () {
 
       scenarios.forEach(scen => {
         let applies = false;
-        const inicioStr = scen.inicio || '2026-11';
-        const [scenY, scenM] = inicioStr.split('-').map(Number);
+        function parseYearMonth(str) {
+          if (!str) return [2026, 11];
+          if (str.includes('/')) {
+            const parts = str.split('/');
+            const mm = parseInt(parts[0], 10) || 1;
+            let yyyy = parseInt(parts[1], 10) || 2026;
+            if (yyyy < 100) yyyy += 2000;
+            return [yyyy, mm];
+          }
+          const parts = str.split('-');
+          const yyyy = parseInt(parts[0], 10) || 2026;
+          const mm = parseInt(parts[1], 10) || 1;
+          return [yyyy, mm];
+        }
+        const [scenY, scenM] = parseYearMonth(scen.inicio || '2026-11');
         const tipo = scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente');
 
         if (tipo === 'pontual') {
@@ -114,7 +127,7 @@ const ScenarioSimulator = (function () {
           if (m.year > scenY || (m.year === scenY && m.monthIndex >= scenM)) {
             applies = true;
             if (scen.fim) {
-              const [endY, endM] = scen.fim.split('-').map(Number);
+              const [endY, endM] = parseYearMonth(scen.fim);
               if (m.year > endY || (m.year === endY && m.monthIndex > endM)) {
                 applies = false;
               }

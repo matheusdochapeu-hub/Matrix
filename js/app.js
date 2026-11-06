@@ -25,6 +25,71 @@ const MatrixApp = (function () {
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  // ==========================================
+  // UTILITÁRIOS DE DATAS NO FORMATO BRASILEIRO
+  // ==========================================
+  function formatMesAnoBR(str) {
+    if (!str) return '';
+    const clean = String(str).trim();
+    if (clean.includes('/')) return clean;
+    if (clean.includes('-')) {
+      const parts = clean.split('-');
+      if (parts.length >= 2) {
+        const yyyy = parts[0];
+        const mm = String(parts[1]).padStart(2, '0');
+        return `${mm}/${yyyy}`;
+      }
+    }
+    return clean;
+  }
+
+  function parseMesAnoBR(str) {
+    if (!str) return '';
+    const clean = String(str).trim();
+    if (clean.includes('/')) {
+      const parts = clean.split('/');
+      let mm = String(parts[0]).padStart(2, '0');
+      let yyyy = parts[1];
+      if (yyyy.length === 2) yyyy = '20' + yyyy;
+      return `${yyyy}-${mm}`;
+    }
+    if (clean.includes('-')) {
+      const parts = clean.split('-');
+      if (parts.length >= 2) {
+        let yyyy = parts[0];
+        let mm = String(parts[1]).padStart(2, '0');
+        return `${yyyy}-${mm}`;
+      }
+    }
+    return clean;
+  }
+
+  function maskMesAno(el) {
+    if (!el) return;
+    let v = el.value.replace(/\D/g, '');
+    if (v.length > 6) v = v.slice(0, 6);
+    if (v.length > 2) {
+      el.value = v.slice(0, 2) + '/' + v.slice(2);
+    } else {
+      el.value = v;
+    }
+  }
+
+  function formatDataBR(str) {
+    if (!str) return '';
+    const clean = String(str).trim();
+    if (clean.includes('T')) {
+      const parts = clean.split('T');
+      const dataP = parts[0] ? parts[0].split('-').reverse().join('/') : '';
+      const horaP = parts[1] ? parts[1].slice(0, 5) : '';
+      return `${dataP} ${horaP}`.trim();
+    }
+    if (clean.includes('-')) {
+      return clean.split('-').reverse().join('/');
+    }
+    return clean;
+  }
+
   function formatarPrazoExtenso(meses) {
     if (typeof AmortizationEngine !== 'undefined' && AmortizationEngine.formatarPrazoExtenso) {
       return AmortizationEngine.formatarPrazoExtenso(meses);
@@ -1727,7 +1792,7 @@ const MatrixApp = (function () {
                     let dtFmt = '';
                     if (d.dataHora) {
                       const p = d.dataHora.split('T');
-                      const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+                      const dataP = p[0] ? p[0].split('-').reverse().join('/') : '';
                       const horaP = p[1] ? p[1].slice(0, 5) : '';
                       dtFmt = `${dataP} ${horaP}`.trim();
                     }
@@ -1897,7 +1962,7 @@ const MatrixApp = (function () {
                   let dtFmt = '';
                   if (d.dataHora) {
                     const p = d.dataHora.split('T');
-                    const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+                    const dataP = p[0] ? p[0].split('-').reverse().join('/') : '';
                     const horaP = p[1] ? p[1].slice(0, 5) : '';
                     dtFmt = `${dataP} ${horaP}`.trim();
                   }
@@ -2224,7 +2289,7 @@ const MatrixApp = (function () {
                     const isTargetMonth = (String(destY) === String(currentYear) && destMesNome === currentMonth);
                     return `
                       <tr style="${isTargetMonth ? 'background:rgba(6,182,212,0.12);font-weight:bold;' : ''}">
-                        <td><strong>${ym}</strong></td>
+                        <td><strong>${formatMesAnoBR(ym)}</strong></td>
                         <td>
                           <span style="color:var(--cyan);font-weight:600;">${destMesNome} / ${destY}</span>
                           ${isTargetMonth ? ' <span style="color:var(--matrix-green);font-size:10px;">● Mês Selecionado</span>' : ''}
@@ -2846,7 +2911,7 @@ const MatrixApp = (function () {
           let dtFmt = '';
           if (d.dataHora) {
             const p = d.dataHora.split('T');
-            const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+            const dataP = p[0] ? p[0].split('-').reverse().join('/') : '';
             const horaP = p[1] ? p[1].slice(0, 5) : '';
             dtFmt = `${dataP} ${horaP}`.trim();
           }
@@ -3739,7 +3804,7 @@ const MatrixApp = (function () {
                 </div>
                 <div style="font-size:12px;color:var(--text-main);font-family:var(--font-mono);margin-bottom:4px;">
                   <strong>Valor Estimado:</strong> <span style="color:var(--cyan);font-weight:700;">${formatBRL(scen.valorAdotado || scen.valor)}</span>
-                  <span style="color:var(--text-muted);"> | Início: ${scen.inicio || '2026-12'}${scen.fim ? ' até ' + scen.fim : ''}</span>
+                  <span style="color:var(--text-muted);"> | Início: ${formatMesAnoBR(scen.inicio || '2026-12')}${scen.fim ? ' até ' + formatMesAnoBR(scen.fim) : ''}</span>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">
                   <span>🏦 <strong>Conta:</strong> <span style="color:var(--text-main);">${contaDesc}</span></span>
@@ -6132,8 +6197,8 @@ const MatrixApp = (function () {
 
     document.getElementById('scenModalConta').value = (scen && scen.conta) || 'nubank_scarlet';
     document.getElementById('scenModalRenda').value = (scen && scen.renda) || 'ganhos_scarlet';
-    document.getElementById('scenModalInicio').value = (scen && scen.inicio) || `${currentYear}-12`;
-    document.getElementById('scenModalFim').value = (scen && scen.fim) || '';
+    document.getElementById('scenModalInicio').value = formatMesAnoBR((scen && scen.inicio) || `${currentYear}-12`);
+    document.getElementById('scenModalFim').value = scen && scen.fim ? formatMesAnoBR(scen.fim) : '';
     document.getElementById('scenModalObs').value = (scen && scen.observacao) || '';
     document.getElementById('scenModalAtivo').checked = scen ? (scen.ativo !== false) : true;
 
@@ -6156,8 +6221,10 @@ const MatrixApp = (function () {
     const parcelas = parseInt(document.getElementById('scenModalParcelas').value, 10) || 1;
     const conta = document.getElementById('scenModalConta').value;
     const renda = document.getElementById('scenModalRenda').value;
-    const inicio = document.getElementById('scenModalInicio').value.trim() || `${currentYear}-12`;
-    const fim = document.getElementById('scenModalFim').value.trim();
+    const rawInicio = document.getElementById('scenModalInicio').value.trim();
+    const rawFim = document.getElementById('scenModalFim').value.trim();
+    const inicio = parseMesAnoBR(rawInicio) || `${currentYear}-12`;
+    const fim = rawFim ? parseMesAnoBR(rawFim) : '';
     const obs = document.getElementById('scenModalObs').value.trim();
     const ativo = document.getElementById('scenModalAtivo').checked;
 
@@ -7382,6 +7449,10 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     removeScenario,
     openScenarioModal,
     saveScenarioFromModal,
+    maskMesAno,
+    formatMesAnoBR,
+    parseMesAnoBR,
+    formatDataBR,
     toggleScenarioModalParcelas,
     addNewScenarioPrompt,
     toggleCalendarDay,

@@ -55,5 +55,12 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - A barra de chips satélites (`.unified-satellites-bar`) no mobile adota container flex com scroll horizontal suave (`overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none`).
 - Preserva rigorosamente as proporções, altura alinhada (`42px`), ícones (`15px`), tipografia e espaçamentos do desktop em todos os 3 chips (Faturas Nubank, Fisio Scarlet e Casa Maracaju VA & VR), eliminando compressões e quebras de linhas desiguais.
 
-## 9. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v43`) e confirmar zero erros de execução.
+## 9. Padronização de Datas e Meses no Formato Brasileiro (PT-BR)
+- Todas as datas e meses da aplicação foram unificados estritamente no padrão brasileiro:
+  - Meses de início/término em simulações e hipóteses utilizam formato `MM/AAAA` (ex: `12/2026`, `06/2027`) com máscara interativa `maskMesAno`.
+  - Gastos diários exibem data completa brasileira `DD/MM/AAAA HH:mm` (ex: `06/11/2026 14:30`).
+  - Conciliação FisioFlow e relatórios exibem competências em `MM/AAAA` (ex: `08/2026`, `11/2026`).
+  - Utilitários globais `formatMesAnoBR`, `parseMesAnoBR`, `formatDataBR` e `maskMesAno` garantem interoperabilidade transparente sem quebrar persistência de dados.
+
+## 10. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v44`) e confirmar zero erros de execução.
