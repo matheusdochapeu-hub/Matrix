@@ -22,7 +22,9 @@ const SatelliteConnectors = (function () {
 
   const DEFAULT_ENDPOINTS = {
     faturasUrl: 'https://script.google.com/macros/s/AKfycbzXFXbZQ8TfHYwntMXg5k1lI_1pzBx7rTwVYycNESff8KC3DV95CRq15OrcP6dsC2_F/exec',
-    fisioUrl: 'https://script.google.com/macros/s/AKfycbz9uHQZiq_eNMs7pA4_uiI_qLxcrkG7BuW_ThjLt7yRh7cBuHT3Pg8B2nIn402JrlO7Vw/exec'
+    fisioUrl: 'https://script.google.com/macros/s/AKfycbz9uHQZiq_eNMs7pA4_uiI_qLxcrkG7BuW_ThjLt7yRh7cBuHT3Pg8B2nIn402JrlO7Vw/exec',
+    maracajuUrl: 'https://script.google.com/macros/s/AKfycbywJvIREiTE3wO1J_8dE-vSXWHk4SzsU2XCvL7ktlj1CkF5T24aXMvkLa3XCadNG0sxWg/exec',
+    maracajuToken: 'Maracaju88CasalSegredo2026!'
   };
 
   // Itens base idênticos aos de parcelado-a-vista/index.html
@@ -130,8 +132,8 @@ const SatelliteConnectors = (function () {
       fisioToken: localStorage.getItem(STORAGE_KEYS.fisioToken) || '',
       faturasUrl: localStorage.getItem(STORAGE_KEYS.faturasUrl) || DEFAULT_ENDPOINTS.faturasUrl,
       faturasToken: localStorage.getItem(STORAGE_KEYS.faturasToken) || '',
-      maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
-      maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
+      maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || DEFAULT_ENDPOINTS.maracajuUrl,
+      maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || DEFAULT_ENDPOINTS.maracajuToken,
       autoScrapeOnOpen: localStorage.getItem(STORAGE_KEYS.autoScrapeOnOpen) !== 'false',
       includeSimulated: localStorage.getItem(STORAGE_KEYS.includeSimulatedInvoices) === 'true'
     };
@@ -385,35 +387,67 @@ const SatelliteConnectors = (function () {
   // 3. PARSER CASA MARACAJU 88 (Mercado NFC-e, VA e VR)
   // ========================================================
   function processMaracajuData(rawData, vrCreditadoNoMes = 1235.0) {
-    const comprasMercado = rawData.comprasMercado || (rawData.mercado && rawData.mercado.compras) || [];
-    const refeicoesFora = rawData.refeicoes || (rawData.mercado && rawData.mercado.refeicoes) || [];
-    const reformas = rawData.reformas || [];
-    const carro = rawData.carro || [];
+    if (!rawData) rawData = {};
+    const payload = rawData.data || rawData;
+
+    // Reconhece comprasRegistros (NFC-e do Maracaju 88), comprasMercado e compras comuns
+    const registros = payload.comprasRegistros || payload.registros || [];
+    const comprasList = payload.compras || payload.comprasMercado || (payload.mercado && payload.mercado.compras) || [];
+    const refeicoesList = payload.refeicoes || (payload.mercado && payload.mercado.refeicoes) || [];
+    const reformas = payload.reformas || [];
+    const carro = payload.carro || [];
 
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     let gastoMercadoMesAtual = 0;
-    comprasMercado.forEach(c => {
-      const val = parseFloat(c.total || c.valor || 0);
-      const ym = String(c.data || '').slice(0, 7);
-      if (ym === curYearMonth) {
-        gastoMercadoMesAtual += val;
+    let gastoVrMesAtual = 0;
+
+    // 1. Processa registros de compras e notas fiscais (NFC-e)
+    registros.forEach(r => {
+      const val = parseFloat(r.total || r.valor || 0);
+      const dataStr = String(r.date || r.data || r.createdAt || '');
+      const ym = dataStr.slice(0, 7);
+      const method = String(r.paymentMethod || r.metodoPagamento || 'va').toLowerCase();
+
+      // Computa gastos do mês corrente (ou recentes sem data)
+      if (!ym || ym === curYearMonth) {
+        if (method === 'vr' || method.includes('refei')) {
+          gastoVrMesAtual += val;
+        } else {
+          // Padrão do Maracaju 88: mercado e alimentação debitam do VA
+          gastoMercadoMesAtual += val;
+        }
+      }
+    });
+
+    // 2. Processa itens comprados da lista
+    comprasList.forEach(c => {
+      if (c.bought) {
+        const val = parseFloat(c.totalPrice || c.price || c.valor || 0);
+        const dataStr = String(c.date || c.data || c.createdAt || '');
+        const ym = dataStr.slice(0, 7);
+        const method = String(c.paymentMethod || 'va').toLowerCase();
+        if (ym === curYearMonth) {
+          if (method === 'vr') gastoVrMesAtual += val;
+          else gastoMercadoMesAtual += val;
+        }
+      }
+    });
+
+    // 3. Processa refeições fora se houver
+    refeicoesList.forEach(rf => {
+      const val = parseFloat(rf.total || rf.valor || 0);
+      const dataStr = String(rf.date || rf.data || '');
+      const ym = dataStr.slice(0, 7);
+      if (!ym || ym === curYearMonth) {
+        gastoVrMesAtual += val;
       }
     });
 
     const vaMensal = 2050.0;
     const saldoVaRestante = Math.max(0, vaMensal - gastoMercadoMesAtual);
     const transbordouVa = gastoMercadoMesAtual > vaMensal ? (gastoMercadoMesAtual - vaMensal) : 0;
-
-    let gastoVrMesAtual = 0;
-    refeicoesFora.forEach(r => {
-      const val = parseFloat(r.total || r.valor || 0);
-      const ym = String(r.data || '').slice(0, 7);
-      if (ym === curYearMonth) {
-        gastoVrMesAtual += val;
-      }
-    });
 
     const saldoVrRestante = Math.max(0, vrCreditadoNoMes - gastoVrMesAtual);
     const transbordouVr = gastoVrMesAtual > vrCreditadoNoMes ? (gastoVrMesAtual - vrCreditadoNoMes) : 0;
@@ -429,7 +463,7 @@ const SatelliteConnectors = (function () {
       gastoVrMesAtual,
       saldoVrRestante,
       transbordouVr,
-      reformasAndamento: reformas.filter(r => r.status === 'Em Andamento').length,
+      reformasAndamento: reformas.filter(r => r.status === 'Em Andamento' || r.status === 'andamento').length,
       manutencoesCarro: carro.length
     };
   }

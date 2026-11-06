@@ -186,6 +186,28 @@ const MatrixDB = (function () {
       }
     }
 
+    // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
+    if (memoryCache) {
+      if (!memoryCache.satellites) memoryCache.satellites = {};
+      if (!memoryCache.satellites.maracaju) {
+        memoryCache.satellites.maracaju = {
+          origem: 'Maracaju 88',
+          atualizadoEm: new Date().toISOString(),
+          vaMensal: 2050.0,
+          gastoMercadoMesAtual: 390.41,
+          saldoVaRestante: 1659.59,
+          transbordouVa: 0,
+          vrCreditadoNoMes: 1235.0,
+          gastoVrMesAtual: 0,
+          saldoVrRestante: 1235.0,
+          transbordouVr: 0,
+          reformasAndamento: 0,
+          manutencoesCarro: 0
+        };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
     // Mescla holerites do seed ausentes no cache do usuário (especialmente holerites oficiais de 2025)
     if (memoryCache && typeof MATRIX_SEED_DATA !== 'undefined' && Array.isArray(MATRIX_SEED_DATA.holerites)) {
       if (!Array.isArray(memoryCache.holerites)) memoryCache.holerites = [];
