@@ -1637,6 +1637,73 @@ body {
   margin-bottom: 6px;
 }
 
+/* ===================================================
+   SIMULADOR "E SE?" - COMPONENTES & TABELA RESPONSIVA
+   =================================================== */
+.sim-kpi-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.sim-kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  min-width: 140px;
+}
+
+.sim-kpi-title {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+.sim-kpi-val {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  margin-top: 3px;
+}
+
+.sim-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sim-data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sim-header-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.sim-icon {
+  color: var(--matrix-green);
+  font-size: 11px;
+}
+
+.sim-month-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sim-mobile-actions,
+.sim-label-mobile {
+  display: none;
+}
+
 /* ========================================================
    RESPONSIVIDADE TOTAL (CELULAR & TABLET & COMPUTADOR)
    ======================================================== */
@@ -2508,21 +2575,21 @@ body {
     box-sizing: border-box !important;
   }
 
-  .data-table {
+  .data-table:not(.sim-data-table) {
     width: 100% !important;
     table-layout: fixed !important;
     font-size: 10.5px !important;
     box-sizing: border-box !important;
   }
 
-  .data-table th,
-  .data-table td {
+  .data-table:not(.sim-data-table) th,
+  .data-table:not(.sim-data-table) td {
     padding: 6px 3px !important;
     vertical-align: middle !important;
     box-sizing: border-box !important;
   }
 
-  .data-table th {
+  .data-table:not(.sim-data-table) th {
     font-size: 9px !important;
     letter-spacing: 0.2px !important;
     padding: 5px 3px !important;
@@ -2530,16 +2597,16 @@ body {
   }
 
   /* Distribuição Exata de Colunas: Descrição (45%), Status (21%), Valor (22%), Ações (12%) */
-  .data-table th.desc-col,
-  .data-table td.desc-col {
+  .data-table:not(.sim-data-table) th.desc-col,
+  .data-table:not(.sim-data-table) td.desc-col {
     width: 45% !important;
     max-width: 45% !important;
     padding-left: 2px !important;
     padding-right: 3px !important;
   }
 
-  .data-table th.status-col,
-  .data-table td.status-col {
+  .data-table:not(.sim-data-table) th.status-col,
+  .data-table:not(.sim-data-table) td.status-col {
     width: 21% !important;
     max-width: 21% !important;
     text-align: center !important;
@@ -2547,8 +2614,8 @@ body {
     padding-right: 1px !important;
   }
 
-  .data-table th.val-col,
-  .data-table td.val-col {
+  .data-table:not(.sim-data-table) th.val-col,
+  .data-table:not(.sim-data-table) td.val-col {
     width: 22% !important;
     max-width: 22% !important;
     text-align: right !important;
@@ -2556,8 +2623,8 @@ body {
     padding-right: 3px !important;
   }
 
-  .data-table th.action-col,
-  .data-table td.action-col {
+  .data-table:not(.sim-data-table) th.action-col,
+  .data-table:not(.sim-data-table) td.action-col {
     width: 12% !important;
     max-width: 12% !important;
     text-align: right !important;
@@ -2567,7 +2634,7 @@ body {
   }
 
   /* Célula de Descrição & Itens */
-  .data-table td.desc-col strong {
+  .data-table:not(.sim-data-table) td.desc-col strong {
     font-size: 11px !important;
     line-height: 1.25 !important;
     display: block !important;
@@ -2739,5 +2806,146 @@ body {
 
   .fab-icon {
     font-size: 13px !important;
+  }
+
+  /* 7. Simulador "E se?" Ultra-Responsivo no Celular (Cards de Alta Densidade, Zero Overflow) */
+  .sim-table-wrapper {
+    overflow-x: visible !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .sim-kpi-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .sim-kpi-card {
+    min-width: 0 !important;
+    padding: 8px 10px !important;
+  }
+
+  .sim-kpi-title {
+    font-size: 8px !important;
+  }
+
+  .sim-kpi-val {
+    font-size: 15px !important;
+  }
+
+  .sim-data-table thead {
+    display: none !important;
+  }
+
+  .sim-data-table,
+  .sim-data-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .sim-data-table tr.sim-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 5px 10px !important;
+    width: 100% !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-dim) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 9px 11px !important;
+    margin-bottom: 8px !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .sim-data-table tr.sim-row:active {
+    background: rgba(0, 255, 65, 0.05) !important;
+    border-color: var(--matrix-green) !important;
+  }
+
+  .sim-data-table tr.sim-row.sim-row-deficit {
+    border-left: 3.5px solid var(--rose) !important;
+    background: rgba(239, 68, 68, 0.035) !important;
+  }
+
+  .sim-data-table tr.sim-row.sim-row-atencao {
+    border-left: 3.5px solid var(--amber) !important;
+    background: rgba(245, 158, 11, 0.035) !important;
+  }
+
+  .sim-data-table tr.sim-row.sim-row-ok {
+    border-left: 3.5px solid var(--matrix-green) !important;
+  }
+
+  .sim-data-table td.sim-cell-header {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 0 0 6px 0 !important;
+    border-bottom: 1px dashed rgba(22, 42, 31, 0.8) !important;
+    box-sizing: border-box !important;
+  }
+
+  .sim-header-wrap {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+  }
+
+  .sim-month-text {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    color: var(--text-main) !important;
+    white-space: nowrap !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  .sim-mobile-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+  }
+
+  .sim-edit-btn {
+    padding: 2.5px 7px !important;
+    font-size: 9.5px !important;
+    border-radius: 3px !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+  }
+
+  .sim-data-table td.sim-cell-val {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 2.5px 0 !important;
+    border: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+  }
+
+  .sim-label-mobile {
+    display: inline !important;
+    font-size: 10px !important;
+    color: var(--text-muted) !important;
+    font-weight: normal !important;
+    margin-right: 4px !important;
+  }
+
+  .sim-num-val {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  .sim-desktop-actions-col {
+    display: none !important;
   }
 }

@@ -2860,29 +2860,48 @@ const MatrixApp = (function () {
     if (simTbody) {
       simTbody.innerHTML = result.timeline.map(row => {
         let statusBadge = '<span class="status-badge pago">Folga OK</span>';
-        let rowClass = '';
+        let rowClass = 'class="clickable-row sim-row sim-row-ok"';
         if (row.statusAlerta === 'deficit') {
           statusBadge = '<span class="status-badge danger">Déficit</span>';
-          rowClass = 'style="background:rgba(239,68,68,0.06);"';
+          rowClass = 'class="clickable-row sim-row sim-row-deficit"';
         } else if (row.statusAlerta === 'atencao') {
           statusBadge = '<span class="status-badge pendente">Atenção</span>';
+          rowClass = 'class="clickable-row sim-row sim-row-atencao"';
         }
 
+        const fullLabel = `${row.monthName} ${row.year}`;
+
         return `
-          <tr ${rowClass} class="clickable-row" onclick="MatrixApp.abrirRaioXSimulador('${row.year}', '${row.monthName}')" title="Clique para ver o raio-x e diagnóstico de ${row.label}">
-            <td>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="color:var(--matrix-green);font-size:11px;">🔍</span>
-                <strong>${row.label}</strong>
+          <tr ${rowClass} onclick="MatrixApp.abrirRaioXSimulador('${row.year}', '${row.monthName}')" title="Toque para ver o Raio-X & Diagnóstico de ${fullLabel}">
+            <td class="sim-cell-header">
+              <div class="sim-header-wrap">
+                <span class="sim-icon">🔍</span>
+                <strong class="sim-month-text">${fullLabel}</strong>
+              </div>
+              <div class="sim-mobile-actions">
+                ${statusBadge}
+                <button type="button" class="btn-matrix sim-edit-btn" onclick="event.stopPropagation(); MatrixApp.navegarParaMes('${row.year}', '${row.monthName}')" title="Ir para o Fluxo de Caixa e editar lançamentos">
+                  Editar ➔
+                </button>
               </div>
             </td>
-            <td class="val-col">${formatBRL(row.ganhosBase)}</td>
-            <td class="val-col">${formatBRL(row.totalGastosBase)}</td>
-            <td class="val-col" style="color:var(--cyan);">${row.custoCenarios > 0 ? '+ ' + formatBRL(row.custoCenarios) : '—'}</td>
-            <td class="val-col" style="font-weight:700;color:${row.saldoSimulado >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">
-              ${formatBRL(row.saldoSimulado)}
+            <td class="val-col sim-cell-val" data-label="Ganhos">
+              <span class="sim-label-mobile">Renda:</span>
+              <span class="sim-num-val">${formatBRL(row.ganhosBase)}</span>
             </td>
-            <td style="text-align:center;white-space:nowrap;">
+            <td class="val-col sim-cell-val" data-label="Gastos">
+              <span class="sim-label-mobile">Gastos:</span>
+              <span class="sim-num-val">${formatBRL(row.totalGastosBase)}</span>
+            </td>
+            <td class="val-col sim-cell-val" data-label="Simulado" style="color:var(--cyan);">
+              <span class="sim-label-mobile">Simulado:</span>
+              <span class="sim-num-val">${row.custoCenarios > 0 ? '+ ' + formatBRL(row.custoCenarios) : '—'}</span>
+            </td>
+            <td class="val-col sim-cell-val sim-saldo-val" data-label="Saldo Final" style="font-weight:700;color:${row.saldoSimulado >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">
+              <span class="sim-label-mobile">Saldo:</span>
+              <span class="sim-num-val">${formatBRL(row.saldoSimulado)}</span>
+            </td>
+            <td class="sim-desktop-actions-col" style="text-align:center;white-space:nowrap;">
               ${statusBadge}
               <button type="button" class="btn-matrix" style="padding:2px 7px;font-size:10px;margin-left:6px;" onclick="event.stopPropagation(); MatrixApp.navegarParaMes('${row.year}', '${row.monthName}')" title="Ir para o Fluxo de Caixa e editar lançamentos">
                 Editar ➔

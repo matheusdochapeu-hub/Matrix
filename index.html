@@ -566,31 +566,33 @@
         </div>
 
         <!-- Indicadores de Impacto -->
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:200px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">CUSTO TOTAL NO HORIZONTE:</div>
-            <div id="simTotalImpacto" style="font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+        <div class="sim-kpi-grid">
+          <div class="sim-kpi-card">
+            <div class="sim-kpi-title">CUSTO TOTAL NO HORIZONTE:</div>
+            <div id="simTotalImpacto" class="sim-kpi-val" style="color:var(--cyan);">R$ 0,00</div>
           </div>
-          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 14px;border-radius:var(--radius-sm);flex:1;min-width:200px;">
-            <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">MESES COM DÉFICIT DE CAIXA:</div>
-            <div id="simMesesDeficit" style="font-size:18px;font-weight:700;font-family:var(--font-mono);">0 meses</div>
+          <div class="sim-kpi-card">
+            <div class="sim-kpi-title">MESES COM DÉFICIT:</div>
+            <div id="simMesesDeficit" class="sim-kpi-val">0 meses</div>
           </div>
         </div>
 
-        <!-- Tabela Mês a Mês da Simulação -->
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Mês / Ano</th>
-              <th style="text-align:right;">Ganhos Base</th>
-              <th style="text-align:right;">Gastos Atuais</th>
-              <th style="text-align:right;">Custo Simulado</th>
-              <th style="text-align:right;">Novo Saldo Líquido</th>
-              <th style="text-align:center;">Folga Orçamentária</th>
-            </tr>
-          </thead>
-          <tbody id="simulationTableBody"></tbody>
-        </table>
+        <!-- Tabela Mês a Mês da Simulação (Desktop: Tabela / Mobile: Cards de Alta Densidade) -->
+        <div class="data-table-wrapper sim-table-wrapper">
+          <table class="data-table sim-data-table" id="simulationTable">
+            <thead>
+              <tr>
+                <th style="width:20%;">Mês / Ano</th>
+                <th style="width:16%;text-align:right;">Ganhos Base</th>
+                <th style="width:16%;text-align:right;">Gastos Atuais</th>
+                <th style="width:16%;text-align:right;">Custo Simulado</th>
+                <th style="width:16%;text-align:right;">Novo Saldo</th>
+                <th style="width:16%;text-align:center;">Folga / Ação</th>
+              </tr>
+            </thead>
+            <tbody id="simulationTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
