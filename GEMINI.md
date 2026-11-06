@@ -42,5 +42,14 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - O seletor duplicado "De onde sai / entra" foi permanentemente removido do modal `#itemModalBackdrop`.
 - A classificação do recurso é regida exclusivamente pelo campo **"Renda Vinculada"** (`#modalItemRenda`), simplificando a UX e eliminando duplicidades conceituais entre contas bancárias e fontes pagadoras.
 
-## 7. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v41`) e confirmar zero erros de execução.
+## 7. Drilldown Consolidado de Gastos Totais do Mês
+- O clique no card principal **🔒 Gastos Totais do Mês** dispara `MatrixApp.abrirDrilldown('gastos_totais')`, consolidando em visualização única:
+  - 🔒 **Gastos Fixos** (contas e parcelas)
+  - 🛍️ **Gastos Variáveis & Aportes** (faturas de cartão e despesas eventuais)
+  - ⚡ **Gastos Diários** (lançamentos rápidos debitados no mês)
+  - ⚠️ **Contas de Início de Ano** (quando aplicável em Janeiro)
+- O modal inclui barra de abas interativas no topo para alternar instantaneamente entre `Todos`, `Fixos`, `Variáveis` e `Diários`.
+- Cliques diretos nas linhas individuais do card no painel filtram diretamente a categoria desejada.
+
+## 8. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v42`) e confirmar zero erros de execução.

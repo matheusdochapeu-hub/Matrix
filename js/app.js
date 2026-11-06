@@ -1593,13 +1593,196 @@ const MatrixApp = (function () {
         </div>
       `;
 
-    } else if (tipo === 'fixos') {
-      titleEl.innerHTML = `🔒 Detalhamento dos Gastos Fixos (${periodLabel})`;
+    } else if (tipo === 'gastos_totais' || tipo === 'gastos') {
+      titleEl.innerHTML = `💸 Detalhamento dos Gastos Totais (${periodLabel})`;
       const fixos = monthData.fixos || [];
-      const total = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const outros = monthData.outros || [];
+      const diarios = monthData.diarios || [];
+      const totalFixos = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalOutros = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalDiarios = diarios.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      let contasInicio = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+      const totalGastos = totalFixos + totalOutros + totalDiarios + contasInicio;
+
+      const renderGastosTabs = (activeTab) => `
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+          <button type="button" class="btn-matrix ${activeTab === 'todos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'todos' ? 'background:var(--matrix-green);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('gastos_totais')">📊 Todos (${formatBRL(totalGastos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'fixos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'fixos' ? 'background:var(--amber);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('fixos')">🔒 Fixos (${formatBRL(totalFixos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'outros' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'outros' ? 'background:var(--rose);color:#fff;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('outros')">🛍️ Variáveis (${formatBRL(totalOutros)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'diarios' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'diarios' ? 'background:var(--cyan);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('diarios')">⚡ Diários (${formatBRL(totalDiarios)})</button>
+        </div>
+      `;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12px;">
+          ${renderGastosTabs('todos')}
+
+          <!-- Cards Resumo no Topo -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:16px;">
+            <div style="background:var(--bg-card);border:1px solid var(--border-glow);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Gastos Totais</div>
+              <div style="font-size:16px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalGastos)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Consolidado do mês</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.3);padding:10px;border-radius:var(--radius-sm);cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fixos')">
+              <div style="font-size:10.5px;color:var(--amber);text-transform:uppercase;">🔒 Gastos Fixos</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(totalFixos)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${fixos.length} despesas</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(244,63,94,0.3);padding:10px;border-radius:var(--radius-sm);cursor:pointer;" onclick="MatrixApp.abrirDrilldown('outros')">
+              <div style="font-size:10.5px;color:var(--rose);text-transform:uppercase;">🛍️ Gastos Variáveis</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalOutros)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${outros.length} despesas</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);cursor:pointer;" onclick="MatrixApp.abrirDrilldown('diarios')">
+              <div style="font-size:10.5px;color:var(--cyan);text-transform:uppercase;">⚡ Gastos Diários</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(totalDiarios)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${diarios.length} lançamentos</div>
+            </div>
+            ${contasInicio > 0 ? `
+            <div style="background:var(--bg-card);border:1px solid var(--amber);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:10.5px;color:var(--amber);text-transform:uppercase;">⚠️ Início de Ano</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(contasInicio)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Janeiro</div>
+            </div>` : ''}
+          </div>
+
+          <!-- BLOCO 1: GASTOS FIXOS -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--amber);font-size:13px;display:flex;align-items:center;gap:6px;">
+                <span>🔒</span> Gastos Fixos (${fixos.length} itens)
+              </strong>
+              <span style="font-weight:bold;color:var(--amber);font-size:13px;">${formatBRL(totalFixos)}</span>
+            </div>
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table" style="font-size:11.5px;margin:0;">
+                <thead>
+                  <tr><th>Despesa Fixa</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+                </thead>
+                <tbody>
+                  ${fixos.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Nenhum gasto fixo cadastrado.</td></tr>` : fixos.map(f => `
+                    <tr class="${f.pago ? 'paid' : ''}">
+                      <td><strong>${f.nome}</strong></td>
+                      <td><span class="status-badge" style="font-size:9.5px;">${f.categoria || 'Habitação'}</span></td>
+                      <td><span class="status-badge ${f.pago ? 'pago' : 'pendente'}" style="font-size:9.5px;">${f.pago ? 'Pago' : 'Pendente'}</span></td>
+                      <td class="val-col" style="color:var(--amber);">${formatBRL(f.valor)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BLOCO 2: GASTOS VARIÁVEIS -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--rose);font-size:13px;display:flex;align-items:center;gap:6px;">
+                <span>🛍️</span> Gastos Variáveis & Aportes (${outros.length} itens)
+              </strong>
+              <span style="font-weight:bold;color:var(--rose);font-size:13px;">${formatBRL(totalOutros)}</span>
+            </div>
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table" style="font-size:11.5px;margin:0;">
+                <thead>
+                  <tr><th>Item / Fatura</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+                </thead>
+                <tbody>
+                  ${outros.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">Nenhum gasto variável cadastrado.</td></tr>` : outros.map(o => `
+                    <tr class="${o.pago ? 'paid' : ''}">
+                      <td><strong>${o.nome}</strong></td>
+                      <td><span class="status-badge" style="font-size:9.5px;">${o.categoria || 'Outros'}</span></td>
+                      <td><span class="status-badge ${o.pago ? 'pago' : 'pendente'}" style="font-size:9.5px;">${o.pago ? 'Pago' : 'Pendente'}</span></td>
+                      <td class="val-col" style="color:var(--rose);">${formatBRL(o.valor)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- BLOCO 3: GASTOS DIÁRIOS -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--cyan);font-size:13px;display:flex;align-items:center;gap:6px;">
+                <span>⚡</span> Gastos Diários (${diarios.length} lançamentos)
+              </strong>
+              <span style="font-weight:bold;color:var(--cyan);font-size:13px;">${formatBRL(totalDiarios)}</span>
+            </div>
+            ${diarios.length === 0 ? `
+              <div style="color:var(--text-muted);font-size:11px;text-align:center;padding:12px;background:rgba(255,255,255,0.02);border:1px dashed var(--border-dim);border-radius:var(--radius-xs);">
+                Nenhum gasto diário registrado neste mês. Lançamentos diários rápidos no Débito Inter somam aqui em tempo real.
+              </div>
+            ` : `
+            <div style="max-height:220px;overflow-y:auto;">
+              <table class="data-table" style="font-size:11.5px;margin:0;">
+                <thead>
+                  <tr><th>Descrição</th><th>Data</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+                </thead>
+                <tbody>
+                  ${diarios.map(d => {
+                    let dtFmt = '';
+                    if (d.dataHora) {
+                      const p = d.dataHora.split('T');
+                      const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+                      const horaP = p[1] ? p[1].slice(0, 5) : '';
+                      dtFmt = `${dataP} ${horaP}`.trim();
+                    }
+                    return `
+                      <tr class="${d.pago ? 'paid' : ''}">
+                        <td><strong>${d.nome}</strong></td>
+                        <td><small style="color:var(--text-dim);">${dtFmt || 'Mês vigente'}</small></td>
+                        <td><span class="status-badge" style="font-size:9.5px;">${d.categoria || 'Gasto Diário'}</span></td>
+                        <td><span class="status-badge ${d.pago ? 'pago' : 'pendente'}" style="font-size:9.5px;">${d.pago ? 'Pago' : 'Pendente'}</span></td>
+                        <td class="val-col" style="color:var(--cyan);font-weight:bold;">${formatBRL(d.valor)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+            `}
+          </div>
+
+          <!-- Rodapé Consolidado -->
+          <div style="background:rgba(0,255,65,0.05);border:1px solid var(--border-glow);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:11.5px;color:var(--text-dim);">
+              🔒 Fixos (${formatBRL(totalFixos)}) + 🛍️ Variáveis (${formatBRL(totalOutros)}) + ⚡ Diários (${formatBRL(totalDiarios)})
+            </span>
+            <span style="font-size:13px;font-weight:bold;color:var(--rose);">Total: ${formatBRL(totalGastos)}</span>
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'fixos') {
+      titleEl.innerHTML = `🔒 Detalhamento dos Gastos Fixos (${periodLabel})`;
+      const fixos = monthData.fixos || [];
+      const outros = monthData.outros || [];
+      const diarios = monthData.diarios || [];
+      const totalFixos = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalOutros = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalDiarios = diarios.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      let contasInicio = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+      const totalGastos = totalFixos + totalOutros + totalDiarios + contasInicio;
+
+      const renderGastosTabs = (activeTab) => `
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+          <button type="button" class="btn-matrix ${activeTab === 'todos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'todos' ? 'background:var(--matrix-green);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('gastos_totais')">📊 Todos (${formatBRL(totalGastos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'fixos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'fixos' ? 'background:var(--amber);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('fixos')">🔒 Fixos (${formatBRL(totalFixos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'outros' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'outros' ? 'background:var(--rose);color:#fff;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('outros')">🛍️ Variáveis (${formatBRL(totalOutros)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'diarios' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'diarios' ? 'background:var(--cyan);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('diarios')">⚡ Diários (${formatBRL(totalDiarios)})</button>
+        </div>
+      `;
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12px;">
+          ${renderGastosTabs('fixos')}
           <div style="max-height:360px;overflow-y:auto;">
             <table class="data-table">
               <thead>
@@ -1618,18 +1801,37 @@ const MatrixApp = (function () {
           </div>
           <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;">
             <strong>Total Gastos Fixos:</strong>
-            <strong style="color:var(--amber);">${formatBRL(total)}</strong>
+            <strong style="color:var(--amber);">${formatBRL(totalFixos)}</strong>
           </div>
         </div>
       `;
 
     } else if (tipo === 'outros') {
       titleEl.innerHTML = `🛍️ Detalhamento dos Gastos Variáveis & Aportes (${periodLabel})`;
+      const fixos = monthData.fixos || [];
       const outros = monthData.outros || [];
-      const total = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const diarios = monthData.diarios || [];
+      const totalFixos = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalOutros = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalDiarios = diarios.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      let contasInicio = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+      const totalGastos = totalFixos + totalOutros + totalDiarios + contasInicio;
+
+      const renderGastosTabs = (activeTab) => `
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+          <button type="button" class="btn-matrix ${activeTab === 'todos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'todos' ? 'background:var(--matrix-green);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('gastos_totais')">📊 Todos (${formatBRL(totalGastos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'fixos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'fixos' ? 'background:var(--amber);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('fixos')">🔒 Fixos (${formatBRL(totalFixos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'outros' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'outros' ? 'background:var(--rose);color:#fff;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('outros')">🛍️ Variáveis (${formatBRL(totalOutros)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'diarios' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'diarios' ? 'background:var(--cyan);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('diarios')">⚡ Diários (${formatBRL(totalDiarios)})</button>
+        </div>
+      `;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12px;">
+          ${renderGastosTabs('outros')}
           <div style="max-height:360px;overflow-y:auto;">
             <table class="data-table">
               <thead>
@@ -1648,7 +1850,74 @@ const MatrixApp = (function () {
           </div>
           <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:13px;">
             <strong>Total Variáveis & Aportes:</strong>
-            <strong style="color:var(--rose);">${formatBRL(total)}</strong>
+            <strong style="color:var(--rose);">${formatBRL(totalOutros)}</strong>
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'diarios') {
+      titleEl.innerHTML = `⚡ Detalhamento dos Gastos Diários (${periodLabel})`;
+      const fixos = monthData.fixos || [];
+      const outros = monthData.outros || [];
+      const diarios = monthData.diarios || [];
+      const totalFixos = fixos.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalOutros = outros.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      const totalDiarios = diarios.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
+      let contasInicio = 0;
+      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+      const totalGastos = totalFixos + totalOutros + totalDiarios + contasInicio;
+
+      const renderGastosTabs = (activeTab) => `
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
+          <button type="button" class="btn-matrix ${activeTab === 'todos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'todos' ? 'background:var(--matrix-green);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('gastos_totais')">📊 Todos (${formatBRL(totalGastos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'fixos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'fixos' ? 'background:var(--amber);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('fixos')">🔒 Fixos (${formatBRL(totalFixos)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'outros' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'outros' ? 'background:var(--rose);color:#fff;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('outros')">🛍️ Variáveis (${formatBRL(totalOutros)})</button>
+          <button type="button" class="btn-matrix ${activeTab === 'diarios' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'diarios' ? 'background:var(--cyan);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('diarios')">⚡ Diários (${formatBRL(totalDiarios)})</button>
+        </div>
+      `;
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12px;">
+          ${renderGastosTabs('diarios')}
+          ${diarios.length === 0 ? `
+            <div style="color:var(--text-muted);font-size:11.5px;text-align:center;padding:20px;background:rgba(255,255,255,0.02);border:1px dashed var(--border-dim);border-radius:var(--radius-sm);margin-bottom:12px;">
+              Nenhum gasto diário registrado neste mês.<br>
+              <button type="button" class="btn-matrix" style="margin-top:10px;font-size:11px;" onclick="MatrixApp.closeModal('drilldownModalBackdrop'); MatrixApp.openQuickExpenseModal();">+ Fazer Lançamento Rápido</button>
+            </div>
+          ` : `
+          <div style="max-height:360px;overflow-y:auto;">
+            <table class="data-table">
+              <thead>
+                <tr><th>Descrição</th><th>Data</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
+              </thead>
+              <tbody>
+                ${diarios.map(d => {
+                  let dtFmt = '';
+                  if (d.dataHora) {
+                    const p = d.dataHora.split('T');
+                    const dataP = p[0] ? p[0].split('-').reverse().slice(0, 2).join('/') : '';
+                    const horaP = p[1] ? p[1].slice(0, 5) : '';
+                    dtFmt = `${dataP} ${horaP}`.trim();
+                  }
+                  return `
+                    <tr class="${d.pago ? 'paid' : ''}">
+                      <td><strong>${d.nome}</strong></td>
+                      <td><small style="color:var(--text-dim);">${dtFmt || 'Mês vigente'}</small></td>
+                      <td><span class="status-badge" style="font-size:9.5px;">${d.categoria || 'Gasto Diário'}</span></td>
+                      <td><span class="status-badge ${d.pago ? 'pago' : 'pendente'}">${d.pago ? 'Pago' : 'Pendente'}</span></td>
+                      <td class="val-col" style="color:var(--cyan);font-weight:bold;">${formatBRL(d.valor)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          `}
+          <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+            <strong>Total Gastos Diários:</strong>
+            <strong style="color:var(--cyan);">${formatBRL(totalDiarios)}</strong>
           </div>
         </div>
       `;

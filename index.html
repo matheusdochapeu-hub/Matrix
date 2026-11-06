@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=41">
+  <link rel="stylesheet" href="css/matrix.css?v=42">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -167,7 +167,7 @@
         </div>
 
         <!-- COLUNA 2: GASTOS TOTAIS (FIXOS + VARIÁVEIS = GASTOS TOTAIS) -->
-        <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('fixos')" title="Clique para ver a auditoria de gastos fixos e variáveis">
+        <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('gastos_totais')" title="Clique para ver o detalhamento completo dos gastos totais (Fixos + Variáveis + Diários)">
           <div class="unified-card-header">
             <span class="unified-card-title">🔒 Gastos Totais do Mês</span>
             <span class="unified-badge amber">Fixos + Variáveis</span>
@@ -196,19 +196,19 @@
           <div class="unified-card-sub" id="topGastosTotaisSub">Gastos fixos + variáveis + gastos diários</div>
 
           <div class="unified-breakdown-list" style="margin-top:8px;">
-            <div class="unified-row">
+            <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fixos')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Fixos">
               <span>🔒 Gastos Fixos (Parcela, Contas)</span>
               <strong id="topResumoFixosVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row">
+            <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('outros')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Variáveis">
               <span>🛍️ Gastos Variáveis (Cartões, Outros)</span>
               <strong id="topResumoOutrosVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row" id="topResumoDiariosRow">
+            <div class="unified-row" id="topResumoDiariosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('diarios')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Diários">
               <span>⚡ Gastos Diários (Lançados Depois)</span>
               <strong style="color:var(--cyan);" id="topResumoDiariosVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row" id="topContasInicioRow" style="display:none;">
+            <div class="unified-row" id="topContasInicioRow" style="display:none;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('gastos_totais')" style="cursor:pointer;">
               <span>⚠️ Contas Início de Ano (Jan)</span>
               <strong id="topContasInicioVal">R$ 0,00</strong>
             </div>
@@ -2378,16 +2378,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=41"></script>
-  <script src="js/matrix-rain.js?v=41"></script>
-  <script src="js/db.js?v=41"></script>
-  <script src="js/calendar-engine.js?v=41"></script>
-  <script src="js/amortization-engine.js?v=41"></script>
-  <script src="js/scenario-simulator.js?v=41"></script>
-  <script src="js/pdf-reader.js?v=41"></script>
-  <script src="js/satellite-connectors.js?v=41"></script>
-  <script src="js/sync-engine.js?v=41"></script>
-  <script src="js/app.js?v=41"></script>
+  <script src="js/seed-data.js?v=42"></script>
+  <script src="js/matrix-rain.js?v=42"></script>
+  <script src="js/db.js?v=42"></script>
+  <script src="js/calendar-engine.js?v=42"></script>
+  <script src="js/amortization-engine.js?v=42"></script>
+  <script src="js/scenario-simulator.js?v=42"></script>
+  <script src="js/pdf-reader.js?v=42"></script>
+  <script src="js/satellite-connectors.js?v=42"></script>
+  <script src="js/sync-engine.js?v=42"></script>
+  <script src="js/app.js?v=42"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
