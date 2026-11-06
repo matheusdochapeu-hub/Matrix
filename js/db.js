@@ -650,10 +650,121 @@ const MatrixDB = (function () {
   // Inicializar na carga
   init();
 
+
+  // ==========================================
+  // MEMÓRIA E APRENDIZADO DE CATEGORIAS
+  // ==========================================
+  const CATEGORY_MEMORY_KEY = 'matrix_category_memory';
+
+  function normalizeCategoryKey(str) {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .trim();
+  }
+
+  function getCategoryMemory() {
+    let map = {};
+    try {
+      const raw = localStorage.getItem(CATEGORY_MEMORY_KEY);
+      if (raw) map = JSON.parse(raw);
+    } catch (e) {}
+
+    // Se estiver vazio, faz bootstrap automático a partir dos lançamentos existentes
+    if (!map || Object.keys(map).length === 0) {
+      map = bootstrapCategoryMemory();
+    }
+    return map;
+  }
+
+  function bootstrapCategoryMemory() {
+    const map = {};
+    const s = getState();
+    if (!s || !s.anos) return map;
+
+    for (const ano in s.anos) {
+      for (const mes in s.anos[ano]) {
+        const m = s.anos[ano][mes];
+        if (!m) continue;
+        ['fixos', 'outros', 'diarios', 'receitas'].forEach(tipo => {
+          if (Array.isArray(m[tipo])) {
+            m[tipo].forEach(item => {
+              if (item && item.nome && item.categoria && !isSummaryOrTotalItem(item.nome)) {
+                const clean = normalizeCategoryKey(item.nome);
+                if (clean && clean.length >= 3 && !map[clean]) {
+                  map[clean] = item.categoria;
+                }
+              }
+            });
+          }
+        });
+      }
+    }
+
+    try {
+      localStorage.setItem(CATEGORY_MEMORY_KEY, JSON.stringify(map));
+    } catch (e) {}
+    return map;
+  }
+
+  function learnCategoryMapping(nome, categoria) {
+    if (!nome || !categoria) return;
+    const clean = normalizeCategoryKey(nome);
+    if (!clean || clean.length < 2) return;
+
+    const map = getCategoryMemory();
+    map[clean] = categoria;
+
+    // Também indexa palavras-chave significativas (ex: "Savegnago", "Shell", "Unimed")
+    const words = clean.split(/\s+/).filter(w => w.length >= 4 && !['para', 'pago', 'conta', 'compras', 'gasto', 'valor'].includes(w));
+    words.forEach(w => {
+      map[w] = categoria;
+    });
+
+    try {
+      localStorage.setItem(CATEGORY_MEMORY_KEY, JSON.stringify(map));
+      const s = getState();
+      if (!s.categoryMemory) s.categoryMemory = {};
+      s.categoryMemory[clean] = categoria;
+    } catch (e) {}
+  }
+
+  function predictCategory(nome) {
+    if (!nome) return null;
+    const clean = normalizeCategoryKey(nome);
+    if (!clean || clean.length < 2) return null;
+
+    const map = getCategoryMemory();
+
+    // 1. Correspondência Exata
+    if (map[clean]) return map[clean];
+
+    // 2. Correspondência por palavras-chave
+    const words = clean.split(/\s+/).filter(w => w.length >= 3);
+    for (const w of words) {
+      if (map[w]) return map[w];
+    }
+
+    // 3. Correspondência por substring
+    for (const key in map) {
+      if (key.length >= 4 && (clean.includes(key) || key.includes(clean))) {
+        return map[key];
+      }
+    }
+
+    return null;
+  }
+
+
   return {
     init,
     getState,
     saveState,
+    getCategoryMemory,
+    learnCategoryMapping,
+    predictCategory,
     getMonth,
     saveMonth,
     addTransaction,

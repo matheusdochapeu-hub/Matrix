@@ -33,5 +33,10 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - A navegação regressiva na timeline é bloqueada em Outubro/2026 (botão anterior desabilitado).
 - Os holerites armazenados iniciam a partir de Outubro/2026 (`2026-10` USP).
 
-## 5. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v38`) e confirmar zero erros de execução.
+## 5. Memória e Aprendizado de Categorias de Gastos
+- O app memoriza dinamicamente as classificações de categorias atribuídas pelo usuário (`MatrixDB.learnCategoryMapping`).
+- Ao digitar a descrição de um gasto nos formulários de lançamento rápido ou edição de despesas, o app prediz e seleciona automaticamente a categoria memorizada (`MatrixDB.predictCategory`), exibindo o indicador `✨ Lembrado: [Categoria]`.
+- Se o usuário alterar a categoria manualmente, a nova preferência é imediatamente aprendida e gravada no `localStorage` (`matrix_category_memory`) e no banco local.
+
+## 6. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v40`) e confirmar zero erros de execução.

@@ -779,6 +779,18 @@ const MatrixApp = (function () {
   }
 
   function setupEventListeners() {
+    // Escuta digitação na descrição de gastos para lembrar e sugerir categorias automaticamente
+    const qeNomeInput = document.getElementById('quickExpenseNome');
+    if (qeNomeInput) {
+      qeNomeInput.addEventListener('input', (e) => onQuickExpenseNomeInput(e.target.value));
+      qeNomeInput.addEventListener('blur', (e) => onQuickExpenseNomeInput(e.target.value));
+    }
+
+    const miNomeInput = document.getElementById('modalItemNome');
+    if (miNomeInput) {
+      miNomeInput.addEventListener('input', (e) => onModalItemNomeInput(e.target.value));
+      miNomeInput.addEventListener('blur', (e) => onModalItemNomeInput(e.target.value));
+    }
     // Month navigation
     document.getElementById('prevMonthBtn').addEventListener('click', () => changeMonth(-1));
     document.getElementById('nextMonthBtn').addEventListener('click', () => changeMonth(1));
@@ -2768,6 +2780,87 @@ const MatrixApp = (function () {
   // ==========================================
   // 2.1 CONTROLE DE GASTOS DIÁRIOS (FAB & MODAL)
   // ==========================================
+  
+  // ==========================================
+  // APRENDIZADO E SUGESTÃO AUTOMÁTICA DE CATEGORIAS
+  // ==========================================
+  function onQuickExpenseNomeInput(nomeVal) {
+    const hintEl = document.getElementById('quickExpenseCatHint');
+    const catSelect = document.getElementById('quickExpenseCategoria');
+    if (!catSelect) return;
+
+    if (!nomeVal || nomeVal.trim().length < 2) {
+      if (hintEl) hintEl.style.display = 'none';
+      return;
+    }
+
+    const predicted = MatrixDB.predictCategory(nomeVal.trim());
+    if (predicted) {
+      // Verifica se a categoria prevista existe no select
+      const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase() === predicted.toLowerCase());
+      if (opt) {
+        catSelect.value = opt.value;
+        if (hintEl) {
+          hintEl.textContent = '✨ Lembrado: ' + opt.value;
+          hintEl.style.display = 'inline-block';
+        }
+      }
+    } else {
+      if (hintEl) hintEl.style.display = 'none';
+    }
+  }
+
+  function onQuickExpenseCategoriaChange(catVal) {
+    const nomeInput = document.getElementById('quickExpenseNome');
+    const hintEl = document.getElementById('quickExpenseCatHint');
+    if (nomeInput && nomeInput.value.trim().length >= 2) {
+      MatrixDB.learnCategoryMapping(nomeInput.value.trim(), catVal);
+      if (hintEl) {
+        hintEl.textContent = '💾 Classificação salva!';
+        hintEl.style.display = 'inline-block';
+        setTimeout(() => { if (hintEl) hintEl.style.display = 'none'; }, 2000);
+      }
+    }
+  }
+
+  function onModalItemNomeInput(nomeVal) {
+    const hintEl = document.getElementById('modalItemCatHint');
+    const catSelect = document.getElementById('modalItemCategoria');
+    if (!catSelect) return;
+
+    if (!nomeVal || nomeVal.trim().length < 2) {
+      if (hintEl) hintEl.style.display = 'none';
+      return;
+    }
+
+    const predicted = MatrixDB.predictCategory(nomeVal.trim());
+    if (predicted) {
+      const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase() === predicted.toLowerCase());
+      if (opt) {
+        catSelect.value = opt.value;
+        if (hintEl) {
+          hintEl.textContent = '✨ Lembrado: ' + opt.value;
+          hintEl.style.display = 'inline-block';
+        }
+      }
+    } else {
+      if (hintEl) hintEl.style.display = 'none';
+    }
+  }
+
+  function onModalCategoriaChange(catVal) {
+    const nomeInput = document.getElementById('modalItemNome');
+    const hintEl = document.getElementById('modalItemCatHint');
+    if (nomeInput && nomeInput.value.trim().length >= 2) {
+      MatrixDB.learnCategoryMapping(nomeInput.value.trim(), catVal);
+      if (hintEl) {
+        hintEl.textContent = '💾 Classificação salva!';
+        hintEl.style.display = 'inline-block';
+        setTimeout(() => { if (hintEl) hintEl.style.display = 'none'; }, 2000);
+      }
+    }
+  }
+
   function openQuickExpenseModal(index = null) {
     const titleEl = document.getElementById('quickExpenseModalTitle');
     const idxInput = document.getElementById('quickExpenseEditIndex');
@@ -2814,6 +2907,9 @@ const MatrixApp = (function () {
     if (contaSelect) contaSelect.value = 'debito_nubank';
     if (pagoSim) pagoSim.checked = true;
     if (obsInput) obsInput.value = '';
+
+    const qeHint = document.getElementById('quickExpenseCatHint');
+    if (qeHint) qeHint.style.display = 'none';
 
     document.getElementById('quickExpenseModalBackdrop').classList.add('open');
   }
@@ -2917,6 +3013,9 @@ const MatrixApp = (function () {
     }
 
     // Regra 3: Débito Inter e demais contas à vista vão para o MÊS VIGENTE
+    // Grava e memoriza a classificação da categoria escolhida pelo usuário para este gasto
+    MatrixDB.learnCategoryMapping(nome, categoria);
+
     const payload = {
       nome,
       valor,
@@ -5261,6 +5360,9 @@ const MatrixApp = (function () {
       if (catSelect) catSelect.value = 'Outros';
     }
 
+    const miHint = document.getElementById('modalItemCatHint');
+    if (miHint) miHint.style.display = 'none';
+
     document.getElementById('itemModalBackdrop').classList.add('open');
   }
 
@@ -5371,6 +5473,9 @@ const MatrixApp = (function () {
       alert(tipo === 'receita' ? 'Informe a descrição da receita.' : 'Informe a descrição da despesa.');
       return;
     }
+
+    // Grava e memoriza a classificação da categoria escolhida pelo usuário para este gasto
+    MatrixDB.learnCategoryMapping(nome, cat);
 
     const payload = { nome, valor, categoria: cat, conta, renda, pago };
 
@@ -7025,6 +7130,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     alertFaturasReadOnly,
     openQuickExpenseModal,
     saveQuickExpense,
+    onQuickExpenseCategoriaChange,
+    onModalCategoriaChange,
     editQuickExpenseByIndex,
     removeQuickExpenseByIndex,
     renderRevisaoAnualDezembro,

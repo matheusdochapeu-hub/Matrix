@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=39">
+  <link rel="stylesheet" href="css/matrix.css?v=40">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1482,13 +1482,22 @@
       </div>
 
       <div style="margin-bottom:16px;">
-        <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
+          <span id="modalItemCatHint" style="font-size:10px;color:var(--matrix-green);display:none;font-family:var(--font-mono);"></span>
+        </div>
         <select id="modalItemCategoria" class="matrix-select" onchange="MatrixApp.onModalCategoriaChange(this.value)">
           <!-- Despesas -->
           <option value="Habitação">Habitação</option>
+          <option value="Alimentação">Alimentação</option>
+          <option value="Supermercado">Supermercado</option>
           <option value="Transporte">Transporte</option>
           <option value="Saúde">Saúde</option>
+          <option value="Farmácia & Saúde">Farmácia & Saúde</option>
           <option value="Contas">Contas</option>
+          <option value="Lazer">Lazer</option>
+          <option value="Compras">Compras</option>
+          <option value="Assinaturas">Assinaturas</option>
           <option value="Investimentos">Investimentos</option>
           <option value="Família">Família</option>
           <option value="Cartão">Cartão de Crédito</option>
@@ -1939,8 +1948,11 @@
       </div>
 
       <div style="margin-bottom:12px;">
-        <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
-        <select id="quickExpenseCategoria" class="matrix-select">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
+          <span id="quickExpenseCatHint" style="font-size:10px;color:var(--matrix-green);display:none;font-family:var(--font-mono);"></span>
+        </div>
+        <select id="quickExpenseCategoria" class="matrix-select" onchange="MatrixApp.onQuickExpenseCategoriaChange(this.value)">
           <option value="Alimentação" selected>Alimentação</option>
           <option value="Supermercado">Supermercado</option>
           <option value="Transporte">Transporte</option>
@@ -2420,16 +2432,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=39"></script>
-  <script src="js/matrix-rain.js?v=39"></script>
-  <script src="js/db.js?v=39"></script>
-  <script src="js/calendar-engine.js?v=39"></script>
-  <script src="js/amortization-engine.js?v=39"></script>
-  <script src="js/scenario-simulator.js?v=39"></script>
-  <script src="js/pdf-reader.js?v=39"></script>
-  <script src="js/satellite-connectors.js?v=39"></script>
-  <script src="js/sync-engine.js?v=39"></script>
-  <script src="js/app.js?v=39"></script>
+  <script src="js/seed-data.js?v=40"></script>
+  <script src="js/matrix-rain.js?v=40"></script>
+  <script src="js/db.js?v=40"></script>
+  <script src="js/calendar-engine.js?v=40"></script>
+  <script src="js/amortization-engine.js?v=40"></script>
+  <script src="js/scenario-simulator.js?v=40"></script>
+  <script src="js/pdf-reader.js?v=40"></script>
+  <script src="js/satellite-connectors.js?v=40"></script>
+  <script src="js/sync-engine.js?v=40"></script>
+  <script src="js/app.js?v=40"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
