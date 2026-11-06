@@ -172,11 +172,11 @@ const MatrixDB = (function () {
       }
     }
 
-    // Sincronização dos meses de 2025 (Março a Julho/2025 MPSP)
+    // Sincronização dos meses de 2025 (Fevereiro a Dezembro/2025 MPSP)
     if (memoryCache && memoryCache.anos && memoryCache.anos['2025'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2025']) {
       const seed2025 = MATRIX_SEED_DATA.anos['2025'];
       let ano2025Mutated = false;
-      ['Março', 'Abril', 'Maio', 'Junho', 'Julho'].forEach(mNome => {
+      Object.keys(seed2025).forEach(mNome => {
         if (!memoryCache.anos['2025'][mNome]) {
           memoryCache.anos['2025'][mNome] = JSON.parse(JSON.stringify(seed2025[mNome]));
           ano2025Mutated = true;
@@ -191,6 +191,30 @@ const MatrixDB = (function () {
         }
       });
       if (ano2025Mutated) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
+    // Sincronização dos meses de 2026 (Janeiro a Junho/2026 MPSP)
+    if (memoryCache && memoryCache.anos && memoryCache.anos['2026'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2026']) {
+      const seed2026 = MATRIX_SEED_DATA.anos['2026'];
+      let ano2026Mutated = false;
+      ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'].forEach(mNome => {
+        if (memoryCache.anos['2026'][mNome] && seed2026[mNome]) {
+          const curM = memoryCache.anos['2026'][mNome];
+          const hasOfficialMpsp = curM.receitas && curM.receitas.some(r => r.nome && r.nome.includes('MPSP') && r.pago);
+          if (!hasOfficialMpsp) {
+            const nonSal = (curM.receitas || []).filter(r => !r.nome || (!r.nome.includes('MPSP') && !r.nome.includes('USP')));
+            const mpspRecs = JSON.parse(JSON.stringify(seed2026[mNome].receitas || [])).filter(r => r.nome && r.nome.includes('MPSP'));
+            curM.receitas = mpspRecs.concat(nonSal);
+            if (!curM.totais) curM.totais = {};
+            curM.totais['Salário Mensal'] = seed2026[mNome].totais['Salário Mensal'];
+            curM.totais['Subtotal Ganhos'] = seed2026[mNome].totais['Subtotal Ganhos'];
+            ano2026Mutated = true;
+          }
+        }
+      });
+      if (ano2026Mutated) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
       }
     }
