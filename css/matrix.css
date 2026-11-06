@@ -2632,23 +2632,38 @@ body {
 
 .sim-results-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
   margin: 14px 0;
-  padding: 10px;
+  padding: 12px;
   background: rgba(0, 255, 102, 0.02);
   border: 1px solid var(--border-dim);
   border-radius: var(--radius-sm);
+}
+
+@media (max-width: 920px) {
+  .sim-results-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .sim-results-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sim-result-item {
   background: rgba(10, 16, 12, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-sm);
-  padding: 9px 12px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .sim-result-label {
@@ -2658,6 +2673,8 @@ body {
   font-weight: 600;
   margin-bottom: 4px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sim-result-value {
@@ -2665,7 +2682,20 @@ body {
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-bright);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.sim-result-sub {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  font-weight: normal;
+  display: block;
+  margin-top: 3px;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .sim-result-value.highlight-green {
@@ -2675,6 +2705,21 @@ body {
 
 .sim-result-value.highlight-blue {
   color: var(--cyan);
+}
+
+.sim-strategy-header-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 680px) {
+  .sim-strategy-header-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .sim-saved-card {

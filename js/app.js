@@ -4874,24 +4874,49 @@ const MatrixApp = (function () {
 
     lastSimulationResult = sim;
 
-    // Atualiza KPIs da interface
+    // Atualiza KPIs da interface (Formatado em linhas duplas sem sobreposição)
     const resNovoPrazo = document.getElementById('resNovoPrazo');
-    if (resNovoPrazo) resNovoPrazo.textContent = formatarPrazoExtenso(sim.novoPrazo);
+    if (resNovoPrazo) {
+      const ext = formatarPrazoExtenso(sim.novoPrazo);
+      const mMatch = ext.match(/^(.*?)\s*\((.*?)\)$/);
+      if (mMatch) {
+        resNovoPrazo.innerHTML = `${mMatch[1]}<span class="sim-result-sub">(${mMatch[2]})</span>`;
+      } else {
+        resNovoPrazo.textContent = ext;
+      }
+    }
 
     const resMesesPoupados = document.getElementById('resMesesPoupados');
-    if (resMesesPoupados) resMesesPoupados.textContent = formatarTempoPoupado(sim.mesesPoupados);
+    if (resMesesPoupados) {
+      const poup = formatarTempoPoupado(sim.mesesPoupados);
+      const pMatch = poup.match(/^(.*?)\s*a menos(?:\s*\((.*?)\))?$/);
+      if (pMatch) {
+        const sub = pMatch[2] ? `(${pMatch[2]} a menos)` : 'a menos no contrato';
+        resMesesPoupados.innerHTML = `${pMatch[1]}<span class="sim-result-sub" style="color:var(--matrix-green);opacity:0.85;">${sub}</span>`;
+      } else {
+        resMesesPoupados.textContent = poup;
+      }
+    }
 
     const resNovaData = document.getElementById('resNovaDataQuitacao');
-    if (resNovaData) resNovaData.textContent = sim.dataQuitacaoNova;
+    if (resNovaData) {
+      resNovaData.innerHTML = `${sim.dataQuitacaoNova}<span class="sim-result-sub">Previsão de Quitação</span>`;
+    }
 
     const resEconomia = document.getElementById('resEconomiaJuros');
-    if (resEconomia) resEconomia.textContent = formatBRL(sim.economiaJuros);
+    if (resEconomia) {
+      resEconomia.innerHTML = `${formatBRL(sim.economiaJuros)}<span class="sim-result-sub" style="color:var(--matrix-green);opacity:0.85;">Juros economizados</span>`;
+    }
 
     const resNovoTotal = document.getElementById('resNovoTotalPago');
-    if (resNovoTotal) resNovoTotal.textContent = formatBRL(sim.novoTotalPago);
+    if (resNovoTotal) {
+      resNovoTotal.innerHTML = `${formatBRL(sim.novoTotalPago)}<span class="sim-result-sub">Custo total com aportes</span>`;
+    }
 
     const resTotalAportado = document.getElementById('resTotalAportado');
-    if (resTotalAportado) resTotalAportado.textContent = formatBRL(sim.totalAportadoExtra);
+    if (resTotalAportado) {
+      resTotalAportado.innerHTML = `${formatBRL(sim.totalAportadoExtra)}<span class="sim-result-sub" style="color:var(--amber);opacity:0.85;">Aportes do bolso + FGTS</span>`;
+    }
 
     // Atualiza tabela ano a ano
     const tBody = document.getElementById('simTabelaAnualBody');
