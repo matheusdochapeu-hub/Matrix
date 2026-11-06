@@ -585,7 +585,7 @@ const MATRIX_SEED_DATA = {
           {
             "id": "fix_14",
             "nome": "Caronas",
-            "valor": 1200,
+            "valor": 1140,
             "pago": false
           },
           {
@@ -792,7 +792,7 @@ const MATRIX_SEED_DATA = {
           {
             "id": "fix_14",
             "nome": "Caronas",
-            "valor": 840,
+            "valor": 720,
             "pago": false
           },
           {

@@ -181,6 +181,11 @@ const MatrixApp = (function () {
       console.warn('Erro ao inicializar override do calendário:', e);
     }
 
+    try {
+      ['Outubro', 'Novembro', 'Dezembro'].forEach(m => syncCaronasWithCalendar('2026', m));
+    } catch (e) {
+      console.warn('Erro ao sincronizar caronas no init:', e);
+    }
     populateYearSelector();
     setupEventListeners();
     updateInstallButtonVisibility();
@@ -2769,7 +2774,66 @@ const MatrixApp = (function () {
     alert('🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)\n\nOs lançamentos da Fatura Nubank Black e despesas de cartão são sincronizados em tempo real a partir do aplicativo Faturas.\n\nPara alterar valores, compras parceladas ou novas despesas de cartão, utilize o App Faturas. As modificações serão refletidas automaticamente aqui.');
   }
 
+  function isCaronaItem(item) {
+    if (!item) return false;
+    const n = (item.nome || '').toLowerCase();
+    return n.includes('carona');
+  }
+
+  function syncCaronasWithCalendar(yearStr, monthName) {
+    if (!yearStr || !monthName) return null;
+    const monthIdx = MONTH_NAMES.indexOf(monthName) + 1;
+    if (monthIdx < 1) return null;
+    if (typeof CalendarEngine === 'undefined') return null;
+
+    const state = MatrixDB.getState();
+    const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), monthIdx, state.calendarioCustom);
+    const monthData = MatrixDB.getMonth(yearStr, monthName);
+    if (!monthData) return commute;
+
+    if (!monthData.fixos) monthData.fixos = [];
+    let caronaItem = monthData.fixos.find(f => f && isCaronaItem(f));
+    let changed = false;
+
+    if (caronaItem) {
+      if (caronaItem.valor !== commute.totalCaronas) {
+        caronaItem.valor = commute.totalCaronas;
+        changed = true;
+      }
+    } else {
+      monthData.fixos.push({
+        id: 'fix_carona_' + Date.now(),
+        nome: 'Caronas',
+        valor: commute.totalCaronas,
+        categoria: 'Transporte',
+        pago: false,
+        conta: 'inter_debito',
+        renda: 'usp'
+      });
+      changed = true;
+    }
+
+    if (!monthData.totais) monthData.totais = {};
+    if (monthData.totais['VR'] !== commute.totalVR) {
+      monthData.totais['VR'] = commute.totalVR;
+      changed = true;
+    }
+
+    if (changed) {
+      MatrixDB.saveMonth(yearStr, monthName, monthData);
+    }
+    return commute;
+  }
+
+  function abrirCalendarioParaCaronas(yearStr, monthName) {
+    calSelectedYear = yearStr || currentYear;
+    calSelectedMonth = monthName || currentMonth;
+    switchTab('tab-calendario');
+    renderCalendar();
+  }
+
   function renderFluxoCaixa() {
+    syncCaronasWithCalendar(currentYear, currentMonth);
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
     // Cálculos de Totais, Pagos e Pendentes
@@ -2826,6 +2890,9 @@ const MatrixApp = (function () {
         fixosTbody.innerHTML = fixosList.map((f, i) => {
           const isFatura = isFaturasItem(f);
           const isScarletTransf = (f.nome || '').trim().toLowerCase() === 'scarlet';
+          const isCarona = isCaronaItem(f);
+          const curCommute = isCarona ? CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), MONTH_NAMES.indexOf(currentMonth) + 1, MatrixDB.getState().calendarioCustom) : null;
+          const cycleInfo = curCommute ? curCommute.salaryCycle : null;
           return `
           <tr class="${f.pago ? 'paid' : ''}">
             <td class="desc-col">
@@ -2834,6 +2901,7 @@ const MatrixApp = (function () {
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
                 ${(f.categoria || isScarletTransf) ? `<span class="cat-pill" ${isScarletTransf ? 'title="Transferência para pagar fatura Nubank da Scarlet"' : ''}>${isScarletTransf ? '💳 Cartão Nubank' : f.categoria}</span>` : ''}
                 ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
+                ${isCarona && cycleInfo ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.07);" title="Vinculado ao Calendário USP & Caronas (${cycleInfo.cycleWorkingDaysCount} dias no ciclo ${cycleInfo.cycleRangeLabel})">🚗 Calendário USP: ${cycleInfo.cycleWorkingDaysCount}d (${cycleInfo.cycleRangeLabel})</span>` : ''}
               </div>
             </td>
             <td class="status-col">
@@ -2846,7 +2914,11 @@ const MatrixApp = (function () {
             </td>
             <td class="val-col">${formatBRL(f.valor)}</td>
             <td class="action-col">
-              ${isFatura ? `
+              ${isCarona ? `
+                <button class="btn-icon" style="font-size:13px;" title="Ver e gerenciar dias no Calendário USP & Caronas" onclick="MatrixApp.abrirCalendarioParaCaronas('${currentYear}', '${currentMonth}')">📅</button>
+                <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
+                <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
+              ` : isFatura ? `
                 <button class="btn-icon lock" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
               ` : `
                 <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
@@ -6711,11 +6783,20 @@ const MatrixApp = (function () {
 
     closeModal('calDayEditModalBackdrop');
 
-    if (yearStr === currentYear && monthName === currentMonth) {
-      renderFluxoCaixa();
-      renderKPIs();
-      renderMonthlyHorizonCards();
+    // Sincroniza o mês e possíveis meses de sobreposição do ciclo salarial
+    syncCaronasWithCalendar(yearStr, monthName);
+    const dayNum = parseInt(parts[2], 10);
+    if (dayNum <= 10) {
+      const prevDate = new Date(parseInt(yearStr, 10), monthIdx - 2, 1);
+      syncCaronasWithCalendar(String(prevDate.getFullYear()), MONTH_NAMES[prevDate.getMonth()]);
+    } else if (dayNum >= 25) {
+      const nextDate = new Date(parseInt(yearStr, 10), monthIdx, 1);
+      syncCaronasWithCalendar(String(nextDate.getFullYear()), MONTH_NAMES[nextDate.getMonth()]);
     }
+
+    renderFluxoCaixa();
+    renderKPIs();
+    renderMonthlyHorizonCards();
 
     renderCalendar();
 
@@ -7832,6 +7913,9 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     openEditSaldosModal,
     salvarSaldosModal,
     abrirModalEditarDia,
+    abrirCalendarioParaCaronas,
+    syncCaronasWithCalendar,
+    isCaronaItem,
     salvarStatusDiaCalendario,
     switchTab,
     initSwipeNavigation,
