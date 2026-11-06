@@ -195,7 +195,7 @@ const MatrixDB = (function () {
       }
     }
 
-    // Sincronização dos meses de 2026 (Janeiro a Junho/2026 MPSP)
+    // Sincronização dos meses de 2026 (Janeiro a Junho/2026 MPSP e Setembro/2026 Férias MPSP)
     if (memoryCache && memoryCache.anos && memoryCache.anos['2026'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2026']) {
       const seed2026 = MATRIX_SEED_DATA.anos['2026'];
       let ano2026Mutated = false;
@@ -214,6 +214,32 @@ const MatrixDB = (function () {
           }
         }
       });
+
+      // Sincronização de Setembro/2026 com Férias Proporcionais MPSP de R$ 8.954,13
+      if (memoryCache.anos['2026']['Setembro'] && seed2026['Setembro']) {
+        const curSet = memoryCache.anos['2026']['Setembro'];
+        const hasFerias = curSet.receitas && curSet.receitas.some(r => r.nome && r.nome.includes('Férias Proporcionais'));
+        if (!hasFerias) {
+          curSet.receitas = JSON.parse(JSON.stringify(seed2026['Setembro'].receitas || []));
+          if (!curSet.totais) curSet.totais = {};
+          Object.assign(curSet.totais, seed2026['Setembro'].totais || {});
+          ano2026Mutated = true;
+        }
+      }
+
+      // Sincroniza demais meses do 2º semestre de 2026 (Julho a Dezembro) se estiverem sem receitas
+      ['Julho', 'Agosto', 'Outubro', 'Novembro', 'Dezembro'].forEach(mNome => {
+        if (memoryCache.anos['2026'][mNome] && seed2026[mNome]) {
+          const curM = memoryCache.anos['2026'][mNome];
+          if (!curM.receitas || curM.receitas.length === 0) {
+            curM.receitas = JSON.parse(JSON.stringify(seed2026[mNome].receitas || []));
+            if (!curM.totais) curM.totais = {};
+            Object.assign(curM.totais, seed2026[mNome].totais || {});
+            ano2026Mutated = true;
+          }
+        }
+      });
+
       if (ano2026Mutated) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
       }
@@ -300,6 +326,19 @@ const MatrixDB = (function () {
         nome: 'Estúdio / Renda Extra',
         valor: estudioVal,
         categoria: 'Renda Extra',
+        pago: true
+      });
+    }
+
+    const feriasMpspVal = parseFloat(t['Férias Proporcionais MPSP'] || t['Rescisão MPSP']) || (ano === '2026' && mes === 'Setembro' ? 8954.13 : 0);
+    if (feriasMpspVal > 0) {
+      month.receitas.push({
+        id: 'rec_ferias_mpsp_' + mes,
+        nome: 'Férias Proporcionais MPSP (Indenizadas)',
+        valor: feriasMpspVal,
+        categoria: 'Outros Ganhos / Rescisão',
+        conta: 'bradesco',
+        renda: 'rescisao_mpsp',
         pago: true
       });
     }

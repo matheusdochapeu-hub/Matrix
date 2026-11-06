@@ -1922,6 +1922,29 @@ const MATRIX_SEED_DATA = {
       ]
     },
     {
+      "periodo": "2026-09-FERIAS",
+      "ano": "2026",
+      "mesNome": "Setembro",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "Indenização de Férias Proporcionais",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "04/09/2026",
+      "vencimentos": 8954.13,
+      "descontos": 0.0,
+      "liquido": 8954.13,
+      "fgts": 0.0,
+      "observacao": "Pagamento de férias proporcionais não usufruídas no MPSP decorrente de exoneração/mudança para a USP. Creditado em 04/09/2026 no Bradesco.",
+      "itens": [
+        {
+          "cod": "FERIAS_INDEN",
+          "desc": "INDENIZACAO DE FERIAS PROPORCIONAIS MPSP",
+          "tipo": "Vencimento",
+          "valor": 8954.13
+        }
+      ]
+    },
+    {
       "periodo": "2026-10",
       "ano": "2026",
       "mesNome": "Outubro",
@@ -4506,7 +4529,7 @@ const MATRIX_SEED_DATA = {
           }
         ],
         "totais": {
-          "Salário Mensal": 10293.0,
+          "Salário Mensal": 4692.24,
           "Total Gastos Fixos": 2567.95,
           "Total Gastos Variáveis": -600.0,
           "Total Outros Gastos": 4967.66,
@@ -4514,13 +4537,25 @@ const MATRIX_SEED_DATA = {
           "Fixos + Outros": 7535.61,
           "VARIAVEIS": "Valor",
           "Estúdio": -600.0,
-          "Trabalho": 0.0
+          "Trabalho": 0.0,
+          "Subtotal Ganhos": 4692.24
         },
         "scarlet": {
           "gastos": [],
           "ganhos": 0,
           "faturaNubank": 0
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Julho_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 4692.24,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ]
       },
       "Agosto": {
         "fixos": [
@@ -4678,12 +4713,12 @@ const MATRIX_SEED_DATA = {
           }
         ],
         "totais": {
-          "Salário Mensal": 5042.0,
+          "Salário Mensal": 5014.88,
           "VA": 0.0,
           "VR": 0.0,
           "Rescisão": 1298.75,
           "Estúdio": 600.0,
-          "Subtotal Ganhos": 6940.75,
+          "Subtotal Ganhos": 5614.88,
           "Total Gastos Fixos": 3828.41,
           "Total Outros Gastos": 3270.0,
           "Subtotal Gastos": 7098.41,
@@ -4693,7 +4728,26 @@ const MATRIX_SEED_DATA = {
           "gastos": [],
           "ganhos": 0,
           "faturaNubank": 0
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Agosto_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 5014.88,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_estudio_Agosto_2026",
+            "nome": "Estúdio / Renda Extra",
+            "valor": 600.0,
+            "categoria": "Renda Extra",
+            "conta": "debito_inter",
+            "pago": true
+          }
+        ]
       },
       "Setembro": {
         "fixos": [
@@ -4833,22 +4887,51 @@ const MATRIX_SEED_DATA = {
           }
         ],
         "totais": {
-          "Salário Mensal": 5024.325834,
-          "Rescisão MPSP": 6954.13,
+          "Salário Mensal": 5014.88,
           "Estúdio": 600.0,
-          "Subtotal Ganhos": 12578.45583,
+          "Subtotal Ganhos": 14569.01,
           "Total Gastos Fixos": 4200.48,
           "Total Outros Gastos": 7125.66,
           "Subtotal Gastos": 11326.14,
-          "Ganhos - Gastos": 1252.315834,
+          "Ganhos - Gastos": 3242.87,
           "Investimentos": 925.0,
-          "Ideal": 1507.29775
+          "Ideal": 1507.29775,
+          "Férias Proporcionais MPSP": 8954.13
         },
         "scarlet": {
           "gastos": [],
           "ganhos": 4600.0,
           "faturaNubank": 3719.26
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Setembro_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 5014.88,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_ferias_mpsp_Setembro_2026",
+            "nome": "Férias Proporcionais MPSP (Indenizadas)",
+            "valor": 8954.13,
+            "categoria": "Outros Ganhos / Rescisão",
+            "conta": "bradesco",
+            "renda": "rescisao_mpsp",
+            "data": "04/09/2026",
+            "pago": true
+          },
+          {
+            "id": "rec_estudio_Setembro_2026",
+            "nome": "Estúdio / Renda Extra",
+            "valor": 600.0,
+            "categoria": "Renda Extra",
+            "conta": "debito_inter",
+            "pago": true
+          }
+        ]
       },
       "Outubro": {
         "fixos": [
@@ -5013,7 +5096,42 @@ const MATRIX_SEED_DATA = {
           "gastos": [],
           "ganhos": 3629.86,
           "faturaNubank": 4835.22
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Outubro_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 5786.24,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_estudio_Outubro_2026",
+            "nome": "Estúdio / Renda Extra",
+            "valor": 600.0,
+            "categoria": "Renda Extra",
+            "conta": "debito_inter",
+            "pago": true
+          },
+          {
+            "id": "rec_vr_Outubro_2026",
+            "nome": "Vale Refeição (VR)",
+            "valor": 1300.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          },
+          {
+            "id": "rec_va_Outubro_2026",
+            "nome": "Vale Alimentação (VA - Maracaju 88)",
+            "valor": 2050.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          }
+        ]
       },
       "Novembro": {
         "fixos": [
@@ -5182,7 +5300,42 @@ const MATRIX_SEED_DATA = {
           "gastos": [],
           "ganhos": 1100.0,
           "faturaNubank": 4568.57
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Novembro_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 5788.19,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_estudio_Novembro_2026",
+            "nome": "Estúdio / Renda Extra",
+            "valor": 600.0,
+            "categoria": "Renda Extra",
+            "conta": "debito_inter",
+            "pago": true
+          },
+          {
+            "id": "rec_vr_Novembro_2026",
+            "nome": "Vale Refeição (VR)",
+            "valor": 1235.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          },
+          {
+            "id": "rec_va_Novembro_2026",
+            "nome": "Vale Alimentação (VA - Maracaju 88)",
+            "valor": 2050.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          }
+        ]
       },
       "Dezembro": {
         "fixos": [
@@ -5340,7 +5493,34 @@ const MATRIX_SEED_DATA = {
           "gastos": [],
           "ganhos": 5200.0,
           "faturaNubank": 1568.05
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Dezembro_2026",
+            "nome": "Salário Líquido USP (Banco do Brasil)",
+            "valor": 5788.19,
+            "categoria": "Salário / Proventos",
+            "conta": "bb",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_vr_Dezembro_2026",
+            "nome": "Vale Refeição (VR)",
+            "valor": 910.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          },
+          {
+            "id": "rec_va_Dezembro_2026",
+            "nome": "Vale Alimentação (VA - Maracaju 88)",
+            "valor": 2050.0,
+            "categoria": "Benefício (Não Pecúnia)",
+            "naoPecunia": true,
+            "pago": true
+          }
+        ]
       }
     },
     "2027": {
