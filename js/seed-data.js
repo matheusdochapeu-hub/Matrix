@@ -1,6 +1,3 @@
-// MATRIX FINANCE - DADOS CONSOLIDADOS SEED (2025-2027)
-// Parser de precisao sem duplicacao de totais e com bloco da Scarlet
-
 const MATRIX_SEED_DATA = {
   "versao": "1.0.0",
   "atualizadoEm": "2026-11-05T15:20:00Z",
@@ -147,7 +144,7 @@ const MATRIX_SEED_DATA = {
       "corretora": "BB Investimentos",
       "categoria": "Reserva de Emergência / Início de Ano",
       "titular": "Matheus",
-      "valorAtual": 2213.80,
+      "valorAtual": 2213.8,
       "vencimento": "Liquidez Diária",
       "rentabilidadeContratada": "100% Selic (~10,75% a.a.)",
       "status": "Alocado p/ faturas e contas de início de ano"
@@ -158,7 +155,7 @@ const MATRIX_SEED_DATA = {
       "corretora": "Santander",
       "categoria": "Capitalização",
       "titular": "Matheus",
-      "valorAtual": 550.00,
+      "valorAtual": 550.0,
       "vencimento": "2028 (36 meses)",
       "rentabilidadeContratada": "TR + Sorteios Mensais",
       "status": "Aporte automático R$ 50/mês"
@@ -170,9 +167,9 @@ const MATRIX_SEED_DATA = {
       "categoria": "Ações",
       "titular": "Matheus",
       "quantidade": 40,
-      "precoMedio": 5.00,
-      "precoAtual": 4.10,
-      "valorAtual": 164.00,
+      "precoMedio": 5.0,
+      "precoAtual": 4.1,
+      "valorAtual": 164.0,
       "vencimento": "Indeterminado / B3",
       "rentabilidadeContratada": "Dividend Yield ~6% a.a.",
       "status": "Custódia"
@@ -185,8 +182,8 @@ const MATRIX_SEED_DATA = {
       "titular": "Matheus",
       "quantidade": 137,
       "precoMedio": 5.82,
-      "precoAtual": 5.30,
-      "valorAtual": 726.10,
+      "precoAtual": 5.3,
+      "valorAtual": 726.1,
       "vencimento": "Indeterminado / B3",
       "rentabilidadeContratada": "Renda Variável B3",
       "status": "Custódia"
@@ -197,7 +194,7 @@ const MATRIX_SEED_DATA = {
       "corretora": "Clear (Inativa)",
       "categoria": "Proventos até 2028",
       "titular": "Matheus",
-      "valorAtual": 29.00,
+      "valorAtual": 29.0,
       "vencimento": "2028",
       "rentabilidadeContratada": "Proventos",
       "status": "A receber até 2028"
@@ -208,7 +205,7 @@ const MATRIX_SEED_DATA = {
       "corretora": "Nubank",
       "categoria": "Reserva de Emergência",
       "titular": "Scarlet",
-      "valorAtual": 1250.00,
+      "valorAtual": 1250.0,
       "vencimento": "Liquidez Diária",
       "rentabilidadeContratada": "100% CDI (~10,75% a.a.)",
       "status": "Ativo (Caixinha Reserva)"
@@ -219,13 +216,393 @@ const MATRIX_SEED_DATA = {
       "corretora": "Banco Inter",
       "categoria": "Renda Fixa",
       "titular": "Scarlet",
-      "valorAtual": 650.00,
+      "valorAtual": 650.0,
       "vencimento": "2027",
       "rentabilidadeContratada": "102% CDI",
       "status": "Ativo (Aposentadoria / Sonhos)"
     }
   ],
   "holerites": [
+    {
+      "periodo": "2025-03",
+      "ano": "2025",
+      "mesNome": "Março",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "A-Titular de Cargo Efetivo",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "04/04/2025",
+      "vencimentos": 7866.82,
+      "descontos": 1407.96,
+      "liquido": 6458.86,
+      "fgts": 0.0,
+      "itens": [
+        {
+          "cod": "001809",
+          "desc": "VENCIMENTO BASICO",
+          "tipo": "Vencimento",
+          "valor": 2888.68
+        },
+        {
+          "cod": "004820",
+          "desc": "GRATIFICACAO DE PROMOTORIA (107,21%)",
+          "tipo": "Vencimento",
+          "valor": 3096.95
+        },
+        {
+          "cod": "012801",
+          "desc": "AUXILIO TRANSPORTE (19 dias)",
+          "tipo": "Vencimento",
+          "valor": 338.2
+        },
+        {
+          "cod": "012802",
+          "desc": "AUXILIO ALIMENTACAO",
+          "tipo": "Vencimento",
+          "valor": 1300.0
+        },
+        {
+          "cod": "012833",
+          "desc": "ASSISTENCIA SAUDE - SERVIDORES",
+          "tipo": "Vencimento",
+          "valor": 242.99
+        },
+        {
+          "cod": "070012",
+          "desc": "IMPOSTO DE RENDA NA FONTE (27,5%)",
+          "tipo": "Desconto",
+          "valor": 545.9
+        },
+        {
+          "cod": "070113",
+          "desc": "CONTR.PREVID.RPPS-LC 1354/2020",
+          "tipo": "Desconto",
+          "valor": 742.35
+        },
+        {
+          "cod": "070125",
+          "desc": "IAMSPE - LEI 17.293/2020 (2%)",
+          "tipo": "Desconto",
+          "valor": 119.71
+        }
+      ]
+    },
+    {
+      "periodo": "2025-04",
+      "ano": "2025",
+      "mesNome": "Abril",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "A-Titular de Cargo Efetivo",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "07/05/2025",
+      "vencimentos": 8300.13,
+      "descontos": 1669.57,
+      "liquido": 6630.56,
+      "fgts": 0.0,
+      "itens": [
+        {
+          "cod": "001809",
+          "desc": "VENCIMENTO BASICO",
+          "tipo": "Vencimento",
+          "valor": 2888.68
+        },
+        {
+          "cod": "004820",
+          "desc": "GRATIFICACAO DE PROMOTORIA (117,57%)",
+          "tipo": "Vencimento",
+          "valor": 3396.22
+        },
+        {
+          "cod": "012801",
+          "desc": "AUXILIO TRANSPORTE (19 dias)",
+          "tipo": "Vencimento",
+          "valor": 338.2
+        },
+        {
+          "cod": "012802",
+          "desc": "AUXILIO ALIMENTACAO",
+          "tipo": "Vencimento",
+          "valor": 1450.0
+        },
+        {
+          "cod": "012833",
+          "desc": "ASSISTENCIA SAUDE - SERVIDORES",
+          "tipo": "Vencimento",
+          "valor": 227.03
+        },
+        {
+          "cod": "070012",
+          "desc": "IMPOSTO DE RENDA NA FONTE (27,5%)",
+          "tipo": "Desconto",
+          "valor": 603.94
+        },
+        {
+          "cod": "070037",
+          "desc": "IAMSPE-AGREGADOS-LEI 11.125/2002 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "070113",
+          "desc": "CONTR.PREVID.RPPS-LC 1354/2020",
+          "tipo": "Desconto",
+          "valor": 784.25
+        },
+        {
+          "cod": "070125",
+          "desc": "IAMSPE - LEI 17.293/2020 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "097115",
+          "desc": "SINDSEMP/SP-SIND.SERV.MIN.PUBL.ESP",
+          "tipo": "Desconto",
+          "valor": 30.0
+        }
+      ]
+    },
+    {
+      "periodo": "2025-05",
+      "ano": "2025",
+      "mesNome": "Maio",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "A-Titular de Cargo Efetivo",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "05/06/2025",
+      "vencimentos": 8449.6,
+      "descontos": 1669.57,
+      "liquido": 6780.03,
+      "fgts": 0.0,
+      "itens": [
+        {
+          "cod": "001809",
+          "desc": "VENCIMENTO BASICO",
+          "tipo": "Vencimento",
+          "valor": 2888.68
+        },
+        {
+          "cod": "004820",
+          "desc": "GRATIFICACAO DE PROMOTORIA (117,57%)",
+          "tipo": "Vencimento",
+          "valor": 3396.22
+        },
+        {
+          "cod": "012801",
+          "desc": "AUXILIO TRANSPORTE (20 dias)",
+          "tipo": "Vencimento",
+          "valor": 356.0
+        },
+        {
+          "cod": "012802",
+          "desc": "AUXILIO ALIMENTACAO",
+          "tipo": "Vencimento",
+          "valor": 1450.0
+        },
+        {
+          "cod": "012833",
+          "desc": "ASSISTENCIA SAUDE - SERVIDORES",
+          "tipo": "Vencimento",
+          "valor": 358.7
+        },
+        {
+          "cod": "070012",
+          "desc": "IMPOSTO DE RENDA NA FONTE (27,5%)",
+          "tipo": "Desconto",
+          "valor": 603.94
+        },
+        {
+          "cod": "070037",
+          "desc": "IAMSPE-AGREGADOS-LEI 11.125/2002 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "070113",
+          "desc": "CONTR.PREVID.RPPS-LC 1354/2020",
+          "tipo": "Desconto",
+          "valor": 784.25
+        },
+        {
+          "cod": "070125",
+          "desc": "IAMSPE - LEI 17.293/2020 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "097115",
+          "desc": "SINDSEMP/SP-SIND.SERV.MIN.PUBL.ESP",
+          "tipo": "Desconto",
+          "valor": 30.0
+        }
+      ]
+    },
+    {
+      "periodo": "2025-06",
+      "ano": "2025",
+      "mesNome": "Junho",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "A-Titular de Cargo Efetivo",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "04/07/2025",
+      "vencimentos": 11312.37,
+      "descontos": 2115.29,
+      "liquido": 9197.08,
+      "fgts": 0.0,
+      "itens": [
+        {
+          "cod": "001809",
+          "desc": "VENCIMENTO BASICO",
+          "tipo": "Vencimento",
+          "valor": 2888.68
+        },
+        {
+          "cod": "004820",
+          "desc": "GRATIFICACAO DE PROMOTORIA (117,57%)",
+          "tipo": "Vencimento",
+          "valor": 3396.22
+        },
+        {
+          "cod": "008125",
+          "desc": "13 SALARIO ANTECIPACAO (50%)",
+          "tipo": "Vencimento",
+          "valor": 2880.57
+        },
+        {
+          "cod": "012801",
+          "desc": "AUXILIO TRANSPORTE (21 dias)",
+          "tipo": "Vencimento",
+          "valor": 373.8
+        },
+        {
+          "cod": "012802",
+          "desc": "AUXILIO ALIMENTACAO",
+          "tipo": "Vencimento",
+          "valor": 1450.0
+        },
+        {
+          "cod": "012833",
+          "desc": "ASSISTENCIA SAUDE - SERVIDORES",
+          "tipo": "Vencimento",
+          "valor": 323.1
+        },
+        {
+          "cod": "070012",
+          "desc": "IMPOSTO DE RENDA NA FONTE (27,5%)",
+          "tipo": "Desconto",
+          "valor": 1049.66
+        },
+        {
+          "cod": "070037",
+          "desc": "IAMSPE-AGREGADOS-LEI 11.125/2002 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "070113",
+          "desc": "CONTR.PREVID.RPPS-LC 1354/2020",
+          "tipo": "Desconto",
+          "valor": 784.25
+        },
+        {
+          "cod": "070125",
+          "desc": "IAMSPE - LEI 17.293/2020 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "097115",
+          "desc": "SINDSEMP/SP-SIND.SERV.MIN.PUBL.ESP",
+          "tipo": "Desconto",
+          "valor": 30.0
+        }
+      ]
+    },
+    {
+      "periodo": "2025-07",
+      "ano": "2025",
+      "mesNome": "Julho",
+      "orgao": "Ministério Público de São Paulo (MPSP)",
+      "cargo": "05247 - Oficial de Promotoria I",
+      "categoria": "A-Titular de Cargo Efetivo",
+      "banco": "Bradesco (237) Ag. 00443-Jardinopolis CC 0027010/5",
+      "dataPagto": "06/08/2025",
+      "vencimentos": 8600.44,
+      "descontos": 1669.57,
+      "liquido": 6930.87,
+      "fgts": 0.0,
+      "itens": [
+        {
+          "cod": "001809",
+          "desc": "VENCIMENTO BASICO",
+          "tipo": "Vencimento",
+          "valor": 2888.68
+        },
+        {
+          "cod": "004820",
+          "desc": "GRATIFICACAO DE PROMOTORIA (117,57%)",
+          "tipo": "Vencimento",
+          "valor": 3396.22
+        },
+        {
+          "cod": "012801",
+          "desc": "AUXILIO TRANSPORTE (23 dias)",
+          "tipo": "Vencimento",
+          "valor": 409.4
+        },
+        {
+          "cod": "012802",
+          "desc": "AUXILIO ALIMENTACAO",
+          "tipo": "Vencimento",
+          "valor": 1450.0
+        },
+        {
+          "cod": "012833",
+          "desc": "ASSISTENCIA SAUDE - SERVIDORES",
+          "tipo": "Vencimento",
+          "valor": 340.9
+        },
+        {
+          "cod": "012834",
+          "desc": "ASSISTENCIA SAUDE - AGREGADOS",
+          "tipo": "Vencimento",
+          "valor": 115.24
+        },
+        {
+          "cod": "070012",
+          "desc": "IMPOSTO DE RENDA NA FONTE (27,5%)",
+          "tipo": "Desconto",
+          "valor": 603.94
+        },
+        {
+          "cod": "070037",
+          "desc": "IAMSPE-AGREGADOS-LEI 11.125/2002 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "070113",
+          "desc": "CONTR.PREVID.RPPS-LC 1354/2020",
+          "tipo": "Desconto",
+          "valor": 784.25
+        },
+        {
+          "cod": "070125",
+          "desc": "IAMSPE - LEI 17.293/2020 (2%)",
+          "tipo": "Desconto",
+          "valor": 125.69
+        },
+        {
+          "cod": "097115",
+          "desc": "SINDSEMP/SP-SIND.SERV.MIN.PUBL.ESP",
+          "tipo": "Desconto",
+          "valor": 30.0
+        }
+      ]
+    },
     {
       "periodo": "2026-03",
       "orgao": "Ministério Público de São Paulo (MPSP)",
@@ -488,6 +865,54 @@ const MATRIX_SEED_DATA = {
   ],
   "anos": {
     "2025": {
+      "Março": {
+        "fixos": [],
+        "outros": [],
+        "receitas": [
+          {
+            "id": "rec_sal_Março_2025",
+            "nome": "Salário Líquido MPSP (Bradesco)",
+            "valor": 6458.86,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ],
+        "totais": {
+          "Salário Mensal": 6458.86,
+          "Subtotal Ganhos": 6458.86
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
+        }
+      },
+      "Abril": {
+        "fixos": [],
+        "outros": [],
+        "receitas": [
+          {
+            "id": "rec_sal_Abril_2025",
+            "nome": "Salário Líquido MPSP (Bradesco)",
+            "valor": 6630.56,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ],
+        "totais": {
+          "Salário Mensal": 6630.56,
+          "Subtotal Ganhos": 6630.56
+        },
+        "scarlet": {
+          "gastos": [],
+          "ganhos": 0,
+          "faturaNubank": 0
+        }
+      },
       "Maio": {
         "fixos": [
           {
@@ -625,12 +1050,26 @@ const MATRIX_SEED_DATA = {
             "pago": false
           }
         ],
-        "totais": {},
+        "totais": {
+          "Salário Mensal": 6780.03,
+          "Subtotal Ganhos": 6780.03
+        },
         "scarlet": {
           "gastos": [],
           "ganhos": 0,
           "faturaNubank": 0
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Maio_2025",
+            "nome": "Salário Líquido MPSP (Bradesco)",
+            "valor": 6780.03,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ]
       },
       "Junho": {
         "fixos": [
@@ -702,12 +1141,36 @@ const MATRIX_SEED_DATA = {
           }
         ],
         "outros": [],
-        "totais": {},
+        "totais": {
+          "Salário Mensal": 6316.51,
+          "13º": 2880.57,
+          "Subtotal Ganhos": 9197.08
+        },
         "scarlet": {
           "gastos": [],
           "ganhos": 0,
           "faturaNubank": 0
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Junho_2025",
+            "nome": "Salário Líquido MPSP (Bradesco)",
+            "valor": 6316.51,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          },
+          {
+            "id": "rec_13_Junho_2025",
+            "nome": "13º Salário MPSP (Antecipação 50%)",
+            "valor": 2880.57,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ]
       },
       "Julho": {
         "fixos": [
@@ -865,18 +1328,30 @@ const MATRIX_SEED_DATA = {
           }
         ],
         "totais": {
-          "Salário Mensal": 5897.4,
+          "Salário Mensal": 6930.87,
           "13°": 2506.884081,
           "Total Gastos Fixos": 2751.87,
           "Total Gastos Variáveis": 2671.72,
           "Total Outros Gastos": 2908.674,
-          "Saldo Final": 72.02008117
+          "Saldo Final": 72.02008117,
+          "Subtotal Ganhos": 6930.87
         },
         "scarlet": {
           "gastos": [],
           "ganhos": 0,
           "faturaNubank": 0
-        }
+        },
+        "receitas": [
+          {
+            "id": "rec_sal_Julho_2025",
+            "nome": "Salário Líquido MPSP (Bradesco)",
+            "valor": 6930.87,
+            "categoria": "Salário / Proventos",
+            "conta": "bradesco",
+            "renda": "salario_usp",
+            "pago": true
+          }
+        ]
       },
       "Agosto": {
         "fixos": [

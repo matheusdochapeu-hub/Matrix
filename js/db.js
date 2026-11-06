@@ -152,6 +152,49 @@ const MatrixDB = (function () {
       }
     }
 
+    // Mescla holerites do seed ausentes no cache do usuário (especialmente holerites oficiais de 2025)
+    if (memoryCache && typeof MATRIX_SEED_DATA !== 'undefined' && Array.isArray(MATRIX_SEED_DATA.holerites)) {
+      if (!Array.isArray(memoryCache.holerites)) memoryCache.holerites = [];
+      let holMutated = false;
+      MATRIX_SEED_DATA.holerites.forEach(seedH => {
+        const existingIdx = memoryCache.holerites.findIndex(h => h.periodo === seedH.periodo);
+        if (existingIdx === -1) {
+          memoryCache.holerites.push(JSON.parse(JSON.stringify(seedH)));
+          holMutated = true;
+        } else if (!memoryCache.holerites[existingIdx].itens || memoryCache.holerites[existingIdx].itens.length === 0) {
+          memoryCache.holerites[existingIdx] = JSON.parse(JSON.stringify(seedH));
+          holMutated = true;
+        }
+      });
+      if (holMutated) {
+        memoryCache.holerites.sort((a, b) => (b.periodo || '').localeCompare(a.periodo || ''));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
+    // Sincronização dos meses de 2025 (Março a Julho/2025 MPSP)
+    if (memoryCache && memoryCache.anos && memoryCache.anos['2025'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2025']) {
+      const seed2025 = MATRIX_SEED_DATA.anos['2025'];
+      let ano2025Mutated = false;
+      ['Março', 'Abril', 'Maio', 'Junho', 'Julho'].forEach(mNome => {
+        if (!memoryCache.anos['2025'][mNome]) {
+          memoryCache.anos['2025'][mNome] = JSON.parse(JSON.stringify(seed2025[mNome]));
+          ano2025Mutated = true;
+        } else {
+          const curM = memoryCache.anos['2025'][mNome];
+          if (!curM.receitas || curM.receitas.length === 0 || !curM.receitas.some(r => r.nome && r.nome.includes('MPSP'))) {
+            curM.receitas = JSON.parse(JSON.stringify(seed2025[mNome].receitas || []));
+            if (!curM.totais) curM.totais = {};
+            Object.assign(curM.totais, seed2025[mNome].totais || {});
+            ano2025Mutated = true;
+          }
+        }
+      });
+      if (ano2025Mutated) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
     return memoryCache;
   }
 
