@@ -961,7 +961,7 @@ const MatrixApp = (function () {
               <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
               <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 6px;" onclick="event.stopPropagation();MatrixApp.openEditSaldosModal('${m.ano}', '${m.mes}')" title="Editar saldos e rendas de ${m.mes}/${m.ano}">✏️ Saldos</button>
             </div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Renda Conjunta em Pecúnia:</div>
+            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Ganhos Conjuntos:</div>
             <div class="horizon-total-renda">${formatBRL(rendaLiquidaPecunia)}</div>
             <div style="font-size:9px;color:var(--text-dim);font-family:var(--font-mono);margin-top:-3px;margin-bottom:4px;">(Líquido em conta para pagar contas)</div>
 
@@ -984,7 +984,7 @@ const MatrixApp = (function () {
               <!-- Bloco Separado de Benefícios Alimentação (Não Pecúnia) -->
               <div style="margin-top:6px;padding-top:5px;border-top:1px dashed var(--border-dim);">
                 <div style="font-size:9.5px;color:var(--amber);font-family:var(--font-mono);margin-bottom:2px;display:flex;justify-content:space-between;">
-                  <span>🛒 <strong>Alimentação (Não-Pecúnia):</strong></span>
+                  <span>🛒 <strong>Benefícios (Alimentação / VA + VR):</strong></span>
                   <strong>${formatBRL(va + vr)}</strong>
                 </div>
                 <div class="horizon-breakdown-row" style="opacity:0.8;font-size:10.5px;">
@@ -1141,7 +1141,7 @@ const MatrixApp = (function () {
     const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
     if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(ganhosPecunia);
 
-    const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub');
+    const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub') || document.getElementById('topRendaSub');
     if (rConjuntaSubEl) {
       rConjuntaSubEl.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em benefícios)`;
     }
@@ -1163,7 +1163,7 @@ const MatrixApp = (function () {
       outrosEl.textContent = outrosGanhos > 0 ? `+ ${formatBRL(outrosGanhos)}` : 'R$ 0,00';
     }
 
-    const labelEstudio = document.getElementById('topLabelEstudio');
+    const labelEstudio = document.getElementById('topLabelEstudio') || document.getElementById('topOutrosLabel');
     if (labelEstudio) {
       labelEstudio.textContent = outrosLabel || getNomeEstudio() || 'Outros Ganhos';
     }
@@ -1291,7 +1291,7 @@ const MatrixApp = (function () {
     }
 
     const kpiSaldoSub = document.getElementById('kpiSaldoSub');
-    if (kpiSaldoSub) kpiSaldoSub.textContent = `Folga real em conta (pecúnia)`;
+    if (kpiSaldoSub) kpiSaldoSub.textContent = `Folga real em conta corrente`;
 
     const faturaEl = document.getElementById('kpiFatura');
     if (faturaEl) faturaEl.textContent = formatBRL(faturaNubank);
@@ -1363,9 +1363,9 @@ const MatrixApp = (function () {
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.9;">
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:6px;">Fórmula de Fechamento em Pecúnia (Dinheiro Líquido):</div>
+            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:6px;">Fórmula de Fechamento de Caixa:</div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--cyan);">(+) Receitas em Pecúnia (Conta Corrente):</span>
+              <span style="color:var(--cyan);">(+) Ganhos (Conta Corrente):</span>
               <strong>${formatBRL(ganhosPecunia)}</strong>
             </div>
             <div style="display:flex;justify-content:space-between;">
@@ -1382,14 +1382,14 @@ const MatrixApp = (function () {
               <span>- ${formatBRL(contasInicio)}</span>
             </div>` : ''}
             <div style="border-top:1px solid var(--border-dim);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px;">
-              <strong style="color:var(--text-main);">(=) Folga Real de Caixa (Pecúnia):</strong>
+              <strong style="color:var(--text-main);">(=) Folga Real de Caixa:</strong>
               <strong style="color:${saldo >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(saldo)}</strong>
             </div>
           </div>
 
           <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-weight:700;color:var(--amber);font-size:11.5px;">🛒 Benefícios Alimentação (Não Pecúnia):</span>
+              <span style="font-weight:700;color:var(--amber);font-size:11.5px;">🛒 Benefícios Alimentação (VA + VR):</span>
               <strong style="color:var(--amber);">${formatBRL(beneficiosNaoPecunia)}</strong>
             </div>
             <div style="color:var(--text-dim);font-size:10.5px;line-height:1.5;">
@@ -3648,7 +3648,7 @@ const MatrixApp = (function () {
     // Preenche seletor de meses
     const mSelect = document.getElementById('calMonthSelect');
     if (mSelect) {
-      if (mSelect.options.length === 0) {
+      if (!mSelect.options || mSelect.options.length === 0) {
         mSelect.innerHTML = MONTH_NAMES.map(m => `<option value="${m}">${m}</option>`).join('');
       }
       mSelect.value = calSelectedMonth;
@@ -6659,7 +6659,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
       setSim2055Meta(currentSim2055Meta);
     }
 
-    backdrop.classList.add('active');
+    backdrop.classList.add('open', 'active');
     recalcularSimulador2055();
   }
 
@@ -6706,6 +6706,10 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     const labelMeta = document.getElementById('sim2055LabelMeta');
     if (labelMeta) labelMeta.textContent = 'Meta 4: Renda Personalizada';
     recalcularSimulador2055();
+  }
+
+  function fecharSimuladorAposentadoria2055() {
+    closeModal('simulador2055ModalBackdrop');
   }
 
   function recalcularSimulador2055() {
@@ -6987,6 +6991,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     abrirSimuladorAposentadoria2055,
     setSim2055Meta,
     onSim2055CustomRendaInput,
+    fecharSimuladorAposentadoria2055,
     recalcularSimulador2055,
     salvarParametrosSimulador2055,
     baixarRelatorioAposentadoria2055,

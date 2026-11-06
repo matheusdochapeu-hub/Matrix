@@ -1568,7 +1568,8 @@ body {
   padding: 16px;
 }
 
-.matrix-modal-backdrop.open {
+.matrix-modal-backdrop.open,
+.matrix-modal-backdrop.active {
   display: flex;
   animation: fadeInFast 0.18s ease-out;
 }
