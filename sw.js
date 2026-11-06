@@ -1,10 +1,13 @@
-const CACHE_NAME = 'matrix-finance-v27';
+const CACHE_NAME = 'matrix-finance-v28';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './css/matrix.css',
   './icons/matrix-icon.svg',
+  './icons/matrix-icon-192.png',
+  './icons/matrix-icon-512.png',
+  './icons/matrix-icon.png',
   './js/seed-data.js',
   './js/matrix-rain.js',
   './js/db.js',
