@@ -174,11 +174,20 @@ const MatrixApp = (function () {
     }
 
     // 4. Se houver valor numérico gravado no mês
-    if (monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number') {
+    if (monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
       return monthData.scarlet.faturaNubank;
     }
 
-    // 5. Sem dados existentes: NUNCA inventar dados (retornar 0)
+    // 5. Transferência explícita para Fatura Nubank da Scarlet nas despesas do mês
+    const expScarlet = [...(monthData.fixos || []), ...(monthData.outros || [])].find(it => {
+      const n = (it.nome || '').toLowerCase().trim();
+      return n === 'scarlet' || n === 'nubank scarlet' || n.includes('fatura nubank');
+    });
+    if (expScarlet && parseFloat(expScarlet.valor) > 0) {
+      return parseFloat(expScarlet.valor);
+    }
+
+    // 6. Sem dados existentes: NUNCA inventar dados (retornar 0)
     return 0;
   }
 
@@ -1720,10 +1729,10 @@ const MatrixApp = (function () {
     if (c === 'vr' || r.includes('vr') || n.includes('vr usp') || n.includes('refeição')) {
       return '<span class="bank-badge vr" title="Cartão Vale Refeição (Almoço USP)"><span class="bank-icon">🍽️</span> <strong>Cartão VR</strong></span>';
     }
-    if (c.includes('scarlet') || r.includes('scarlet') || n.includes('scarlet') || n.includes('fisio')) {
+    if (c.includes('fisio') || r.includes('fisio') || (n.includes('fisio') && !n.includes('fatura'))) {
       return '<span class="bank-badge fisio" title="Ganhos da Scarlet (FisioFlow)"><span class="bank-icon">🩺</span> <strong>FisioFlow (Scarlet)</strong></span>';
     }
-    if (c === 'bb' || r.includes('salario') || n.includes('bb') || n.includes('salário')) {
+    if (c === 'bb' || r.includes('salario') || n.includes('bb') || n.includes('salário') || c === 'salario_bb') {
       return '<span class="bank-badge bb" title="Salário Líquido USP (Conta BB)"><span class="bank-icon">🟡🏦</span> <strong>BB Salário USP</strong></span>';
     }
     if (c.includes('dinheiro') || n.includes('dinheiro')) {
@@ -1784,9 +1793,13 @@ const MatrixApp = (function () {
         vrUsado += val;
       } else if (c === 'nubank_scarlet' || c === 'nubank_matheus' || n.includes('nubank')) {
         nubankUsado += val;
-      } else if (c === 'scarlet' || r === 'ganhos_scarlet' || n.includes('scarlet')) {
+      } else if (n === 'scarlet' || n.includes('scarlet')) {
+        // Transferência da conta de Matheus (BB Salário USP) para Scarlet pagar a fatura Nubank
+        salUsado += val;
+        nubankUsado += val;
+      } else if (c === 'scarlet' || r === 'ganhos_scarlet') {
         scarletUsado += val;
-      } else if (c === 'bb' || r === 'salario_usp' || c === 'caixa') {
+      } else if (c === 'bb' || r === 'salario_usp' || c === 'caixa' || c === 'salario_bb') {
         salUsado += val;
       }
     });
@@ -1966,13 +1979,14 @@ const MatrixApp = (function () {
       } else {
         fixosTbody.innerHTML = fixosList.map((f, i) => {
           const isFatura = isFaturasItem(f);
+          const isScarletTransf = (f.nome || '').trim().toLowerCase() === 'scarlet';
           return `
           <tr class="${f.pago ? 'paid' : ''}">
             <td class="desc-col">
-              <strong>${f.nome}</strong>
+              <strong>${f.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
-                ${f.categoria ? `<span class="cat-pill">${f.categoria}</span>` : ''}
+                ${(f.categoria || isScarletTransf) ? `<span class="cat-pill" ${isScarletTransf ? 'title="Transferência para pagar fatura Nubank da Scarlet"' : ''}>${isScarletTransf ? '💳 Cartão Nubank' : f.categoria}</span>` : ''}
                 ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
@@ -2007,13 +2021,14 @@ const MatrixApp = (function () {
       } else {
         outrosTbody.innerHTML = outrosList.map((o, i) => {
           const isFatura = isFaturasItem(o);
+          const isScarletTransf = (o.nome || '').trim().toLowerCase() === 'scarlet';
           return `
           <tr class="${o.pago ? 'paid' : ''}">
             <td class="desc-col">
-              <strong>${o.nome}</strong>
+              <strong>${o.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
                 ${renderOrigemBadge(o.conta, o.renda, o.nome)}
-                ${o.categoria ? `<span class="cat-pill">${o.categoria}</span>` : ''}
+                ${(o.categoria || isScarletTransf) ? `<span class="cat-pill" ${isScarletTransf ? 'title="Transferência para pagar fatura Nubank da Scarlet"' : ''}>${isScarletTransf ? '💳 Cartão Nubank' : o.categoria}</span>` : ''}
                 ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
@@ -4597,12 +4612,14 @@ const MatrixApp = (function () {
     document.getElementById('modalItemValor').value = item.valor != null ? item.valor : '';
 
     const catSelect = document.getElementById('modalItemCategoria');
-    if (catSelect && item.categoria) {
-      catSelect.value = item.categoria;
+    if (catSelect) {
+      if (item.categoria) catSelect.value = item.categoria;
       if (!catSelect.value) {
-        const c = item.categoria.toLowerCase();
+        const c = (item.categoria || '').toLowerCase();
+        const n = (item.nome || '').toLowerCase();
         if (c.includes('salário') || c.includes('salario')) catSelect.value = 'Salário';
-        else if (c.includes('scarlet') || c.includes('fisio')) catSelect.value = 'Fisio Scarlet';
+        else if (tipo === 'receita' && (c.includes('scarlet') || c.includes('fisio'))) catSelect.value = 'Fisio Scarlet';
+        else if (tipo !== 'receita' && (c.includes('scarlet') || n.trim() === 'scarlet' || n.includes('nubank'))) catSelect.value = 'Cartão';
         else if (c.includes('benefício') || c.includes('beneficio')) catSelect.value = 'Benefícios';
         else if (c.includes('estúdio') || c.includes('extra')) catSelect.value = 'Renda Extra';
         else if (c.includes('empréstimo') || c.includes('emprestimo')) catSelect.value = 'Empréstimo';

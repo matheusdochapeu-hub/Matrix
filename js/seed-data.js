@@ -4152,6 +4152,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_12",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 2200.0,
             "pago": true
           },
@@ -4333,6 +4336,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_11",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 2500.0,
             "pago": true
           },
@@ -4512,6 +4518,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_14",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 3000.0,
             "pago": false
           },
@@ -4696,6 +4705,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_13",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 2200.0,
             "pago": true
           },
@@ -4870,6 +4882,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_15",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 490.0,
             "pago": true
           },
@@ -5066,6 +5081,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_16",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 800.0,
             "pago": true
           },
@@ -5272,6 +5290,9 @@ const MATRIX_SEED_DATA = {
           {
             "id": "out_16",
             "nome": "Scarlet",
+            "categoria": "Cartão",
+            "conta": "salario_bb",
+            "descricao": "Transferência da conta USP para pagamento da fatura Nubank da Scarlet",
             "valor": 2000.0,
             "pago": true
           },

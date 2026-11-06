@@ -245,6 +245,44 @@ const MatrixDB = (function () {
       }
     }
 
+    // Compatibilidade e enriquecimento das despesas com transferência para Scarlet (Fatura Nubank)
+    if (memoryCache && memoryCache.anos) {
+      let scarletMutated = false;
+      Object.keys(memoryCache.anos).forEach(anoKey => {
+        const anoObj = memoryCache.anos[anoKey];
+        if (anoObj && typeof anoObj === 'object') {
+          Object.keys(anoObj).forEach(mesKey => {
+            const mData = anoObj[mesKey];
+            if (mData && typeof mData === 'object') {
+              ['fixos', 'outros'].forEach(tipo => {
+                if (Array.isArray(mData[tipo])) {
+                  mData[tipo].forEach(item => {
+                    if (item && item.nome && item.nome.trim().toLowerCase() === 'scarlet') {
+                      if (!item.categoria || item.categoria === 'Geral') {
+                        item.categoria = 'Cartão';
+                        scarletMutated = true;
+                      }
+                      if (!item.conta) {
+                        item.conta = 'salario_bb';
+                        scarletMutated = true;
+                      }
+                      if (!item.descricao) {
+                        item.descricao = 'Transferência da minha conta para a dela para pagar fatura do Nubank';
+                        scarletMutated = true;
+                      }
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+      if (scarletMutated) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
     return memoryCache;
   }
 
