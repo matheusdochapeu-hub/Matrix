@@ -4133,35 +4133,69 @@ const MatrixApp = (function () {
       cCat.innerHTML = rows || '<div style="font-size:11px;color:var(--text-muted);">Sem dados.</div>';
     }
 
-    // 3. Gráfico de Horizontes Reais de Vencimento
+    // 3. Previsão Individual Ativo por Ativo (Vencimentos e Juros Reais, Sem somas indevidas)
     if (cProj) {
-      const hz = horizontes || { liquidez: 0, renda2055: 0, medioPrazo: 0, variavel: 0 };
-      const fv2055 = hz.renda2055 * Math.pow(1 + 0.065, 29);
+      if (invList.length === 0) {
+        cProj.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Sem ativos cadastrados.</div>';
+      } else {
+        cProj.innerHTML = invList.map(it => {
+          const val = parseFloat(it.valorAtual) || 0;
+          const atv = (it.ativo || '').toLowerCase();
+          const venc = (it.vencimento || '').toLowerCase();
+          const cat = (it.categoria || '').toLowerCase();
+          const taxa = (it.rentabilidadeContratada || '').toLowerCase();
 
-      const marcos = [
-        { label: 'Total Hoje (Consolidado)', val: totalGeral, color: 'var(--matrix-green)' },
-        { label: 'Liquidez Diária (Reservas)', val: hz.liquidez, color: 'var(--cyan)' },
-        { label: 'Médio Prazo (2027 a 2028)', val: hz.medioPrazo, color: 'var(--amber)' },
-        { label: 'Renda Variável (B3 & Cripto)', val: hz.variavel, color: '#c084fc' },
-        { label: 'Tesouro Renda+ 2055 (Atual)', val: hz.renda2055, color: 'var(--purple)' },
-        { label: 'Tesouro Renda+ (Estimado 2055)', val: fv2055, color: 'var(--blue)' }
-      ];
+          let prevTexto = '';
+          let prevColor = 'var(--cyan)';
 
-      const maxVal = Math.max(...marcos.map(m => m.val), 1);
-      cProj.innerHTML = marcos.map(m => {
-        const pct = ((m.val / maxVal) * 100).toFixed(0);
-        return `
-          <div style="margin-bottom:5px;">
-            <div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--font-mono);margin-bottom:2px;">
-              <span style="color:${m.color};font-weight:600;">${m.label}</span>
-              <span><strong>${formatBRL(m.val)}</strong></span>
+          if (atv.includes('renda+') || atv.includes('2055') || venc.includes('2055')) {
+            const fv = val * Math.pow(1 + 0.065, 29);
+            prevTexto = `Venc. 2055: <strong>${formatBRL(fv)}</strong>`;
+            prevColor = 'var(--purple)';
+          } else if (venc.includes('liquidez') || cat.includes('reserva') || atv.includes('selic')) {
+            const rendMensal = val * (0.1075 / 12);
+            prevTexto = `Liquidez Diária (~${formatBRL(rendMensal)}/mês)`;
+            prevColor = 'var(--matrix-green)';
+          } else if (atv.includes('cdb') || venc.includes('2027')) {
+            const fv = val * 1.1075;
+            prevTexto = `Venc. 2027: <strong>${formatBRL(fv)}</strong>`;
+            prevColor = 'var(--amber)';
+          } else if (cat.includes('capitalização') || atv.includes('dindin')) {
+            const fv = val + (36 * 50) + 120;
+            prevTexto = `Resgate 2028: <strong>${formatBRL(fv)}</strong>`;
+            prevColor = 'var(--amber)';
+          } else if (cat.includes('ações') || atv.includes('csna') || atv.includes('mglu')) {
+            prevTexto = `Renda Variável (Cotação B3)`;
+            prevColor = 'var(--cyan)';
+          } else if (cat.includes('cripto') || atv.includes('btc')) {
+            prevTexto = `Criptoativo (Custódia)`;
+            prevColor = '#c084fc';
+          } else {
+            prevTexto = `Vencimento: ${it.vencimento || 'indeterminado'}`;
+            prevColor = 'var(--text-muted)';
+          }
+
+          const titularClass = (it.titular || 'matheus').toLowerCase();
+
+          return `
+            <div style="background:rgba(5,8,7,0.5);border:1px solid var(--border-dim);padding:8px 10px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+              <div style="min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span class="titular-badge ${titularClass}" style="font-size:9px;padding:1px 5px;">${it.titular}</span>
+                  <strong style="font-size:11.5px;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.ativo}</strong>
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono);white-space:nowrap;">
+                  ${it.corretora} • ${it.rentabilidadeContratada || it.categoria}
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;font-family:var(--font-mono);">
+                <div style="font-size:12px;font-weight:700;color:var(--matrix-green);white-space:nowrap;">${formatBRL(val)}</div>
+                <div style="font-size:10px;color:${prevColor};margin-top:2px;white-space:nowrap;">${prevTexto}</div>
+              </div>
             </div>
-            <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
-              <div style="width:${pct}%;background:${m.color};height:100%;border-radius:3px;"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('');
+      }
     }
   }
 
