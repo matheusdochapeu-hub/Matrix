@@ -4075,19 +4075,29 @@ const MatrixApp = (function () {
         const pctM = ((totalMatheus / totalGeral) * 100).toFixed(1);
         const pctS = ((totalScarlet / totalGeral) * 100).toFixed(1);
         cTitular.innerHTML = `
-          <div style="display:flex;height:14px;border-radius:4px;overflow:hidden;background:rgba(5,8,7,0.6);margin-bottom:8px;">
+          <div style="display:flex;height:14px;border-radius:4px;overflow:hidden;background:rgba(5,8,7,0.6);margin-bottom:10px;">
             <div style="width:${pctM}%;background:var(--matrix-green);transition:width 0.4s ease;" title="Matheus: ${pctM}%"></div>
             <div style="width:${pctS}%;background:#ec4899;transition:width 0.4s ease;" title="Scarlet: ${pctS}%"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;">
-            <span style="display:flex;align-items:center;gap:4px;">
-              <span style="width:8px;height:8px;background:var(--matrix-green);border-radius:2px;display:inline-block;"></span>
-              👨 Matheus: <strong>${pctM}%</strong> (${formatBRL(totalMatheus)})
-            </span>
-            <span style="display:flex;align-items:center;gap:4px;">
-              <span style="width:8px;height:8px;background:#ec4899;border-radius:2px;display:inline-block;"></span>
-              👩 Scarlet: <strong>${pctS}%</strong> (${formatBRL(totalScarlet)})
-            </span>
+          <div style="display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:11.5px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="display:flex;align-items:center;gap:6px;color:var(--text-bright);">
+                <span style="width:8px;height:8px;background:var(--matrix-green);border-radius:2px;display:inline-block;"></span>
+                👨 Matheus
+              </span>
+              <span style="color:var(--matrix-green);font-weight:700;">
+                ${pctM}% <span style="font-weight:400;color:var(--text-muted);margin-left:4px;">(${formatBRL(totalMatheus)})</span>
+              </span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="display:flex;align-items:center;gap:6px;color:var(--text-bright);">
+                <span style="width:8px;height:8px;background:#ec4899;border-radius:2px;display:inline-block;"></span>
+                👩 Scarlet
+              </span>
+              <span style="color:#ec4899;font-weight:700;">
+                ${pctS}% <span style="font-weight:400;color:var(--text-muted);margin-left:4px;">(${formatBRL(totalScarlet)})</span>
+              </span>
+            </div>
           </div>
         `;
       }
