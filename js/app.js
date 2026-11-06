@@ -6445,6 +6445,398 @@ const MatrixApp = (function () {
     init();
   }
 
+
+  // ========================================================
+  // SIMULADOR & ADENDO APOSENTADORIA 2055 (TESOURO RENDA+)
+  // ========================================================
+  const SIMULADOR_2055_STORAGE_KEY = 'matrix_simulador_2055_params';
+  let currentSim2055Meta = 2; // Padrão: 100% Poder de Compra
+
+  const RELATORIO_APOSENTADORIA_2055_BASE = `# 📊 Relatório & Adendo de Aposentadoria 2055 (Tesouro Renda+)
+
+> **Titular:** Matheus (USP - Técnico 1)  
+> **Horizonte Temporal:** 2026 a 2055 (29 anos = 348 meses de acumulação)  
+> **Período de Aposentadoria/Usufruto:** 240 meses (20 anos: 2055 a 2074)  
+> **Idade em 2055:** 65 anos completos  
+
+---
+
+## 1. Premissas Macroeconômicas (2026 a 2055)
+
+Para projetar 2055 (daqui a 29 anos), consideramos a mecânica oficial brasileira de reajuste do Salário Mínimo (inflação IPCA + ganho real do PIB):
+
+* **Salário Mínimo Vigente (2026):** R\\$ 1.621,00
+* **Salário Base USP Atual:** R\\$ 6.264,00 (equivalente a **3,864 salários mínimos**)
+* **Saldo já existente em Tesouro Renda+ 2055:** R\\$ 1.318,89 (XP + Banco Inter)
+
+---
+
+## 2. Estimativa do Salário Mínimo em 2055
+
+| Cenário | Inflação Média (IPCA) | Ganho Real Mínimo | Taxa Nominal Anual | Salário Mínimo 2055 (Nominal) | Salário Mínimo em Poder de Compra 2026 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| 🛡️ **Conservador** | 4,00% a.a. | 1,00% a.a. | **5,04% a.a.** | **R\\$ 6.746,36** | R\\$ 2.164,00 |
+| 🚀 **Otimista** | 3,50% a.a. | 2,50% a.a. | **6,09% a.a.** | **R\\$ 8.995,91** | R\\$ 3.298,00 |
+| ⚖️ **Mediano (Média)** | 3,75% a.a. | 1,75% a.a. | **5,57% a.a.** | **R\\$ 7.871,14** | **R\\$ 2.731,00** |
+
+---
+
+## 3. Estimativa da Evolução Salarial USP (Base R\\$ 6.264,00)
+
+Mantendo a paridade de qualificação e carreira técnica da USP (3,864 vezes o salário mínimo nacional):
+
+| Cenário | Salário Bruto USP 2055 (Nominal) | Poder de Compra em Reais de 2026 | Ganho Real Efetivo |
+| :--- | :---: | :---: | :---: |
+| 🛡️ **Conservador** | **R\\$ 26.069,84** | R\\$ 8.361,00 | +33% real |
+| 🚀 **Otimista** | **R\\$ 34.762,74** | R\\$ 12.744,00 | +103% real |
+| ⚖️ **Mediano** | **R\\$ 30.416,29** | **R\\$ 10.552,00** | **+68% real** |
+
+---
+
+## 4. O Raio-X das Perdas Salariais na Aposentadoria aos 65 Anos
+
+> [!WARNING] O Efeito "Ilusão do Holerite": Na ativa, grande parte da sua renda mensal está em benefícios isentos e subsídios que desaparecem na inatividade.
+
+Para permitir clareza absoluta de planejamento, calculamos o impacto em **valores reais de hoje (poder de compra de 2026)**:
+
+### A. Provento Líquido de Partida na Aposentadoria (R$ 6.264,00 bruto):
+* **Contribuição Previdenciária (INSS):** **R\\$ 0,00** (aposentados pelo INSS não sofrem desconto de previdência).
+* **IRRF aos 65+ anos:** Pela Lei Federal nº 7.713/88, maiores de 65 anos têm direito a uma **parcela isenta adicional** mensal. Com deduções legais, o IRRF efetivo cai para cerca de **-R\\$ 220,00**.
+* **Provento Inicial Líquido:** **R\\$ 6.044,00**.
+
+### B. As 4 Grandes Perdas que ocorrem ao se Aposentar:
+1. **Extinção do Auxílio-Saúde USP:** Perda direta de **-R\\$ 759,01/mês**.
+2. **Explosão do Plano de Saúde Unimed aos 65 anos:**
+   * Hoje (~36 anos), a mensalidade é de R\\$ 867,72 e custa líquido apenas R\\$ 108,71 (pois o auxílio de R\\$ 759 cobria a maior parte).
+   * Pela regulação da ANS, a faixa etária de 59 anos ou mais multiplica o custo do plano por aproximadamente **3,2x** em relação à faixa de 35 anos.
+   * Aos 65 anos, a Unimed custará cerca de **R\\$ 2.776,70/mês** (em poder de compra de hoje) e sairá **100% do seu bolso**.
+   * **Aumento real do custo de saúde:** R\\$ 2.776,70 - R\\$ 108,71 = **-R\\$ 2.667,99/mês**.
+3. **Perda Integral do VA e VR:**
+   * VA (Maracaju 88): R\\$ 2.050,00
+   * VR (Refeições de trabalho): ~R\\$ 1.300,00
+   * **Total de Vales Perdidos:** **-R\\$ 3.350,00/mês** (alimentação do casal passa a sair integralmente do dinheiro em conta).
+4. **Cessação do Depósito do FGTS:** Perda de **-R\\$ 501,12/mês** (8% que a USP depositava mensalmente na conta vinculada).
+
+### 📉 Resultado Líquido Real na Aposentadoria:
+* **Total de Perdas Mensais Reais:** **R\\$ 6.519,11/mês**
+* **Sobra do Salário após pagar Unimed e Alimentação básica:**
+  $$\\text{Provento Líquido (R\\$ 6.044)} - \\text{Unimed 65+ (R\\$ 2.777)} - \\text{Alimentação antes coberta por VA/VR (R\\$ 3.350)} = -\\mathbf{R\\$\\ 83,00}$$
+> Sem previdência complementar ou investimentos, **o salário da aposentadoria não é suficiente sequer para pagar o plano de saúde e as compras de mercado habituais**.
+
+---
+
+## 5. Simulação Tesouro Direto Renda+ 2055
+
+O **Tesouro Renda+ 2055** é o instrumento ideal porque:
+1. É 100% corrigido pela inflação oficial (**IPCA**), mantendo o poder de compra real.
+2. Acumula juros compostos por **29 anos** (348 meses).
+3. Paga **240 parcelas mensais** (20 anos: de jan/2055 a dez/2074).
+4. Taxa de custódia B3 zerada (para renda até 6 SMs).
+5. Descontamos a alíquota mínima de 15% de IR sobre a rentabilidade real na saída.
+
+Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.a.**):
+
+### 🎯 Cenário 1: Receber Mais um Salário Líquido Completo
+* **Objetivo:** Renda mensal extra de **R\\$ 6.044,00/mês** (em poder de compra de hoje) por 20 anos.
+* **Patrimônio acumulado necessário em 2055:** R\\$ 976.600,00
+* **Aporte mensal necessário (a IPCA + 6,0% a.a.):** **R\\$ 1.068,01/mês**
+* **Aporte mensal necessário (a IPCA + 6,5% a.a.):** **R\\$ 941,15/mês**
+
+---
+
+### 🛡️ Cenário 2: Recompor 100% do Poder de Compra
+* **Objetivo:** Anular todas as perdas (cobrir a Unimed aos 65 anos, a perda do auxílio-saúde, do VA/VR e do FGTS), garantindo **R\\$ 6.519,11/mês** extras por 20 anos.
+* **Patrimônio acumulado necessário em 2055:** R\\$ 1.053.370,00
+* **Aporte mensal necessário (a IPCA + 6,0% a.a.):** **R\\$ 1.152,58/mês**
+* **Aporte mensal necessário (a IPCA + 6,5% a.a.):** **R\\$ 1.015,78/mês**
+
+---
+
+### 🚀 Cenário 3: Recompor Poder de Compra + Ter o DOBRO de Dinheiro Disponível
+* **Objetivo:** Cobrir todas as perdas anteriores (R\\$ 6.519,11) e ainda ter **R\\$ 4.960,00 a mais** de dinheiro 100% livre em conta todo mês (totalizando **R\\$ 11.479,11/mês** líquidos de renda extra no Renda+).
+* **Patrimônio acumulado necessário em 2055:** R\\$ 1.854.820,00
+* **Aporte mensal necessário (a IPCA + 6,0% a.a.):** **R\\$ 2.035,50/mês**
+* **Aporte mensal necessário (a IPCA + 6,5% a.a.):** **R\\$ 1.794,92/mês**
+
+---
+
+## 6. Quadro Comparativo Consolidado
+
+| Meta de Aposentadoria | Renda Mensal Renda+ (Poder de Compra Hoje) | Patrimônio em 2055 | Aporte Mensal (IPCA + 6,0%) | Aporte Mensal (IPCA + 6,5%) |
+| :--- | :---: | :---: | :---: | :---: |
+| 1️⃣ **+1 Salário Líquido USP** | R\\$ 6.044,00 | R\\$ 976,6 mil | **R\\$ 1.068,01** | **R\\$ 941,15** |
+| 2️⃣ **Manter 100% do Poder de Compra** | R\\$ 6.519,11 | R\\$ 1,05 milhão | **R\\$ 1.152,58** | **R\\$ 1.015,78** |
+| 3️⃣ **Manter P.C. + Dobro de Dinheiro Livre** | R\\$ 11.479,11 | R\\$ 1,85 milhão | **R\\$ 2.035,50** | **R\\$ 1.794,92** |
+
+> [!TIP] Estratégia de Transição: Atualmente você já tem aportes de R\\$ 103/mês a R\\$ 260/mês no Renda+. Ao quitar parcelas e consignados no futuro, reencaminhe essas folgas para aproximar seu aporte da faixa de **R\\$ 1.015 a R\\$ 1.150/mês**, blindando sua aposentadoria contra o choque de saúde e perda de vales.
+`;
+
+  function abrirSimuladorAposentadoria2055(metaIdx = null) {
+    const backdrop = document.getElementById('simulador2055ModalBackdrop');
+    if (!backdrop) return;
+
+    // Carregar preferências salvas se houver
+    try {
+      const saved = localStorage.getItem(SIMULADOR_2055_STORAGE_KEY);
+      if (saved) {
+        const params = JSON.parse(saved);
+        if (params.puTitulo != null && document.getElementById('sim2055ValorTitulo')) {
+          document.getElementById('sim2055ValorTitulo').value = params.puTitulo;
+        }
+        if (params.taxaReal != null && document.getElementById('sim2055TaxaReal')) {
+          document.getElementById('sim2055TaxaReal').value = params.taxaReal;
+        }
+        if (params.rendaDesejada != null && document.getElementById('sim2055RendaDesejada')) {
+          document.getElementById('sim2055RendaDesejada').value = params.rendaDesejada;
+        }
+        if (params.planoSaude != null && document.getElementById('sim2055PlanoSaude')) {
+          document.getElementById('sim2055PlanoSaude').value = params.planoSaude;
+        }
+        if (params.vales != null && document.getElementById('sim2055Vales')) {
+          document.getElementById('sim2055Vales').value = params.vales;
+        }
+        if (params.saldoAtual != null && document.getElementById('sim2055SaldoAtual')) {
+          document.getElementById('sim2055SaldoAtual').value = params.saldoAtual;
+        }
+        if (params.meta != null) {
+          currentSim2055Meta = params.meta;
+        }
+      }
+    } catch (e) {}
+
+    if (metaIdx != null) {
+      setSim2055Meta(metaIdx);
+    } else {
+      setSim2055Meta(currentSim2055Meta);
+    }
+
+    backdrop.classList.add('active');
+    recalcularSimulador2055();
+  }
+
+  function setSim2055Meta(metaIdx) {
+    currentSim2055Meta = metaIdx;
+    [1, 2, 3, 4].forEach(idx => {
+      const btn = document.getElementById('btnSimMeta' + idx);
+      if (btn) {
+        if (idx === metaIdx) {
+          btn.className = 'btn-matrix primary';
+        } else {
+          btn.className = 'btn-matrix';
+        }
+      }
+    });
+
+    const rendaInp = document.getElementById('sim2055RendaDesejada');
+    const labelMeta = document.getElementById('sim2055LabelMeta');
+
+    if (metaIdx === 1) {
+      if (rendaInp) rendaInp.value = 6044;
+      if (labelMeta) labelMeta.textContent = 'Meta 1: +1 Salário Líquido USP (R$ 6.044,00)';
+    } else if (metaIdx === 2) {
+      if (rendaInp) rendaInp.value = 6519;
+      if (labelMeta) labelMeta.textContent = 'Meta 2: Recompor 100% Poder de Compra (R$ 6.519,11)';
+    } else if (metaIdx === 3) {
+      if (rendaInp) rendaInp.value = 11479;
+      if (labelMeta) labelMeta.textContent = 'Meta 3: Poder de Compra + Dobro de Dinheiro Livre (R$ 11.479,11)';
+    } else if (metaIdx === 4) {
+      if (labelMeta) labelMeta.textContent = 'Meta 4: Renda Personalizada';
+    }
+
+    recalcularSimulador2055();
+  }
+
+  function onSim2055CustomRendaInput() {
+    currentSim2055Meta = 4;
+    [1, 2, 3].forEach(idx => {
+      const btn = document.getElementById('btnSimMeta' + idx);
+      if (btn) btn.className = 'btn-matrix';
+    });
+    const btn4 = document.getElementById('btnSimMeta4');
+    if (btn4) btn4.className = 'btn-matrix primary';
+    const labelMeta = document.getElementById('sim2055LabelMeta');
+    if (labelMeta) labelMeta.textContent = 'Meta 4: Renda Personalizada';
+    recalcularSimulador2055();
+  }
+
+  function recalcularSimulador2055() {
+    const puTitulo = parseFloat(document.getElementById('sim2055ValorTitulo')?.value) || 466.07;
+    const taxaRealAnual = (parseFloat(document.getElementById('sim2055TaxaReal')?.value) || 6.5) / 100;
+    const rendaDesejada = parseFloat(document.getElementById('sim2055RendaDesejada')?.value) || 6519.11;
+    const saldoAtualRenda = parseFloat(document.getElementById('sim2055SaldoAtual')?.value) || 1318.89;
+
+    const mesesAcumulacao = 348; // 29 anos (2026 a dez/2054)
+    const mesesUsufruto = 240;   // 20 anos (jan/2055 a dez/2074)
+
+    // Taxa mensal real
+    const rMes = Math.pow(1 + taxaRealAnual, 1 / 12) - 1;
+
+    // Fator de IR (15% sobre os ganhos de capital reais no resgate)
+    const fatorIr = 0.875;
+    const rendaBrutaNecessaria = rendaDesejada / fatorIr;
+
+    // Valor presente dos 240 saques mensais (patrimônio em jan/2055)
+    const vpSaques = rendaBrutaNecessaria * (1 - Math.pow(1 + rMes, -mesesUsufruto)) / rMes;
+
+    // Saldo já existente renderá pelos 348 meses
+    const fvSaldoAtual = saldoAtualRenda * Math.pow(1 + rMes, mesesAcumulacao);
+    const saldoLiquidoAcumular = Math.max(0, vpSaques - fvSaldoAtual);
+
+    // Fator de acumulação para aportes mensais
+    const fatorAcum = (Math.pow(1 + rMes, mesesAcumulacao) - 1) / rMes;
+    const aporteMensal = saldoLiquidoAcumular / fatorAcum;
+
+    // Quantidade de Títulos / Cotas calculada pelo Preço Unitário (PU)
+    const titulosPorMes = puTitulo > 0 ? (aporteMensal / puTitulo) : 0;
+    const totalTitulosAcumulados = puTitulo > 0 ? (vpSaques / puTitulo) : 0;
+
+    // Atualiza KPIs visuais
+    const elAporte = document.getElementById('simResAporteMensal');
+    const elTitulosMes = document.getElementById('simResTitulosMes');
+    const elTotalTitulos = document.getElementById('simResTotalTitulos');
+    const elMontanteFinal = document.getElementById('simResMontanteFinal');
+
+    if (elAporte) elAporte.textContent = formatBRL(aporteMensal);
+    if (elTitulosMes) elTitulosMes.textContent = (titulosPorMes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' títulos';
+    if (elTotalTitulos) elTotalTitulos.textContent = (totalTitulosAcumulados).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' cotas';
+    if (elMontanteFinal) elMontanteFinal.textContent = formatBRL(vpSaques);
+  }
+
+  function salvarParametrosSimulador2055() {
+    const params = {
+      puTitulo: parseFloat(document.getElementById('sim2055ValorTitulo')?.value) || 466.07,
+      taxaReal: parseFloat(document.getElementById('sim2055TaxaReal')?.value) || 6.5,
+      rendaDesejada: parseFloat(document.getElementById('sim2055RendaDesejada')?.value) || 6519.11,
+      planoSaude: parseFloat(document.getElementById('sim2055PlanoSaude')?.value) || 2776.70,
+      vales: parseFloat(document.getElementById('sim2055Vales')?.value) || 3350.00,
+      saldoAtual: parseFloat(document.getElementById('sim2055SaldoAtual')?.value) || 1318.89,
+      meta: currentSim2055Meta,
+      salvoEm: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(SIMULADOR_2055_STORAGE_KEY, JSON.stringify(params));
+      alert('Parâmetros da simulação salvos com sucesso! O simulador manterá suas preferências sempre que for aberto.');
+    } catch (e) {
+      alert('Erro ao salvar no dispositivo: ' + e.message);
+    }
+  }
+
+  function baixarRelatorioAposentadoria2055() {
+    const puTitulo = document.getElementById('sim2055ValorTitulo')?.value || '466,07';
+    const taxaReal = document.getElementById('sim2055TaxaReal')?.value || '6,5';
+    const renda = document.getElementById('sim2055RendaDesejada')?.value || '6.519,11';
+    const aporte = document.getElementById('simResAporteMensal')?.textContent || 'R$ 1.015,78';
+    const montante = document.getElementById('simResMontanteFinal')?.textContent || 'R$ 1.053.372,00';
+    const dataHora = new Date().toLocaleString('pt-BR');
+
+    let customHeader = '<!-- \n' +
+      '  RELATÓRIO & ADENDO APOSENTADORIA 2055 (TESOURO RENDA+)\n' +
+      '  Exportado diretamente do App Matrix Finance\n' +
+      '  Data da Exportação: ' + dataHora + '\n' +
+      '  Preço Unitário (PU) Considerado: R$ ' + puTitulo + '\n' +
+      '  Taxa Real Contratada: IPCA + ' + taxaReal + '% a.a.\n' +
+      '  Renda Mensal Desejada: R$ ' + renda + '/mês por 20 anos\n' +
+      '  Aporte Mensal Calculado: ' + aporte + '/mês\n' +
+      '  Patrimônio Projetado em 2055: ' + montante + '\n' +
+      '-->\n\n';
+
+    const fullContent = customHeader + RELATORIO_APOSENTADORIA_2055_BASE;
+
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/markdown;charset=utf-8,' + encodeURIComponent(fullContent));
+    element.setAttribute('download', 'adendo-investimentos-aposentadoria-2055-' + new Date().toISOString().slice(0, 10) + '.md');
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }
+
+  function imprimirRelatorioAposentadoria2055() {
+    const puTitulo = document.getElementById('sim2055ValorTitulo')?.value || '466,07';
+    const taxaReal = document.getElementById('sim2055TaxaReal')?.value || '6,5';
+    const renda = document.getElementById('sim2055RendaDesejada')?.value || '6.519,11';
+    const aporte = document.getElementById('simResAporteMensal')?.textContent || 'R$ 1.015,78';
+    const montante = document.getElementById('simResMontanteFinal')?.textContent || 'R$ 1.053.372,00';
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Por favor, permita pop-ups para imprimir o relatório.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Relatório de Aposentadoria 2055 - Tesouro Renda+</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; color: #111; line-height: 1.6; padding: 25px; max-width: 800px; margin: 0 auto; }
+          h1, h2, h3 { color: #059669; }
+          table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px; }
+          th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+          th { background: #f0fdf4; color: #047857; font-weight: bold; }
+          .highlight { background: #ecfdf5; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0; border-radius: 4px; }
+          .kpi-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+          .kpi { border: 1px solid #10b981; border-radius: 6px; padding: 10px; background: #f0fdf4; }
+          .kpi-title { font-size: 11px; color: #6b7280; font-weight: bold; text-transform: uppercase; }
+          .kpi-val { font-size: 18px; color: #047857; font-weight: 800; margin-top: 4px; }
+          @media print {
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="margin-bottom: 20px; display: flex; gap: 10px;">
+          <button onclick="window.print()" style="background:#059669;color:#fff;border:none;padding:8px 16px;border-radius:4px;font-weight:bold;cursor:pointer;">🖨️ Imprimir / Salvar como PDF</button>
+          <button onclick="window.close()" style="background:#e5e7eb;color:#374151;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;">Fechar</button>
+        </div>
+        <h1>📊 Relatório & Adendo de Aposentadoria 2055</h1>
+        <p><strong>Titular:</strong> Matheus • USP São Carlos | <strong>Horizonte:</strong> 2026 a 2055 (29 anos de acumulação) | <strong>Fase de Usufruto:</strong> 2055 a 2074 (20 anos)</p>
+        
+        <div class="kpi-box">
+          <div class="kpi">
+            <div class="kpi-title">Renda Mensal Real (20 anos)</div>
+            <div class="kpi-val">R$ ${renda}</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-title">Aporte Mensal Necessário</div>
+            <div class="kpi-val">${aporte}</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-title">Patrimônio Acumulado</div>
+            <div class="kpi-val">${montante}</div>
+          </div>
+        </div>
+
+        <div class="highlight">
+          <strong>Parâmetros Considerados:</strong> Preço Unitário (PU) do Título: R$ ${puTitulo} | Taxa Real: IPCA + ${taxaReal}% a.a. | Salário Base USP: R$ 6.264,00 | Perdas na Aposentadoria (Unimed 65+ R$ 2.776,70 + Vales R$ 3.350,00 + Aux. Saúde R$ 759,01 + FGTS R$ 501,12).
+        </div>
+
+        <h3>1. Projeção Salário Mínimo e Carreira USP (2055)</h3>
+        <table>
+          <tr><th>Cenário</th><th>Salário Mínimo 2055</th><th>Salário Bruto USP 2055</th><th>Poder de Compra Real</th></tr>
+          <tr><td>🛡️ Conservador</td><td>R$ 6.746,36</td><td>R$ 26.069,84</td><td>R$ 8.361,00 (+33%)</td></tr>
+          <tr><td>🚀 Otimista</td><td>R$ 8.995,91</td><td>R$ 34.762,74</td><td>R$ 12.744,00 (+103%)</td></tr>
+          <tr><td>⚖️ Mediano</td><td>R$ 7.871,14</td><td>R$ 30.416,29</td><td>R$ 10.552,00 (+68%)</td></tr>
+        </table>
+
+        <h3>2. Quadro Comparativo das Metas do Tesouro Renda+ 2055</h3>
+        <table>
+          <tr><th>Meta de Aposentadoria</th><th>Renda Mensal Real</th><th>Aporte Mensal (IPCA + 6,0%)</th><th>Aporte Mensal (IPCA + 6,5%)</th></tr>
+          <tr><td>1️⃣ +1 Salário Líquido USP</td><td>R$ 6.044,00</td><td>R$ 1.068,01</td><td>R$ 941,15</td></tr>
+          <tr><td>2️⃣ Manter 100% Poder de Compra</td><td>R$ 6.519,11</td><td>R$ 1.152,58</td><td>R$ 1.015,78</td></tr>
+          <tr><td>3️⃣ P.C. + Dobro de Dinheiro Livre</td><td>R$ 11.479,11</td><td>R$ 2.035,50</td><td>R$ 1.794,92</td></tr>
+        </table>
+        
+        <p style="font-size:11px;color:#6b7280;margin-top:20px;">Relatório emitido automaticamente pelo Matrix Finance 360.</p>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
   return {
     init,
     changeMonth,
@@ -6542,7 +6934,14 @@ const MatrixApp = (function () {
     salvarStatusDiaCalendario,
     toggleCalendarDay,
     switchTab,
-    initSwipeNavigation
+    initSwipeNavigation,
+    abrirSimuladorAposentadoria2055,
+    setSim2055Meta,
+    onSim2055CustomRendaInput,
+    recalcularSimulador2055,
+    salvarParametrosSimulador2055,
+    baixarRelatorioAposentadoria2055,
+    imprimirRelatorioAposentadoria2055
   };
 })();
 
