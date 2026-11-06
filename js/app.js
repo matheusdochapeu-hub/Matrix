@@ -1920,15 +1920,15 @@ const MatrixApp = (function () {
           const isFatura = isFaturasItem(f);
           return `
           <tr class="${f.pago ? 'paid' : ''}">
-            <td>
+            <td class="desc-col">
               <strong>${f.nome}</strong>
-              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+              <div class="item-meta-row">
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
                 ${f.categoria ? `<span class="cat-pill">${f.categoria}</span>` : ''}
-                ${isFatura ? `<span class="lock-pill" style="font-size:10px;padding:1px 6px;">🔒 Faturas Live</span>` : ''}
+                ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
-            <td>
+            <td class="status-col">
               <button type="button" 
                       class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
                       onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})"
@@ -1939,10 +1939,10 @@ const MatrixApp = (function () {
             <td class="val-col">${formatBRL(f.valor)}</td>
             <td class="action-col">
               ${isFatura ? `
-                <button class="btn-icon" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
+                <button class="btn-icon lock" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
               ` : `
-                <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
-                <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
+                <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
+                <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
               `}
             </td>
           </tr>
@@ -1961,15 +1961,15 @@ const MatrixApp = (function () {
           const isFatura = isFaturasItem(o);
           return `
           <tr class="${o.pago ? 'paid' : ''}">
-            <td>
+            <td class="desc-col">
               <strong>${o.nome}</strong>
-              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+              <div class="item-meta-row">
                 ${renderOrigemBadge(o.conta, o.renda, o.nome)}
                 ${o.categoria ? `<span class="cat-pill">${o.categoria}</span>` : ''}
-                ${isFatura ? `<span class="lock-pill" style="font-size:10px;padding:1px 6px;">🔒 Faturas Live</span>` : ''}
+                ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
               </div>
             </td>
-            <td>
+            <td class="status-col">
               <button type="button" 
                       class="status-btn ${o.pago ? 'pago' : 'pendente'}" 
                       onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})"
@@ -1980,10 +1980,10 @@ const MatrixApp = (function () {
             <td class="val-col">${formatBRL(o.valor)}</td>
             <td class="action-col">
               ${isFatura ? `
-                <button class="btn-icon" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
+                <button class="btn-icon lock" title="🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)" onclick="MatrixApp.alertFaturasReadOnly()">🔒</button>
               ` : `
-                <button class="btn-icon" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
-                <button class="btn-icon" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
+                <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
+                <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
               `}
             </td>
           </tr>
@@ -2008,18 +2008,18 @@ const MatrixApp = (function () {
           }
           return `
           <tr class="${d.pago ? 'paid' : ''}">
-            <td>
-              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+            <td class="desc-col">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px;">
                 <strong>${d.nome}</strong>
-                ${dtFmt ? `<small style="color:var(--text-dim);font-size:10px;">${dtFmt}</small>` : ''}
+                ${dtFmt ? `<small style="color:var(--text-dim);font-size:9.5px;">${dtFmt}</small>` : ''}
               </div>
-              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+              <div class="item-meta-row">
                 ${renderOrigemBadge(d.conta, d.renda, d.nome)}
                 <span class="cat-pill">${d.categoria || 'Gasto Diário'}</span>
-                ${d.obs ? `<span style="font-size:10px;color:var(--text-muted);font-style:italic;">"${d.obs}"</span>` : ''}
+                ${d.obs ? `<span style="font-size:9.5px;color:var(--text-muted);font-style:italic;">"${d.obs}"</span>` : ''}
               </div>
             </td>
-            <td>
+            <td class="status-col">
               <button type="button" 
                       class="status-btn ${d.pago ? 'pago' : 'pendente'}" 
                       onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'diario', ${i})"
@@ -2029,8 +2029,8 @@ const MatrixApp = (function () {
             </td>
             <td class="val-col" style="color:var(--rose);font-weight:700;">${formatBRL(d.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar este gasto diário" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">✏️</button>
-              <button class="btn-icon" title="Excluir este gasto diário" onclick="MatrixApp.removeQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">🗑️</button>
+              <button class="btn-icon edit" title="Editar este gasto diário" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">✏️</button>
+              <button class="btn-icon delete" title="Excluir este gasto diário" onclick="MatrixApp.removeQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">🗑️</button>
             </td>
           </tr>
         `;
@@ -2066,33 +2066,37 @@ const MatrixApp = (function () {
           const naoPecunia = isBeneficioNaoPecunia(r);
           return `
           <tr class="${r.pago ? 'paid' : ''}" style="${naoPecunia ? 'background:rgba(251,191,36,0.035);' : ''}">
-            <td>
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <td class="desc-col">
+              <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
                 <strong>${r.nome}</strong>
-                ${naoPecunia ? `<span class="cat-pill" style="background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid rgba(251,191,36,0.4);font-size:9.5px;" title="Benefício de Alimentação: não é dinheiro em pecúnia para pagar contas bancárias">🛒 NÃO-PECÚNIA</span>` : ''}
+                ${naoPecunia ? `<span class="cat-pill" style="background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid rgba(251,191,36,0.4);font-size:8.5px;" title="Benefício de Alimentação: não é dinheiro em pecúnia para pagar contas bancárias">🛒 NÃO-PECÚNIA</span>` : ''}
               </div>
-              <div style="display:flex;gap:4px;align-items:center;margin-top:3px;flex-wrap:wrap;">
+              <div class="item-meta-row">
                 ${renderOrigemBadge(r.conta, r.renda, r.nome)}
                 <span class="cat-pill">${r.categoria || (naoPecunia ? 'Benefício' : 'Receita')}</span>
               </div>
             </td>
-            <td>
+            <td class="status-col">
               <button type="button" 
                       class="status-btn ${r.pago ? 'pago' : 'pendente'}" 
                       onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})"
                       title="Clique para alternar entre Recebido e A Receber">
-                ${r.pago ? '✅ RECEBIDO' : '⏳ A RECEBER'}
+                ${r.pago ? '✅ PAGO' : '⏳ PEND.'}
               </button>
             </td>
             <td class="val-col" style="color:${naoPecunia ? 'var(--amber)' : 'var(--cyan)'};font-weight:700;">
               ${formatBRL(r.valor)}
-              ${naoPecunia ? `<div style="font-size:9.5px;color:var(--text-dim);font-weight:normal;">(Alimentação)</div>` : ''}
+              ${naoPecunia ? `<div style="font-size:9px;color:var(--text-dim);font-weight:normal;">(Alimentação)</div>` : ''}
             </td>
             <td class="action-col">
-              <button class="btn-icon" title="Editar esta receita" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">✏️</button>
-              <button class="btn-icon" title="Excluir esta receita" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">🗑️</button>
+              <button class="btn-icon edit" title="Editar esta receita" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">✏️</button>
+              <button class="btn-icon delete" title="Excluir esta receita" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})">🗑️</button>
             </td>
           </tr>
+        `;
+        }).join('');
+      }
+    }
         `;
         }).join('');
       }

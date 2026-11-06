@@ -342,17 +342,19 @@
             <div class="progress-track"><div id="fixosProgressBar" class="progress-fill green" style="width:0%;"></div></div>
           </div>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Status (Clique p/ Pagar)</th>
-                <th style="text-align:right;">Valor</th>
-                <th style="text-align:right;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="fixosTableBody"></tbody>
-          </table>
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="desc-col">Descrição</th>
+                  <th class="status-col">Status</th>
+                  <th class="val-col">Valor</th>
+                  <th class="action-col">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="fixosTableBody"></tbody>
+            </table>
+          </div>
 
           <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('fixo')">+ Novo Gasto Fixo</button>
         </div>
@@ -373,17 +375,19 @@
             <div class="progress-track"><div id="outrosProgressBar" class="progress-fill green" style="width:0%;"></div></div>
           </div>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Status (Clique p/ Pagar)</th>
-                <th style="text-align:right;">Valor</th>
-                <th style="text-align:right;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="outrosTableBody"></tbody>
-          </table>
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="desc-col">Descrição</th>
+                  <th class="status-col">Status</th>
+                  <th class="val-col">Valor</th>
+                  <th class="action-col">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="outrosTableBody"></tbody>
+            </table>
+          </div>
 
           <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('outro')">+ Novo Gasto Variável</button>
 
@@ -409,17 +413,19 @@
               <div class="progress-track"><div id="diariosProgressBar" class="progress-fill green" style="width:0%;"></div></div>
             </div>
 
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Descrição & Origem</th>
-                  <th>Status</th>
-                  <th style="text-align:right;">Valor</th>
-                  <th style="text-align:right;">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="diariosTableBody"></tbody>
-            </table>
+            <div class="data-table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th class="desc-col">Descrição & Origem</th>
+                    <th class="status-col">Status</th>
+                    <th class="val-col">Valor</th>
+                    <th class="action-col">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="diariosTableBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -439,17 +445,19 @@
             <div class="progress-track"><div id="receitasProgressBar" class="progress-fill green" style="width:0%;"></div></div>
           </div>
 
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Descrição</th>
-                <th>Status (Clique p/ Alternar)</th>
-                <th style="text-align:right;">Valor</th>
-                <th style="text-align:right;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="receitasTableBody"></tbody>
-          </table>
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="desc-col">Descrição</th>
+                  <th class="status-col">Status</th>
+                  <th class="val-col">Valor</th>
+                  <th class="action-col">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="receitasTableBody"></tbody>
+            </table>
+          </div>
 
           <button class="btn-matrix" style="width:100%;justify-content:center;margin-top:12px;margin-bottom:16px;" onclick="MatrixApp.openNewItemModal('receita')">+ Nova Receita</button>
 
