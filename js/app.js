@@ -4239,16 +4239,28 @@ const MatrixApp = (function () {
   }
 
   function renderInvestTable(invList) {
-    const tbody = document.getElementById('investmentsTableBody');
-    if (!tbody) return;
+    const container = document.getElementById('investmentsCardsContainer') || document.getElementById('investmentsTableBody');
+    const badgeCount = document.getElementById('investCountBadge');
+    if (!container) return;
 
     let filtered = invList;
     if (currentInvestFilter && currentInvestFilter !== 'todos') {
       filtered = invList.filter(it => (it.titular || 'Matheus') === currentInvestFilter);
     }
 
+    if (badgeCount) {
+      badgeCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'ativo' : 'ativos'}`;
+    }
+
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px;">Nenhum investimento encontrado para o filtro selecionado.</td></tr>`;
+      container.innerHTML = `
+        <div style="text-align:center;color:var(--text-muted);padding:30px 14px;background:var(--bg-card);border:1px dashed var(--border-dim);border-radius:var(--radius-sm);">
+          Nenhum investimento encontrado para este filtro.
+          <div style="margin-top:10px;">
+            <button class="btn-matrix primary" style="font-size:11px;" onclick="MatrixApp.openNewInvestmentModal()">+ Cadastrar Novo Investimento</button>
+          </div>
+        </div>
+      `;
       return;
     }
 
@@ -4266,92 +4278,109 @@ const MatrixApp = (function () {
         const subItems = groups[key];
         const totalGrupo = subItems.reduce((acc, x) => acc + (parseFloat(x.valorAtual) || 0), 0);
         const first = subItems[0];
-        const est = estimarValorVencimento(first);
         const isExpanded = !!investExpandedGroups[key];
         const hasMultiple = subItems.length > 1;
 
         html += `
-          <tr style="background:rgba(18,29,23,0.3);font-weight:600;">
-            <td>
-              <span class="titular-badge ${first.titular.toLowerCase()}">${first.titular}</span>
-            </td>
-            <td>
-              <div style="display:flex;align-items:center;gap:6px;">
-                ${hasMultiple ? `<button class="btn-icon" style="font-size:10px;padding:2px 4px;" onclick="MatrixApp.toggleGroupExpand('${key}')">${isExpanded ? '▼' : '▶'}</button>` : ''}
-                <strong style="color:var(--text-main);">${key}</strong>
-                ${hasMultiple ? `<span class="box-badge" style="font-size:9px;color:var(--cyan);border-color:var(--cyan);">${subItems.length} Custódias</span>` : ''}
+          <div class="invest-clean-card" style="background:rgba(18,29,23,0.35);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div style="min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+                  <span class="titular-badge ${first.titular.toLowerCase()}">${first.titular}</span>
+                  <span class="status-badge simulado">${first.categoria}</span>
+                  ${hasMultiple ? `<span class="box-badge" style="font-size:9.5px;color:var(--cyan);border-color:var(--cyan);">${subItems.length} Custódias</span>` : ''}
+                </div>
+                <div style="font-size:14px;font-weight:700;color:var(--text-bright);">${key}</div>
               </div>
-            </td>
-            <td>${hasMultiple ? 'Múltiplas Corretoras' : first.corretora}</td>
-            <td><span class="status-badge simulado">${first.categoria}</span></td>
-            <td class="val-col" style="font-size:13px;font-weight:700;color:var(--matrix-green);">${formatBRL(totalGrupo)}</td>
-            <td><div style="font-size:10px;color:var(--text-muted);">${est.texto}</div></td>
-            <td><span style="font-size:10px;color:var(--text-muted);">${first.rentabilidadeContratada || first.status}</span></td>
-            <td style="text-align:center;">
-              <div style="display:flex;gap:4px;justify-content:center;">
-                <button class="btn-matrix" style="padding:2px 6px;font-size:10px;" onclick="MatrixApp.openAporteModal('${first.id}')">+ Aporte</button>
-                <button class="btn-matrix secondary" style="padding:2px 6px;font-size:10px;" onclick="MatrixApp.openResgateModal('${first.id}')">💸 Resgatar</button>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:16px;font-weight:800;color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(totalGrupo)}</div>
               </div>
-            </td>
-          </tr>
-        `;
+            </div>
 
-        // Se estiver expandido e tiver mais de 1 custódia, mostra as sublinhas detalhadas
-        if (hasMultiple && isExpanded) {
-          subItems.forEach(sub => {
-            html += `
-              <tr class="grouped-subrow">
-                <td><span style="font-size:9px;color:var(--text-dim);">${sub.titular}</span></td>
-                <td>↳ <span style="font-size:10px;color:var(--text-muted);">${sub.ativo}</span></td>
-                <td><strong style="color:var(--cyan);font-size:10px;">${sub.corretora}</strong></td>
-                <td><span style="font-size:9px;color:var(--text-dim);">${sub.categoria}</span></td>
-                <td class="val-col" style="font-size:11px;">${formatBRL(sub.valorAtual)}</td>
-                <td><span style="font-size:9px;color:var(--text-dim);">${sub.vencimento || '--'}</span></td>
-                <td><span style="font-size:9px;color:var(--text-dim);">${sub.status || '--'}</span></td>
-                <td style="text-align:center;">
-                  <button class="btn-icon" style="font-size:11px;" onclick="MatrixApp.openEditInvestmentModal('${sub.id}')" title="Editar">✏️</button>
-                  <button class="btn-icon" style="color:var(--rose);font-size:11px;" onclick="MatrixApp.excluirInvestimento('${sub.id}')" title="Excluir">🗑️</button>
-                </td>
-              </tr>
-            `;
-          });
-        }
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);border-top:1px solid rgba(255,255,255,0.05);padding-top:7px;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+              <span>🏛️ ${hasMultiple ? 'Múltiplas Instituições' : first.corretora}</span>
+              <span style="color:var(--cyan);">${first.rentabilidadeContratada || 'Renda Variável'}</span>
+              <span>📅 Venc: <strong style="color:var(--text-bright);">${first.vencimento || 'Longo Prazo'}</strong></span>
+            </div>
+
+            <div style="display:flex;gap:6px;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px;flex-wrap:wrap;">
+              <div>
+                ${hasMultiple ? `
+                  <button class="btn-matrix secondary" style="padding:4px 9px;font-size:11px;" onclick="MatrixApp.toggleGroupExpand('${key}')">
+                    ${isExpanded ? '▲ Ocultar Custódias' : `▼ Ver ${subItems.length} Custódias`}
+                  </button>
+                ` : ''}
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn-matrix" style="padding:4px 10px;font-size:11px;" onclick="MatrixApp.openAporteModal('${first.id}')">+ Aporte</button>
+                <button class="btn-matrix secondary" style="padding:4px 10px;font-size:11px;" onclick="MatrixApp.openResgateModal('${first.id}')">💸 Resgatar</button>
+                ${!hasMultiple ? `
+                  <button class="btn-matrix" style="padding:4px 10px;font-size:11px;color:var(--cyan);border-color:rgba(56,189,248,0.4);" onclick="MatrixApp.openEditInvestmentModal('${first.id}')">✏️ Editar</button>
+                  <button class="btn-matrix" style="padding:4px 10px;font-size:11px;color:var(--rose);border-color:rgba(244,63,94,0.4);" onclick="MatrixApp.excluirInvestimento('${first.id}')">🗑️ Excluir</button>
+                ` : ''}
+              </div>
+            </div>
+
+            ${hasMultiple && isExpanded ? `
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-dim);display:flex;flex-direction:column;gap:8px;">
+                ${subItems.map(sub => `
+                  <div style="background:rgba(5,8,7,0.5);border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <div>
+                      <span style="font-size:11.5px;font-weight:700;color:var(--cyan);">${sub.corretora}</span>
+                      <span style="font-size:10px;color:var(--text-muted);margin-left:6px;font-family:var(--font-mono);">${sub.rentabilidadeContratada || sub.status || ''}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <strong style="font-size:13px;color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(sub.valorAtual)}</strong>
+                      <div style="display:flex;gap:4px;">
+                        <button class="btn-matrix" style="padding:3px 8px;font-size:10px;color:var(--cyan);border-color:rgba(56,189,248,0.4);" onclick="MatrixApp.openEditInvestmentModal('${sub.id}')">✏️ Editar</button>
+                        <button class="btn-matrix" style="padding:3px 8px;font-size:10px;color:var(--rose);border-color:rgba(244,63,94,0.4);" onclick="MatrixApp.excluirInvestimento('${sub.id}')">🗑️ Excluir</button>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
       });
 
-      tbody.innerHTML = html;
+      container.innerHTML = html;
       return;
     }
 
-    // Visão Detalhada Tradicional
-    tbody.innerHTML = filtered.map(inv => {
-      const est = estimarValorVencimento(inv);
+    // Visão Limpa Individual em Cards (Mobile-first, Direto e Fácil de Usar)
+    container.innerHTML = filtered.map(inv => {
       const titular = inv.titular || 'Matheus';
       const titularClass = titular.toLowerCase();
 
       return `
-        <tr>
-          <td><span class="titular-badge ${titularClass}">${titular}</span></td>
-          <td><strong>${inv.ativo}</strong></td>
-          <td>${inv.corretora}</td>
-          <td><span class="status-badge simulado">${inv.categoria}</span></td>
-          <td class="val-col" style="font-weight:700;color:var(--matrix-green);">${formatBRL(inv.valorAtual)}</td>
-          <td>
-            <div style="font-weight:600;color:var(--text-main);">${inv.vencimento || 'Longo Prazo'}</div>
-            <div style="font-size:10px;color:var(--text-muted);">${est.texto}</div>
-          </td>
-          <td>
-            <div style="font-size:11px;color:var(--cyan);">${inv.rentabilidadeContratada || ''}</div>
-            <span class="status-badge ${inv.status && inv.status.includes('Ativo') ? 'pago' : 'pendente'}" style="font-size:9px;padding:1px 6px;">${inv.status}</span>
-          </td>
-          <td style="text-align:center;">
-            <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
-              <button class="btn-matrix" style="padding:3px 7px;font-size:10px;" onclick="MatrixApp.openAporteModal('${inv.id}')" title="Adicionar aporte futuro ou presente">+ Aporte</button>
-              <button class="btn-matrix secondary" style="padding:3px 7px;font-size:10px;" onclick="MatrixApp.openResgateModal('${inv.id}')" title="Resgatar ou liquidar">💸 Resgatar</button>
-              <button class="btn-icon" onclick="MatrixApp.openEditInvestmentModal('${inv.id}')" title="Editar este ativo">✏️</button>
-              <button class="btn-icon" style="color:var(--rose);" onclick="MatrixApp.excluirInvestimento('${inv.id}')" title="Excluir do portfólio">🗑️</button>
+        <div class="invest-clean-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+                <span class="titular-badge ${titularClass}" style="font-size:9.5px;padding:2px 7px;">${titular}</span>
+                <span class="status-badge simulado" style="font-size:9.5px;padding:2px 7px;">${inv.categoria}</span>
+              </div>
+              <div style="font-size:13.5px;font-weight:700;color:var(--text-bright);line-height:1.3;">${inv.ativo}</div>
             </div>
-          </td>
-        </tr>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-size:16px;font-weight:800;color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(inv.valorAtual)}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);border-top:1px solid rgba(255,255,255,0.05);padding-top:7px;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+            <span>🏛️ ${inv.corretora}</span>
+            <span style="color:var(--cyan);">${inv.rentabilidadeContratada || 'Renda Variável'}</span>
+            <span>📅 Venc: <strong style="color:var(--text-bright);">${inv.vencimento || 'Longo Prazo'}</strong></span>
+          </div>
+
+          <div style="display:flex;gap:6px;align-items:center;justify-content:flex-end;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px;flex-wrap:wrap;">
+            <button class="btn-matrix" style="padding:4px 10px;font-size:11px;" onclick="MatrixApp.openAporteModal('${inv.id}')" title="Adicionar aporte">+ Aporte</button>
+            <button class="btn-matrix secondary" style="padding:4px 10px;font-size:11px;" onclick="MatrixApp.openResgateModal('${inv.id}')" title="Resgatar valor">💸 Resgatar</button>
+            <button class="btn-matrix" style="padding:4px 10px;font-size:11px;color:var(--cyan);border-color:rgba(56,189,248,0.4);" onclick="MatrixApp.openEditInvestmentModal('${inv.id}')" title="Editar">✏️ Editar</button>
+            <button class="btn-matrix" style="padding:4px 10px;font-size:11px;color:var(--rose);border-color:rgba(244,63,94,0.4);" onclick="MatrixApp.excluirInvestimento('${inv.id}')" title="Excluir">🗑️ Excluir</button>
+          </div>
+        </div>
       `;
     }).join('');
   }

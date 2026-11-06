@@ -1147,23 +1147,18 @@
           </div>
         </div>
 
-        <!-- Tabela Completa de Ativos e Posições -->
-        <div style="overflow-x:auto;">
-          <table class="data-table" style="font-size:11px;">
-            <thead>
-              <tr>
-                <th style="width:75px;">Titular</th>
-                <th>Ativo</th>
-                <th>Instituição</th>
-                <th>Categoria</th>
-                <th style="text-align:right;">Posição Atual</th>
-                <th>Vencimento & Estimativa</th>
-                <th>Rentabilidade / Estratégia</th>
-                <th style="text-align:center;width:170px;">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="investmentsTableBody"></tbody>
-          </table>
+        <!-- Lista Limpa e Reorganizada de Ativos -->
+        <div style="margin-top:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:6px;">
+              📁 Ativos em Carteira
+              <span id="investCountBadge" class="box-badge" style="font-size:10px;color:var(--matrix-green);border-color:var(--matrix-green);">0 ativos</span>
+            </div>
+            <button class="btn-matrix primary" style="padding:6px 14px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:4px;" onclick="MatrixApp.openNewInvestmentModal()">
+              <span>+</span> Novo Investimento
+            </button>
+          </div>
+          <div id="investmentsCardsContainer" class="invest-cards-list"></div>
         </div>
       </div>
     </section>

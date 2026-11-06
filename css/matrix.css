@@ -3255,3 +3255,31 @@ body {
     display: none !important;
   }
 }
+
+/* Lista de Investimentos Mobile-First */
+.invest-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 900px) {
+  .invest-cards-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+.invest-clean-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  transition: all var(--transition-fast);
+}
+
+.invest-clean-card:hover {
+  border-color: rgba(0, 255, 102, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
