@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=49">
+  <link rel="stylesheet" href="css/matrix.css?v=50">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -773,6 +773,12 @@
             <div style="margin-bottom:10px;">
               <label style="font-size:11px;color:var(--text-muted);">FGTS Depositado (R$):</label>
               <input type="number" step="0.01" id="hlFgts" class="matrix-input" value="501.12">
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--amber);font-weight:600;">Empréstimo Consignado USP (R$):</label>
+              <input type="number" step="0.01" id="hlConsignado" class="matrix-input" value="0.00" placeholder="0.00" oninput="MatrixApp.recalcularHoleriteManualLiquido()">
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Desconto de empréstimo consignado em folha de pagamento</span>
             </div>
 
             <div style="margin-bottom:14px;">
@@ -1609,22 +1615,69 @@
         </div>
       </div>
 
-      <!-- Sub-bloco Dinâmico para Empréstimo: Agendamento de Parcelas Futuras -->
-      <div id="modalEmprestimoSection" style="display:none;background:rgba(234,179,8,0.08);border:1px solid var(--amber);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:14px;">
-        <strong style="color:var(--amber);font-size:12px;display:block;margin-bottom:6px;">🏦 Condições do Empréstimo / Financiamento:</strong>
-        <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px 0;">O valor total do empréstimo entra como receita no caixa deste mês. Deseja agendar as parcelas de pagamento automaticamente nos Gastos Fixos dos meses seguintes?</p>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-main);cursor:pointer;margin-bottom:8px;">
+      <!-- Sub-bloco Dinâmico para Empréstimo: Condições, Início da Amortização e Antiduplicidade -->
+      <div id="modalEmprestimoSection" style="display:none;background:linear-gradient(135deg, rgba(245,158,11,0.06), rgba(20,15,5,0.8));border:1px solid rgba(245,158,11,0.35);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;box-shadow:0 0 15px rgba(245,158,11,0.05);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <strong style="color:var(--amber);font-size:12.5px;display:flex;align-items:center;gap:6px;">
+            🏦 Condições do Empréstimo / Financiamento
+          </strong>
+          <span class="box-badge" style="color:var(--amber);border-color:rgba(245,158,11,0.4);font-size:9.5px;padding:2px 7px;">Amortização</span>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 12px 0;line-height:1.45;">
+          O valor total contratado entra como receita no mês atual. Configure abaixo quando e como as parcelas começarão a amortizar para reduzir o salário ou orçamento.
+        </p>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-bright);cursor:pointer;margin-bottom:12px;font-family:var(--font-mono);">
           <input type="checkbox" id="chkGerarParcelasEmprestimo" checked onchange="MatrixApp.toggleEmprestimoParcelas(this.checked)">
-          Programar parcelas automáticas de amortização nos Gastos Fixos
+          <span>Programar parcelas automáticas de amortização nos Gastos Fixos</span>
         </label>
-        <div id="modalEmprestimoParcelasFields" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div>
-            <label style="font-size:10.5px;color:var(--text-muted);">Qtd. de Parcelas:</label>
-            <input type="number" id="modalEmprestimoNumParcelas" class="input-matrix" value="12" min="1" max="120" style="padding:4px 8px;font-size:12px;">
+
+        <div id="modalEmprestimoParcelasFields" style="display:grid;grid-template-columns:1fr;gap:12px;">
+          <!-- Linha 1: Modalidade do Desconto e Mês de Início -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:4px;font-weight:600;">
+                Tipo de Débito / Desconto:
+              </label>
+              <select id="modalEmprestimoModalidade" class="matrix-select" style="font-size:11.5px;" onchange="MatrixApp.onEmprestimoModalidadeChange(this.value)">
+                <option value="consignado" selected>🏛️ Consignado em Folha (USP • Reduz Salário)</option>
+                <option value="debito_conta">💳 Débito em Conta / Boleto (Gasto Bancário)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:4px;font-weight:600;">
+                Mês de Início (1ª Parcela):
+              </label>
+              <select id="modalEmprestimoInicioMes" class="matrix-select" style="font-size:11.5px;">
+                <!-- Preenchido dinamicamente com os próximos meses -->
+              </select>
+            </div>
           </div>
-          <div>
-            <label style="font-size:10.5px;color:var(--text-muted);">Valor da Parcela (R$):</label>
-            <input type="number" step="0.01" id="modalEmprestimoValorParcela" class="input-matrix" placeholder="Ex: 350.00" style="padding:4px 8px;font-size:12px;">
+
+          <!-- Linha 2: Quantidade de Parcelas e Valor da Parcela -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:4px;font-weight:600;">
+                Qtd. de Parcelas:
+              </label>
+              <input type="number" id="modalEmprestimoNumParcelas" class="matrix-input" value="96" min="1" max="180" placeholder="Ex: 96" oninput="MatrixApp.recalcEmprestimoParcelaSugestao()">
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Duração total da amortização</span>
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:4px;font-weight:600;">
+                Valor da Parcela Mensal (R$):
+              </label>
+              <input type="number" step="0.01" id="modalEmprestimoValorParcela" class="matrix-input" placeholder="Ex: 350.00">
+              <span id="modalEmprestimoSugestaoHint" style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Se vazio, divide o valor pelas parcelas</span>
+            </div>
+          </div>
+
+          <!-- Box Informativo Antiduplicidade com Holerite -->
+          <div id="modalEmprestimoAntiduplicidadeBox" style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.25);border-radius:var(--radius-xs);padding:10px 12px;font-size:11px;color:var(--text-muted);line-height:1.45;">
+            <div style="display:flex;align-items:center;gap:6px;color:var(--cyan);font-weight:700;margin-bottom:3px;font-family:var(--font-mono);">
+              <span>🛡️ Prevenção Inteligente de Duplicidade no Holerite:</span>
+            </div>
+            <span>Nos meses futuros (projeção), as parcelas atuarão como Gastos Fixos para simular a redução real do salário. Quando o holerite oficial daquele mês for importado (cujo líquido já vem descontado pela USP), a retenção é conciliada automaticamente para não debitar duas vezes no caixa.</span>
           </div>
         </div>
       </div>
@@ -2461,16 +2514,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=49"></script>
-  <script src="js/matrix-rain.js?v=49"></script>
-  <script src="js/db.js?v=49"></script>
-  <script src="js/calendar-engine.js?v=49"></script>
-  <script src="js/amortization-engine.js?v=49"></script>
-  <script src="js/scenario-simulator.js?v=49"></script>
-  <script src="js/pdf-reader.js?v=49"></script>
-  <script src="js/satellite-connectors.js?v=49"></script>
-  <script src="js/sync-engine.js?v=49"></script>
-  <script src="js/app.js?v=49"></script>
+  <script src="js/seed-data.js?v=50"></script>
+  <script src="js/matrix-rain.js?v=50"></script>
+  <script src="js/db.js?v=50"></script>
+  <script src="js/calendar-engine.js?v=50"></script>
+  <script src="js/amortization-engine.js?v=50"></script>
+  <script src="js/scenario-simulator.js?v=50"></script>
+  <script src="js/pdf-reader.js?v=50"></script>
+  <script src="js/satellite-connectors.js?v=50"></script>
+  <script src="js/sync-engine.js?v=50"></script>
+  <script src="js/app.js?v=50"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>

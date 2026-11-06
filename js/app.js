@@ -503,7 +503,30 @@ const MatrixApp = (function () {
     return tit === 'scarlet' || n === 'nubank scarlet';
   }
 
-  // Sobra pessoal do Matheus = ganhos dele - gastos próprios - transferência para a Scarlet.
+    // Identifica se um item é parcela de empréstimo consignado em folha
+  function isConsignadoFolhaItem(it) {
+    if (!it) return false;
+    if (it.consignadoFolha === true || it.tipoAmortizacao === 'consignado_folha') return true;
+    const n = (it.nome || '').toLowerCase();
+    const c = (it.categoria || '').toLowerCase();
+    if (n.includes('consignado')) return true;
+    if (c === 'empréstimo' && (it.conta === 'salario_bb' || it.renda === 'salario_usp')) return true;
+    return false;
+  }
+
+  // Verifica se o consignado em folha já foi abatido no salário líquido do holerite oficial deste mês.
+  // Evita DUPLICIDADE: se o holerite já está lançado, o salário em conta já veio menor,
+  // portanto a parcela NÃO deve ser descontada uma segunda vez do caixa/sobra.
+  function isConsignadoFolhaJaDescontado(it, ano, mes, state = null) {
+    if (!isConsignadoFolhaItem(it)) return false;
+    const s = state || MatrixDB.getState();
+    const monthNum = String(MONTH_NAMES.indexOf(mes) + 1).padStart(2, '0');
+    const periodoKey = `${ano}-${monthNum}`;
+    const hol = (s.holerites || []).find(h => (String(h.ano) === String(ano) && h.mesNome === mes) || h.periodo === periodoKey || h.periodo === `${ano}-${mes}`);
+    return !!(hol && hol.liquido);
+  }
+
+// Sobra pessoal do Matheus = ganhos dele - gastos próprios - transferência para a Scarlet.
   // Usada pelo card do painel executivo e pela auditoria (drilldown), garantindo números idênticos.
   function calcSobraMatheus(ano, mes) {
     const monthData = MatrixDB.getMonth(ano, mes);
@@ -524,7 +547,7 @@ const MatrixApp = (function () {
     }
 
     const somaPropria = (lista) => (lista || [])
-      .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it))
+      .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && !isConsignadoFolhaJaDescontado(it, ano, mes))
       .reduce((acc, it) => acc + num(it.valor), 0);
 
     const fixos = somaPropria(monthData.fixos);
@@ -2891,10 +2914,12 @@ const MatrixApp = (function () {
           const isFatura = isFaturasItem(f);
           const isScarletTransf = (f.nome || '').trim().toLowerCase() === 'scarlet';
           const isCarona = isCaronaItem(f);
+          const isConsignado = isConsignadoFolhaItem(f);
+          const jaRetidoNoHolerite = isConsignadoFolhaJaDescontado(f, currentYear, currentMonth);
           const curCommute = isCarona ? CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), MONTH_NAMES.indexOf(currentMonth) + 1, MatrixDB.getState().calendarioCustom) : null;
           const cycleInfo = curCommute ? curCommute.salaryCycle : null;
           return `
-          <tr class="${f.pago ? 'paid' : ''}">
+          <tr class="${(f.pago || jaRetidoNoHolerite) ? 'paid' : ''}">
             <td class="desc-col">
               <strong>${f.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
@@ -2902,15 +2927,25 @@ const MatrixApp = (function () {
                 ${(f.categoria || isScarletTransf) ? `<span class="cat-pill" ${isScarletTransf ? 'title="Transferência para pagar fatura Nubank da Scarlet"' : ''}>${isScarletTransf ? '💳 Cartão Nubank' : f.categoria}</span>` : ''}
                 ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
                 ${isCarona && cycleInfo ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.07);" title="Vinculado ao Calendário USP & Caronas (${cycleInfo.cycleWorkingDaysCount} dias no ciclo ${cycleInfo.cycleRangeLabel})">🚗 Calendário USP: ${cycleInfo.cycleWorkingDaysCount}d (${cycleInfo.cycleRangeLabel})</span>` : ''}
+                ${jaRetidoNoHolerite ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--cyan);border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);" title="Esta parcela já foi descontada na folha de pagamento do holerite oficial deste mês. Não é deduzida novamente da conta corrente para evitar duplicidade.">📋 Retido no Holerite (Sem Duplicidade)</span>` : isConsignado ? `<span class="cat-pill" style="color:var(--amber);border-color:rgba(245,158,11,0.35);" title="Previsão de redução salarial nos meses futuros até a importação do holerite">🏛️ Consignado em Folha</span>` : ''}
               </div>
             </td>
             <td class="status-col">
-              <button type="button" 
-                      class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
-                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})"
-                      title="Clique para alternar entre Pago e Pendente">
-                ${f.pago ? '✅ PAGO' : '⏳ PENDENTE'}
-              </button>
+              ${jaRetidoNoHolerite ? `
+                <button type="button" 
+                        class="status-btn pago" 
+                        style="color:var(--cyan);border-color:rgba(6,182,212,0.4);font-size:10px;padding:3px 6px;"
+                        title="Desconto já retido na folha no holerite oficial da USP deste mês (duplicidade prevenida)">
+                  ✔ RETIDO EM FOLHA
+                </button>
+              ` : `
+                <button type="button" 
+                        class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
+                        onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})"
+                        title="Clique para alternar entre Pago e Pendente">
+                  ${f.pago ? '✅ PAGO' : '⏳ PENDENTE'}
+                </button>
+              `}
             </td>
             <td class="val-col">${formatBRL(f.valor)}</td>
             <td class="action-col">
@@ -3254,7 +3289,100 @@ const MatrixApp = (function () {
     }
   }
 
-  function onModalCategoriaChange(catVal) {
+    // Preenche opções de meses de início da amortização (1ª parcela)
+  function populateModalEmprestimoMeses(selectedVal = null) {
+    const sel = document.getElementById('modalEmprestimoInicioMes');
+    if (!sel) return;
+
+    sel.innerHTML = '';
+    const curY = parseInt(currentYear, 10) || 2026;
+    const curMIdx = MONTH_NAMES.indexOf(currentMonth) >= 0 ? MONTH_NAMES.indexOf(currentMonth) : 10;
+
+    for (let offset = 1; offset <= 12; offset++) {
+      let mIdx = curMIdx + offset;
+      let y = curY + Math.floor(mIdx / 12);
+      mIdx = mIdx % 12;
+      const mesNome = MONTH_NAMES[mIdx];
+      const monthNum = String(mIdx + 1).padStart(2, '0');
+      const val = `${y}-${monthNum}`;
+
+      let labelDesc = '';
+      if (offset === 1) {
+        labelDesc = ' (Mês seguinte • Padrão)';
+      } else if (offset === 2) {
+        labelDesc = ' (Carência de 1 mês)';
+      } else if (offset === 3) {
+        labelDesc = ' (Carência de 2 meses)';
+      } else {
+        labelDesc = ` (+${offset} meses)`;
+      }
+
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = `${monthNum}/${y} • ${mesNome}${labelDesc}`;
+      if (selectedVal ? val === selectedVal : offset === 1) {
+        opt.selected = true;
+      }
+      sel.appendChild(opt);
+    }
+  }
+
+  function onEmprestimoModalidadeChange(modalidade) {
+    const box = document.getElementById('modalEmprestimoAntiduplicidadeBox');
+    if (!box) return;
+    if (modalidade === 'consignado') {
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;color:var(--cyan);font-weight:700;margin-bottom:3px;font-family:var(--font-mono);">
+          <span>🛡️ Prevenção Inteligente de Duplicidade no Holerite:</span>
+        </div>
+        <span>Nos meses futuros (projeção), as parcelas atuarão como Gastos Fixos para simular a redução real do salário. Quando o holerite oficial daquele mês for importado (cujo líquido já vem descontado pela USP), a dedução é conciliada automaticamente para não debitar duas vezes no caixa.</span>
+      `;
+    } else {
+      box.style.display = 'block';
+      box.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;color:var(--amber);font-weight:700;margin-bottom:3px;font-family:var(--font-mono);">
+          <span>💳 Débito em Conta Corrente:</span>
+        </div>
+        <span>As parcelas serão debitadas diretamente da sua conta corrente mensalmente. Não há retenção no holerite da USP.</span>
+      `;
+    }
+  }
+
+  function recalcEmprestimoParcelaSugestao() {
+    const valorTotal = parseFloat(document.getElementById('modalItemValor')?.value) || 0;
+    const numParc = parseInt(document.getElementById('modalEmprestimoNumParcelas')?.value, 10) || 1;
+    const hint = document.getElementById('modalEmprestimoSugestaoHint');
+    const inputVal = document.getElementById('modalEmprestimoValorParcela');
+
+    if (valorTotal > 0 && numParc > 0) {
+      const sugerido = Math.round((valorTotal / numParc) * 100) / 100;
+      if (hint) {
+        hint.innerHTML = `💡 Sugestão automática: <strong>${formatBRL(sugerido)}/mês</strong> (${formatBRL(valorTotal)} ÷ ${numParc}x)`;
+      }
+      if (inputVal && !inputVal.value) {
+        inputVal.placeholder = sugerido.toFixed(2);
+      }
+    }
+  }
+
+  function recalcularHoleriteManualLiquido() {
+    const vencimento = parseFloat(document.getElementById('hlVencimento')?.value) || 0;
+    const auxSaude = parseFloat(document.getElementById('hlAuxSaude')?.value) || 0;
+    const inss = parseFloat(document.getElementById('hlInss')?.value) || 0;
+    const ir = parseFloat(document.getElementById('hlIr')?.value) || 0;
+    const sindicato = parseFloat(document.getElementById('hlSindicato')?.value) || 0;
+    const descVr = parseFloat(document.getElementById('hlDescontoVr')?.value) || 0;
+    const consignado = parseFloat(document.getElementById('hlConsignado')?.value) || 0;
+
+    const liqCalculado = Math.max(0, vencimento + auxSaude - inss - ir - sindicato - descVr - consignado);
+    const hlLiq = document.getElementById('hlLiquido');
+    if (hlLiq) {
+      hlLiq.value = liqCalculado.toFixed(2);
+    }
+  }
+
+function onModalCategoriaChange(catVal) {
     const nomeInput = document.getElementById('modalItemNome');
     const hintEl = document.getElementById('modalItemCatHint');
     if (nomeInput && nomeInput.value.trim().length >= 2) {
@@ -3264,6 +3392,17 @@ const MatrixApp = (function () {
         hintEl.style.display = 'inline-block';
         setTimeout(() => { if (hintEl) hintEl.style.display = 'none'; }, 2000);
       }
+    }
+
+    const empSection = document.getElementById('modalEmprestimoSection');
+    const rendaSel = document.getElementById('modalItemRenda');
+    if (catVal === 'Empréstimo') {
+      if (empSection) empSection.style.display = 'block';
+      if (rendaSel) rendaSel.value = 'emprestimo';
+      populateModalEmprestimoMeses();
+      recalcEmprestimoParcelaSugestao();
+    } else {
+      if (empSection) empSection.style.display = 'none';
     }
   }
 
@@ -6322,7 +6461,7 @@ const MatrixApp = (function () {
     }
 
     // INTEGRAÇÃO DE EMPRÉSTIMO & AGENDAMENTO DE PARCELAS FUTURAS
-    const isEmprestimo = (cat === 'Empréstimo') || (conta && conta.startsWith('emprestimo_')) || (renda === 'emprestimo');
+    const isEmprestimo = (cat === 'Empréstimo') || (renda === 'emprestimo');
     const chkParcelasEmp = document.getElementById('chkGerarParcelasEmprestimo');
     const deveGerarParcelas = isEmprestimo && chkParcelasEmp && chkParcelasEmp.checked;
 
@@ -6333,23 +6472,39 @@ const MatrixApp = (function () {
         valParc = Math.round((valor / numParc) * 100) / 100;
       }
 
-      if (valParc > 0 && numParc > 0) {
-        const curY = parseInt(currentYear, 10);
-        const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+      const modalidadeDesconto = document.getElementById('modalEmprestimoModalidade')?.value || 'consignado';
+      const isConsignado = modalidadeDesconto === 'consignado';
 
+      // Mês de início selecionado pelo usuário!
+      const inicioSel = document.getElementById('modalEmprestimoInicioMes')?.value;
+      let startY = parseInt(currentYear, 10);
+      let startMIdx = MONTH_NAMES.indexOf(currentMonth) + 1; // Padrão: mês seguinte
+
+      if (inicioSel && inicioSel.includes('-')) {
+        const parts = inicioSel.split('-');
+        startY = parseInt(parts[0], 10);
+        startMIdx = parseInt(parts[1], 10) - 1;
+      }
+
+      if (valParc > 0 && numParc > 0) {
         for (let p = 1; p <= numParc; p++) {
-          let targetMIdx = curMIdx + p;
-          let targetY = curY + Math.floor(targetMIdx / 12);
+          let targetMIdx = startMIdx + (p - 1);
+          let targetY = startY + Math.floor(targetMIdx / 12);
           targetMIdx = targetMIdx % 12;
           const targetMes = MONTH_NAMES[targetMIdx];
           const targetAno = String(targetY);
 
           MatrixDB.addTransaction(targetAno, targetMes, 'fixo', {
-            nome: `Parcela Empréstimo: ${nome} (${p}/${numParc})`,
+            nome: isConsignado 
+              ? `Consignado USP: ${nome} (${p}/${numParc})` 
+              : `Parcela Empréstimo: ${nome} (${p}/${numParc})`,
             valor: valParc,
-            categoria: 'Contas',
-            conta: conta === 'emprestimo_consignado' ? 'salario_bb' : 'debito_nubank',
+            categoria: isConsignado ? 'Empréstimo' : 'Contas',
+            conta: isConsignado ? 'salario_bb' : 'debito_nubank',
             renda: 'salario_usp',
+            consignadoFolha: isConsignado,
+            tipoAmortizacao: isConsignado ? 'consignado_folha' : 'debito_conta',
+            origemEmprestimo: nome,
             pago: false
           });
         }
@@ -6360,18 +6515,7 @@ const MatrixApp = (function () {
     renderAll();
   }
 
-  function onModalCategoriaChange(cat) {
-    const empSection = document.getElementById('modalEmprestimoSection');
-    const contaSel = document.getElementById('modalItemConta');
-    const rendaSel = document.getElementById('modalItemRenda');
-    if (cat === 'Empréstimo') {
-      if (empSection) empSection.style.display = 'block';
-      if (contaSel) contaSel.value = 'emprestimo_bancario';
-      if (rendaSel) rendaSel.value = 'emprestimo';
-    } else {
-      if (empSection) empSection.style.display = 'none';
-    }
-  }
+  
 
   function toggleEmprestimoParcelas(checked) {
     const fields = document.getElementById('modalEmprestimoParcelasFields');
@@ -7955,6 +8099,12 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     setSim2055Meta,
     onSim2055CustomRendaInput,
     fecharSimuladorAposentadoria2055,
+    populateModalEmprestimoMeses,
+    onEmprestimoModalidadeChange,
+    recalcEmprestimoParcelaSugestao,
+    recalcularHoleriteManualLiquido,
+    isConsignadoFolhaJaDescontado,
+    isConsignadoFolhaItem,
     recalcularSimulador2055,
     salvarParametrosSimulador2055,
     baixarRelatorioAposentadoria2055,
