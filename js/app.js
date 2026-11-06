@@ -961,13 +961,13 @@ const MatrixApp = (function () {
 
     // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR)
     const satMaracaju = (state.satellites && state.satellites.maracaju) || {
-      saldoVaRestante: 1659.59,
-      saldoVrRestante: 1235.00,
-      gastoMercadoMesAtual: 390.41,
+      saldoVaRestante: 2059.84,
+      saldoVrRestante: 1105.16,
+      gastoMercadoMesAtual: 0.00,
       gastoVrMesAtual: 0.00
     };
-    const vaAtual = satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 1659.59;
-    const vrAtual = satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1235.00;
+    const vaAtual = satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 2059.84;
+    const vrAtual = satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1105.16;
 
     const satCasaEl = document.getElementById('topSatCasaVal');
     const satVaEl = document.getElementById('topSatVaVal');
@@ -1850,97 +1850,109 @@ const MatrixApp = (function () {
     } else if (tipo === 'maracaju') {
       titleEl.innerHTML = `🏡 Casa Maracaju 88 • Benefícios VA e VR (${periodLabel})`;
       const sat = (state.satellites && state.satellites.maracaju) || {
-        saldoVaRestante: 1659.59,
-        saldoVrRestante: 1235.00,
-        gastoMercadoMesAtual: 390.41,
+        saldoVaRestante: 2059.84,
+        saldoVrRestante: 1105.16,
+        gastoMercadoMesAtual: 0.00,
         gastoVrMesAtual: 0.00,
         vaMensal: 2050.00,
-        vrCreditadoNoMes: 1235.00
+        vaRollover: 9.84,
+        vaTotal: 2059.84,
+        vrCreditadoNoMes: 1105.00,
+        vrRollover: 0.16,
+        vrTotal: 1105.16,
+        totalBeneficios: 3165.00,
+        gastoMercadoCicloAnterior: 390.41
       };
 
       const vaCred = sat.vaMensal || 2050.00;
-      const vaGasto = sat.gastoMercadoMesAtual || 390.41;
-      const vaSaldo = sat.saldoVaRestante != null ? sat.saldoVaRestante : (vaCred - vaGasto);
+      const vaRoll = sat.vaRollover != null ? sat.vaRollover : 9.84;
+      const vaTot = sat.vaTotal != null ? sat.vaTotal : (vaCred + vaRoll);
+      const vaGasto = sat.gastoMercadoMesAtual || 0.00;
+      const vaSaldo = sat.saldoVaRestante != null ? sat.saldoVaRestante : (vaTot - vaGasto);
 
-      const vrCred = sat.vrCreditadoNoMes || 1235.00;
+      const vrCred = sat.vrCreditadoNoMes || 1105.00;
+      const vrRoll = sat.vrRollover != null ? sat.vrRollover : 0.16;
+      const vrTot = sat.vrTotal != null ? sat.vrTotal : (vrCred + vrRoll);
       const vrGasto = sat.gastoVrMesAtual || 0.00;
-      const vrSaldo = sat.saldoVrRestante != null ? sat.saldoVrRestante : (vrCred - vrGasto);
+      const vrSaldo = sat.saldoVrRestante != null ? sat.saldoVrRestante : (vrTot - vrGasto);
 
-      const notasRecentes = [
-        { mercado: 'Carrefour', data: '03/11/2026', metodo: 'Cartão VA', valor: 280.66 },
-        { mercado: 'Padaria Nossa Senhora Aparecida', data: '03/11/2026', metodo: 'Cartão VA', valor: 46.96 },
-        { mercado: 'Açougue Fumaça', data: '03/11/2026', metodo: 'Cartão VA', valor: 62.79 }
+      const gastoAnterior = sat.gastoMercadoCicloAnterior || 390.41;
+
+      const notasOutubro = [
+        { mercado: 'Carrefour (03/11)', ciclo: 'Ciclo Outubro (Encerrado)', metodo: 'Cartão VA', valor: 280.66 },
+        { mercado: 'Padaria N. Sra. Aparecida (03/11)', ciclo: 'Ciclo Outubro (Encerrado)', metodo: 'Cartão VA', valor: 46.96 },
+        { mercado: 'Açougue Fumaça (03/11)', ciclo: 'Ciclo Outubro (Encerrado)', metodo: 'Cartão VA', valor: 62.79 }
       ];
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,65,0.08);border:1px solid var(--border-glow);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
-              <span class="live-pulse"></span> App Casa Maracaju 88 Conectado
+              <span class="live-pulse"></span> App Casa Maracaju 88 Conectado • Ciclo Novembro Vigente
             </span>
-            <span class="lock-pill" style="border-color:var(--matrix-green);color:var(--matrix-green);">
-              🥗 Gestão de Benefícios
+            <span class="lock-pill" style="border-color:var(--matrix-green);color:var(--matrix-green);font-size:10px;">
+              🟢 4º Dia Útil (06/11): Crédito Ativo
             </span>
           </div>
 
+          <!-- CARDS DE SALDOS ATUAIS DE NOVEMBRO (COM SOBRA DE OUTUBRO) -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
-            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Saldo Disponível VA</div>
-              <div style="font-size:15px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(vaSaldo)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Crédito: ${formatBRL(vaCred)}</div>
+            <div style="background:var(--bg-card);border:1.5px solid rgba(0,255,102,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(0,255,102,0.05);">
+              <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VA (Novembro)</div>
+              <div style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:2px;">${formatBRL(vaSaldo)}</div>
+              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;">R$ 2.050 + R$ ${formatBRL(vaRoll)} sobra Out</div>
+            </div>
+            <div style="background:var(--bg-card);border:1.5px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(6,182,212,0.05);">
+              <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VR (Novembro)</div>
+              <div style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:2px;">${formatBRL(vrSaldo)}</div>
+              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;">17 dias (R$ 1.105) + R$ ${formatBRL(vrRoll)} sobra</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Mercado Gasto (NFC-e)</div>
-              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(vaGasto)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">3 notas auditadas</div>
+              <div style="font-size:11px;color:var(--text-muted);">Total Alimentação Disponível</div>
+              <div style="font-size:16px;font-weight:800;color:var(--text-bright);margin-top:2px;">${formatBRL(vaSaldo + vrSaldo)}</div>
+              <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">VA + VR combinados</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Saldo Disponível VR</div>
-              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(vrSaldo)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Crédito: ${formatBRL(vrCred)}</div>
-            </div>
-            <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:11px;color:var(--text-muted);">Refeições Gastas (VR)</div>
-              <div style="font-size:15px;font-weight:bold;color:var(--text-main);margin-top:2px;">${formatBRL(vrGasto)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Almoços e trabalho</div>
+              <div style="font-size:11px;color:var(--text-muted);">Gastos Ciclo Novembro</div>
+              <div style="font-size:16px;font-weight:800;color:var(--text-main);margin-top:2px;">${formatBRL(vaGasto + vrGasto)}</div>
+              <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">A partir de 06/11 (0 compras)</div>
             </div>
           </div>
 
+          <!-- HISTÓRICO DE COMPRAS ANTERIORES DO CICLO DE OUTUBRO -->
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <strong style="color:var(--text-main);font-size:13px;">🧾 Compras e Notas NFC-e (Casa Maracaju 88)</strong>
-              <span style="font-size:11px;color:var(--text-muted);">Mês Atual</span>
+              <strong style="color:var(--text-main);font-size:12.5px;">🧾 Compras de 03/11 (Debitadas no Ciclo de Outubro)</strong>
+              <span style="font-size:10.5px;color:var(--amber);">Total: ${formatBRL(gastoAnterior)}</span>
             </div>
-            <div style="max-height:220px;overflow-y:auto;">
+            <div style="max-height:180px;overflow-y:auto;">
               <table class="data-table">
                 <thead>
                   <tr>
                     <th>Estabelecimento</th>
-                    <th>Data</th>
+                    <th>Ciclo Aplicado</th>
                     <th>Forma</th>
                     <th style="text-align:right;">Valor</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${notasRecentes.map(n => `
+                  ${notasOutubro.map(n => `
                     <tr>
                       <td><strong>${n.mercado}</strong></td>
-                      <td style="color:var(--text-muted);">${n.data}</td>
-                      <td><span class="status-badge pago" style="font-size:9.5px;">${n.metodo}</span></td>
-                      <td class="val-col" style="color:var(--matrix-green);font-weight:700;">${formatBRL(n.valor)}</td>
+                      <td style="color:var(--amber);font-size:10px;">${n.ciclo}</td>
+                      <td><span class="status-badge pago" style="font-size:9px;">${n.metodo}</span></td>
+                      <td class="val-col" style="color:var(--rose);font-weight:700;">- ${formatBRL(n.valor)}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
             </div>
-          </div>
-
-          <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-            💡 <em>Regra de Benefícios:</em> As despesas de mercado e alimentação da Casa Maracaju debitam exclusivamente dos saldos de VA e VR, não retirando nenhum centavo da conta corrente em pecúnia.
+            <div style="margin-top:8px;font-size:10.5px;color:var(--text-dim);line-height:1.4;">
+              💡 <em>Auditoria de Ciclos:</em> Como as compras de 03/11 foram realizadas antes do 4º dia útil (06/11), elas foram abatidas do saldo de Outubro. O ciclo de Outubro fechou com sobra de <strong>R$ 9,84 de VA</strong> e <strong>R$ 0,16 de VR</strong>, que foram somados ao novo depósito de Novembro, totalizando <strong>${formatBRL(vaSaldo)}</strong> de VA e <strong>${formatBRL(vrSaldo)}</strong> de VR 100% disponíveis.
+            </div>
           </div>
         </div>
       `;
-
     } else if (tipo === 'caixa') {
       const curMIdxNum = MONTH_NAMES.indexOf(currentMonth) + 1;
       const curYNum = parseInt(currentYear, 10) || 2026;

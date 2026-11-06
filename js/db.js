@@ -189,18 +189,29 @@ const MatrixDB = (function () {
     // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};
-      if (!memoryCache.satellites.maracaju) {
+      if (!memoryCache.satellites.maracaju || memoryCache.satellites.maracaju.saldoVaRestante === 1659.59) {
         memoryCache.satellites.maracaju = {
           origem: 'Maracaju 88',
           atualizadoEm: new Date().toISOString(),
+          cicloVigente: '2026-11',
+          creditDate: '2026-11-06',
           vaMensal: 2050.0,
-          gastoMercadoMesAtual: 390.41,
-          saldoVaRestante: 1659.59,
+          vaRollover: 9.84,
+          vaTotal: 2059.84,
+          gastoMercadoMesAtual: 0.0,
+          saldoVaRestante: 2059.84,
           transbordouVa: 0,
-          vrCreditadoNoMes: 1235.0,
-          gastoVrMesAtual: 0,
-          saldoVrRestante: 1235.0,
+          vrCreditadoNoMes: 1105.0,
+          vrRollover: 0.16,
+          vrTotal: 1105.16,
+          vrDays: 17,
+          gastoVrMesAtual: 0.0,
+          saldoVrRestante: 1105.16,
           transbordouVr: 0,
+          totalBeneficios: 3165.0,
+          totalDisponivel: 3165.0,
+          gastoMercadoCicloAnterior: 390.41,
+          gastoVrCicloAnterior: 0.0,
           reformasAndamento: 0,
           manutencoesCarro: 0
         };

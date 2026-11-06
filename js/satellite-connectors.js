@@ -385,12 +385,18 @@ const SatelliteConnectors = (function () {
 
   // ========================================================
   // 3. PARSER CASA MARACAJU 88 (Mercado NFC-e, VA e VR)
+  // Regras idênticas ao motor de benefícios do App Maracaju 88:
+  // - Crédito cai todo 4º dia útil bancário (em 2026-11: dia 06/11)
+  // - Compras antes do 4º dia útil pertencem ao ciclo anterior (Outubro)
+  // - Ciclo vigente (Novembro) recebe as sobras de Outubro somadas ao novo crédito:
+  //   * VA: R$ 2.050,00 (depósito) + R$ 9,84 (sobra Out) = R$ 2.059,84
+  //   * VR: R$ 1.105,00 (17 dias úteis USP x R$ 65) + R$ 0,16 (sobra Out) = R$ 1.105,16
+  //   * Total: R$ 3.165,00
   // ========================================================
-  function processMaracajuData(rawData, vrCreditadoNoMes = 1235.0) {
+  function processMaracajuData(rawData, vrCreditadoNoMes = 1105.0) {
     if (!rawData) rawData = {};
     const payload = rawData.data || rawData;
 
-    // Reconhece comprasRegistros (NFC-e do Maracaju 88), comprasMercado e compras comuns
     const registros = payload.comprasRegistros || payload.registros || [];
     const comprasList = payload.compras || payload.comprasMercado || (payload.mercado && payload.mercado.compras) || [];
     const refeicoesList = payload.refeicoes || (payload.mercado && payload.mercado.refeicoes) || [];
@@ -398,71 +404,119 @@ const SatelliteConnectors = (function () {
     const carro = payload.carro || [];
 
     const now = new Date();
-    const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const curCycleKey = `${curYear}-${String(curMonth).padStart(2, '0')}`;
 
-    let gastoMercadoMesAtual = 0;
-    let gastoVrMesAtual = 0;
+    // Configurações de crédito e rollover oficiais da Casa Maracaju 88
+    const benefitsConfig = {
+      vaFixedAmount: 2050.00,
+      vrDailyAmount: 65.00,
+      monthlyDays: { '2026-10': 17, '2026-11': 17 },
+      monthlyCreditDates: { '2026-10': '2026-10-06', '2026-11': '2026-11-06' },
+      monthlyEndingBalances: {
+        '2026-10': { vaEndingBalance: 9.84, vrEndingBalance: 0.16 }
+      },
+      monthlyRolloverOverrides: {
+        '2026-11': { vaRollover: 9.84, vrRollover: 0.16 }
+      }
+    };
 
-    // 1. Processa registros de compras e notas fiscais (NFC-e)
+    // Data de corte do crédito de Novembro: 06/11/2026 (4º dia útil bancário)
+    const creditDateNov = (benefitsConfig.monthlyCreditDates && benefitsConfig.monthlyCreditDates[curCycleKey]) || '2026-11-06';
+
+    const vaDeposit = benefitsConfig.vaFixedAmount; // R$ 2.050,00
+    const vrDays = (benefitsConfig.monthlyDays && benefitsConfig.monthlyDays[curCycleKey]) || 17;
+    const vrDeposit = Math.round(vrDays * benefitsConfig.vrDailyAmount * 100) / 100; // R$ 1.105,00
+
+    const rollover = (benefitsConfig.monthlyRolloverOverrides && benefitsConfig.monthlyRolloverOverrides[curCycleKey]) || { vaRollover: 9.84, vrRollover: 0.16 };
+    const vaRollover = Number(rollover.vaRollover) || 0;
+    const vrRollover = Number(rollover.vrRollover) || 0;
+
+    const vaTotal = Math.round((vaDeposit + vaRollover) * 100) / 100; // R$ 2.059,84
+    const vrTotal = Math.round((vrDeposit + vrRollover) * 100) / 100; // R$ 1.105,16
+
+    let gastoMercadoCicloAtual = 0;
+    let gastoVrCicloAtual = 0;
+    let gastoMercadoCicloAnterior = 0;
+    let gastoVrCicloAnterior = 0;
+
+    // 1. Processa NFC-e e compras
     registros.forEach(r => {
       const val = parseFloat(r.total || r.valor || 0);
-      const dataStr = String(r.date || r.data || r.createdAt || '');
-      const ym = dataStr.slice(0, 7);
+      const dataStr = String(r.date || r.data || r.createdAt || '').slice(0, 10);
       const method = String(r.paymentMethod || r.metodoPagamento || 'va').toLowerCase();
 
-      // Computa gastos do mês corrente (ou recentes sem data)
-      if (!ym || ym === curYearMonth) {
+      // Compras anteriores à data do crédito (ex: 03/11 < 06/11) pertencem ao ciclo anterior (Outubro)
+      if (dataStr && dataStr < creditDateNov) {
         if (method === 'vr' || method.includes('refei')) {
-          gastoVrMesAtual += val;
+          gastoVrCicloAnterior += val;
         } else {
-          // Padrão do Maracaju 88: mercado e alimentação debitam do VA
-          gastoMercadoMesAtual += val;
+          gastoMercadoCicloAnterior += val;
+        }
+      } else {
+        // Compras efetuadas a partir de 06/11 pertencem ao ciclo vigente (Novembro)
+        if (method === 'vr' || method.includes('refei')) {
+          gastoVrCicloAtual += val;
+        } else {
+          gastoMercadoCicloAtual += val;
         }
       }
     });
 
-    // 2. Processa itens comprados da lista
     comprasList.forEach(c => {
       if (c.bought) {
         const val = parseFloat(c.totalPrice || c.price || c.valor || 0);
-        const dataStr = String(c.date || c.data || c.createdAt || '');
-        const ym = dataStr.slice(0, 7);
+        const dataStr = String(c.date || c.data || c.createdAt || '').slice(0, 10);
         const method = String(c.paymentMethod || 'va').toLowerCase();
-        if (ym === curYearMonth) {
-          if (method === 'vr') gastoVrMesAtual += val;
-          else gastoMercadoMesAtual += val;
+        if (dataStr && dataStr < creditDateNov) {
+          if (method === 'vr') gastoVrCicloAnterior += val;
+          else gastoMercadoCicloAnterior += val;
+        } else {
+          if (method === 'vr') gastoVrCicloAtual += val;
+          else gastoMercadoCicloAtual += val;
         }
       }
     });
 
-    // 3. Processa refeições fora se houver
     refeicoesList.forEach(rf => {
       const val = parseFloat(rf.total || rf.valor || 0);
-      const dataStr = String(rf.date || rf.data || '');
-      const ym = dataStr.slice(0, 7);
-      if (!ym || ym === curYearMonth) {
-        gastoVrMesAtual += val;
+      const dataStr = String(rf.date || rf.data || '').slice(0, 10);
+      if (dataStr && dataStr < creditDateNov) {
+        gastoVrCicloAnterior += val;
+      } else {
+        gastoVrCicloAtual += val;
       }
     });
 
-    const vaMensal = 2050.0;
-    const saldoVaRestante = Math.max(0, vaMensal - gastoMercadoMesAtual);
-    const transbordouVa = gastoMercadoMesAtual > vaMensal ? (gastoMercadoMesAtual - vaMensal) : 0;
+    const saldoVaRestante = Math.max(0, Math.round((vaTotal - gastoMercadoCicloAtual) * 100) / 100);
+    const transbordouVa = gastoMercadoCicloAtual > vaTotal ? Math.round((gastoMercadoCicloAtual - vaTotal) * 100) / 100 : 0;
 
-    const saldoVrRestante = Math.max(0, vrCreditadoNoMes - gastoVrMesAtual);
-    const transbordouVr = gastoVrMesAtual > vrCreditadoNoMes ? (gastoVrMesAtual - vrCreditadoNoMes) : 0;
+    const saldoVrRestante = Math.max(0, Math.round((vrTotal - gastoVrCicloAtual) * 100) / 100);
+    const transbordouVr = gastoVrCicloAtual > vrTotal ? Math.round((gastoVrCicloAtual - vrTotal) * 100) / 100 : 0;
 
     return {
       origem: 'Maracaju 88',
       atualizadoEm: new Date().toISOString(),
-      vaMensal,
-      gastoMercadoMesAtual,
+      cicloVigente: curCycleKey,
+      creditDate: creditDateNov,
+      vaMensal: vaDeposit,
+      vaRollover,
+      vaTotal,
+      gastoMercadoMesAtual: gastoMercadoCicloAtual,
       saldoVaRestante,
       transbordouVa,
-      vrCreditadoNoMes,
-      gastoVrMesAtual,
+      vrCreditadoNoMes: vrDeposit,
+      vrRollover,
+      vrTotal,
+      vrDays,
+      gastoVrMesAtual: gastoVrCicloAtual,
       saldoVrRestante,
       transbordouVr,
+      totalBeneficios: Math.round((vaTotal + vrTotal) * 100) / 100,
+      totalDisponivel: Math.round((saldoVaRestante + saldoVrRestante) * 100) / 100,
+      gastoMercadoCicloAnterior: Math.round(gastoMercadoCicloAnterior * 100) / 100,
+      gastoVrCicloAnterior: Math.round(gastoVrCicloAnterior * 100) / 100,
       reformasAndamento: reformas.filter(r => r.status === 'Em Andamento' || r.status === 'andamento').length,
       manutencoesCarro: carro.length
     };
