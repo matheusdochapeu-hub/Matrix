@@ -160,30 +160,131 @@ const MatrixApp = (function () {
   }
 
   // ==========================================
-  // PWA DOWNLOAD & INSTALAÇÃO
+  // PWA DOWNLOAD & INSTALAÇÃO DIRETA
   // ==========================================
-  let deferredPwaPrompt = null;
+  let deferredPwaPrompt = (typeof window !== 'undefined' && window._matrixDeferredPrompt) ? window._matrixDeferredPrompt : null;
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      window._matrixDeferredPrompt = e;
+      const btn = document.getElementById('btnInstallApp');
+      if (btn) btn.style.display = 'inline-flex';
+    });
+  }
+
+  async function baixarAppDireto() {
+    const btn = document.getElementById('btnInstallApp');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.innerHTML = '<span class="matrix-btn-icon">⏳</span> <span>Baixando...</span>';
+    }
+
+    try {
+      const REMOTE_BASE = 'https://matheusdochapeu-hub.github.io/Matrix/';
+      const storageSnapshot = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('matrix') || k.startsWith('maracaju') || k.startsWith('fisio') || k.startsWith('faturas'))) {
+            storageSnapshot[k] = localStorage.getItem(k);
+          }
+        }
+      } catch (e) {}
+
+      const seedScript = `<script>\n(function(){\n  try {\n    var snap = ${JSON.stringify(storageSnapshot).replace(/<\/script/gi, '<\\/script')};\n    Object.keys(snap).forEach(function(k){\n      if (!localStorage.getItem(k) && snap[k]) localStorage.setItem(k, snap[k]);\n    });\n  } catch(e) {}\n})();\n</script>`;
+
+      const scriptPaths = [
+        'js/seed-data.js',
+        'js/matrix-rain.js',
+        'js/db.js',
+        'js/calendar-engine.js',
+        'js/amortization-engine.js',
+        'js/scenario-simulator.js',
+        'js/pdf-reader.js',
+        'js/satellite-connectors.js',
+        'js/sync-engine.js',
+        'js/app.js'
+      ];
+
+      let finalHtml = '';
+      try {
+        const fetchText = async (url) => {
+          const r = await fetch(url, { cache: 'no-cache' });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return await r.text();
+        };
+        const [rawHtml, rawCss, ...rawScripts] = await Promise.all([
+          fetchText('index.html'),
+          fetchText('css/matrix.css'),
+          ...scriptPaths.map(sp => fetchText(sp))
+        ]);
+
+        let docHtml = rawHtml;
+        if (!docHtml.includes('<base ')) {
+          docHtml = docHtml.replace('<head>', `<head>\n  <base href="${REMOTE_BASE}">`);
+        }
+        docHtml = docHtml.replace(
+          /<link\s+rel="stylesheet"\s+href="css\/matrix\.css[^"]*"\s*>/i,
+          `<style>\n${rawCss}\n</style>`
+        );
+        docHtml = docHtml.replace('<!-- SCRIPTS -->', `${seedScript}\n  <!-- SCRIPTS EMBUTIDOS (STANDALONE OFFLINE) -->`);
+        scriptPaths.forEach((sp, idx) => {
+          const escapedPath = sp.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const re = new RegExp(`<script\\s+src="${escapedPath}[^"]*"><\\/script>`, 'i');
+          const safeJs = (rawScripts[idx] || '').replace(/<\/script/gi, '<\\/script');
+          docHtml = docHtml.replace(re, () => `<script>\n${safeJs}\n</script>`);
+        });
+        finalHtml = docHtml;
+      } catch (offlineErr) {
+        const clone = document.documentElement.cloneNode(true);
+        const head = clone.querySelector('head');
+        if (head && !head.querySelector('base')) {
+          const baseEl = document.createElement('base');
+          baseEl.setAttribute('href', REMOTE_BASE);
+          head.insertBefore(baseEl, head.firstChild);
+        }
+        finalHtml = '<!DOCTYPE html>\n<html lang="pt-BR">\n' + clone.innerHTML.replace('<!-- SCRIPTS -->', seedScript + '\n  <!-- SCRIPTS -->') + '\n</html>';
+      }
+
+      const blob = new Blob([finalHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Matrix-Finance-360-App.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+      if (btn) {
+        btn.innerHTML = '<span class="matrix-btn-icon">✅</span> <span>App Baixado!</span>';
+        setTimeout(() => {
+          btn.innerHTML = originalHtml || '<span class="matrix-btn-icon">📲</span> <span>Baixar App</span>';
+        }, 2800);
+      }
+    } catch (err) {
+      console.error('Erro ao baixar app diretamente:', err);
+      if (btn && originalHtml) btn.innerHTML = originalHtml;
+    }
+  }
 
   function installPWA() {
-    if (deferredPwaPrompt) {
-      deferredPwaPrompt.prompt();
-      deferredPwaPrompt.userChoice.then((choiceResult) => {
+    const promptEvent = deferredPwaPrompt || (typeof window !== 'undefined' ? window._matrixDeferredPrompt : null);
+    if (promptEvent) {
+      promptEvent.prompt();
+      promptEvent.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('Usuário aceitou a instalação do PWA Matrix');
         }
         deferredPwaPrompt = null;
-      });
+        if (typeof window !== 'undefined') window._matrixDeferredPrompt = null;
+      }).catch(() => {});
       return;
     }
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (isStandalone) {
-      alert('✅ O App Matrix já está instalado e rodando em modo aplicativo nativo no seu dispositivo!');
-      return;
-    }
-
-    const modal = document.getElementById('installAppModalBackdrop');
-    if (modal) modal.classList.add('open');
+    // Dispara o download direto do aplicativo standalone imediatamente ao clicar
+    baixarAppDireto();
   }
 
   // ==========================================
@@ -6789,6 +6890,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     renderRevisaoAnualDezembro,
     exportarRelatorioDezembro,
     installPWA,
+    baixarAppDireto,
     getNomeEstudio,
     salvarNomeEstudio,
     promptAlterarNomeEstudio,
