@@ -72,11 +72,21 @@ const MatrixDB = (function () {
     if (!state || !state.anos) return state;
     let mutated = false;
     for (const ano in state.anos) {
-      // Regra Estrita: 2024 e anos anteriores não possuem dados e são expurgados
-      if (parseInt(ano, 10) < 2025) {
+      // Regra Estrita: Anos anteriores a 2026 são totalmente expurgados
+      if (parseInt(ano, 10) < 2026) {
         delete state.anos[ano];
         mutated = true;
         continue;
+      }
+      // Em 2026, expurgar todos os meses anteriores a Outubro (Janeiro a Setembro)
+      if (ano === '2026') {
+        const preOct = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro'];
+        preOct.forEach(m => {
+          if (state.anos['2026'][m]) {
+            delete state.anos['2026'][m];
+            mutated = true;
+          }
+        });
       }
       for (const mes in state.anos[ano]) {
         const m = state.anos[ano][mes];
@@ -110,6 +120,11 @@ const MatrixDB = (function () {
           if (m.diarios.length !== origLen) mutated = true;
         }
       }
+    }
+    if (state.holerites && Array.isArray(state.holerites)) {
+      const origHl = state.holerites.length;
+      state.holerites = state.holerites.filter(h => (h.periodo || '') >= '2026-10');
+      if (state.holerites.length !== origHl) mutated = true;
     }
     if (mutated) {
       try {
@@ -239,63 +254,32 @@ const MatrixDB = (function () {
       }
     }
 
-    // Sincronização dos meses de 2025 (Fevereiro a Dezembro/2025 MPSP)
-    if (memoryCache && memoryCache.anos && memoryCache.anos['2025'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2025']) {
-      const seed2025 = MATRIX_SEED_DATA.anos['2025'];
-      let ano2025Mutated = false;
-      Object.keys(seed2025).forEach(mNome => {
-        if (!memoryCache.anos['2025'][mNome]) {
-          memoryCache.anos['2025'][mNome] = JSON.parse(JSON.stringify(seed2025[mNome]));
-          ano2025Mutated = true;
-        } else {
-          const curM = memoryCache.anos['2025'][mNome];
-          if (!curM.receitas || curM.receitas.length === 0 || !curM.receitas.some(r => r.nome && r.nome.includes('MPSP'))) {
-            curM.receitas = JSON.parse(JSON.stringify(seed2025[mNome].receitas || []));
-            if (!curM.totais) curM.totais = {};
-            Object.assign(curM.totais, seed2025[mNome].totais || {});
-            ano2025Mutated = true;
+    // Expurgar meses anteriores a Outubro de 2026 do cache do usuário
+    if (memoryCache && memoryCache.anos) {
+      let purged = false;
+      if (memoryCache.anos['2025']) {
+        delete memoryCache.anos['2025'];
+        purged = true;
+      }
+      if (memoryCache.anos['2026']) {
+        const preOct = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro'];
+        preOct.forEach(m => {
+          if (memoryCache.anos['2026'][m]) {
+            delete memoryCache.anos['2026'][m];
+            purged = true;
           }
-        }
-      });
-      if (ano2025Mutated) {
+        });
+      }
+      if (purged) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
       }
     }
 
-    // Sincronização dos meses de 2026 (Janeiro a Junho/2026 MPSP e Setembro/2026 Férias MPSP)
+    // Sincronização dos meses vigentes de 2026 (Outubro a Dezembro) se estiverem sem receitas
     if (memoryCache && memoryCache.anos && memoryCache.anos['2026'] && typeof MATRIX_SEED_DATA !== 'undefined' && MATRIX_SEED_DATA.anos && MATRIX_SEED_DATA.anos['2026']) {
       const seed2026 = MATRIX_SEED_DATA.anos['2026'];
       let ano2026Mutated = false;
-      ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'].forEach(mNome => {
-        if (memoryCache.anos['2026'][mNome] && seed2026[mNome]) {
-          const curM = memoryCache.anos['2026'][mNome];
-          const hasOfficialMpsp = curM.receitas && curM.receitas.some(r => r.nome && r.nome.includes('MPSP') && r.pago);
-          if (!hasOfficialMpsp) {
-            const nonSal = (curM.receitas || []).filter(r => !r.nome || (!r.nome.includes('MPSP') && !r.nome.includes('USP')));
-            const mpspRecs = JSON.parse(JSON.stringify(seed2026[mNome].receitas || [])).filter(r => r.nome && r.nome.includes('MPSP'));
-            curM.receitas = mpspRecs.concat(nonSal);
-            if (!curM.totais) curM.totais = {};
-            curM.totais['Salário Mensal'] = seed2026[mNome].totais['Salário Mensal'];
-            curM.totais['Subtotal Ganhos'] = seed2026[mNome].totais['Subtotal Ganhos'];
-            ano2026Mutated = true;
-          }
-        }
-      });
-
-      // Sincronização de Setembro/2026 com Férias Proporcionais MPSP de R$ 8.954,13
-      if (memoryCache.anos['2026']['Setembro'] && seed2026['Setembro']) {
-        const curSet = memoryCache.anos['2026']['Setembro'];
-        const hasFerias = curSet.receitas && curSet.receitas.some(r => r.nome && r.nome.includes('Férias Proporcionais'));
-        if (!hasFerias) {
-          curSet.receitas = JSON.parse(JSON.stringify(seed2026['Setembro'].receitas || []));
-          if (!curSet.totais) curSet.totais = {};
-          Object.assign(curSet.totais, seed2026['Setembro'].totais || {});
-          ano2026Mutated = true;
-        }
-      }
-
-      // Sincroniza demais meses do 2º semestre de 2026 (Julho a Dezembro) se estiverem sem receitas
-      ['Julho', 'Agosto', 'Outubro', 'Novembro', 'Dezembro'].forEach(mNome => {
+      ['Outubro', 'Novembro', 'Dezembro'].forEach(mNome => {
         if (memoryCache.anos['2026'][mNome] && seed2026[mNome]) {
           const curM = memoryCache.anos['2026'][mNome];
           if (!curM.receitas || curM.receitas.length === 0) {
@@ -379,10 +363,9 @@ const MatrixDB = (function () {
     // Extrair receitas mapeadas da planilha/seed original
     const salarioVal = parseFloat(t['Salário Mensal']) || 0;
     if (salarioVal > 0) {
-      const isMpsp = (ano === '2025' || (ano === '2026' && ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'].includes(mes)));
       month.receitas.push({
         id: 'rec_sal_' + mes,
-        nome: isMpsp ? 'Salário Líquido MPSP (Bradesco)' : 'Salário Líquido USP (Banco do Brasil)',
+        nome: 'Salário Líquido USP (Banco do Brasil)',
         valor: salarioVal,
         categoria: 'Salário / Proventos',
         pago: true
@@ -585,17 +568,17 @@ const MatrixDB = (function () {
 
   function getAllYears() {
     const s = getState();
-    const yearsSet = new Set(['2025', '2026', '2027']);
+    const yearsSet = new Set(['2026', '2027']);
     if (s.anos) {
       Object.keys(s.anos).forEach(y => {
-        if (parseInt(y, 10) >= 2025) yearsSet.add(String(y));
+        if (parseInt(y, 10) >= 2026) yearsSet.add(String(y));
       });
     }
-    return Array.from(yearsSet).filter(y => parseInt(y, 10) >= 2025).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    return Array.from(yearsSet).filter(y => parseInt(y, 10) >= 2026).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   }
 
   function createYear(targetYear, cloneFromYear = null) {
-    if (parseInt(targetYear, 10) < 2025) return;
+    if (parseInt(targetYear, 10) < 2026) return;
     const s = getState();
     if (!s.anos) s.anos = {};
     const ty = String(targetYear);

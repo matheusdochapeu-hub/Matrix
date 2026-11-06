@@ -27,5 +27,11 @@ Este arquivo documenta todas as regras de negócio, fórmulas financeiras, integ
 - Contabiliza as perdas na aposentadoria aos 65 anos: fim do FGTS (`8%`), perda de VA (`R$ 2.050`), VR (`R$ 1.105`) e Auxílio-Saúde (`R$ 660`), mais o custo do plano de saúde sênior (`R$ 2.650/mês`).
 - Calcula aportes mensais, quantidade de títulos/cotas pelo **Preço Unitário (PU)** do Tesouro Renda+ 2055 (`#sim2055PrecoTitulo`) e permite exportar o estudo completo em `.md` ou PDF/Impressão.
 
-## 4. Qualidade, Testes e Publicação
-- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` e confirmar zero erros de execução.
+## 4. Escopo Temporal Ativo: Outubro/2026 em Diante
+- Todos os registros, meses e dados anteriores a Outubro de 2026 (ano de 2025 completo e Janeiro a Setembro de 2026) foram permanentemente expurgados.
+- O controle financeiro oficial do casal inicia estritamente a partir de **Outubro/2026** (Outubro, Novembro e Dezembro de 2026, e ano de 2027 em diante para planejamento/projeções).
+- A navegação regressiva na timeline é bloqueada em Outubro/2026 (botão anterior desabilitado).
+- Os holerites armazenados iniciam a partir de Outubro/2026 (`2026-10` USP).
+
+## 5. Qualidade, Testes e Publicação
+- Antes de publicar no GitHub (`origin main`), validar sintaxe com `node --check` em todos os arquivos de `js/*.js` e `sw.js`, incrementar `CACHE_NAME` em `sw.js` (atualmente `matrix-finance-v38`) e confirmar zero erros de execução.

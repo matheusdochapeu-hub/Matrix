@@ -489,9 +489,12 @@ const MatrixApp = (function () {
     const yearSelect = document.getElementById('yearSelect');
     if (!yearSelect) return;
 
-    let allYears = MatrixDB.getAllYears().filter(y => parseInt(y, 10) >= 2025);
-    if (parseInt(currentYear, 10) < 2025) {
-      currentYear = '2025';
+    let allYears = MatrixDB.getAllYears().filter(y => parseInt(y, 10) >= 2026);
+    if (parseInt(currentYear, 10) < 2026) {
+      currentYear = '2026';
+    }
+    if (currentYear === '2026' && MONTH_NAMES.indexOf(currentMonth) < 9) {
+      currentMonth = 'Outubro';
     }
     if (!allYears.includes(String(currentYear))) {
       allYears.push(String(currentYear));
@@ -500,8 +503,7 @@ const MatrixApp = (function () {
 
     yearSelect.innerHTML = allYears.map(y => {
       let label = y;
-      if (y === '2025') label = '2025 (Histórico)';
-      else if (y === '2026') label = '2026 (Atual)';
+      if (y === '2026') label = '2026 (Vigente)';
       else if (y === '2027') label = '2027 (Projetado)';
       else label = `${y} (Projetado)`;
       return `<option value="${y}" ${String(y) === String(currentYear) ? 'selected' : ''}>${label}</option>`;
@@ -515,14 +517,14 @@ const MatrixApp = (function () {
   }
 
   function promptAddNewYear() {
-    const years = MatrixDB.getAllYears().map(y => parseInt(y, 10)).filter(y => y >= 2025);
+    const years = MatrixDB.getAllYears().map(y => parseInt(y, 10)).filter(y => y >= 2026);
     const nextYearSuggestion = String(Math.max(...years, 2027) + 1);
     const novoAno = prompt('Informe o ano que deseja planejar e projetar (ex: 2028, 2029):', nextYearSuggestion);
     if (!novoAno || isNaN(parseInt(novoAno, 10))) return;
 
     const anoInt = parseInt(novoAno, 10);
-    if (anoInt < 2025) {
-      alert('O aplicativo opera estritamente com dados a partir de 2025.');
+    if (anoInt < 2026) {
+      alert('O aplicativo opera estritamente com dados a partir de Outubro de 2026.');
       return;
     }
     const anoStr = String(anoInt);
@@ -785,12 +787,15 @@ const MatrixApp = (function () {
   }
 
   function changeMonth(direction) {
+    if (direction < 0 && String(currentYear) === '2026' && currentMonth === 'Outubro') {
+      // Limite temporal mínimo estrito: Outubro/2026
+      return;
+    }
     let idx = MONTH_NAMES.indexOf(currentMonth);
     idx += direction;
     if (idx < 0) {
       const prevYear = parseInt(currentYear, 10) - 1;
-      if (prevYear < 2025) {
-        // Limite temporal mínimo: não há dados para 2024 e anos anteriores
+      if (prevYear < 2026) {
         return;
       }
       idx = 11;
@@ -818,10 +823,10 @@ const MatrixApp = (function () {
     const now = new Date();
     const realYear = String(now.getFullYear());
     const realMonth = MONTH_NAMES[now.getMonth()] || 'Novembro';
-    const targetY = parseInt(realYear, 10) < 2025 ? '2025' : realYear;
+    const targetY = parseInt(realYear, 10) < 2026 ? '2026' : realYear;
 
     currentYear = targetY;
-    currentMonth = realMonth;
+    currentMonth = (targetY === '2026' && MONTH_NAMES.indexOf(realMonth) < 9) ? 'Outubro' : realMonth;
     calSelectedYear = currentYear;
     calSelectedMonth = currentMonth;
 
@@ -839,14 +844,14 @@ const MatrixApp = (function () {
     const el = document.getElementById('currentMonthDisplay');
     if (el) el.textContent = `${currentMonth} / ${currentYear}`;
 
-    // Desabilitar navegação regressiva caso estejamos em Janeiro / 2025
+    // Desabilitar navegação regressiva caso estejamos em Outubro / 2026
     const prevBtn = document.getElementById('prevMonthBtn');
     if (prevBtn) {
-      const isAtMinTimeline = (String(currentYear) === '2025' && currentMonth === 'Janeiro');
+      const isAtMinTimeline = (String(currentYear) === '2026' && currentMonth === 'Outubro');
       prevBtn.disabled = isAtMinTimeline;
       prevBtn.style.opacity = isAtMinTimeline ? '0.35' : '1';
       prevBtn.style.cursor = isAtMinTimeline ? 'not-allowed' : 'pointer';
-      prevBtn.title = isAtMinTimeline ? 'Timeline inicia em 2025 (2024 e anteriores não possuem dados)' : 'Mês anterior';
+      prevBtn.title = isAtMinTimeline ? 'Timeline inicia em Outubro/2026' : 'Mês anterior';
     }
 
     // Atualizar estado e destaque visual do botão "Mês Atual"
@@ -884,9 +889,10 @@ const MatrixApp = (function () {
     const curY = parseInt(currentYear, 10);
     const curMIdx = MONTH_NAMES.indexOf(currentMonth);
 
-    // Gerar sequência de até 6 meses com início estrito em 2025 em diante
+    // Gerar sequência de até 6 meses com início estrito em Outubro/2026 em diante
     let monthsSequence = [];
-    const startOffset = (curY === 2025 && curMIdx === 0) ? 0 : -1;
+    const isAtMinStart = (curY === 2026 && curMIdx <= 9); // Outubro
+    const startOffset = isAtMinStart ? (9 - curMIdx) : -1;
     for (let offset = startOffset; offset <= startOffset + 5; offset++) {
       let targetMIdx = curMIdx + offset;
       let targetY = curY;
@@ -898,13 +904,14 @@ const MatrixApp = (function () {
         targetMIdx -= 12;
         targetY += 1;
       }
-      if (targetY >= 2025) {
-        monthsSequence.push({
-          ano: String(targetY),
-          mes: MONTH_NAMES[targetMIdx],
-          mesIdx: targetMIdx
-        });
+      if (targetY < 2026 || (targetY === 2026 && targetMIdx < 9)) {
+        continue;
       }
+      monthsSequence.push({
+        ano: String(targetY),
+        mes: MONTH_NAMES[targetMIdx],
+        mesIdx: targetMIdx
+      });
     }
 
     const state = MatrixDB.getState();
@@ -1151,8 +1158,7 @@ const MatrixApp = (function () {
 
     const origemSalLabel = document.getElementById('topOrigemSalarioLabel');
     if (origemSalLabel) {
-      const isMpsp = (currentYear === '2025' || (currentYear === '2026' && ['Janeiro','Fevereiro','Março','Abril','Maio','Junho'].includes(currentMonth)));
-      origemSalLabel.textContent = isMpsp ? 'MPSP' : 'USP';
+      origemSalLabel.textContent = 'USP';
     }
 
     const salScarletEl = document.getElementById('topSalScarletVal');
@@ -3412,10 +3418,16 @@ const MatrixApp = (function () {
 
   // Navegar diretamente para o mês selecionado no Fluxo de Caixa
   function navegarParaMes(ano, mes) {
-    currentYear = String(ano);
-    currentMonth = String(mes);
-    calSelectedYear = String(ano);
-    calSelectedMonth = String(mes);
+    let targetY = String(ano);
+    let targetM = String(mes);
+    if (targetY < '2026' || (targetY === '2026' && MONTH_NAMES.indexOf(targetM) < 9)) {
+      targetY = '2026';
+      targetM = 'Outubro';
+    }
+    currentYear = targetY;
+    currentMonth = targetM;
+    calSelectedYear = targetY;
+    calSelectedMonth = targetM;
 
     const allYears = MatrixDB.getAllYears();
     if (!allYears.includes(currentYear)) {
@@ -6223,10 +6235,9 @@ const MatrixApp = (function () {
     const descontoVr = parseFloat(document.getElementById('hlDescontoVr').value) || 0;
     const fgts = parseFloat(document.getElementById('hlFgts').value) || 501.12;
 
-    const isMpsp = (ano === '2025' || (ano === '2026' && ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho'].includes(mes)));
-    const orgao = isMpsp ? 'Ministério Público de São Paulo (MPSP)' : 'Universidade de São Paulo (USP)';
-    const cargo = isMpsp ? 'Oficial de Promotoria I' : 'Técnico 1 - Nível A';
-    const banco = isMpsp ? 'Bradesco Ag. 00443' : 'Banco do Brasil Ag. 2211 CC 38154-3';
+    const orgao = 'Universidade de São Paulo (USP)';
+    const cargo = 'Técnico 1 - Nível A';
+    const banco = 'Banco do Brasil Ag. 2211 CC 38154-3';
 
     const monthNum = String(MONTH_NAMES.indexOf(mes) + 1).padStart(2, '0');
     const periodoKey = `${ano}-${monthNum}`;
