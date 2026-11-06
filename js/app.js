@@ -1024,12 +1024,15 @@ const MatrixApp = (function () {
     const vrEl = document.getElementById('topVrVal');
     if (vrEl) vrEl.textContent = formatBRL(vr);
 
-    // 4. Card 2: Gastos Totais (Equação: Fixos + Variáveis = Totais)
+    // 4. Card 2: Gastos Totais (Equação: Fixos + Variáveis + Diários = Totais)
     const eqFixosEl = document.getElementById('topEqFixos');
     if (eqFixosEl) eqFixosEl.textContent = formatBRL(fixos);
 
     const eqOutrosEl = document.getElementById('topEqOutros');
-    if (eqOutrosEl) eqOutrosEl.textContent = formatBRL(outros + diarios);
+    if (eqOutrosEl) eqOutrosEl.textContent = formatBRL(outros);
+
+    const eqDiariosEl = document.getElementById('topEqDiarios');
+    if (eqDiariosEl) eqDiariosEl.textContent = formatBRL(diarios);
 
     const gastosTotaisEl = document.getElementById('topGastosTotaisVal');
     if (gastosTotaisEl) gastosTotaisEl.textContent = formatBRL(totalGastos);
@@ -1038,7 +1041,10 @@ const MatrixApp = (function () {
     if (resumoFixosEl) resumoFixosEl.textContent = formatBRL(fixos);
 
     const resumoOutrosEl = document.getElementById('topResumoOutrosVal');
-    if (resumoOutrosEl) resumoOutrosEl.textContent = formatBRL(outros + diarios);
+    if (resumoOutrosEl) resumoOutrosEl.textContent = formatBRL(outros);
+
+    const resumoDiariosEl = document.getElementById('topResumoDiariosVal');
+    if (resumoDiariosEl) resumoDiariosEl.textContent = formatBRL(diarios);
 
     const contasInicioRow = document.getElementById('topContasInicioRow');
     const contasInicioVal = document.getElementById('topContasInicioVal');
@@ -2545,6 +2551,86 @@ const MatrixApp = (function () {
       return;
     }
 
+    // Regra 1: Cartão da Scarlet é exclusivo do App Faturas (puxado automaticamente)
+    if (conta === 'credito_nubank_scarlet') {
+      alert('Os gastos no cartão Nubank da Scarlet são gerenciados e lançados exclusivamente no App Faturas, sendo sincronizados automaticamente aqui no Matrix.');
+      return;
+    }
+
+    // Regra 2: Crédito Nubank (Matheus) ou Crédito Banco do Brasil caem nos Gastos Variáveis do MÊS SEGUINTE
+    const isCreditoNubank = (conta === 'credito_nubank' || conta === 'credito_nubank_matheus');
+    const isCreditoBB = (conta === 'credito_bb');
+
+    if (isCreditoNubank || isCreditoBB) {
+      const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+      let targetMIdx = curMIdx + 1;
+      let targetYear = parseInt(currentYear, 10);
+      if (targetMIdx > 11) {
+        targetMIdx = 0;
+        targetYear += 1;
+      }
+      const targetMonthName = MONTH_NAMES[targetMIdx];
+
+      // Inicializa o mês destino no banco de dados se necessário
+      const s = MatrixDB.getState();
+      if (!s.anos[targetYear]) s.anos[targetYear] = {};
+      if (!s.anos[targetYear][targetMonthName]) {
+        s.anos[targetYear][targetMonthName] = { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
+      }
+      const targetMonthObj = s.anos[targetYear][targetMonthName];
+      if (!targetMonthObj.outros) targetMonthObj.outros = [];
+      if (!targetMonthObj.diarios) targetMonthObj.diarios = [];
+
+      const targetNomeItem = isCreditoNubank ? 'Nubank' : 'BB';
+      const targetCatItem = 'Cartão';
+
+      // Atualiza o item correspondente nos Gastos Variáveis ('outros') do mês seguinte
+      let itemVariavel = targetMonthObj.outros.find(it => {
+        const n = (it.nome || '').trim().toLowerCase();
+        if (isCreditoNubank) {
+          return (n === 'nubank' || n.includes('nubank')) && !n.includes('scarlet');
+        } else {
+          return n === 'bb' || n.includes('banco do brasil') || n.includes('cartão bb');
+        }
+      });
+
+      if (itemVariavel) {
+        itemVariavel.valor = Math.round(((parseFloat(itemVariavel.valor) || 0) + valor) * 100) / 100;
+        if (obs) {
+          itemVariavel.descricao = (itemVariavel.descricao ? (itemVariavel.descricao + ' | ') : '') + `${nome} (${formatBRL(valor)})`;
+        }
+      } else {
+        targetMonthObj.outros.push({
+          id: 'out_' + (isCreditoNubank ? 'nubank_' : 'bb_') + Date.now(),
+          nome: targetNomeItem,
+          valor: valor,
+          categoria: targetCatItem,
+          conta: isCreditoNubank ? 'credito_nubank' : 'credito_bb',
+          pago: false,
+          descricao: `${nome} (${formatBRL(valor)})`
+        });
+      }
+
+      // Adiciona também aos gastos diários detalhados do mês seguinte para manter o histórico
+      targetMonthObj.diarios.push({
+        id: 'diar_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        nome: `${nome} (${isCreditoNubank ? 'Crédito Nubank' : 'Crédito BB'})`,
+        valor,
+        dataHora: dataHora || new Date().toISOString(),
+        categoria,
+        conta,
+        pago: false,
+        obs: obs ? `${obs} [Fatura ${targetMonthName}/${targetYear}]` : `[Fatura ${targetMonthName}/${targetYear}]`
+      });
+
+      MatrixDB.saveState(s);
+      closeModal('quickExpenseModalBackdrop');
+      renderAll();
+      alert(`✅ Gasto de ${formatBRL(valor)} ("${nome}") lançado no Crédito!\nAlocado para o mês seguinte (${targetMonthName}/${targetYear}) nos Gastos Variáveis relativos ao ${targetNomeItem}.`);
+      return;
+    }
+
+    // Regra 3: Débito Inter e demais contas à vista vão para o MÊS VIGENTE
     const payload = {
       nome,
       valor,

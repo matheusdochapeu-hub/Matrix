@@ -119,7 +119,7 @@
         <!-- COLUNA 1: GANHOS CONJUNTOS EM PECÚNIA -->
         <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar todas as receitas em conta">
           <div class="unified-card-header">
-            <span class="unified-card-title">📥 Ganhos em Pecúnia (Casal)</span>
+            <span class="unified-card-title">📥 Ganhos</span>
             <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth)">✏️ Saldos</span>
           </div>
           <div class="unified-card-main-val" id="topRendaConjuntaVal">R$ 0,00</div>
@@ -165,31 +165,40 @@
             <span class="unified-badge amber">Fixos + Variáveis</span>
           </div>
           
-          <!-- Equação Visual: Gastos Fixos + Gastos Variáveis = Gastos Totais -->
+          <!-- Equação Visual: Gastos Fixos + Gastos Variáveis + Gastos Diários = Gastos Totais -->
           <div class="unified-equation-banner">
             <div class="eq-part">
-              <span class="eq-label">Gastos Fixos</span>
+              <span class="eq-label">Fixos</span>
               <strong class="eq-val" id="topEqFixos">R$ 0,00</strong>
             </div>
             <span class="eq-op">+</span>
             <div class="eq-part">
-              <span class="eq-label">Gastos Variáveis</span>
+              <span class="eq-label">Variáveis</span>
               <strong class="eq-val" id="topEqOutros">R$ 0,00</strong>
+            </div>
+            <span class="eq-op">+</span>
+            <div class="eq-part">
+              <span class="eq-label">Diários</span>
+              <strong class="eq-val" style="color:var(--cyan);" id="topEqDiarios">R$ 0,00</strong>
             </div>
             <span class="eq-op">=</span>
           </div>
 
           <div class="unified-card-main-val" style="color:var(--rose);" id="topGastosTotaisVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topGastosTotaisSub">Total de saídas do mês em dinheiro</div>
+          <div class="unified-card-sub" id="topGastosTotaisSub">Gastos fixos + variáveis + gastos diários</div>
 
           <div class="unified-breakdown-list" style="margin-top:8px;">
             <div class="unified-row">
-              <span>🔒 Parcela Casa, Caronas, Contas</span>
+              <span>🔒 Gastos Fixos (Parcela, Contas)</span>
               <strong id="topResumoFixosVal">R$ 0,00</strong>
             </div>
             <div class="unified-row">
-              <span>🛍️ Aportes, Cartões, Família</span>
+              <span>🛍️ Gastos Variáveis (Cartões, Outros)</span>
               <strong id="topResumoOutrosVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topResumoDiariosRow">
+              <span>⚡ Gastos Diários (Lançados Depois)</span>
+              <strong style="color:var(--cyan);" id="topResumoDiariosVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topContasInicioRow" style="display:none;">
               <span>⚠️ Contas Início de Ano (Jan)</span>
@@ -1860,34 +1869,31 @@
       <div style="margin-bottom:14px;">
         <label style="font-size:11px;color:var(--text-muted);">De onde saiu o dinheiro:</label>
         <select id="quickExpenseConta" class="matrix-select">
-          <optgroup label="🟣 Nubank">
-            <option value="debito_nubank" selected>🟣 Débito Nubank</option>
-            <option value="credito_nubank_matheus">🟣 Crédito Matheus</option>
-            <option value="credito_nubank_scarlet">🟣 Crédito Scarlet</option>
-            <option value="pix_nubank">🟣 Pix Nubank</option>
+          <optgroup label="🟠 Banco Inter (Mês Vigente)">
+            <option value="debito_inter" selected>🟠 Débito Inter (Mês Vigente)</option>
+            <option value="pix_inter">🟠 Pix Inter (Mês Vigente)</option>
+          </optgroup>
+          <optgroup label="🟣 Cartão Nubank (Matheus)">
+            <option value="credito_nubank">🟣 Crédito Nubank (&rarr; Fatura Mês Seguinte)</option>
           </optgroup>
           <optgroup label="🟡 Banco do Brasil">
-            <option value="debito_bb">🟡 Débito BB</option>
-            <option value="pix_bb">🟡 Pix BB</option>
-            <option value="salario_bb">🟡 Salário BB</option>
+            <option value="credito_bb">🟡 Crédito Banco do Brasil (&rarr; Fatura Mês Seguinte)</option>
+            <option value="debito_bb">🟡 Débito BB (Mês Vigente)</option>
+            <option value="pix_bb">🟡 Pix BB (Mês Vigente)</option>
           </optgroup>
-          <optgroup label="🟠 Banco Inter">
-            <option value="debito_inter">🟠 Débito Inter</option>
-            <option value="pix_inter">🟠 Pix Inter</option>
-          </optgroup>
-          <optgroup label="🔴 Santander">
-            <option value="debito_santander">🔴 Débito Santander</option>
-            <option value="pix_santander">🔴 Pix Santander</option>
-          </optgroup>
-          <optgroup label="Benefícios">
-            <option value="cartao_va">🟢 Cartão VA</option>
-            <option value="cartao_vr">🍽️ Cartão VR</option>
-          </optgroup>
-          <optgroup label="Outros">
+          <optgroup label="Benefícios & Outros (Mês Vigente)">
+            <option value="cartao_va">🟢 Cartão VA (Supermercado)</option>
+            <option value="cartao_vr">🍽️ Cartão VR (Almoço / Refeição)</option>
             <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
-            <option value="debito_caixa">🔵 Caixa</option>
+            <option value="debito_nubank">🟣 Débito Nubank (Mês Vigente)</option>
+          </optgroup>
+          <optgroup label="🔒 Cartão Nubank Scarlet (Automático)">
+            <option value="credito_nubank_scarlet" disabled>🔒 Crédito Scarlet (Lançar apenas no App Faturas)</option>
           </optgroup>
         </select>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:4px;line-height:1.4;">
+          💡 <em>Regra de Lançamento:</em> Débito Inter entra no <strong>mês vigente</strong>. Crédito Nubank e Crédito BB caem nos Gastos Variáveis do <strong>mês seguinte</strong>. Gastos do cartão da Scarlet são lançados exclusivamente no App Faturas.
+        </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;background:#050807;padding:10px 12px;border:1px solid var(--border-dim);border-radius:var(--radius-xs);margin-bottom:14px;">
