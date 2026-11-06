@@ -156,9 +156,9 @@ const MATRIX_SEED_DATA = {
       "categoria": "Capitalização",
       "titular": "Matheus",
       "valorAtual": 550.0,
-      "vencimento": "2028 (36 meses)",
-      "rentabilidadeContratada": "TR + Sorteios Mensais",
-      "status": "Aporte automático R$ 50/mês"
+      "vencimento": "60 meses (Resgate R$ 3.000,00)",
+      "rentabilidadeContratada": "TR + Sorteios (Resgate R$ 3.000,00)",
+      "status": "Aporte automático R$ 50/mês (60 meses)"
     },
     {
       "id": "acoes_csna",
@@ -200,15 +200,15 @@ const MATRIX_SEED_DATA = {
       "status": "A receber até 2028"
     },
     {
-      "id": "reserva_scarlet_nu",
-      "ativo": "Reserva de Emergência Scarlet",
-      "corretora": "Nubank",
-      "categoria": "Reserva de Emergência",
+      "id": "renda_plus_scarlet",
+      "ativo": "Tesouro Direto Renda+ 2055",
+      "corretora": "Tesouro Direto",
+      "categoria": "Previdência / Aposentadoria",
       "titular": "Scarlet",
       "valorAtual": 1250.0,
-      "vencimento": "Liquidez Diária",
-      "rentabilidadeContratada": "100% CDI (~10,75% a.a.)",
-      "status": "Ativo (Caixinha Reserva)"
+      "vencimento": "2055",
+      "rentabilidadeContratada": "IPCA + 6,50% a.a.",
+      "status": "Ativo (Aposentadoria 2055)"
     },
     {
       "id": "cdb_scarlet_inter",

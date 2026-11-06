@@ -138,8 +138,37 @@ const MatrixDB = (function () {
 
     // Compatibilidade e enriquecimento automático de titularidade (Matheus & Scarlet)
     if (memoryCache && memoryCache.investimentos) {
+      let invMutated = false;
       memoryCache.investimentos.forEach(inv => {
-        if (!inv.titular) inv.titular = 'Matheus';
+        if (!inv.titular) {
+          inv.titular = 'Matheus';
+          invMutated = true;
+        }
+
+        // Correção DinDin Santander: 60 meses, Resgate final R$ 3.000,00
+        const ativoNome = (inv.ativo || '').toLowerCase();
+        const catNome = (inv.categoria || '').toLowerCase();
+        const corrNome = (inv.corretora || '').toLowerCase();
+        if (inv.id === 'dindin_santander' || ativoNome.includes('dindin') || (catNome.includes('capitalização') && corrNome.includes('santander'))) {
+          if (inv.vencimento !== '60 meses (Resgate R$ 3.000,00)') {
+            inv.vencimento = '60 meses (Resgate R$ 3.000,00)';
+            inv.status = 'Aporte automático R$ 50/mês (60 meses)';
+            inv.rentabilidadeContratada = 'TR + Sorteios (Resgate R$ 3.000,00)';
+            invMutated = true;
+          }
+        }
+
+        // Correção 1250 da Scarlet: Tesouro Direto Renda+ 2055
+        if (inv.titular === 'Scarlet' && (inv.id === 'reserva_scarlet_nu' || (inv.valorAtual === 1250 && !ativoNome.includes('renda+')))) {
+          inv.id = 'renda_plus_scarlet';
+          inv.ativo = 'Tesouro Direto Renda+ 2055';
+          inv.corretora = 'Tesouro Direto';
+          inv.categoria = 'Previdência / Aposentadoria';
+          inv.vencimento = '2055';
+          inv.rentabilidadeContratada = 'IPCA + 6,50% a.a.';
+          inv.status = 'Ativo (Aposentadoria 2055)';
+          invMutated = true;
+        }
       });
 
       // Se o cache antigo do usuário ainda não possuir os ativos de Scarlet, mescla os seeds
@@ -148,7 +177,12 @@ const MatrixDB = (function () {
         const scarletSeeds = MATRIX_SEED_DATA.investimentos.filter(s => s.titular === 'Scarlet');
         if (scarletSeeds.length > 0) {
           memoryCache.investimentos.push(...JSON.parse(JSON.stringify(scarletSeeds)));
+          invMutated = true;
         }
+      }
+
+      if (invMutated) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
       }
     }
 

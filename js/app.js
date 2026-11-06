@@ -3891,10 +3891,10 @@ const MatrixApp = (function () {
         texto: `Vencimento 2027: ${formatBRL(fv)} (~10,75% a.a.)`
       };
     } else if (cat.includes('capitalização') || ativo.includes('dindin')) {
-      const fv = val + (36 * 50) + 120;
+      const fv = 3000.00;
       return {
         valorFuturo: fv,
-        texto: `Resgate em 2028 (36 meses): ${formatBRL(fv)}`
+        texto: `Resgate final (60 meses): ${formatBRL(fv)}`
       };
     } else if (cat.includes('ações') || ativo.includes('csna') || ativo.includes('mglu')) {
       return {
@@ -4161,8 +4161,8 @@ const MatrixApp = (function () {
             prevTexto = `Venc. 2027: <strong>${formatBRL(fv)}</strong>`;
             prevColor = 'var(--amber)';
           } else if (cat.includes('capitalização') || atv.includes('dindin')) {
-            const fv = val + (36 * 50) + 120;
-            prevTexto = `Resgate 2028: <strong>${formatBRL(fv)}</strong>`;
+            const fv = 3000.00;
+            prevTexto = `Resgate final (60m): <strong>${formatBRL(fv)}</strong>`;
             prevColor = 'var(--amber)';
           } else if (cat.includes('ações') || atv.includes('csna') || atv.includes('mglu')) {
             prevTexto = `Renda Variável (Cotação B3)`;

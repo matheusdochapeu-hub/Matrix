@@ -59,7 +59,7 @@ O app opera em modo **Progressive Web App (PWA)**, funcionando 100% offline com 
   - **XP Investimentos**: Tesouro Direto Renda+ 2055 (R$ 466,07) + Ações CSNA3 e MGLU3 (R$ 918,07).
   - **Banco Inter**: Tesouro Direto Renda+ 2055 (R$ 852,82) + Criptomoedas Bitcoin (R$ 44,69).
   - **Banco do Brasil**: Tesouro Reserva (R$ 2.213,80).
-  - **Santander**: DinDin Capitalização (R$ 550,00).
+  - **Santander**: DinDin Capitalização (R$ 550,00 - 60 meses, resgate final R$ 3.000,00).
   - **Clear Corretora**: Proventos a receber até 2028 (R$ 29,00).
   - **Scarlet**: Rastreamento de investimentos no BTG Pactual e BB.
 
