@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matrix-finance-v33';
+const CACHE_NAME = 'matrix-finance-v34';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-cache' })
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const clone = networkResponse.clone();
