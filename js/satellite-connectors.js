@@ -590,7 +590,7 @@ const SatelliteConnectors = (function () {
           const json = await res.json();
           const payload = json.data || json;
 
-          let vrAtual = 1235.0;
+          let vrAtual = 1105.0;
           try {
             const now = new Date();
             const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);

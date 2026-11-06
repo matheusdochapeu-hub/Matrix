@@ -668,8 +668,8 @@ const MATRIX_SEED_DATA = {
         ],
         "totais": {
           "Salário Mensal": 5788.19,
-          "VA": 2050,
-          "VR": 1235,
+          "VA": 2059.84,
+          "VR": 1105.16,
           "Estúdio": 600,
           "BB": 7066,
           "Subtotal Ganhos": 13454.19,
@@ -706,7 +706,7 @@ const MATRIX_SEED_DATA = {
           {
             "id": "rec_vr_Novembro_2026",
             "nome": "Vale Refeição (VR)",
-            "valor": 1235,
+            "valor": 1105.16,
             "categoria": "Benefício (Não Pecúnia)",
             "naoPecunia": true,
             "pago": true
@@ -714,7 +714,7 @@ const MATRIX_SEED_DATA = {
           {
             "id": "rec_va_Novembro_2026",
             "nome": "Vale Alimentação (VA - Maracaju 88)",
-            "valor": 2050,
+            "valor": 2059.84,
             "categoria": "Benefício (Não Pecúnia)",
             "naoPecunia": true,
             "pago": true

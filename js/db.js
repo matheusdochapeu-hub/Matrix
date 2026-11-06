@@ -435,7 +435,7 @@ const MatrixDB = (function () {
     if (month.receitas.length === 0 && (parseInt(ano, 10) >= 2026)) {
       month.receitas.push(
         { id: 'rec_sal_' + mes, nome: 'Salário Líquido USP (Banco do Brasil)', valor: 5788.19, categoria: 'Salário / Proventos', pago: false },
-        { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1235.00, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, pago: false },
+        { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1105.00, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, pago: false },
         { id: 'rec_va_' + mes, nome: 'Vale Alimentação (VA - Maracaju 88)', valor: 2050.00, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, pago: false }
       );
     }
@@ -608,7 +608,7 @@ const MatrixDB = (function () {
             diarios: [],
             receitas: [
               { id: 'rec_sal_' + mes, nome: 'Salário Líquido USP (Banco do Brasil)', valor: 5788.19, categoria: 'Salário / Proventos', pago: false },
-              { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1235.00, categoria: 'Benefícios', pago: false },
+              { id: 'rec_vr_' + mes, nome: 'Vale Refeição (VR)', valor: 1105.00, categoria: 'Benefícios', pago: false },
               { id: 'rec_va_' + mes, nome: 'Vale Alimentação (VA - Maracaju 88)', valor: 2050.00, categoria: 'Benefícios', pago: false }
             ],
             totais: {}

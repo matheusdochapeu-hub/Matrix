@@ -171,14 +171,43 @@ const MatrixApp = (function () {
           if (!octData.fixos) octData.fixos = [];
           let caronaItem = octData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
           if (caronaItem) caronaItem.valor = commute.totalCaronas;
-          if (!octData.totais) octData.totais = {};
-          octData.totais['VR'] = commute.totalVR;
           MatrixDB.saveMonth('2026', 'Outubro', octData);
         }
         MatrixDB.saveState(state);
       }
     } catch (e) {
       console.warn('Erro ao inicializar override do calendário:', e);
+    }
+
+    try {
+      const novData = MatrixDB.getMonth('2026', 'Novembro');
+      if (novData) {
+        let changedNov = false;
+        if (!novData.totais) novData.totais = {};
+        if (novData.totais['VR'] === 1235 || !novData.totais['VR'] || novData.totais['VR'] === 1105) {
+          novData.totais['VR'] = 1105.16;
+          changedNov = true;
+        }
+        if (novData.totais['VA'] === 2050 || !novData.totais['VA']) {
+          novData.totais['VA'] = 2059.84;
+          changedNov = true;
+        }
+        if (novData.receitas) {
+          const rVr = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('vr') || (r.nome || '').toLowerCase().includes('refei'));
+          if (rVr && (rVr.valor === 1235 || !rVr.valor || rVr.valor === 1105)) {
+            rVr.valor = 1105.16;
+            changedNov = true;
+          }
+          const rVa = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('va') || (r.nome || '').toLowerCase().includes('alimenta'));
+          if (rVa && (rVa.valor === 2050 || !rVa.valor)) {
+            rVa.valor = 2059.84;
+            changedNov = true;
+          }
+        }
+        if (changedNov) MatrixDB.saveMonth('2026', 'Novembro', novData);
+      }
+    } catch (e) {
+      console.warn('Erro ao calibrar VA/VR de Novembro:', e);
     }
 
     try {
@@ -1076,16 +1105,19 @@ const MatrixApp = (function () {
       // 2. Ganhos Scarlet (FisioFlow)
       const salScarlet = getGanhosScarletMes(m.ano, m.mes);
 
-      // 3. Vale Alimentação - VA (Maracaju 88)
-      const va = 2050.00;
+      // 3. Vale Alimentação - VA (Casa Maracaju 88)
+      let va = 2050.00;
+      if (m.ano === '2026' && m.mes === 'Novembro') va = 2059.84;
+      if (monthData.totais && monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+      if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
-      // 4. Vale Refeição - VR (calculado pelo calendário USP ou R$ 1.235)
-      let vr = 1235.00;
-      try {
-        const customLeaves = state.calendarioCustom || [];
-        const commute = CalendarEngine.calculateCommuteAndVR(parseInt(m.ano, 10), m.mesIdx + 1, customLeaves);
-        if (commute && commute.totalVR) vr = commute.totalVR;
-      } catch (e) {}
+      // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
+      let vr = 1105.00;
+      if (m.ano === '2026' && m.mes === 'Novembro') vr = 1105.16;
+      if (monthData.totais && monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
+        vr = parseFloat(monthData.totais['VR']) || vr;
+      }
+      if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
       // 5. Outros Ganhos em Pecúnia (13º Salário, Estúdio/Personalizado, etc.)
       let outrosGanhos = 0;
@@ -1180,17 +1212,19 @@ const MatrixApp = (function () {
     // 2. Ganhos Scarlet (FisioFlow)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
 
-    // 3. Vale Alimentação - VA (Maracaju 88)
-    const va = 2050.00;
+    // 3. Vale Alimentação - VA (Casa Maracaju 88)
+    let va = 2050.00;
+    if (currentYear === '2026' && currentMonth === 'Novembro') va = 2059.84;
+    if (monthData.totais && monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+    if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
-    // 4. Vale Refeição - VR (calculado pelo calendário USP ou R$ 1.235)
-    let vr = 1235.00;
-    try {
-      const curMIdx = MONTH_NAMES.indexOf(currentMonth);
-      const customLeaves = state.calendarioCustom || [];
-      const commute = CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), curMIdx + 1, customLeaves);
-      if (commute && commute.totalVR) vr = commute.totalVR;
-    } catch (e) {}
+    // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
+    let vr = 1105.00;
+    if (currentYear === '2026' && currentMonth === 'Novembro') vr = 1105.16;
+    if (monthData.totais && monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
+      vr = parseFloat(monthData.totais['VR']) || vr;
+    }
+    if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
     // 5. Outros Ganhos em Pecúnia (13º, Férias proporcionais, Estúdio/Personalizado, etc.)
     let outrosGanhos = 0;
@@ -2626,8 +2660,8 @@ const MatrixApp = (function () {
     // 1. Fontes de Recurso (De Onde Veio)
     const receitas = monthData.receitas || [];
     let salUsp = 0;
-    let vaTotal = 2050.00;
-    let vrTotal = 1235.00;
+    let vaTotal = 2059.84;
+    let vrTotal = 1105.16;
     let scarletTotal = 1100.00;
 
     receitas.forEach(r => {
@@ -2833,12 +2867,6 @@ const MatrixApp = (function () {
         conta: 'inter_debito',
         renda: 'usp'
       });
-      changed = true;
-    }
-
-    if (!monthData.totais) monthData.totais = {};
-    if (monthData.totais['VR'] !== commute.totalVR) {
-      monthData.totais['VR'] = commute.totalVR;
       changed = true;
     }
 
@@ -6544,15 +6572,32 @@ function onModalCategoriaChange(catVal) {
     // 2. Ganhos Scarlet
     const ganhosScarlet = getGanhosScarletMes(saldosModalTargetAno, saldosModalTargetMes);
 
-    // 3. VA & VR
-    const va = 2050.00;
-    let vr = 1235.00;
-    try {
-      const mIdx = MONTH_NAMES.indexOf(saldosModalTargetMes);
-      const customLeaves = state.calendarioCustom || [];
-      const commute = CalendarEngine.calculateCommuteAndVR(parseInt(saldosModalTargetAno, 10), mIdx + 1, customLeaves);
-      if (commute && commute.totalVR) vr = commute.totalVR;
-    } catch (e) {}
+    // 3. VA & VR — extração oficial do app Casa Maracaju 88
+    const satMaracaju = state.satellites && state.satellites.maracaju;
+    let va = 2050.00;
+    let vr = 1105.00;
+
+    if (saldosModalTargetAno === '2026' && saldosModalTargetMes === 'Novembro') {
+      va = 2059.84;
+      vr = 1105.16;
+    }
+
+    if (satMaracaju && saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
+      if (satMaracaju.saldoVaRestante != null) va = satMaracaju.saldoVaRestante;
+      else if (satMaracaju.vaTotal != null) va = satMaracaju.vaTotal;
+
+      if (satMaracaju.saldoVrRestante != null) vr = satMaracaju.saldoVrRestante;
+      else if (satMaracaju.vrTotal != null) vr = satMaracaju.vrTotal;
+    }
+
+    if (monthData.totais) {
+      if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
+      if (monthData.totais['VR'] != null && monthData.totais['VR'] !== 1235.00) {
+        vr = parseFloat(monthData.totais['VR']) || vr;
+      }
+    }
+    if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
+    if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
     // 4. Ganho Extra / Estúdio
     const nomeEst = getNomeEstudio();
@@ -6599,15 +6644,22 @@ function onModalCategoriaChange(catVal) {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(saldosModalTargetAno, saldosModalTargetMes);
 
-    const salMatheus = parseFloat(document.getElementById('saldosSalMatheus').value) || 5788.19;
-    const ganhosScarlet = parseFloat(document.getElementById('saldosGanhosScarlet').value) || 0;
-    const va = parseFloat(document.getElementById('saldosVa').value) || 2050.00;
-    const vr = parseFloat(document.getElementById('saldosVr').value) || 1235.00;
-    const novoNomeEst = (document.getElementById('saldosNomeEstudio').value || '').trim() || 'Renda Extra';
-    const valorExtra = parseFloat(document.getElementById('saldosValorEstudio').value) || 0;
-    const contaExtra = document.getElementById('saldosContaEstudio').value || 'salario_bb';
-    const faturaNubank = parseFloat(document.getElementById('saldosFaturaNubank').value) || 0;
-    const ajuste = parseFloat(document.getElementById('saldosAjusteConciliacao').value) || 0;
+    const parseVal = (id, def) => {
+      const el = document.getElementById(id);
+      if (!el || el.value === '' || el.value == null) return def;
+      const v = parseFloat(String(el.value).replace(',', '.'));
+      return isNaN(v) ? def : v;
+    };
+
+    const salMatheus = parseVal('saldosSalMatheus', 5788.19);
+    const ganhosScarlet = parseVal('saldosGanhosScarlet', 0);
+    const va = parseVal('saldosVa', 2059.84);
+    const vr = parseVal('saldosVr', 1105.16);
+    const novoNomeEst = (document.getElementById('saldosNomeEstudio')?.value || '').trim() || 'Renda Extra';
+    const valorExtra = parseVal('saldosValorEstudio', 0);
+    const contaExtra = document.getElementById('saldosContaEstudio')?.value || 'salario_bb';
+    const faturaNubank = parseVal('saldosFaturaNubank', 0);
+    const ajuste = parseVal('saldosAjusteConciliacao', 0);
 
     // Salva configuração do nome de renda extra
     if (!state.config) state.config = {};
@@ -6629,6 +6681,29 @@ function onModalCategoriaChange(catVal) {
     monthData.totais['Renda Extra'] = valorExtra;
     if (novoNomeEst !== 'Renda Extra') monthData.totais[novoNomeEst] = valorExtra;
 
+    // Registra marcações explícitas manuais
+    monthData.vaManual = va;
+    monthData.vrManual = vr;
+
+    // Sincroniza satélite Casa Maracaju se for o ciclo vigente
+    if (saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
+      if (!state.satellites) state.satellites = {};
+      if (!state.satellites.maracaju) {
+        state.satellites.maracaju = {
+          origem: 'Maracaju 88',
+          saldoVaRestante: va,
+          vaTotal: va,
+          saldoVrRestante: vr,
+          vrTotal: vr
+        };
+      } else {
+        state.satellites.maracaju.saldoVaRestante = va;
+        state.satellites.maracaju.vaTotal = va;
+        state.satellites.maracaju.saldoVrRestante = vr;
+        state.satellites.maracaju.vrTotal = vr;
+      }
+    }
+
     // Sincroniza nas receitas do mês
     if (!monthData.receitas) monthData.receitas = [];
 
@@ -6638,10 +6713,10 @@ function onModalCategoriaChange(catVal) {
       recSal.valor = salMatheus;
     } else {
       monthData.receitas.unshift({
-        id: 'rec_sal_' + saldosModalTargetMes,
-        nome: 'Salário Líquido USP',
+        id: 'rec_sal_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
+        nome: 'Salário Líquido USP (Banco do Brasil)',
         valor: salMatheus,
-        categoria: 'Salário',
+        categoria: 'Salário / Proventos',
         conta: 'salario_bb',
         renda: 'salario_usp',
         pago: true
@@ -6655,8 +6730,8 @@ function onModalCategoriaChange(catVal) {
         recFisio.valor = ganhosScarlet;
       } else {
         monthData.receitas.push({
-          id: 'rec_fisio_' + saldosModalTargetMes,
-          nome: 'Ganhos Scarlet',
+          id: 'rec_fisio_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
+          nome: 'Ganhos Scarlet (FisioFlow)',
           valor: ganhosScarlet,
           categoria: 'Fisio Scarlet',
           conta: 'scarlet_fisio',
@@ -6666,6 +6741,36 @@ function onModalCategoriaChange(catVal) {
       }
     } else if (recFisio) {
       recFisio.valor = 0;
+    }
+
+    // Vale Alimentação (VA)
+    let recVa = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('vale alimentação') || (r.nome || '').toLowerCase().includes('va') || (r.id && r.id.startsWith('rec_va')));
+    if (recVa) {
+      recVa.valor = va;
+    } else {
+      monthData.receitas.push({
+        id: 'rec_va_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
+        nome: 'Vale Alimentação (VA - Maracaju 88)',
+        valor: va,
+        categoria: 'Benefício (Não Pecúnia)',
+        naoPecunia: true,
+        pago: true
+      });
+    }
+
+    // Vale Refeição (VR)
+    let recVr = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('vale refeição') || (r.nome || '').toLowerCase().includes('vr') || (r.id && r.id.startsWith('rec_vr')));
+    if (recVr) {
+      recVr.valor = vr;
+    } else {
+      monthData.receitas.push({
+        id: 'rec_vr_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
+        nome: 'Vale Refeição (VR)',
+        valor: vr,
+        categoria: 'Benefício (Não Pecúnia)',
+        naoPecunia: true,
+        pago: true
+      });
     }
 
     // Ganho Extra
@@ -6680,7 +6785,7 @@ function onModalCategoriaChange(catVal) {
         recExtra.conta = contaExtra;
       } else {
         monthData.receitas.push({
-          id: 'rec_extra_' + saldosModalTargetMes,
+          id: 'rec_extra_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
           nome: novoNomeEst,
           valor: valorExtra,
           categoria: 'Renda Extra',
@@ -6693,10 +6798,13 @@ function onModalCategoriaChange(catVal) {
       recExtra.valor = 0;
     }
 
+    // Salva explicitamente tanto os dados do mês quanto o estado global!
+    MatrixDB.saveMonth(saldosModalTargetAno, saldosModalTargetMes, monthData);
     MatrixDB.saveState(state);
+
     closeModal('saldosEditModalBackdrop');
     renderAll();
-    alert(`✅ Saldos e rendas de ${saldosModalTargetMes}/${saldosModalTargetAno} atualizados!`);
+    alert('✅ Saldos e rendas de ' + saldosModalTargetMes + '/' + saldosModalTargetAno + ' atualizados com sucesso!');
   }
 
   function toggleScenarioActive(scenId, isActive) {
@@ -6945,9 +7053,6 @@ function onModalCategoriaChange(catVal) {
       });
     }
 
-    if (!monthData.totais) monthData.totais = {};
-    monthData.totais['VR'] = commute.totalVR;
-
     MatrixDB.saveMonth(yearStr, monthName, monthData);
 
     closeModal('calDayEditModalBackdrop');
@@ -7007,10 +7112,6 @@ function onModalCategoriaChange(catVal) {
         pago: false
       });
     }
-
-    // Atualiza VR nos totais
-    if (!monthData.totais) monthData.totais = {};
-    monthData.totais['VR'] = commute.totalVR;
 
     MatrixDB.saveMonth(yearStr, monthName, monthData);
 
