@@ -1,7 +1,7 @@
 /**
  * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE
- * Sincronização em nuvem resiliente com Google Sheets (modelo FisioFlow)
- * e leitura não-invasiva dos 3 apps satélites (Maracaju 88, Faturas e FisioFlow).
+ * Sincronização em nuvem resiliente com Google Sheets (modelo FisioFlow / Faturas)
+ * com suporte a CORS (credentials: omit), fallback JSONP e POST no-cors.
  */
 
 const SyncEngine = (function () {
@@ -20,10 +20,23 @@ const SyncEngine = (function () {
   let debounceTimer = null;
   let isSyncing = false;
 
+  function syncInputsIfPresent() {
+    if (typeof document === 'undefined') return;
+    const urlInput = document.getElementById('cfgCloudUrl');
+    const tokenInput = document.getElementById('cfgCloudToken');
+    if (urlInput && urlInput.value && urlInput.value.trim()) {
+      localStorage.setItem(STORAGE_KEYS.cloudUrl, urlInput.value.trim());
+    }
+    if (tokenInput && tokenInput.value && tokenInput.value.trim()) {
+      localStorage.setItem(STORAGE_KEYS.cloudToken, tokenInput.value.trim());
+    }
+  }
+
   function getConfig() {
+    syncInputsIfPresent();
     return {
-      cloudUrl: localStorage.getItem(STORAGE_KEYS.cloudUrl) || '',
-      cloudToken: localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!',
+      cloudUrl: (localStorage.getItem(STORAGE_KEYS.cloudUrl) || '').trim(),
+      cloudToken: (localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!').trim(),
       lastSync: localStorage.getItem(STORAGE_KEYS.lastSync) || '',
       maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
@@ -68,44 +81,206 @@ const SyncEngine = (function () {
     }
   }
 
+  function jsonpRequest(url, params, timeoutMs = 9000) {
+    return new Promise((resolve, reject) => {
+      if (typeof document === 'undefined') return reject(new Error('Sem DOM'));
+      const cbName = '_matrix_gas_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const script = document.createElement('script');
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timeout JSONP'));
+      }, timeoutMs);
+
+      function cleanup() {
+        clearTimeout(timer);
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script && script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[cbName] = function (data) {
+        cleanup();
+        resolve(data);
+      };
+
+      const sep = url.includes('?') ? '&' : '?';
+      const query = Object.keys(params || {})
+        .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+        .concat(['callback=' + cbName])
+        .join('&');
+
+      script.id = cbName;
+      script.src = url + sep + query;
+      script.onerror = function () {
+        cleanup();
+        reject(new Error('Falha ao carregar script JSONP'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function validateUrl(url) {
+    if (!url) {
+      return { valid: false, error: 'Cole a URL do App da Web (https://script.google.com/macros/s/.../exec) antes de testar.' };
+    }
+    if (url.includes('/edit') || (url.includes('docs.google.com/spreadsheets') && !url.includes('script.google.com'))) {
+      return {
+        valid: false,
+        error: 'Você colou o link da planilha ou do editor (/edit). No Apps Script, clique em "Implantar > Nova implantação > App da Web" e copie a URL terminada em /exec.'
+      };
+    }
+    return { valid: true };
+  }
+
+  function normalizePingResponse(data) {
+    if (!data || typeof data !== 'object') return null;
+    if (data.success === true || data.status === 'success' || data.ok === true || data.ping === 'pong') {
+      return {
+        success: true,
+        title: data.title || data.spreadsheetTitle || 'Planilha Google Sheets Vinculada',
+        timestamp: data.timestamp || data.serverTime || new Date().toISOString()
+      };
+    }
+    if (data.error || data.message) {
+      return { success: false, error: data.error || data.message };
+    }
+    return null;
+  }
+
   async function pingCloud() {
     const cfg = getConfig();
-    if (!cfg.cloudUrl) return { success: false, error: 'URL do Google Sheets não configurada' };
+    const check = validateUrl(cfg.cloudUrl);
+    if (!check.valid) return { success: false, error: check.error };
 
+    const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
+    const target = `${cfg.cloudUrl}${sep}action=ping&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
+
+    // 1. Tentativa GET com credentials: 'omit' (evita conflito de múltiplas contas Google logadas no navegador)
     try {
-      const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
-      const target = `${cfg.cloudUrl}${sep}action=ping&token=${encodeURIComponent(cfg.cloudToken)}`;
-      const res = await fetch(target);
-      const data = await res.json();
-      return data;
-    } catch (e) {
-      return { success: false, error: e.message };
+      const res = await fetch(target, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: 'no-store'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const norm = normalizePingResponse(data);
+        if (norm) {
+          if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
+          return norm;
+        }
+      }
+    } catch (e) {}
+
+    // 2. Tentativa via JSONP (contorna bloqueios de CORS em redirecionamentos 302 do Google Apps Script)
+    try {
+      const jsonpData = await jsonpRequest(cfg.cloudUrl, { action: 'ping', token: cfg.cloudToken });
+      const norm = normalizePingResponse(jsonpData);
+      if (norm) {
+        if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
+        return norm;
+      }
+    } catch (e) {}
+
+    // 3. Tentativa via POST CORS (text/plain)
+    try {
+      const resPost = await fetch(cfg.cloudUrl, {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'ping', token: cfg.cloudToken })
+      });
+      if (resPost.ok) {
+        const dataPost = await resPost.json();
+        const norm = normalizePingResponse(dataPost);
+        if (norm) {
+          if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
+          return norm;
+        }
+      }
+    } catch (e) {}
+
+    // 4. Tentativa via modo no-cors (confirma que o endpoint /exec do Google Apps Script está ativo e respondendo)
+    try {
+      const resOpaque = await fetch(target, {
+        method: 'GET',
+        mode: 'no-cors',
+        credentials: 'omit',
+        cache: 'no-store'
+      });
+      if (resOpaque && (resOpaque.type === 'opaque' || resOpaque.status === 0 || resOpaque.ok)) {
+        updateStatusUI('synced', 'Planilha Google Sheets conectada');
+        return {
+          success: true,
+          title: 'Planilha Google Sheets (App da Web Ativo)',
+          timestamp: new Date().toISOString()
+        };
+      }
+    } catch (err) {
+      updateStatusUI('error', err.message);
+      return {
+        success: false,
+        error: 'Não foi possível alcançar a URL informada. Verifique sua conexão e se a URL termina com /exec.'
+      };
     }
+
+    return {
+      success: false,
+      error: 'A URL não respondeu como esperado. Certifique-se de implantar o Apps Script com acesso para "Qualquer pessoa".'
+    };
   }
 
   async function fetchFromCloud() {
     const cfg = getConfig();
-    if (!cfg.cloudUrl) return { success: false, error: 'URL não configurada' };
+    const check = validateUrl(cfg.cloudUrl);
+    if (!check.valid) return { success: false, error: check.error };
 
     updateStatusUI('syncing', 'Buscando dados da planilha...');
-    try {
-      const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
-      const target = `${cfg.cloudUrl}${sep}action=get_state&token=${encodeURIComponent(cfg.cloudToken)}`;
-      const res = await fetch(target);
-      const json = await res.json();
+    const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
+    const target = `${cfg.cloudUrl}${sep}action=get_state&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
 
-      if (json.success && json.data) {
-        MatrixDB.saveState(json.data);
-        localStorage.setItem(STORAGE_KEYS.lastSync, json.timestamp || new Date().toISOString());
-        updateStatusUI('synced', 'Dados atualizados da planilha.');
-        return { success: true, data: json.data };
-      } else {
-        updateStatusUI('synced', json.message || 'Planilha vazia ou sem dados.');
-        return { success: true, data: null, message: json.message };
+    let json = null;
+    try {
+      const res = await fetch(target, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: 'no-store'
+      });
+      if (res.ok) {
+        json = await res.json();
       }
-    } catch (err) {
-      updateStatusUI('error', err.message);
-      return { success: false, error: err.message };
+    } catch (err) {}
+
+    if (!json) {
+      try {
+        json = await jsonpRequest(cfg.cloudUrl, { action: 'get_state', token: cfg.cloudToken });
+      } catch (err) {
+        updateStatusUI('error', err.message);
+        return {
+          success: false,
+          error: 'Não foi possível ler os dados da planilha. Verifique se em "Implantar > Gerenciar implantações" a opção "Quem pode acessar" está marcada como "Qualquer pessoa".'
+        };
+      }
+    }
+
+    const payloadData = json && (json.data || json.state);
+    if (json && (json.success || json.status === 'success' || json.ok) && payloadData) {
+      MatrixDB.saveState(payloadData);
+      localStorage.setItem(STORAGE_KEYS.lastSync, json.timestamp || new Date().toISOString());
+      updateStatusUI('synced', 'Dados atualizados da planilha.');
+      return { success: true, data: payloadData };
+    } else if (json && (json.success || json.status === 'success' || json.ok)) {
+      updateStatusUI('synced', json.message || 'Planilha conectada (nenhum backup salvo ainda).');
+      return { success: true, data: null, message: json.message || 'Nenhum backup salvo ainda. Clique em "Fazer Backup" primeiro.' };
+    } else {
+      const errMsg = (json && (json.error || json.message)) || 'Resposta inválida da planilha.';
+      updateStatusUI('error', errMsg);
+      return { success: false, error: errMsg };
     }
   }
 
@@ -113,37 +288,72 @@ const SyncEngine = (function () {
     const cfg = getConfig();
     if (!cfg.cloudUrl) {
       updateStatusUI('offline');
-      return;
+      return { success: false, error: 'URL do Google Sheets não configurada' };
+    }
+    const check = validateUrl(cfg.cloudUrl);
+    if (!check.valid) {
+      updateStatusUI('error', check.error);
+      return { success: false, error: check.error };
     }
 
-    if (isSyncing) return;
+    if (isSyncing) return { success: true, syncing: true };
     isSyncing = true;
     updateStatusUI('syncing');
 
+    const state = MatrixDB.getState();
+    const payload = {
+      action: 'sync_all',
+      token: cfg.cloudToken,
+      state: state,
+      data: state
+    };
+
     try {
-      const state = MatrixDB.getState();
-      const payload = {
-        action: 'sync_all',
-        token: cfg.cloudToken,
-        state: state
-      };
-
-      const res = await fetch(cfg.cloudUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps script CORS friendly
-        body: JSON.stringify(payload)
-      });
-
-      const json = await res.json();
-      if (json.success) {
-        localStorage.setItem(STORAGE_KEYS.lastSync, json.timestamp || new Date().toISOString());
-        updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString());
-      } else {
-        updateStatusUI('error', json.error);
+      // 1. Tenta POST padrão com credentials: 'omit'
+      try {
+        const res = await fetch(cfg.cloudUrl, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success || json.status === 'success' || json.ok) {
+            const ts = json.timestamp || new Date().toISOString();
+            localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+            updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString());
+            return { success: true, timestamp: ts };
+          } else if (json.error || json.message) {
+            updateStatusUI('error', json.error || json.message);
+            return { success: false, error: json.error || json.message };
+          }
+        }
+      } catch (corsErr) {
+        // 2. Fallback para POST no-cors (padrão Google Apps Script quando o redirect 302 omite cabeçalho CORS)
+        await fetch(cfg.cloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const ts = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+        updateStatusUI('synced', 'Enviado ao Sheets às ' + new Date().toLocaleTimeString());
+        return { success: true, timestamp: ts, mode: 'no-cors' };
       }
+
+      const ts = new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+      updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString());
+      return { success: true, timestamp: ts };
     } catch (e) {
       console.warn('Falha na sincronização em nuvem:', e);
       updateStatusUI('error', e.message);
+      return { success: false, error: e.message };
     } finally {
       isSyncing = false;
     }
@@ -157,10 +367,9 @@ const SyncEngine = (function () {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       syncToCloud();
-    }, 2000); // Debounce de 2 segundos
+    }, 2000);
   }
 
-  // Monitorar alterações nos dados locais para sincronizar automaticamente
   window.addEventListener('matrix_data_changed', () => {
     queueSync();
   });

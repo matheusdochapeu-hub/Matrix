@@ -7206,34 +7206,50 @@ function onModalCategoriaChange(catVal) {
   }
 
   function saveCloudSettings() {
-    const cloudUrl = document.getElementById('cfgCloudUrl').value;
-    const cloudToken = document.getElementById('cfgCloudToken').value;
+    const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
+    const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
     SyncEngine.saveConfig({ cloudUrl, cloudToken });
-    alert('Configurações salvas!');
+    alert('✅ Configurações de nuvem salvas com sucesso!');
     renderBackup();
   }
 
   async function testCloudConnection() {
+    const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
+    const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
+    SyncEngine.saveConfig({ cloudUrl, cloudToken });
     const res = await SyncEngine.pingCloud();
     if (res.success) {
-      alert(`Conexão OK! Planilha vinculada: "${res.title}"`);
+      alert(`✅ Conexão OK! Planilha vinculada: "${res.title}"`);
+      renderBackup();
     } else {
       alert(`Erro na conexão: ${res.error}`);
     }
   }
 
   async function forceSyncToCloud() {
-    await SyncEngine.syncToCloud();
-    alert('Backup enviado para o Google Sheets!');
+    const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
+    const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
+    SyncEngine.saveConfig({ cloudUrl, cloudToken });
+    const res = await SyncEngine.syncToCloud();
+    if (res && res.success) {
+      alert('✅ Backup enviado com sucesso para o Google Sheets!');
+    } else {
+      alert('Erro ao enviar backup: ' + ((res && res.error) || 'Verifique a URL da planilha.'));
+    }
     renderBackup();
   }
 
   async function forceFetchFromCloud() {
+    const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
+    const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
+    SyncEngine.saveConfig({ cloudUrl, cloudToken });
     if (confirm('Deseja puxar os dados mais recentes do Google Sheets e substituir a memória local?')) {
       const res = await SyncEngine.fetchFromCloud();
-      if (res.success) {
-        alert('Dados restaurados com sucesso do Google Sheets!');
+      if (res.success && res.data) {
+        alert('✅ Dados restaurados com sucesso do Google Sheets!');
         renderAll();
+      } else if (res.success && !res.data) {
+        alert('ℹ️ ' + (res.message || 'A planilha está conectada, mas ainda não possui um backup salvo. Clique em "⬆️ Fazer Backup" primeiro.'));
       } else {
         alert('Falha ao restaurar: ' + res.error);
       }

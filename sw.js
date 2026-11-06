@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matrix-finance-v53';
+const CACHE_NAME = 'matrix-finance-v54';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -44,8 +44,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Estratégia Network-First para assets do app com fallback no Cache
   if (event.request.method !== 'GET') return;
+
+  // NUNCA interceptar chamadas externas (como Google Apps Script / Google Sheets / APIs)
+  if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
     fetch(event.request, { cache: 'no-cache' })
@@ -57,7 +59,9 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((cached) => {
+          return cached || Response.error();
+        });
       })
   );
 });
