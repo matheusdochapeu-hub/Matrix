@@ -1568,8 +1568,7 @@ body {
   padding: 16px;
 }
 
-.matrix-modal-backdrop.open,
-.matrix-modal-backdrop.active {
+.matrix-modal-backdrop.open {
   display: flex;
   animation: fadeInFast 0.18s ease-out;
 }
@@ -3464,4 +3463,71 @@ body {
 .invest-clean-card:hover {
   border-color: rgba(0, 255, 102, 0.35);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* Simulador Aposentadoria 2055 Modal Enhancements (v49) */
+.sim2055-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.sim2055-meta-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  text-align: left !important;
+  white-space: normal !important;
+  min-width: 0 !important;
+  padding: 8px 10px !important;
+  overflow: hidden !important;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.sim2055-meta-btn strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.sim2055-meta-btn span {
+  display: block;
+  font-size: 10px;
+  margin-top: 3px;
+  opacity: 0.8;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.sim2055-results-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sim2055-result-card {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+@media (max-width: 650px) {
+  .sim2055-meta-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .sim2055-results-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 420px) {
+  .sim2055-meta-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .sim2055-results-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

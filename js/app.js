@@ -7075,20 +7075,27 @@ const MatrixApp = (function () {
     document.querySelectorAll('.close-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const backdrop = e.target.closest('.matrix-modal-backdrop');
-        if (backdrop) backdrop.classList.remove('open');
+        if (backdrop) {
+          backdrop.classList.remove('open', 'active');
+          backdrop.style.display = 'none';
+        }
       });
     });
 
     window.addEventListener('click', (e) => {
       if (e.target.classList.contains('matrix-modal-backdrop')) {
-        e.target.classList.remove('open');
+        e.target.classList.remove('open', 'active');
+        e.target.style.display = 'none';
       }
     });
   }
 
   function closeModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove('open');
+    if (el) {
+      el.classList.remove('open', 'active');
+      el.style.display = 'none';
+    }
   }
 
   function setupHoleriteDropzone() {

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=48">
+  <link rel="stylesheet" href="css/matrix.css?v=49">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1121,8 +1121,8 @@
           <span class="box-badge" style="background:rgba(0,255,102,0.1);color:var(--matrix-green);border-color:var(--matrix-green);font-size:10.5px;padding:2px 7px;white-space:nowrap;">Consolidado</span>
         </div>
 
-        <!-- KPIs Resumo de Patrimônio (Consolidado, Reserva, Matheus e Scarlet) -->
-        <div class="invest-kpi-bar" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:12px;">
+        <!-- 1. KPIs Resumo de Patrimônio (Consolidado, Reserva, Matheus e Scarlet) -->
+        <div class="invest-kpi-bar" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;margin-bottom:14px;">
           <div class="invest-kpi-card" style="padding:10px 12px;">
             <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;margin-bottom:3px;white-space:nowrap;">PATRIMÔNIO TOTAL</div>
             <div id="invPatrimonioTotal" style="font-size:16px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);white-space:nowrap;">R$ 0,00</div>
@@ -1141,37 +1141,36 @@
           </div>
         </div>
 
-        <!-- Alocação Real por Horizonte e Vencimento -->
-        <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:700;color:var(--text-main);margin-bottom:8px;font-family:var(--font-mono);">
-            🎯 Horizontes de Vencimento e Prazos Reais:
+        <!-- 2. Barra de Filtros e Ações de Carteira -->
+        <div class="invest-controls-toolbar" style="padding:8px 10px;margin-bottom:12px;gap:8px;">
+          <div class="invest-filter-group" style="gap:4px;">
+            <button class="invest-filter-btn active" id="btnFilterTitularTodos" onclick="MatrixApp.setInvestFilter('todos')">Todos</button>
+            <button class="invest-filter-btn" id="btnFilterTitularMatheus" onclick="MatrixApp.setInvestFilter('Matheus')">👨 Matheus</button>
+            <button class="invest-filter-btn" id="btnFilterTitularScarlet" onclick="MatrixApp.setInvestFilter('Scarlet')">👩 Scarlet</button>
+            <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()" style="margin-left:4px;">📦 Agrupar por Ativo</button>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:8px;">
-            <div style="background:rgba(0,255,102,0.04);border:1px solid rgba(0,255,102,0.15);padding:8px 10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">LIQUIDEZ DIÁRIA (100% SELIC)</div>
-              <div id="invHorizLiquidez" style="font-size:13.5px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
-              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Reservas Matheus & Scarlet</div>
-            </div>
-            <div style="background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.15);padding:8px 10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">APOSENTADORIA (2055)</div>
-              <div id="invHorizRenda2055" style="font-size:13.5px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
-              <div id="invHorizRenda2055Proj" style="font-size:9px;color:var(--cyan);margin-top:2px;">Tesouro Renda+ (IPCA+6,5%)</div>
-            </div>
-            <div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);padding:8px 10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">MÉDIO PRAZO (2027-2028)</div>
-              <div id="invHorizMedio" style="font-size:13.5px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 0,00</div>
-              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CDB Scarlet, DinDin e Proventos</div>
-            </div>
-            <div style="background:rgba(168,85,247,0.04);border:1px solid rgba(168,85,247,0.15);padding:8px 10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">RENDA VARIÁVEL (B3 & CRIPTO)</div>
-              <div id="invHorizVariavel" style="font-size:13.5px;font-weight:700;color:#c084fc;font-family:var(--font-mono);">R$ 0,00</div>
-              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CSNA3, MGLU3 e Bitcoin</div>
-            </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn-matrix primary" style="padding:5px 12px;font-size:11px;white-space:nowrap;font-weight:700;" onclick="MatrixApp.openNewInvestmentModal()">+ Novo Investimento</button>
+            <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="padding:5px 10px;font-size:11px;color:var(--cyan);border-color:var(--cyan);text-decoration:none;white-space:nowrap;" title="Google Finance">📈 Google Finance ↗</a>
           </div>
         </div>
 
-        <!-- BANNER & ACESSO AO SIMULADOR DE APOSENTADORIA 2055 (TESOURO RENDA+) -->
-        <div style="background:linear-gradient(135deg, rgba(5,15,10,0.95), rgba(4,20,15,0.95));border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;box-shadow:0 0 15px rgba(0,255,102,0.06);">
+        <!-- 3. Ativos em Carteira (Posicionado diretamente abaixo dos filtros) -->
+        <div style="margin-bottom:20px;background:rgba(5,8,7,0.4);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:12px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:13.5px;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:6px;">
+              📁 Ativos em Carteira
+              <span id="investCountBadge" class="box-badge" style="font-size:10px;color:var(--matrix-green);border-color:var(--matrix-green);">0 ativos</span>
+            </div>
+            <button class="btn-matrix primary" style="padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;" onclick="MatrixApp.openNewInvestmentModal()">
+              <span>+</span> Novo Investimento
+            </button>
+          </div>
+          <div id="investmentsCardsContainer" class="invest-cards-list"></div>
+        </div>
+
+        <!-- 4. BANNER & ACESSO AO SIMULADOR DE APOSENTADORIA 2055 (TESOURO RENDA+) -->
+        <div style="background:linear-gradient(135deg, rgba(5,15,10,0.95), rgba(4,20,15,0.95));border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;box-shadow:0 0 15px rgba(0,255,102,0.06);">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
             <div style="display:flex;align-items:center;gap:10px;">
               <span style="font-size:22px;background:rgba(0,255,102,0.1);padding:6px;border-radius:6px;border:1px solid rgba(0,255,102,0.2);">🎯</span>
@@ -1221,22 +1220,37 @@
           </div>
         </div>
 
-        <!-- Barra de Filtros e Ações -->
-        <div class="invest-controls-toolbar" style="padding:8px 10px;margin-bottom:12px;gap:8px;">
-          <div class="invest-filter-group" style="gap:4px;">
-            <button class="invest-filter-btn active" id="btnFilterTitularTodos" onclick="MatrixApp.setInvestFilter('todos')">Todos</button>
-            <button class="invest-filter-btn" id="btnFilterTitularMatheus" onclick="MatrixApp.setInvestFilter('Matheus')">👨 Matheus</button>
-            <button class="invest-filter-btn" id="btnFilterTitularScarlet" onclick="MatrixApp.setInvestFilter('Scarlet')">👩 Scarlet</button>
-            <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()" style="margin-left:4px;">📦 Agrupar</button>
+        <!-- 5. Alocação Real por Horizonte e Vencimento -->
+        <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-main);margin-bottom:8px;font-family:var(--font-mono);">
+            🎯 Horizontes de Vencimento e Prazos Reais:
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="btn-matrix primary" style="padding:4px 9px;font-size:11px;white-space:nowrap;" onclick="MatrixApp.openNewInvestmentModal()">+ Novo</button>
-            <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="padding:4px 9px;font-size:11px;color:var(--cyan);border-color:var(--cyan);text-decoration:none;white-space:nowrap;" title="Google Finance">📈 Google Finance ↗</a>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:8px;">
+            <div style="background:rgba(0,255,102,0.04);border:1px solid rgba(0,255,102,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">LIQUIDEZ DIÁRIA (100% SELIC)</div>
+              <div id="invHorizLiquidez" style="font-size:13.5px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Reservas Matheus & Scarlet</div>
+            </div>
+            <div style="background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">APOSENTADORIA (2055)</div>
+              <div id="invHorizRenda2055" style="font-size:13.5px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+              <div id="invHorizRenda2055Proj" style="font-size:9px;color:var(--cyan);margin-top:2px;">Tesouro Renda+ (IPCA+6,5%)</div>
+            </div>
+            <div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">MÉDIO PRAZO (2027-2028)</div>
+              <div id="invHorizMedio" style="font-size:13.5px;font-weight:700;color:var(--amber);font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CDB Scarlet, DinDin e Proventos</div>
+            </div>
+            <div style="background:rgba(168,85,247,0.04);border:1px solid rgba(168,85,247,0.15);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">RENDA VARIÁVEL (B3 & CRIPTO)</div>
+              <div id="invHorizVariavel" style="font-size:13.5px;font-weight:700;color:#c084fc;font-family:var(--font-mono);">R$ 0,00</div>
+              <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">CSNA3, MGLU3 e Bitcoin</div>
+            </div>
           </div>
         </div>
 
-        <!-- Painel Google Finance & Ações B3 (CSNA3 e MGLU3) -->
-        <div class="stock-monitor-box">
+        <!-- 6. Painel Google Finance & Ações B3 (CSNA3 e MGLU3) -->
+        <div class="stock-monitor-box" style="margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
             <div style="font-weight:700;color:var(--cyan);font-size:13px;display:flex;align-items:center;gap:6px;">
               📊 Monitor B3 em Tempo Real (Google Finance)
@@ -1250,7 +1264,7 @@
           </div>
         </div>
 
-        <!-- Gráficos de Investimentos (Titularidade, Categorias e Projeção) -->
+        <!-- 7. Gráficos de Investimentos (Titularidade, Categorias e Projeção) -->
         <div class="invest-charts-container">
           <!-- Gráfico 1: Titularidade Matheus vs Scarlet -->
           <div class="invest-chart-card">
@@ -1270,20 +1284,6 @@
             </div>
             <div id="chartProjecaoContainer" style="display:flex;flex-direction:column;gap:6px;"></div>
           </div>
-        </div>
-
-        <!-- Lista Limpa e Reorganizada de Ativos -->
-        <div style="margin-top:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-            <div style="font-size:13.5px;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:6px;">
-              📁 Ativos em Carteira
-              <span id="investCountBadge" class="box-badge" style="font-size:10px;color:var(--matrix-green);border-color:var(--matrix-green);">0 ativos</span>
-            </div>
-            <button class="btn-matrix primary" style="padding:6px 14px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:4px;" onclick="MatrixApp.openNewInvestmentModal()">
-              <span>+</span> Novo Investimento
-            </button>
-          </div>
-          <div id="investmentsCardsContainer" class="invest-cards-list"></div>
         </div>
       </div>
     </section>
@@ -2238,110 +2238,170 @@
 
 
   <!-- MODAL: SIMULADOR INTERATIVO & ADENDO APOSENTADORIA 2055 -->
-  <div id="simulador2055ModalBackdrop" class="matrix-modal-backdrop">
-    <div class="matrix-modal" style="max-width: 680px; width:95%; max-height:90vh; overflow-y:auto;">
-      <div class="modal-header" style="position:sticky;top:0;background:var(--bg-card);z-index:2;padding-bottom:10px;border-bottom:1px solid var(--border-dim);">
+  <div id="simulador2055ModalBackdrop" class="matrix-modal-backdrop" onclick="if(event.target===this)MatrixApp.fecharSimuladorAposentadoria2055()">
+    <div class="matrix-modal" style="max-width: 680px; width:95%; max-height:90vh; overflow-y:auto; box-sizing:border-box;">
+      <div class="modal-header" style="position:sticky;top:0;background:var(--bg-card);z-index:2;padding-bottom:10px;border-bottom:1px solid var(--border-dim);display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;margin:0;">
-            🎯 Simulador Aposentadoria 2055 • Tesouro Direto Renda+
+          <h3 style="font-size:15px;display:flex;align-items:center;gap:6px;margin:0;color:var(--matrix-green);">
+            🎯 Simulador Aposentadoria 2055 • Tesouro Renda+
           </h3>
-          <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px;">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
             Ajuste o valor do título, metas e perdas de benefícios para recalcular em tempo real.
           </div>
         </div>
-        <button class="close-btn" onclick="MatrixApp.closeModal('simulador2055ModalBackdrop')">&times;</button>
+        <button type="button" class="close-btn" onclick="MatrixApp.fecharSimuladorAposentadoria2055()" title="Fechar simulador">&times;</button>
       </div>
 
       <div style="padding-top:12px;">
-        <!-- SELEÇÃO RÁPIDA DE METAS -->
+        <!-- 1. SELEÇÃO DIRETA DE METAS -->
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:14px;">
           <div style="font-size:11px;font-weight:700;color:var(--text-bright);margin-bottom:8px;font-family:var(--font-mono);">
             1. Selecione a Meta Financeira de Aposentadoria:
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:6px;">
-            <button type="button" class="btn-matrix" id="btnSimMeta1" style="font-size:10px;padding:6px 8px;text-align:left;line-height:1.3;" onclick="MatrixApp.setSim2055Meta(1)">
-              <strong>1️⃣ +1 Salário Líquido</strong><br>
-              <span style="color:var(--text-muted);">R$ 6.044,00/mês</span>
+          <div class="sim2055-meta-grid">
+            <button type="button" class="btn-matrix sim2055-meta-btn" id="btnSimMeta1" onclick="MatrixApp.setSim2055Meta(1)">
+              <strong>1️⃣ +1 Salário Líquido</strong>
+              <span>R$ 6.044/mês</span>
             </button>
-            <button type="button" class="btn-matrix primary" id="btnSimMeta2" style="font-size:10px;padding:6px 8px;text-align:left;line-height:1.3;" onclick="MatrixApp.setSim2055Meta(2)">
-              <strong>2️⃣ 100% Poder Compra</strong><br>
-              <span style="color:var(--text-muted);">R$ 6.519,11/mês</span>
+            <button type="button" class="btn-matrix primary sim2055-meta-btn" id="btnSimMeta2" onclick="MatrixApp.setSim2055Meta(2)">
+              <strong>2️⃣ 100% Poder Compra</strong>
+              <span>R$ 6.519/mês</span>
             </button>
-            <button type="button" class="btn-matrix" id="btnSimMeta3" style="font-size:10px;padding:6px 8px;text-align:left;line-height:1.3;" onclick="MatrixApp.setSim2055Meta(3)">
-              <strong>3️⃣ Dobro Dinheiro Livre</strong><br>
-              <span style="color:var(--text-muted);">R$ 11.479,11/mês</span>
+            <button type="button" class="btn-matrix sim2055-meta-btn" id="btnSimMeta3" onclick="MatrixApp.setSim2055Meta(3)">
+              <strong>3️⃣ Dobro Dinheiro Livre</strong>
+              <span>R$ 11.479/mês</span>
             </button>
-            <button type="button" class="btn-matrix" id="btnSimMeta4" style="font-size:10px;padding:6px 8px;text-align:left;line-height:1.3;" onclick="MatrixApp.setSim2055Meta(4)">
-              <strong>4️⃣ Personalizado</strong><br>
-              <span style="color:var(--text-muted);">Definir renda livre</span>
+            <button type="button" class="btn-matrix sim2055-meta-btn" id="btnSimMeta4" onclick="MatrixApp.setSim2055Meta(4)">
+              <strong>4️⃣ Personalizado</strong>
+              <span>Definir renda</span>
             </button>
           </div>
         </div>
 
-        <!-- FORMULÁRIO DE PARÂMETROS -->
+        <!-- 2. FORMULÁRIO DE PARÂMETROS -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px;margin-bottom:14px;">
           <!-- PARÂMETROS DO TÍTULO RENDA+ 2055 -->
-          <div style="background:rgba(0,255,102,0.02);border:1px solid rgba(0,255,102,0.2);padding:10px 12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;font-weight:700;color:var(--matrix-green);margin-bottom:8px;font-family:var(--font-mono);">
-              📈 Parâmetros do Tesouro Renda+ 2055:
+          <div style="background:rgba(0,255,102,0.02);border:1px solid rgba(0,255,102,0.2);padding:12px 14px;border-radius:var(--radius-sm);min-width:0;">
+            <div style="font-size:11.5px;font-weight:700;color:var(--matrix-green);margin-bottom:10px;font-family:var(--font-mono);">
+              📈 Tesouro Renda+ 2055:
             </div>
             
-            <div style="margin-bottom:8px;">
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Preço Unitário (PU) do Título (R$):
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Preço Unitário da Cota / Título (R$):
               </label>
-              <input type="number" step="0.01" id="sim2055ValorTitulo" class="matrix-input" value="466.07" oninput="MatrixApp.recalcularSimulador2055()" placeholder="Ex: 466.07">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">Valor de 1 título/cota na corretora hoje</span>
+              <input type="number" step="0.01" id="sim2055ValorTitulo" class="matrix-input" value="466.07" oninput="MatrixApp.recalcularSimulador2055()" placeholder="466.07">
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Cotação de 1 título na corretora hoje</span>
             </div>
 
-            <div style="margin-bottom:8px;">
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Taxa Real Esperada (% a.a. acima do IPCA):
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Taxa Real Esperada (% a.a. acima da inflação):
               </label>
               <input type="number" step="0.1" id="sim2055TaxaReal" class="matrix-input" value="6.5" oninput="MatrixApp.recalcularSimulador2055()" placeholder="6.5">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">Padrão de mercado atual: 6,0% a 6,5% a.a.</span>
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Padrão do título: 6,0% a 6,5% a.a. + IPCA</span>
             </div>
 
             <div>
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Saldo já investido no Renda+ 2055 (R$):
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Saldo Já Investido no Renda+ 2055 (R$):
               </label>
               <input type="number" step="0.01" id="sim2055SaldoAtual" class="matrix-input" value="1318.89" oninput="MatrixApp.recalcularSimulador2055()">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">XP (R$ 466) + Inter (R$ 852) do Matheus</span>
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">XP (R$ 466) + Inter (R$ 852) do Matheus</span>
             </div>
           </div>
 
-          <!-- PARÂMETROS SALARIAIS E PERDAS DE BENEFÍCIOS AOS 65 ANOS -->
-          <div style="background:rgba(245,158,11,0.02);border:1px solid rgba(245,158,11,0.2);padding:10px 12px;border-radius:var(--radius-sm);">
-            <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:8px;font-family:var(--font-mono);">
-              🩺 Parâmetros de Perdas aos 65 Anos:
+          <!-- PARÂMETROS SALARIAIS E PERDAS AOS 65 ANOS -->
+          <div style="background:rgba(245,158,11,0.02);border:1px solid rgba(245,158,11,0.2);padding:12px 14px;border-radius:var(--radius-sm);min-width:0;">
+            <div style="font-size:11.5px;font-weight:700;color:var(--amber);margin-bottom:10px;font-family:var(--font-mono);">
+              🩺 Premissas aos 65 Anos (Custos e Perdas):
             </div>
 
-            <div style="margin-bottom:8px;">
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Renda Mensal Desejada por 20 anos (R$):
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Renda Mensal Desejada por 20 Anos (R$):
               </label>
               <input type="number" step="1" id="sim2055RendaDesejada" class="matrix-input" value="6519" oninput="MatrixApp.onSim2055CustomRendaInput()" style="font-weight:700;color:var(--matrix-green);">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">Em poder de compra de hoje (paga de 2055 a 2074)</span>
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Em poder de compra de hoje (paga de 2055 a 2074)</span>
             </div>
 
-            <div style="margin-bottom:8px;">
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Custo Mensal Unimed aos 65 anos (R$):
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Plano de Saúde Unimed Sênior (R$/mês):
               </label>
               <input type="number" step="0.01" id="sim2055PlanoSaude" class="matrix-input" value="2776.70" oninput="MatrixApp.recalcularSimulador2055()">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">Faixa 59+ anos ANS (~3,2x o custo de hoje)</span>
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Faixa 59+ anos ANS (~3,2x o custo de hoje)</span>
             </div>
 
             <div>
-              <label style="font-size:10.5px;color:var(--text-muted);display:block;margin-bottom:2px;">
-                Vales Perdidos (VA + VR) (R$):
+              <label style="font-size:11px;color:var(--text-main);display:block;margin-bottom:3px;font-weight:600;">
+                Benefícios USP Perdidos na Saída (R$/mês):
               </label>
               <input type="number" step="0.01" id="sim2055Vales" class="matrix-input" value="3350.00" oninput="MatrixApp.recalcularSimulador2055()">
-              <span style="font-size:9px;color:var(--text-dim);display:block;margin-top:2px;">VA R$ 2.050 + VR R$ 1.300</span>
+              <span style="font-size:9.5px;color:var(--text-muted);display:block;margin-top:2px;">Perda de VA (R$ 2.050) + VR (R$ 1.300)</span>
             </div>
           </div>
         </div>
+
+        <!-- 3. QUADRO DE RESULTADOS EM TEMPO REAL -->
+        <div style="background:var(--bg-card);border:1.5px solid var(--border-glow);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;box-shadow:inset 0 0 15px rgba(0,255,102,0.04);">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;font-family:var(--font-mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+            <span>📊 Resultado da Simulação (29 anos • 348 meses):</span>
+            <span style="color:var(--matrix-green);font-weight:700;" id="sim2055LabelMeta">Meta 2: Recompor Poder de Compra</span>
+          </div>
+
+          <div class="sim2055-results-grid">
+            <div class="sim2055-result-card" style="background:rgba(0,255,102,0.06);border:1px solid rgba(0,255,102,0.25);">
+              <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">APORTE MENSAL</div>
+              <div id="simResAporteMensal" style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R$ 1.015,78</div>
+              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">por mês até dez/2054</div>
+            </div>
+
+            <div class="sim2055-result-card" style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.25);">
+              <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">COTAS / MÊS</div>
+              <div id="simResTitulosMes" style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">2,18 títulos</div>
+              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">baseado no PU informado</div>
+            </div>
+
+            <div class="sim2055-result-card" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);">
+              <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">TOTAL ACUMULADO</div>
+              <div id="simResTotalTitulos" style="font-size:16px;font-weight:800;color:var(--amber);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">2.259,5 títulos</div>
+              <div style="font-size:9.5px;color:var(--amber);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">cotas de Renda+ 2055</div>
+            </div>
+
+            <div class="sim2055-result-card" style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25);">
+              <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">PATRIMÔNIO EM 2055</div>
+              <div id="simResMontanteFinal" style="font-size:16px;font-weight:800;color:#c084fc;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R$ 1.053.372</div>
+              <div style="font-size:9.5px;color:#c084fc;margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">paga 240 parcelas mensais</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.45;border-top:1px dashed rgba(255,255,255,0.08);padding-top:8px;">
+            💡 <em>Mecânica do Título:</em> Ao investir a quantia acima todo mês, você acumula as cotas necessárias para que o Tesouro Nacional pague exatamente a renda mensal escolhida (corrigida mês a mês pela inflação oficial do IPCA) por 20 anos consecutivos (de janeiro de 2055 a dezembro de 2074).
+          </div>
+        </div>
+
+        <!-- 4. AÇÕES, DOWNLOAD, IMPRESSÃO E FECHAR -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding-top:4px;">
+          <button type="button" class="btn-matrix" style="padding:6px 12px;font-size:11px;" onclick="MatrixApp.salvarParametrosSimulador2055()">
+            💾 Salvar Parâmetros
+          </button>
+          
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn-matrix" style="padding:6px 12px;font-size:11px;color:var(--cyan);border-color:var(--cyan);" onclick="MatrixApp.imprimirRelatorioAposentadoria2055()">
+              🖨️ Imprimir / PDF
+            </button>
+            <button type="button" class="btn-matrix primary" style="padding:6px 14px;font-size:11px;font-weight:700;" onclick="MatrixApp.baixarRelatorioAposentadoria2055()">
+              📥 Baixar Relatório (.md)
+            </button>
+            <button type="button" class="btn-matrix" style="padding:6px 14px;font-size:11px;font-weight:700;color:var(--text-bright);border-color:var(--border-dim);background:rgba(255,255,255,0.05);" onclick="MatrixApp.fecharSimuladorAposentadoria2055()">
+              ✕ Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
         <!-- QUADRO DE RESULTADOS EM TEMPO REAL -->
         <div style="background:var(--bg-card);border:1.5px solid var(--border-glow);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;box-shadow:inset 0 0 15px rgba(0,255,102,0.04);">
@@ -2401,16 +2461,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=48"></script>
-  <script src="js/matrix-rain.js?v=48"></script>
-  <script src="js/db.js?v=48"></script>
-  <script src="js/calendar-engine.js?v=48"></script>
-  <script src="js/amortization-engine.js?v=48"></script>
-  <script src="js/scenario-simulator.js?v=48"></script>
-  <script src="js/pdf-reader.js?v=48"></script>
-  <script src="js/satellite-connectors.js?v=48"></script>
-  <script src="js/sync-engine.js?v=48"></script>
-  <script src="js/app.js?v=48"></script>
+  <script src="js/seed-data.js?v=49"></script>
+  <script src="js/matrix-rain.js?v=49"></script>
+  <script src="js/db.js?v=49"></script>
+  <script src="js/calendar-engine.js?v=49"></script>
+  <script src="js/amortization-engine.js?v=49"></script>
+  <script src="js/scenario-simulator.js?v=49"></script>
+  <script src="js/pdf-reader.js?v=49"></script>
+  <script src="js/satellite-connectors.js?v=49"></script>
+  <script src="js/sync-engine.js?v=49"></script>
+  <script src="js/app.js?v=49"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
