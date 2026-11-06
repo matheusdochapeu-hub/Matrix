@@ -118,6 +118,7 @@ const MatrixApp = (function () {
 
     populateYearSelector();
     setupEventListeners();
+    updateInstallButtonVisibility();
     updateMonthDisplay();
     renderAll();
     renderHoleritesHistorico();
@@ -154,22 +155,57 @@ const MatrixApp = (function () {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPwaPrompt = e;
+      window._matrixDeferredPrompt = e;
+      if (!isAppDownloadedOrInstalled()) {
+        const btn = document.getElementById('btnInstallApp');
+        if (btn) btn.style.display = 'inline-flex';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      try {
+        localStorage.setItem('matrix_app_downloaded', 'true');
+      } catch (e) {}
+      deferredPwaPrompt = null;
+      if (typeof window !== 'undefined') window._matrixDeferredPrompt = null;
       const btn = document.getElementById('btnInstallApp');
-      if (btn) btn.style.display = 'inline-flex';
+      if (btn) btn.style.display = 'none';
+      console.log('App Matrix instalado/baixado com sucesso.');
     });
   }
 
   // ==========================================
   // PWA DOWNLOAD & INSTALAÇÃO DIRETA
   // ==========================================
+  function isAppDownloadedOrInstalled() {
+    try {
+      if (localStorage.getItem('matrix_app_downloaded') === 'true') return true;
+      if (typeof window !== 'undefined') {
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+        if (window.navigator && window.navigator.standalone === true) return true;
+        if (document.referrer && document.referrer.includes('android-app://')) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function updateInstallButtonVisibility() {
+    const btn = document.getElementById('btnInstallApp');
+    if (!btn) return;
+    if (isAppDownloadedOrInstalled()) {
+      btn.style.display = 'none';
+    }
+  }
   let deferredPwaPrompt = (typeof window !== 'undefined' && window._matrixDeferredPrompt) ? window._matrixDeferredPrompt : null;
   if (typeof window !== 'undefined') {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPwaPrompt = e;
       window._matrixDeferredPrompt = e;
-      const btn = document.getElementById('btnInstallApp');
-      if (btn) btn.style.display = 'inline-flex';
+      if (!isAppDownloadedOrInstalled()) {
+        const btn = document.getElementById('btnInstallApp');
+        if (btn) btn.style.display = 'inline-flex';
+      }
     });
   }
 
@@ -257,11 +293,15 @@ const MatrixApp = (function () {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 3000);
 
+      try {
+        localStorage.setItem('matrix_app_downloaded', 'true');
+      } catch (e) {}
+
       if (btn) {
         btn.innerHTML = '<span class="matrix-btn-icon">✅</span> <span>App Baixado!</span>';
         setTimeout(() => {
-          btn.innerHTML = originalHtml || '<span class="matrix-btn-icon">📲</span> <span>Baixar App</span>';
-        }, 2800);
+          btn.style.display = 'none';
+        }, 1500);
       }
     } catch (err) {
       console.error('Erro ao baixar app diretamente:', err);
@@ -276,6 +316,11 @@ const MatrixApp = (function () {
       promptEvent.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('Usuário aceitou a instalação do PWA Matrix');
+          try {
+            localStorage.setItem('matrix_app_downloaded', 'true');
+          } catch (e) {}
+          const btn = document.getElementById('btnInstallApp');
+          if (btn) btn.style.display = 'none';
         }
         deferredPwaPrompt = null;
         if (typeof window !== 'undefined') window._matrixDeferredPrompt = null;

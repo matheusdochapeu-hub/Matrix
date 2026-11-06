@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=38">
+  <link rel="stylesheet" href="css/matrix.css?v=39">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -39,6 +39,14 @@
         <button id="btnInstallApp" class="btn-matrix pwa-install-btn" onclick="MatrixApp.installPWA()" title="Instalar / Baixar o App Matrix no Celular ou Computador">
           <span class="matrix-btn-icon">📲</span> <span>Baixar App</span>
         </button>
+        <script>
+          try {
+            if (localStorage.getItem('matrix_app_downloaded') === 'true' || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true) {
+              var _btn = document.getElementById('btnInstallApp');
+              if (_btn) _btn.style.display = 'none';
+            }
+          } catch (e) {}
+        </script>
 
         <button id="rainToggleBtn" class="btn-matrix" title="Ligar/Desligar Chuva Digital">⚡ Rain ON</button>
         
@@ -2412,16 +2420,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=38"></script>
-  <script src="js/matrix-rain.js?v=38"></script>
-  <script src="js/db.js?v=38"></script>
-  <script src="js/calendar-engine.js?v=38"></script>
-  <script src="js/amortization-engine.js?v=38"></script>
-  <script src="js/scenario-simulator.js?v=38"></script>
-  <script src="js/pdf-reader.js?v=38"></script>
-  <script src="js/satellite-connectors.js?v=38"></script>
-  <script src="js/sync-engine.js?v=38"></script>
-  <script src="js/app.js?v=38"></script>
+  <script src="js/seed-data.js?v=39"></script>
+  <script src="js/matrix-rain.js?v=39"></script>
+  <script src="js/db.js?v=39"></script>
+  <script src="js/calendar-engine.js?v=39"></script>
+  <script src="js/amortization-engine.js?v=39"></script>
+  <script src="js/scenario-simulator.js?v=39"></script>
+  <script src="js/pdf-reader.js?v=39"></script>
+  <script src="js/satellite-connectors.js?v=39"></script>
+  <script src="js/sync-engine.js?v=39"></script>
+  <script src="js/app.js?v=39"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
