@@ -23,7 +23,7 @@ const SyncEngine = (function () {
   function getConfig() {
     return {
       cloudUrl: localStorage.getItem(STORAGE_KEYS.cloudUrl) || '',
-      cloudToken: localStorage.getItem(STORAGE_KEYS.cloudToken) || '',
+      cloudToken: localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!',
       lastSync: localStorage.getItem(STORAGE_KEYS.lastSync) || '',
       maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
