@@ -54,7 +54,8 @@ const ScenarioSimulator = (function () {
         ganhosBase = parseFloat(monthData.totais['Subtotal Ganhos']) || 0;
       } else if (monthData.totais && monthData.totais['Salário Mensal']) {
         ganhosBase = parseFloat(monthData.totais['Salário Mensal']) || 0;
-        if (monthData.totais['Estúdio']) ganhosBase += parseFloat(monthData.totais['Estúdio']) || 0;
+        const extraVal = parseFloat(monthData.totais['Renda Extra'] || monthData.totais['Estúdio']) || 0;
+        if (extraVal) ganhosBase += extraVal;
         if (monthData.totais['13º']) ganhosBase += parseFloat(monthData.totais['13º']) || 0;
       } else {
         // Fallback salário base USP
@@ -167,12 +168,12 @@ const ScenarioSimulator = (function () {
     // Cálculo de correlação com fontes de renda
     const correlacaoRendas = {
       salario_usp: { id: 'salario_usp', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
-      ganhos_scarlet: { id: 'ganhos_scarlet', nome: 'Ganhos da Scarlet (FisioFlow)', totalMensal: 0, count: 0 },
-      va_mercado: { id: 'va_mercado', nome: 'Vale Alimentação (VA Maracaju 88)', totalMensal: 0, count: 0 },
-      vr_almoco: { id: 'vr_almoco', nome: 'Vale Refeição (VR Presencial)', totalMensal: 0, count: 0 },
-      estudio_extra: { id: 'estudio_extra', nome: 'Estúdio / Renda Extra', totalMensal: 0, count: 0 },
-      reserva_aportes: { id: 'reserva_aportes', nome: 'Reserva de Emergência / Aportes', totalMensal: 0, count: 0 },
-      orcamento_geral: { id: 'orcamento_geral', nome: 'Orçamento Familiar Geral', totalMensal: 0, count: 0 }
+      ganhos_scarlet: { id: 'ganhos_scarlet', nome: 'Ganhos Scarlet', totalMensal: 0, count: 0 },
+      va_mercado: { id: 'va_mercado', nome: 'Vale Alimentação (VA)', totalMensal: 0, count: 0 },
+      vr_almoco: { id: 'vr_almoco', nome: 'Vale Refeição (VR)', totalMensal: 0, count: 0 },
+      estudio_extra: { id: 'estudio_extra', nome: 'Renda Extra', totalMensal: 0, count: 0 },
+      reserva_aportes: { id: 'reserva_aportes', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 },
+      orcamento_geral: { id: 'orcamento_geral', nome: 'Orçamento Geral', totalMensal: 0, count: 0 }
     };
 
     scenarios.forEach(scen => {

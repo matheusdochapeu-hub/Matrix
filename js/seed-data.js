@@ -4741,7 +4741,7 @@ const MATRIX_SEED_DATA = {
           },
           {
             "id": "rec_estudio_Agosto_2026",
-            "nome": "Estúdio / Renda Extra",
+            "nome": "Renda Extra",
             "valor": 600.0,
             "categoria": "Renda Extra",
             "conta": "debito_inter",
@@ -4925,7 +4925,7 @@ const MATRIX_SEED_DATA = {
           },
           {
             "id": "rec_estudio_Setembro_2026",
-            "nome": "Estúdio / Renda Extra",
+            "nome": "Renda Extra",
             "valor": 600.0,
             "categoria": "Renda Extra",
             "conta": "debito_inter",
@@ -5109,7 +5109,7 @@ const MATRIX_SEED_DATA = {
           },
           {
             "id": "rec_estudio_Outubro_2026",
-            "nome": "Estúdio / Renda Extra",
+            "nome": "Renda Extra",
             "valor": 600.0,
             "categoria": "Renda Extra",
             "conta": "debito_inter",
@@ -5313,7 +5313,7 @@ const MATRIX_SEED_DATA = {
           },
           {
             "id": "rec_estudio_Novembro_2026",
-            "nome": "Estúdio / Renda Extra",
+            "nome": "Renda Extra",
             "valor": 600.0,
             "categoria": "Renda Extra",
             "conta": "debito_inter",

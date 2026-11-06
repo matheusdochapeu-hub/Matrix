@@ -126,7 +126,7 @@
               <strong style="color:var(--cyan);" id="topSalScarletVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topOutrosRow">
-              <span>🎁 <span id="topOutrosLabel">Estúdio / Renda Extra</span></span>
+              <span>🎁 <span id="topOutrosLabel">Renda Extra</span></span>
               <strong style="color:var(--matrix-green);" id="topOutrosVal">+ R$ 0,00</strong>
             </div>
           </div>
@@ -1273,91 +1273,91 @@
       <div style="margin-bottom:16px;">
         <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
         <select id="modalItemCategoria" class="matrix-select" onchange="MatrixApp.onModalCategoriaChange(this.value)">
-          <!-- Categorias de Despesas -->
-          <option value="Habitação">Habitação (Casa / Condomínio / Financiamento)</option>
-          <option value="Transporte">Transporte (Caronas / Carro / Combustível)</option>
-          <option value="Saúde">Saúde (Unimed / Dentista / Psicólogo)</option>
-          <option value="Contas">Contas (Água / Luz / Internet / Celular)</option>
-          <option value="Aportes">Aportes (Tesouro / Previdência / Cripto)</option>
-          <option value="Família">Família / Aportes Parentes</option>
+          <!-- Despesas -->
+          <option value="Habitação">Habitação</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Saúde">Saúde</option>
+          <option value="Contas">Contas</option>
+          <option value="Investimentos">Investimentos</option>
+          <option value="Família">Família</option>
           <option value="Cartão">Cartão de Crédito</option>
-          <!-- Categorias de Receitas -->
-          <option value="Salário / Proventos">Salário / Proventos (USP / MPSP)</option>
-          <option value="Benefícios">Benefícios (VA / VR)</option>
-          <option value="Atendimentos / Scarlet">Atendimentos / Scarlet (FisioFlow)</option>
-          <option value="Renda Extra" id="catOptionEstudio">Estúdio / Renda Extra</option>
-          <option value="Empréstimo">🏦 Empréstimo / Financiamento (Entrada de Recursos)</option>
-          <option value="Outros Ganhos">🎁 Outros Ganhos / Bonificação / Vendas</option>
-          <option value="Rendimentos">Rendimentos / Restituição IRPF / Proventos</option>
+          <!-- Receitas -->
+          <option value="Salário">Salário</option>
+          <option value="Benefícios">Benefícios (VA/VR)</option>
+          <option value="Fisio Scarlet">Fisio Scarlet</option>
+          <option value="Renda Extra" id="catOptionEstudio">Renda Extra</option>
+          <option value="Empréstimo">Empréstimo</option>
+          <option value="Outros Ganhos">Outros Ganhos</option>
+          <option value="Rendimentos">Rendimentos</option>
           <option value="Outros" selected>Outros</option>
         </select>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
         <div>
-          <label style="font-size:11px;color:var(--text-muted);">🏦 De onde sai / entra (Conta / Origem / Método):</label>
+          <label style="font-size:11px;color:var(--text-muted);">De onde sai / entra:</label>
           <select id="modalItemConta" class="matrix-select" onchange="MatrixApp.onModalContaChange(this.value)">
-            <optgroup label="🟣 Nubank (Mastercard Black)">
+            <optgroup label="🟣 Nubank">
               <option value="debito_nubank">🟣 Débito Nubank</option>
-              <option value="credito_nubank_matheus">🟣 Crédito Nubank Matheus (Black)</option>
-              <option value="credito_nubank_scarlet">🟣 Crédito Nubank Scarlet (Black)</option>
+              <option value="credito_nubank_matheus">🟣 Crédito Matheus</option>
+              <option value="credito_nubank_scarlet">🟣 Crédito Scarlet</option>
               <option value="pix_nubank">🟣 Pix Nubank</option>
             </optgroup>
-            <optgroup label="🟡 Banco do Brasil (Salário USP)">
-              <option value="salario_bb" selected>🟡 Salário Líquido USP (Conta BB)</option>
-              <option value="debito_bb">🟡 Débito Banco do Brasil</option>
-              <option value="pix_bb">🟡 Pix Banco do Brasil</option>
-              <option value="boleto_bb">🟡 Boleto / Débito Automático BB</option>
+            <optgroup label="🟡 Banco do Brasil">
+              <option value="salario_bb" selected>🟡 Salário BB</option>
+              <option value="debito_bb">🟡 Débito BB</option>
+              <option value="pix_bb">🟡 Pix BB</option>
+              <option value="boleto_bb">🟡 Boleto BB</option>
             </optgroup>
             <optgroup label="🟠 Banco Inter">
-              <option value="debito_inter">🟠 Débito Banco Inter</option>
-              <option value="pix_inter">🟠 Pix Banco Inter</option>
-              <option value="cdb_inter">🟠 CDB Inter 100% CDI</option>
+              <option value="debito_inter">🟠 Débito Inter</option>
+              <option value="pix_inter">🟠 Pix Inter</option>
+              <option value="cdb_inter">🟠 CDB Inter</option>
             </optgroup>
             <optgroup label="🔴 Santander">
-              <option value="debito_santander">🔴 Débito Santander (DinDin)</option>
+              <option value="debito_santander">🔴 Débito Santander</option>
               <option value="pix_santander">🔴 Pix Santander</option>
             </optgroup>
-            <optgroup label="🔵 Caixa Econômica">
-              <option value="debito_caixa">🔵 Débito Automático Caixa (Casa)</option>
-              <option value="fgts_caixa">🔵 FGTS USP Caixa</option>
+            <optgroup label="🔵 Caixa">
+              <option value="debito_caixa">🔵 Débito Caixa</option>
+              <option value="fgts_caixa">🔵 FGTS Caixa</option>
             </optgroup>
-            <optgroup label="🏦 Empréstimos & Financiamentos">
-              <option value="emprestimo_bancario">🏦 Empréstimo Pessoal Bancário (BB / Nubank / Inter)</option>
-              <option value="emprestimo_consignado">🏦 Empréstimo Consignado USP</option>
-              <option value="emprestimo_familiar">🤝 Empréstimo Familiar / Terceiros</option>
+            <optgroup label="🏦 Empréstimos">
+              <option value="emprestimo_bancario">🏦 Empréstimo Bancário</option>
+              <option value="emprestimo_consignado">🏦 Consignado USP</option>
+              <option value="emprestimo_familiar">🤝 Empréstimo Familiar</option>
             </optgroup>
-            <optgroup label="Benefícios (USP / Maracaju 88)">
-              <option value="cartao_va">🟢 Cartão VA Alimentação (Maracaju 88)</option>
-              <option value="cartao_vr">🍽️ Cartão VR Refeição (Almoço USP)</option>
+            <optgroup label="Benefícios">
+              <option value="cartao_va">🟢 Cartão VA</option>
+              <option value="cartao_vr">🍽️ Cartão VR</option>
             </optgroup>
-            <optgroup label="Scarlet / FisioFlow">
-              <option value="scarlet_fisio">🩺 Ganhos Scarlet (FisioFlow)</option>
+            <optgroup label="Scarlet">
+              <option value="scarlet_fisio">🩺 Fisio Scarlet</option>
             </optgroup>
-            <optgroup label="Investimentos / Resgates">
-              <option value="resgate_tesouro_reserva">📉 Resgate Tesouro Reserva</option>
-              <option value="tesouro_renda">📈 Tesouro Renda+ 2055</option>
+            <optgroup label="Investimentos">
+              <option value="resgate_tesouro_reserva">📉 Resgate Tesouro</option>
+              <option value="tesouro_renda">📈 Tesouro Renda+</option>
               <option value="tesouro_selic">📈 Tesouro Selic</option>
-              <option value="acoes_b3">📊 Ações B3 (CSNA3 / MGLU3)</option>
-              <option value="investimento_aporte">📈 Aporte Geral Investimentos</option>
+              <option value="acoes_b3">📊 Ações B3</option>
+              <option value="investimento_aporte">📈 Aporte Investimentos</option>
             </optgroup>
             <optgroup label="Outros">
-              <option value="dinheiro_vivo">💵 Dinheiro Vivo / Carteira</option>
+              <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
             </optgroup>
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--text-muted);">🔗 Renda Vinculada:</label>
+          <label style="font-size:11px;color:var(--text-muted);">Renda Vinculada:</label>
           <select id="modalItemRenda" class="matrix-select">
-            <option value="salario_usp">Salário Líquido USP (Matheus)</option>
-            <option value="ganhos_scarlet">Ganhos Scarlet (FisioFlow)</option>
-            <option value="va_mercado">Vale Alimentação (Maracaju 88)</option>
-            <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
-            <option value="investimento_resgate">Resgate de Investimento (Tesouro)</option>
-            <option value="estudio_extra">Estúdio / Renda Extra</option>
-            <option value="emprestimo">Empréstimo / Recursos Externos</option>
-            <option value="outros_ganhos">Outros Ganhos / Extras</option>
-            <option value="orcamento_geral" selected>Orçamento Geral Conjunto</option>
+            <option value="salario_usp">Salário Matheus</option>
+            <option value="ganhos_scarlet">Ganhos Scarlet</option>
+            <option value="va_mercado">Vale Alimentação (VA)</option>
+            <option value="vr_almoco">Vale Refeição (VR)</option>
+            <option value="investimento_resgate">Resgate Investimento</option>
+            <option value="estudio_extra">Renda Extra</option>
+            <option value="emprestimo">Empréstimo</option>
+            <option value="outros_ganhos">Outros Ganhos</option>
+            <option value="orcamento_geral" selected>Orçamento Geral</option>
           </select>
         </div>
       </div>
@@ -1503,7 +1503,7 @@
             <option value="ganhos_scarlet" selected>Ganhos da Scarlet (FisioFlow)</option>
             <option value="va_mercado">Vale Alimentação (VA Maracaju 88)</option>
             <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
-            <option value="estudio_extra">Estúdio / Renda Extra</option>
+            <option value="estudio_extra">Renda Extra</option>
             <option value="reserva_aportes">Reserva de Emergência / Aportes</option>
             <option value="orcamento_geral">Orçamento Familiar Conjunto</option>
           </select>
@@ -1730,45 +1730,45 @@
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;color:var(--text-muted);">Categoria:</label>
         <select id="quickExpenseCategoria" class="matrix-select">
-          <option value="Alimentação & Lanches" selected>Alimentação & Lanches (Padaria / Restaurante / Café)</option>
-          <option value="Supermercado & Empório">Supermercado & Empório (NFC-e / Feira)</option>
-          <option value="Transporte & Combustível">Transporte & Combustível (Posto / Estacionamento / Uber)</option>
-          <option value="Farmácia & Saúde">Farmácia & Saúde (Medicamentos / Curativos)</option>
-          <option value="Lazer & Diversão">Lazer & Diversão (Cinema / Passeios / Streaming)</option>
-          <option value="Compras & Variados">Compras & Variados (E-commerce / Lojas / Casa)</option>
-          <option value="Serviços & Assinaturas">Serviços & Assinaturas</option>
+          <option value="Alimentação" selected>Alimentação</option>
+          <option value="Supermercado">Supermercado</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Farmácia & Saúde">Farmácia & Saúde</option>
+          <option value="Lazer">Lazer</option>
+          <option value="Compras">Compras</option>
+          <option value="Assinaturas">Assinaturas</option>
           <option value="Outros">Outros</option>
         </select>
       </div>
 
       <div style="margin-bottom:14px;">
-        <label style="font-size:11px;color:var(--text-muted);">🏦 De onde saiu o dinheiro (Banco / App / Método):</label>
+        <label style="font-size:11px;color:var(--text-muted);">De onde saiu o dinheiro:</label>
         <select id="quickExpenseConta" class="matrix-select">
-          <optgroup label="🟣 Nubank (Mastercard Black)">
+          <optgroup label="🟣 Nubank">
             <option value="debito_nubank" selected>🟣 Débito Nubank</option>
-            <option value="credito_nubank_matheus">🟣 Crédito Nubank Matheus (Black)</option>
-            <option value="credito_nubank_scarlet">🟣 Crédito Nubank Scarlet (Black)</option>
+            <option value="credito_nubank_matheus">🟣 Crédito Matheus</option>
+            <option value="credito_nubank_scarlet">🟣 Crédito Scarlet</option>
             <option value="pix_nubank">🟣 Pix Nubank</option>
           </optgroup>
-          <optgroup label="🟡 Banco do Brasil (Salário USP)">
-            <option value="debito_bb">🟡 Débito Banco do Brasil</option>
-            <option value="pix_bb">🟡 Pix Banco do Brasil</option>
-            <option value="salario_bb">🟡 Salário USP BB</option>
+          <optgroup label="🟡 Banco do Brasil">
+            <option value="debito_bb">🟡 Débito BB</option>
+            <option value="pix_bb">🟡 Pix BB</option>
+            <option value="salario_bb">🟡 Salário BB</option>
           </optgroup>
           <optgroup label="🟠 Banco Inter">
-            <option value="debito_inter">🟠 Débito Banco Inter</option>
-            <option value="pix_inter">🟠 Pix Banco Inter</option>
+            <option value="debito_inter">🟠 Débito Inter</option>
+            <option value="pix_inter">🟠 Pix Inter</option>
           </optgroup>
           <optgroup label="🔴 Santander">
-            <option value="debito_santander">🔴 Débito Santander (DinDin)</option>
+            <option value="debito_santander">🔴 Débito Santander</option>
             <option value="pix_santander">🔴 Pix Santander</option>
           </optgroup>
-          <optgroup label="Benefícios (USP / Maracaju 88)">
-            <option value="cartao_va">🟢 Cartão VA Alimentação (Maracaju 88)</option>
-            <option value="cartao_vr">🍽️ Cartão VR Refeição (Almoço USP)</option>
+          <optgroup label="Benefícios">
+            <option value="cartao_va">🟢 Cartão VA</option>
+            <option value="cartao_vr">🍽️ Cartão VR</option>
           </optgroup>
           <optgroup label="Outros">
-            <option value="dinheiro_vivo">💵 Dinheiro Vivo / Carteira</option>
+            <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
             <option value="debito_caixa">🔵 Caixa</option>
           </optgroup>
         </select>
@@ -1825,24 +1825,24 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA - Maracaju):</label>
+          <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA):</label>
           <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2050.00">
         </div>
         <div>
-          <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR - USP Presencial):</label>
+          <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR):</label>
           <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1235.00">
         </div>
       </div>
 
-      <!-- Customização Completa do Ganho Extra (Estúdio, Aulas, etc.) -->
+      <!-- Renda Extra / Outros Ganhos -->
       <div style="background:rgba(5,8,7,0.6);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
         <label style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:block;margin-bottom:4px;">
-          🎁 Renda Extra / Outros Ganhos (Personalize o Nome):
+          🎁 Renda Extra / Outros Ganhos:
         </label>
         <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:8px;">
           <div>
-            <label style="font-size:10.5px;color:var(--text-muted);">Nome do Ganho (ex: Estúdio, Aulas, Consultoria):</label>
-            <input type="text" id="saldosNomeEstudio" class="matrix-input" placeholder="Estúdio" style="font-size:12px;">
+            <label style="font-size:10.5px;color:var(--text-muted);">Nome da Renda Extra:</label>
+            <input type="text" id="saldosNomeEstudio" class="matrix-input" placeholder="Renda Extra" style="font-size:12px;">
           </div>
           <div>
             <label style="font-size:10.5px;color:var(--text-muted);">Valor no Mês (R$):</label>
@@ -1850,14 +1850,14 @@
           </div>
         </div>
         <div>
-          <label style="font-size:10.5px;color:var(--text-muted);">De onde vem esse dinheiro (Conta / Banco de Entrada):</label>
+          <label style="font-size:10.5px;color:var(--text-muted);">Conta de Entrada:</label>
           <select id="saldosContaEstudio" class="matrix-select" style="font-size:11.5px;">
-            <option value="salario_bb">🟡 Banco do Brasil (Conta Corrente)</option>
+            <option value="salario_bb">🟡 Banco do Brasil</option>
             <option value="debito_nubank">🟣 Nubank</option>
             <option value="debito_inter">🟠 Banco Inter</option>
             <option value="debito_santander">🔴 Santander</option>
-            <option value="emprestimo_bancario">🏦 Empréstimo / Financiamento</option>
-            <option value="dinheiro_vivo">💵 Dinheiro Vivo / Carteira</option>
+            <option value="emprestimo_bancario">🏦 Empréstimo</option>
+            <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
           </select>
         </div>
       </div>

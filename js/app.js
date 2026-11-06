@@ -117,17 +117,18 @@ const MatrixApp = (function () {
   }
 
   // ==========================================
-  // CUSTOMIZAÇÃO DO NOME DA RENDA EXTRA (ESTÚDIO)
+  // CUSTOMIZAÇÃO DO NOME DA RENDA EXTRA
   // ==========================================
   function getNomeEstudio() {
     const state = MatrixDB.getState();
-    return (state.config && state.config.nomeEstudio) ? state.config.nomeEstudio : 'Estúdio';
+    const configured = state.config && state.config.nomeEstudio;
+    return (configured && configured !== 'Estúdio') ? configured : 'Renda Extra';
   }
 
   function salvarNomeEstudio(novoNome) {
     const state = MatrixDB.getState();
     if (!state.config) state.config = {};
-    const n = (novoNome || '').trim() || 'Estúdio';
+    const n = (novoNome || '').trim() || 'Renda Extra';
     state.config.nomeEstudio = n;
     MatrixDB.saveState(state);
     renderAll();
@@ -135,7 +136,7 @@ const MatrixApp = (function () {
 
   function promptAlterarNomeEstudio() {
     const atual = getNomeEstudio();
-    const resp = prompt('Defina o nome personalizado para sua fonte de renda extra (ex: Estúdio, Aulas, Consultoria, Bicos):', atual);
+    const resp = prompt('Defina o nome para sua fonte de renda extra (ex: Consultoria, Aulas, Bicos):', atual);
     if (resp !== null) {
       salvarNomeEstudio(resp);
     }
@@ -1570,15 +1571,15 @@ const MatrixApp = (function () {
   const BANK_BADGE_MAP = {
     // Nubank
     debito_nubank: { label: 'Débito Nubank', class: 'nubank', icon: '🟣' },
-    credito_nubank_matheus: { label: 'Crédito Nubank (Matheus)', class: 'nubank', icon: '🟣💳' },
-    credito_nubank_scarlet: { label: 'Crédito Nubank (Scarlet)', class: 'nubank', icon: '🟣💳' },
+    credito_nubank_matheus: { label: 'Crédito Matheus', class: 'nubank', icon: '🟣💳' },
+    credito_nubank_scarlet: { label: 'Crédito Scarlet', class: 'nubank', icon: '🟣💳' },
     pix_nubank: { label: 'Pix Nubank', class: 'nubank', icon: '🟣⚡' },
     nubank: { label: 'Nubank Black', class: 'nubank', icon: '🟣💳' },
-    nubank_matheus: { label: 'Crédito Nubank (Matheus)', class: 'nubank', icon: '🟣💳' },
-    nubank_scarlet: { label: 'Crédito Nubank (Scarlet)', class: 'nubank', icon: '🟣💳' },
+    nubank_matheus: { label: 'Crédito Matheus', class: 'nubank', icon: '🟣💳' },
+    nubank_scarlet: { label: 'Crédito Scarlet', class: 'nubank', icon: '🟣💳' },
 
     // Banco do Brasil
-    salario_bb: { label: 'BB Salário USP', class: 'bb', icon: '🟡🏦' },
+    salario_bb: { label: 'Salário BB', class: 'bb', icon: '🟡🏦' },
     debito_bb: { label: 'Débito BB', class: 'bb', icon: '🟡' },
     pix_bb: { label: 'Pix BB', class: 'bb', icon: '🟡⚡' },
     boleto_bb: { label: 'Boleto BB', class: 'bb', icon: '🟡📄' },
@@ -1587,35 +1588,35 @@ const MatrixApp = (function () {
     // Banco Inter
     debito_inter: { label: 'Débito Inter', class: 'inter', icon: '🟠' },
     pix_inter: { label: 'Pix Inter', class: 'inter', icon: '🟠⚡' },
-    cdb_inter: { label: 'CDB Inter 100% CDI', class: 'inter', icon: '🟠📈' },
+    cdb_inter: { label: 'CDB Inter', class: 'inter', icon: '🟠📈' },
     inter: { label: 'Banco Inter', class: 'inter', icon: '🟠' },
 
     // Santander
     debito_santander: { label: 'Débito Santander', class: 'santander', icon: '🔴' },
     pix_santander: { label: 'Pix Santander', class: 'santander', icon: '🔴⚡' },
-    santander: { label: 'Santander DinDin', class: 'santander', icon: '🔴' },
+    santander: { label: 'Santander', class: 'santander', icon: '🔴' },
 
     // Caixa Econômica
-    debito_caixa: { label: 'Caixa Casa', class: 'caixa', icon: '🔵🏠' },
-    fgts_caixa: { label: 'FGTS USP Caixa', class: 'caixa', icon: '🔵🏢' },
-    caixa: { label: 'Caixa Habitação', class: 'caixa', icon: '🔵🏠' },
+    debito_caixa: { label: 'Débito Caixa', class: 'caixa', icon: '🔵🏠' },
+    fgts_caixa: { label: 'FGTS Caixa', class: 'caixa', icon: '🔵🏢' },
+    caixa: { label: 'Caixa Casa', class: 'caixa', icon: '🔵🏠' },
 
     // Benefícios
-    cartao_va: { label: 'Cartão VA (Maracaju)', class: 'va', icon: '🟢🥗' },
-    va: { label: 'Cartão VA (Maracaju)', class: 'va', icon: '🟢🥗' },
-    cartao_vr: { label: 'Cartão VR (USP)', class: 'vr', icon: '🍽️' },
-    vr: { label: 'Cartão VR (USP)', class: 'vr', icon: '🍽️' },
+    cartao_va: { label: 'Cartão VA', class: 'va', icon: '🟢🥗' },
+    va: { label: 'Cartão VA', class: 'va', icon: '🟢🥗' },
+    cartao_vr: { label: 'Cartão VR', class: 'vr', icon: '🍽️' },
+    vr: { label: 'Cartão VR', class: 'vr', icon: '🍽️' },
 
     // Scarlet / FisioFlow
-    scarlet_fisio: { label: 'FisioFlow (Scarlet)', class: 'fisio', icon: '🩺' },
-    scarlet: { label: 'FisioFlow (Scarlet)', class: 'fisio', icon: '🩺' },
+    scarlet_fisio: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
+    scarlet: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
 
     // Investimentos / Resgates
-    resgate_tesouro_reserva: { label: 'Resgate Tesouro Reserva', class: 'resgate', icon: '📉🏛️' },
-    tesouro_renda: { label: 'Tesouro Renda+ 2055', class: 'invest', icon: '📈🏛️' },
+    resgate_tesouro_reserva: { label: 'Resgate Tesouro', class: 'resgate', icon: '📉' },
+    tesouro_renda: { label: 'Tesouro Renda+', class: 'invest', icon: '📈' },
     tesouro_selic: { label: 'Tesouro Selic', class: 'invest', icon: '🏛️' },
-    acoes_b3: { label: 'Ações B3 (CSNA3/MGLU3)', class: 'invest', icon: '📊' },
-    investimento_aporte: { label: 'Aporte Investimentos', class: 'invest', icon: '📈' },
+    acoes_b3: { label: 'Ações B3', class: 'invest', icon: '📊' },
+    investimento_aporte: { label: 'Aporte Investimento', class: 'invest', icon: '📈' },
 
     // Dinheiro
     dinheiro_vivo: { label: 'Dinheiro Vivo', class: 'dinheiro', icon: '💵' },
@@ -4496,25 +4497,25 @@ const MatrixApp = (function () {
     const catSelect = document.getElementById('modalItemCategoria');
 
     const optEst = document.getElementById('catOptionEstudio');
-    if (optEst) optEst.textContent = `${getNomeEstudio()} / Renda Extra`;
+    if (optEst) optEst.textContent = getNomeEstudio() === 'Renda Extra' ? 'Renda Extra' : getNomeEstudio();
 
     const empSec = document.getElementById('modalEmprestimoSection');
     if (empSec) empSec.style.display = 'none';
 
     if (tipo === 'receita') {
-      if (titleEl) titleEl.textContent = '+ Nova Receita / Ganho';
-      if (nomeLabel) nomeLabel.textContent = 'Descrição da Receita:';
-      if (nomeInput) nomeInput.placeholder = `Ex: Salário USP, 13º Salário, ${getNomeEstudio()}, Empréstimo, Fisio Scarlet...`;
-      if (catSelect) catSelect.value = 'Salário / Proventos';
+      if (titleEl) titleEl.textContent = '+ Nova Receita';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Salário, 13º Salário, Renda Extra, Empréstimo, Fisio Scarlet...';
+      if (catSelect) catSelect.value = 'Salário';
     } else if (tipo === 'fixo') {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Fixo';
-      if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa Fixa:';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Parcela Caixa, Água, Luz, Internet...';
       if (catSelect) catSelect.value = 'Habitação';
     } else {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Variável';
-      if (nomeLabel) nomeLabel.textContent = 'Descrição do Gasto Variável:';
-      if (nomeInput) nomeInput.placeholder = 'Ex: Mercado Extra, Farmácia, Lazer, Renda+ 2055...';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Mercado, Farmácia, Lazer...';
       if (catSelect) catSelect.value = 'Outros';
     }
 
@@ -4549,7 +4550,20 @@ const MatrixApp = (function () {
     document.getElementById('modalItemValor').value = item.valor != null ? item.valor : '';
 
     const catSelect = document.getElementById('modalItemCategoria');
-    if (catSelect && item.categoria) catSelect.value = item.categoria;
+    if (catSelect && item.categoria) {
+      catSelect.value = item.categoria;
+      if (!catSelect.value) {
+        const c = item.categoria.toLowerCase();
+        if (c.includes('salário') || c.includes('salario')) catSelect.value = 'Salário';
+        else if (c.includes('scarlet') || c.includes('fisio')) catSelect.value = 'Fisio Scarlet';
+        else if (c.includes('benefício') || c.includes('beneficio')) catSelect.value = 'Benefícios';
+        else if (c.includes('estúdio') || c.includes('extra')) catSelect.value = 'Renda Extra';
+        else if (c.includes('empréstimo') || c.includes('emprestimo')) catSelect.value = 'Empréstimo';
+        else if (c.includes('aporte') || c.includes('invest')) catSelect.value = 'Investimentos';
+        else if (c.includes('cartão') || c.includes('cartao')) catSelect.value = 'Cartão';
+        else catSelect.value = 'Outros';
+      }
+    }
 
     const contaSelect = document.getElementById('modalItemConta');
     if (contaSelect && item.conta) contaSelect.value = item.conta;
@@ -4815,7 +4829,7 @@ const MatrixApp = (function () {
     setVal('saldosGanhosScarlet', ganhosScarlet);
     setVal('saldosVa', va);
     setVal('saldosVr', vr);
-    setVal('saldosNomeEstudio', nomeEst);
+    setVal('saldosNomeEstudio', (nomeEst && nomeEst !== 'Estúdio') ? nomeEst : 'Renda Extra');
     setVal('saldosValorEstudio', valExtra > 0 ? valExtra : '');
     setVal('saldosContaEstudio', contaExtra);
     setVal('saldosFaturaNubank', fatura);
@@ -4834,7 +4848,7 @@ const MatrixApp = (function () {
     const ganhosScarlet = parseFloat(document.getElementById('saldosGanhosScarlet').value) || 0;
     const va = parseFloat(document.getElementById('saldosVa').value) || 2050.00;
     const vr = parseFloat(document.getElementById('saldosVr').value) || 1235.00;
-    const novoNomeEst = (document.getElementById('saldosNomeEstudio').value || '').trim() || 'Estúdio';
+    const novoNomeEst = (document.getElementById('saldosNomeEstudio').value || '').trim() || 'Renda Extra';
     const valorExtra = parseFloat(document.getElementById('saldosValorEstudio').value) || 0;
     const contaExtra = document.getElementById('saldosContaEstudio').value || 'salario_bb';
     const faturaNubank = parseFloat(document.getElementById('saldosFaturaNubank').value) || 0;
@@ -4857,8 +4871,8 @@ const MatrixApp = (function () {
     monthData.totais['Salário Mensal'] = salMatheus;
     monthData.totais['VA'] = va;
     monthData.totais['VR'] = vr;
-    monthData.totais['Estúdio'] = valorExtra;
-    monthData.totais[novoNomeEst] = valorExtra;
+    monthData.totais['Renda Extra'] = valorExtra;
+    if (novoNomeEst !== 'Renda Extra') monthData.totais[novoNomeEst] = valorExtra;
 
     // Sincroniza nas receitas do mês
     if (!monthData.receitas) monthData.receitas = [];
@@ -4870,9 +4884,9 @@ const MatrixApp = (function () {
     } else {
       monthData.receitas.unshift({
         id: 'rec_sal_' + saldosModalTargetMes,
-        nome: 'Salário Líquido USP (Matheus)',
+        nome: 'Salário Líquido USP',
         valor: salMatheus,
-        categoria: 'Salário / Proventos',
+        categoria: 'Salário',
         conta: 'salario_bb',
         renda: 'salario_usp',
         pago: true
@@ -4887,9 +4901,9 @@ const MatrixApp = (function () {
       } else {
         monthData.receitas.push({
           id: 'rec_fisio_' + saldosModalTargetMes,
-          nome: 'Ganhos Scarlet (FisioFlow)',
+          nome: 'Ganhos Scarlet',
           valor: ganhosScarlet,
-          categoria: 'Atendimentos / Scarlet',
+          categoria: 'Fisio Scarlet',
           conta: 'scarlet_fisio',
           renda: 'ganhos_scarlet',
           pago: false
@@ -4902,7 +4916,7 @@ const MatrixApp = (function () {
     // Ganho Extra
     let recExtra = monthData.receitas.find(r => {
       const n = (r.nome || '').toLowerCase();
-      return n.includes('estúdio') || n.includes('extra') || n.includes(novoNomeEst.toLowerCase());
+      return n.includes('extra') || n.includes('estúdio') || n.includes(novoNomeEst.toLowerCase());
     });
     if (valorExtra > 0) {
       if (recExtra) {
@@ -4927,7 +4941,7 @@ const MatrixApp = (function () {
     MatrixDB.saveState(state);
     closeModal('saldosEditModalBackdrop');
     renderAll();
-    alert(`✅ Saldos e rendas de ${saldosModalTargetMes}/${saldosModalTargetAno} atualizados com sucesso!`);
+    alert(`✅ Saldos e rendas de ${saldosModalTargetMes}/${saldosModalTargetAno} atualizados!`);
   }
 
   function toggleScenarioActive(scenId, isActive) {

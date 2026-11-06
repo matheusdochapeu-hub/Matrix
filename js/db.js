@@ -133,7 +133,7 @@ const MatrixDB = (function () {
     if (memoryCache) {
       sanitizeState(memoryCache);
       if (!memoryCache.config) memoryCache.config = {};
-      if (!memoryCache.config.nomeEstudio) memoryCache.config.nomeEstudio = 'Estúdio';
+      if (!memoryCache.config.nomeEstudio || memoryCache.config.nomeEstudio === 'Estúdio') memoryCache.config.nomeEstudio = 'Renda Extra';
     }
 
     // Compatibilidade e enriquecimento automático de titularidade (Matheus & Scarlet)
@@ -322,8 +322,8 @@ const MatrixDB = (function () {
     const estudioVal = parseFloat(t['Estúdio']) || 0;
     if (estudioVal > 0) {
       month.receitas.push({
-        id: 'rec_estudio_' + mes,
-        nome: 'Estúdio / Renda Extra',
+        id: 'rec_extra_' + mes,
+        nome: 'Renda Extra',
         valor: estudioVal,
         categoria: 'Renda Extra',
         pago: true
