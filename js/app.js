@@ -261,6 +261,72 @@ const MatrixApp = (function () {
     return 0;
   }
 
+  // Salário líquido do Matheus no mês: holerite > receita "salário" do mês > valor padrão.
+  // Fonte única para KPIs, cards mensais, modal de saldos e auditoria da sobra pessoal.
+  function getSalarioLiquidoMes(ano, mes) {
+    const state = MatrixDB.getState();
+    const monthData = MatrixDB.getMonth(ano, mes);
+    const hol = (state.holerites || []).find(h => (h.ano === ano && h.mesNome === mes) || h.periodo === `${ano}-${mes}`);
+    if (hol && hol.liquido) return hol.liquido;
+    const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
+    if (recSal) return parseFloat(recSal.valor) || 5788.19;
+    return 5788.19;
+  }
+
+  // Transferência enviada pelo Matheus para a Scarlet (item "Scarlet" ou descrição "Transferência ... Scarlet").
+  function isTransferenciaParaScarlet(it) {
+    const n = (it.nome || '').toLowerCase().trim();
+    const desc = (it.descricao || '').toLowerCase();
+    return n === 'scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
+  }
+
+  // Cartão/fatura da própria Scarlet: nunca entra na sobra pessoal do Matheus.
+  function isGastoDaScarlet(it) {
+    const n = (it.nome || '').toLowerCase().trim();
+    const tit = (it.titular || '').toLowerCase();
+    return tit === 'scarlet' || n === 'nubank scarlet';
+  }
+
+  // Sobra pessoal do Matheus = ganhos dele - gastos próprios - transferência para a Scarlet.
+  // Usada pelo card do painel executivo e pela auditoria (drilldown), garantindo números idênticos.
+  function calcSobraMatheus(ano, mes) {
+    const monthData = MatrixDB.getMonth(ano, mes);
+    const num = (v) => parseFloat(v) || 0;
+    const receitas = monthData.receitas || [];
+
+    // Ganhos: tudo que cai na conta dele (salário, 13º, renda extra), sem VA/VR e sem ganhos da Scarlet.
+    let ganhos = 0;
+    if (receitas.length > 0) {
+      receitas.forEach(r => {
+        if (isBeneficioNaoPecunia(r)) return;
+        const n = (r.nome || '').toLowerCase();
+        if (n.includes('scarlet') || n.includes('fisio')) return;
+        ganhos += num(r.valor);
+      });
+    } else {
+      ganhos = getSalarioLiquidoMes(ano, mes);
+    }
+
+    const somaPropria = (lista) => (lista || [])
+      .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it))
+      .reduce((acc, it) => acc + num(it.valor), 0);
+
+    const fixos = somaPropria(monthData.fixos);
+    const outros = somaPropria(monthData.outros);
+    const diarios = (monthData.diarios || [])
+      .filter(d => (d.titular || '').toLowerCase() !== 'scarlet' && (d.conta || '').toLowerCase() !== 'credito_nubank_scarlet')
+      .reduce((acc, d) => acc + num(d.valor), 0);
+    const contasInicio = (mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano'])
+      ? num(monthData.totais['Contas Inicio Ano']) : 0;
+    const transf = [...(monthData.fixos || []), ...(monthData.outros || [])]
+      .filter(isTransferenciaParaScarlet)
+      .reduce((acc, it) => acc + num(it.valor), 0);
+
+    const gastosProprios = fixos + outros + diarios + contasInicio;
+    const totalGastos = gastosProprios + transf;
+    return { ganhos, fixos, outros, diarios, contasInicio, gastosProprios, transf, totalGastos, sobra: ganhos - totalGastos };
+  }
+
   function getGanhosScarletMes(ano, mes) {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(ano, mes);
@@ -747,14 +813,7 @@ const MatrixApp = (function () {
       const isCurrent = (m.ano === currentYear && m.mes === currentMonth);
 
       // 1. Salário Matheus (USP Líquido)
-      let salMatheus = 5788.19;
-      const hol = (state.holerites || []).find(h => (h.ano === m.ano && h.mesNome === m.mes) || h.periodo === `${m.ano}-${m.mes}`);
-      if (hol && hol.liquido) {
-        salMatheus = hol.liquido;
-      } else {
-        const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
-        if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
-      }
+      const salMatheus = getSalarioLiquidoMes(m.ano, m.mes);
 
       // 2. Ganhos Scarlet (FisioFlow)
       const salScarlet = getGanhosScarletMes(m.ano, m.mes);
@@ -858,14 +917,7 @@ const MatrixApp = (function () {
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
     // 1. Salário Matheus (USP ou MPSP Líquido do Holerite)
-    let salMatheus = 5788.19;
-    const hol = (state.holerites || []).find(h => (h.ano === currentYear && h.mesNome === currentMonth) || h.periodo === `${currentYear}-${currentMonth}`);
-    if (hol && hol.liquido) {
-      salMatheus = hol.liquido;
-    } else {
-      const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
-      if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
-    }
+    const salMatheus = getSalarioLiquidoMes(currentYear, currentMonth);
 
     // 2. Ganhos Scarlet (FisioFlow)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
@@ -1067,7 +1119,7 @@ const MatrixApp = (function () {
     const sobraSubEl = document.getElementById('topSobraNoMesSub');
     if (sobraSubEl) {
       sobraSubEl.textContent = saldoLivre >= 0 
-        ? 'Folga real em conta após pagar todos os gastos'
+        ? 'Folga conjunta do casal em conta'
         : 'Atenção: saídas superam receitas líquidas em conta';
     }
 
@@ -1096,52 +1148,12 @@ const MatrixApp = (function () {
         : '⚠️ Caixa negativo no mês: verificar necessidade de remanejamento';
     }
 
-    // 5.1 Cálculo da Sobra Pessoal do Matheus (suas contas + transferência pra Scarlet, sem a fatura Nubank dela)
-    const ganhosMatheus = salMatheus + outrosGanhos;
-
-    // Identifica transferência enviada do Matheus para a Scarlet no mês
-    let transfScarlet = 0;
-    const itemTransfScarlet = [...(monthData.fixos || []), ...(monthData.outros || [])].find(it => {
-      const n = (it.nome || '').toLowerCase().trim();
-      const desc = (it.descricao || '').toLowerCase();
-      return n === 'scarlet' || n === 'nubank scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
-    });
-    if (itemTransfScarlet) {
-      transfScarlet = parseFloat(itemTransfScarlet.valor) || 0;
-    }
-
-    // Gastos próprios do Matheus (todas as despesas da casa/pessoais, sem a fatura da Scarlet)
-    let gastosPropriosMatheus = 0;
-    (monthData.fixos || []).forEach(f => {
-      const n = (f.nome || '').toLowerCase().trim();
-      const titular = (f.titular || '').toLowerCase();
-      if (titular !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
-        gastosPropriosMatheus += (parseFloat(f.valor) || 0);
-      }
-    });
-
-    (monthData.outros || []).forEach(o => {
-      const n = (o.nome || '').toLowerCase().trim();
-      const titular = (o.titular || '').toLowerCase();
-      if (titular !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
-        gastosPropriosMatheus += (parseFloat(o.valor) || 0);
-      }
-    });
-
-    (monthData.diarios || []).forEach(d => {
-      const titular = (d.titular || '').toLowerCase();
-      const conta = (d.conta || '').toLowerCase();
-      if (titular !== 'scarlet' && conta !== 'credito_nubank_scarlet') {
-        gastosPropriosMatheus += (parseFloat(d.valor) || 0);
-      }
-    });
-
-    if (contasInicio > 0) {
-      gastosPropriosMatheus += contasInicio;
-    }
-
-    const totalGastosMatheus = gastosPropriosMatheus + transfScarlet;
-    const sobraMatheus = ganhosMatheus - totalGastosMatheus;
+    // 5.1 Sobra Pessoal do Matheus (suas contas + transferência pra Scarlet, sem a fatura Nubank dela)
+    const sobraCalc = calcSobraMatheus(currentYear, currentMonth);
+    const ganhosMatheus = sobraCalc.ganhos;
+    const transfScarlet = sobraCalc.transf;
+    const gastosPropriosMatheus = sobraCalc.gastosProprios;
+    const sobraMatheus = sobraCalc.sobra;
 
     const topSobraMatheusEl = document.getElementById('topSobraMatheusVal');
     if (topSobraMatheusEl) {
@@ -1292,61 +1304,14 @@ const MatrixApp = (function () {
 
     } else if (tipo === 'sobra_matheus') {
       titleEl.innerHTML = `👨 Auditoria da Sobra Pessoal • Matheus (${periodLabel})`;
-      const salMatheusVal = getSalarioLiquidoMes(currentYear, currentMonth);
-      let outrosGanhosVal = 0;
-      (monthData.receitas || []).forEach(r => {
-        if (!isBeneficioNaoPecunia(r)) {
-          const n = (r.nome || '').toLowerCase();
-          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
-            outrosGanhosVal += (parseFloat(r.valor) || 0);
-          }
-        }
-      });
-      const ganhosMatheusTot = salMatheusVal + outrosGanhosVal;
-
-      let transfScarletVal = 0;
-      const itemTransf = [...(monthData.fixos || []), ...(monthData.outros || [])].find(it => {
-        const n = (it.nome || '').toLowerCase().trim();
-        const desc = (it.descricao || '').toLowerCase();
-        return n === 'scarlet' || n === 'nubank scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
-      });
-      if (itemTransf) transfScarletVal = parseFloat(itemTransf.valor) || 0;
-
-      let fixosMatheusTot = 0;
-      (monthData.fixos || []).forEach(f => {
-        const n = (f.nome || '').toLowerCase().trim();
-        const tit = (f.titular || '').toLowerCase();
-        if (tit !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
-          fixosMatheusTot += (parseFloat(f.valor) || 0);
-        }
-      });
-
-      let outrosMatheusTot = 0;
-      (monthData.outros || []).forEach(o => {
-        const n = (o.nome || '').toLowerCase().trim();
-        const tit = (o.titular || '').toLowerCase();
-        if (tit !== 'scarlet' && n !== 'scarlet' && n !== 'nubank scarlet') {
-          outrosMatheusTot += (parseFloat(o.valor) || 0);
-        }
-      });
-
-      let diariosMatheusTot = 0;
-      (monthData.diarios || []).forEach(d => {
-        const tit = (d.titular || '').toLowerCase();
-        const cta = (d.conta || '').toLowerCase();
-        if (tit !== 'scarlet' && cta !== 'credito_nubank_scarlet') {
-          diariosMatheusTot += (parseFloat(d.valor) || 0);
-        }
-      });
-
-      let contasInicioVal = 0;
-      if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
-        contasInicioVal = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
-      }
-
-      const gastosPropriosTot = fixosMatheusTot + outrosMatheusTot + diariosMatheusTot + contasInicioVal;
-      const gastosGeraisMatheus = gastosPropriosTot + transfScarletVal;
-      const sobraFinalMatheus = ganhosMatheusTot - gastosGeraisMatheus;
+      const calcM = calcSobraMatheus(currentYear, currentMonth);
+      const ganhosMatheusTot = calcM.ganhos;
+      const fixosMatheusTot = calcM.fixos;
+      const outrosMatheusTot = calcM.outros;
+      const diariosMatheusTot = calcM.diarios;
+      const contasInicioVal = calcM.contasInicio;
+      const transfScarletVal = calcM.transf;
+      const sobraFinalMatheus = calcM.sobra;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.8;">
@@ -1390,7 +1355,7 @@ const MatrixApp = (function () {
         </div>
       `;
     } else if (tipo === 'ganhos') {
-      titleEl.innerHTML = `📥 Detalhamento de Ganhos em Pecúnia (${periodLabel})`;
+      titleEl.innerHTML = `📥 Detalhamento de Ganhos (${periodLabel})`;
       const todasReceitas = (monthData.receitas && monthData.receitas.length > 0)
         ? monthData.receitas
         : [];
@@ -2543,10 +2508,6 @@ const MatrixApp = (function () {
         }).join('');
       }
     }
-        `;
-        }).join('');
-      }
-    }
 
     // Totais de Fixos, Variáveis e Diários abaixo de Receitas e Fechamento (Base Estrita em Pecúnia)
     const totalDespesas = totalFixos + totalOutros + totalDiarios;
@@ -3185,44 +3146,6 @@ const MatrixApp = (function () {
     printWin.document.close();
   }
 
-  function renderResumoTotais(monthData) {
-    const listEl = document.getElementById('resumoTotaisList');
-    if (!listEl) return;
-
-    const t = monthData.totais || {};
-    const salario = parseFloat(t['Salário Mensal']) || 5788.19;
-    const va = parseFloat(t['VA']) || 2050.00;
-    const vr = parseFloat(t['VR']) || 1235.00;
-    const decimo = parseFloat(t['13º']) || (currentMonth === 'Novembro' ? 1566.00 : 0);
-    const nomeEst = getNomeEstudio();
-    const estudio = parseFloat(t[nomeEst] || t['Estúdio']) || 0;
-
-    listEl.innerHTML = `
-      <div style="display:flex;justify-content:space-between;padding:4px 0;">
-        <span style="color:var(--text-muted);">Salário Líquido USP:</span>
-        <strong>${formatBRL(salario)}</strong>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;">
-        <span style="color:var(--text-muted);">Vale Refeição (VR):</span>
-        <span>${formatBRL(vr)}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:4px 0;">
-        <span style="color:var(--text-muted);">Vale Alimentação (VA):</span>
-        <span>${formatBRL(va)} (Maracaju 88)</span>
-      </div>
-      ${decimo > 0 ? `
-      <div style="display:flex;justify-content:space-between;padding:4px 0;color:var(--matrix-green);">
-        <span>13º Salário USP:</span>
-        <strong>${formatBRL(decimo)}</strong>
-      </div>` : ''}
-      ${estudio > 0 ? `
-      <div style="display:flex;justify-content:space-between;padding:4px 0;">
-        <span style="color:var(--text-muted);cursor:pointer;" onclick="MatrixApp.promptAlterarNomeEstudio()" title="Clique para alterar o nome desta renda extra">${nomeEst}: ✏️</span>
-        <span>${formatBRL(estudio)}</span>
-      </div>` : ''}
-    `;
-  }
-
   // ==========================================
   // 3. SIMULADOR "E SE?" (PROJEÇÕES FUTURAS)
   // ==========================================
@@ -3246,7 +3169,7 @@ const MatrixApp = (function () {
       ganhos_scarlet: 'Ganhos da Scarlet (FisioFlow)',
       va_mercado: 'Vale Alimentação (VA Maracaju 88)',
       vr_almoco: 'Vale Refeição (VR Presencial)',
-      estudio_extra: 'Estúdio / Renda Extra',
+      estudio_extra: 'Renda Extra',
       reserva_aportes: 'Reserva de Emergência',
       orcamento_geral: 'Orçamento Geral Conjunto'
     };
@@ -4233,54 +4156,6 @@ const MatrixApp = (function () {
   // ==========================================
   // 6. INVESTIMENTOS 360 (MATHEUS & SCARLET)
   // ==========================================
-  function estimarValorVencimento(inv) {
-    const val = parseFloat(inv.valorAtual) || 0;
-    const cat = (inv.categoria || '').toLowerCase();
-    const ativo = (inv.ativo || '').toLowerCase();
-    const venc = (inv.vencimento || '').toLowerCase();
-
-    if (ativo.includes('renda+') || ativo.includes('2055') || venc.includes('2055')) {
-      const fv = val * Math.pow(1 + 0.065, 29);
-      const rendaMensal20Anos = fv / 148;
-      return {
-        valorFuturo: fv,
-        texto: `Vencimento 2055: ${formatBRL(fv)} (IPCA + 6,5% a.a.)`
-      };
-    } else if (venc.includes('liquidez') || cat.includes('reserva') || ativo.includes('selic')) {
-      return {
-        valorFuturo: val,
-        texto: `Liquidez imediata (100% Selic)`
-      };
-    } else if (ativo.includes('cdb') || venc.includes('2027')) {
-      const fv = val * Math.pow(1 + 0.1075, 1);
-      return {
-        valorFuturo: fv,
-        texto: `Vencimento 2027: ${formatBRL(fv)} (~10,75% a.a.)`
-      };
-    } else if (cat.includes('capitalização') || ativo.includes('dindin')) {
-      const fv = 3000.00;
-      return {
-        valorFuturo: fv,
-        texto: `Resgate final (60 meses): ${formatBRL(fv)}`
-      };
-    } else if (cat.includes('ações') || ativo.includes('csna') || ativo.includes('mglu')) {
-      return {
-        valorFuturo: val,
-        texto: `Cotação de mercado + proventos B3`
-      };
-    } else if (cat.includes('cripto') || ativo.includes('btc')) {
-      return {
-        valorFuturo: val,
-        texto: `Custódia de longo prazo`
-      };
-    } else {
-      return {
-        valorFuturo: val,
-        texto: inv.rentabilidadeContratada || 'Ativo em custódia'
-      };
-    }
-  }
-
   function renderInvestments() {
     const state = MatrixDB.getState();
     const invList = state.investimentos || [];
@@ -5488,14 +5363,7 @@ const MatrixApp = (function () {
     if (titleEl) titleEl.textContent = `${saldosModalTargetMes} / ${saldosModalTargetAno}`;
 
     // 1. Salário Matheus
-    let salMatheus = 5788.19;
-    const hol = (state.holerites || []).find(h => (h.ano === saldosModalTargetAno && h.mesNome === saldosModalTargetMes) || h.periodo === `${saldosModalTargetAno}-${saldosModalTargetMes}`);
-    if (hol && hol.liquido) {
-      salMatheus = hol.liquido;
-    } else {
-      const recSal = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('salário') || (r.id && r.id.startsWith('rec_sal')));
-      if (recSal) salMatheus = parseFloat(recSal.valor) || salMatheus;
-    }
+    const salMatheus = getSalarioLiquidoMes(saldosModalTargetAno, saldosModalTargetMes);
 
     // 2. Ganhos Scarlet
     const ganhosScarlet = getGanhosScarletMes(saldosModalTargetAno, saldosModalTargetMes);
@@ -6932,7 +6800,6 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarSaldosModal,
     abrirModalEditarDia,
     salvarStatusDiaCalendario,
-    toggleCalendarDay,
     switchTab,
     initSwipeNavigation,
     abrirSimuladorAposentadoria2055,
