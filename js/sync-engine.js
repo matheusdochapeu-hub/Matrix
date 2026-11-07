@@ -1,7 +1,9 @@
 /**
  * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE
  * Sincronização em nuvem resiliente com Google Sheets (Planilha Matrix Finance 360)
- * com suporte a CORS (credentials: omit), fallback JSONP validado e trava anti-loop.
+ * com compactação inteligente (< 45.000 chars para nunca estourar o limite de
+ * 50.000 caracteres por célula do Google Sheets), CORS (credentials: omit),
+ * fallback JSONP e trava anti-loop.
  */
 
 const SyncEngine = (function () {
@@ -19,6 +21,7 @@ const SyncEngine = (function () {
 
   const DEFAULT_SPREADSHEET_ID = '1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU';
   const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit';
+  const SHEETS_SAFE_CELL_LIMIT = 45000; // Limite seguro abaixo dos 50.000 caracteres por célula do Google Sheets
 
   let debounceTimer = null;
   let isSyncing = false;
@@ -84,6 +87,120 @@ const SyncEngine = (function () {
       el.textContent = '⚪ Modo Offline';
       el.title = message || 'Backup local ativo • Configure a URL /exec da planilha Matrix Finance 360 para nuvem';
     }
+  }
+
+  /**
+   * Compacta o estado antes de enviar para o Google Sheets para garantir que
+   * JSON.stringify(state) fique sempre abaixo do limite de 50.000 caracteres
+   * por célula do Google Sheets (mesmo no script v1.0 já implantado).
+   */
+  function compactStateForCloud(rawState) {
+    if (!rawState) return {};
+    const c = JSON.parse(JSON.stringify(rawState));
+
+    // 1. Remove caches derivados que são reconstruídos automaticamente pelo app
+    delete c.categoryMemory;
+
+    // 2. Remove listas brutas pesadas dos satélites (preservando os saldos e resumos)
+    if (c.satellites) {
+      if (c.satellites.faturas) {
+        delete c.satellites.faturas.faturasPorMes;
+        delete c.satellites.faturas.categoriasTotais;
+      }
+      if (c.satellites.fisioflow) {
+        delete c.satellites.fisioflow.ganhosPorMes;
+      }
+    }
+
+    // 3. Remove propriedades vazias/padrão em cada lançamento sem perder nenhuma informação real
+    if (c.anos) {
+      Object.keys(c.anos).forEach(ano => {
+        const anoObj = c.anos[ano];
+        if (!anoObj || typeof anoObj !== 'object') return;
+        Object.keys(anoObj).forEach(mes => {
+          const md = anoObj[mes];
+          if (!md || typeof md !== 'object') return;
+          ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
+            if (Array.isArray(md[tipo])) {
+              md[tipo].forEach(it => {
+                if (!it || typeof it !== 'object') return;
+                if (!it.obs) delete it.obs;
+                if (!it.descricao) delete it.descricao;
+                if (!it.renda) delete it.renda;
+                if (it.metodo === 'debito') delete it.metodo;
+                if (it.conta === 'debito_nubank') delete it.conta;
+                if (it.pago === false) delete it.pago;
+              });
+            }
+          });
+        });
+      });
+    }
+
+    // 4. Caso o usuário tenha criado vários anos futuros (ex: 2028, 2029, 2030) e ainda passe de 45.000 chars:
+    if (JSON.stringify(c).length > SHEETS_SAFE_CELL_LIMIT) {
+      delete c.satellites;
+      if (Array.isArray(c.holerites)) {
+        c.holerites.forEach(h => {
+          if (h && Array.isArray(h.itens)) delete h.itens;
+        });
+      }
+    }
+
+    // 5. Segunda camada de segurança se houver muitos anos futuros
+    if (JSON.stringify(c).length > SHEETS_SAFE_CELL_LIMIT && c.anos) {
+      Object.keys(c.anos).forEach(ano => {
+        Object.keys(c.anos[ano] || {}).forEach(mes => {
+          const md = c.anos[ano][mes];
+          if (!md) return;
+          delete md.totais;
+          ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
+            if (Array.isArray(md[tipo])) {
+              md[tipo].forEach((it, idx) => {
+                if (it && it.id && it.id.length > 10) {
+                  it.id = tipo[0] + idx;
+                }
+              });
+            }
+          });
+        });
+      });
+    }
+
+    return c;
+  }
+
+  /**
+   * Restaura campos padrão omitidos na compactação ao baixar da nuvem.
+   */
+  function expandStateFromCloud(cloudState) {
+    if (!cloudState || typeof cloudState !== 'object') return cloudState;
+    if (cloudState.anos) {
+      Object.keys(cloudState.anos).forEach(ano => {
+        const anoObj = cloudState.anos[ano];
+        if (!anoObj || typeof anoObj !== 'object') return;
+        Object.keys(anoObj).forEach(mes => {
+          const md = anoObj[mes];
+          if (!md || typeof md !== 'object') return;
+          ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
+            if (Array.isArray(md[tipo])) {
+              md[tipo].forEach(it => {
+                if (it && typeof it === 'object') {
+                  it.pago = !!it.pago;
+                }
+              });
+            }
+          });
+        });
+      });
+    }
+    if (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.processFaturasData) {
+      if (!cloudState.satellites) cloudState.satellites = {};
+      if (!cloudState.satellites.faturas || !cloudState.satellites.faturas.faturasPorMes) {
+        cloudState.satellites.faturas = SatelliteConnectors.processFaturasData({});
+      }
+    }
+    return cloudState;
   }
 
   function jsonpRequest(url, params, timeoutMs = 10000) {
@@ -172,7 +289,7 @@ const SyncEngine = (function () {
     const target = `${cfg.cloudUrl}${sep}action=ping&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
     let explicitServerError = null;
 
-    // 1. Tentativa GET com credentials: 'omit' (evita conflito de múltiplas contas Google logadas no navegador)
+    // 1. Tentativa GET com credentials: 'omit'
     try {
       const res = await fetch(target, {
         method: 'GET',
@@ -194,7 +311,7 @@ const SyncEngine = (function () {
       }
     } catch (e) {}
 
-    // 2. Tentativa via JSONP (contorna bloqueios de CORS em redirecionamentos 302 do Google Apps Script)
+    // 2. Tentativa via JSONP
     if (!explicitServerError) {
       try {
         const jsonpData = await jsonpRequest(cfg.cloudUrl, { action: 'ping', token: cfg.cloudToken });
@@ -264,7 +381,6 @@ const SyncEngine = (function () {
     const target = `${cfg.cloudUrl}${sep}action=get_state&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
 
     let json = null;
-    // 1. Tenta GET CORS com credentials: 'omit'
     try {
       const res = await fetch(target, {
         method: 'GET',
@@ -278,7 +394,6 @@ const SyncEngine = (function () {
       }
     } catch (err) {}
 
-    // 2. Fallback para JSONP (suportado pelo apps_script.gs v2.0)
     if (!json) {
       try {
         json = await jsonpRequest(cfg.cloudUrl, { action: 'get_state', token: cfg.cloudToken });
@@ -286,14 +401,14 @@ const SyncEngine = (function () {
         updateStatusUI('error', err.message);
         return {
           success: false,
-          error: 'Não foi possível ler os dados da planilha "Matrix Finance 360". Atualize o código em Extensões > Apps Script (botão "📋 Copiar Código Apps Script") e publique uma Nova Implantação com acesso para "Qualquer pessoa".'
+          error: 'Não foi possível ler os dados da planilha "Matrix Finance 360". Verifique se a implantação está publicada com acesso para "Qualquer pessoa".'
         };
       }
     }
 
-    const payloadData = json && (json.data || json.state);
-    if (json && (json.success || json.status === 'success' || json.ok) && payloadData) {
-      // Importante: skipCloudSync = true evita disparar syncToCloud de volta logo após restaurar da nuvem
+    const rawPayload = json && (json.data || json.state);
+    if (json && (json.success || json.status === 'success' || json.ok) && rawPayload) {
+      const payloadData = expandStateFromCloud(rawPayload);
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
       const ts = json.timestamp || new Date().toISOString();
       localStorage.setItem(STORAGE_KEYS.lastSync, ts);
@@ -329,16 +444,16 @@ const SyncEngine = (function () {
     isSyncing = true;
     updateStatusUI('syncing', 'Gravando backup na planilha Matrix Finance 360...');
 
-    const state = MatrixDB.getState();
+    const fullState = MatrixDB.getState();
+    const compactState = compactStateForCloud(fullState);
     const payload = {
       action: 'sync_all',
       token: cfg.cloudToken,
-      state: state,
-      data: state
+      state: compactState
     };
 
     try {
-      // 1. Tenta POST padrão com credentials: 'omit' e text/plain (evita preflight OPTIONS no Apps Script)
+      // 1. Tenta POST padrão com credentials: 'omit' e text/plain
       try {
         const res = await fetch(cfg.cloudUrl, {
           method: 'POST',
@@ -432,6 +547,8 @@ const SyncEngine = (function () {
     syncToCloud,
     queueSync,
     updateStatusUI,
+    compactStateForCloud,
+    expandStateFromCloud,
     DEFAULT_SPREADSHEET_ID,
     DEFAULT_SPREADSHEET_URL
   };

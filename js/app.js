@@ -272,6 +272,11 @@ const MatrixApp = (function () {
           if (res.success && res.data) {
             populateYearSelector();
             renderAll();
+          } else if (res.success && !res.data) {
+            // Planilha conectada porém vazia: grava o primeiro backup automaticamente
+            SyncEngine.syncToCloud().then(() => {
+              renderBackup();
+            });
           }
         });
       } else {
