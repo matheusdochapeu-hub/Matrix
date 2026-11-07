@@ -1485,77 +1485,20 @@ const MatrixApp = (function () {
       }
     }
 
-    // 5. Card 3: Sobra no Mês
-    const eqSobraGanhosEl = document.getElementById('topEqSobraGanhos');
-    if (eqSobraGanhosEl) eqSobraGanhosEl.textContent = formatBRL(ganhosPecunia);
-
-    const eqSobraGastosEl = document.getElementById('topEqSobraGastos');
-    if (eqSobraGastosEl) eqSobraGastosEl.textContent = formatBRL(totalGastos);
-
-    const eqSobraResultadoEl = document.getElementById('topEqSobraResultado');
-    if (eqSobraResultadoEl) {
-      eqSobraResultadoEl.textContent = `${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}`;
-      eqSobraResultadoEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
-    }
-
-    const sobraValEl = document.getElementById('topSobraNoMesVal');
-    if (sobraValEl) {
-      sobraValEl.textContent = `${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}`;
-      sobraValEl.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
-    }
-
-    const sobraSubEl = document.getElementById('topSobraNoMesSub');
-    if (sobraSubEl) {
-      sobraSubEl.textContent = saldoLivre >= 0 
-        ? 'Folga conjunta do casal em conta'
-        : 'Atenção: saídas superam receitas líquidas em conta';
-    }
-
-    const topSobraExpl = document.getElementById('topSobraExplFormula');
-    if (topSobraExpl) {
-      topSobraExpl.innerHTML = `Ganhos em Conta (<strong>${formatBRL(ganhosPecunia)}</strong>) - Gastos Totais (<strong>${formatBRL(totalGastos)}</strong>) = <strong style="color:${saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}</strong>`;
-    }
-
-    const sobraBadge = document.getElementById('topSobraStatusBadge');
-    if (sobraBadge) {
-      sobraBadge.textContent = saldoLivre >= 0 ? 'Superávit' : 'Déficit';
-      sobraBadge.className = saldoLivre >= 0 ? 'unified-badge green' : 'unified-badge rose';
-    }
-
-    const sobraCalcGanhos = document.getElementById('topSobraCalcGanhos');
-    if (sobraCalcGanhos) sobraCalcGanhos.textContent = formatBRL(ganhosPecunia);
-
-    const sobraCalcGastos = document.getElementById('topSobraCalcGastos');
-    if (sobraCalcGastos) sobraCalcGastos.textContent = `- ${formatBRL(totalGastos)}`;
-
-    const sobraCalcFinal = document.getElementById('topSobraCalcFinal');
-    if (sobraCalcFinal) {
-      sobraCalcFinal.textContent = `${saldoLivre >= 0 ? '+' : ''}${formatBRL(saldoLivre)}`;
-      sobraCalcFinal.style.color = saldoLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
-    }
-
-    const sobraFooterMsg = document.getElementById('topSobraFooterMsg');
-    if (sobraFooterMsg) {
-      sobraFooterMsg.textContent = saldoLivre >= 0 
-        ? '✅ Caixa positivo: dinheiro livre para aportes ou reserva'
-        : '⚠️ Caixa negativo no mês: verificar necessidade de remanejamento';
-    }
-
-    // 5.1 Sobra Pessoal do Matheus (suas contas + transferência pra Scarlet, sem a fatura Nubank dela)
-    const sobraCalc = calcSobraMatheus(currentYear, currentMonth);
-    const ganhosMatheus = sobraCalc.ganhos;
-    const transfScarlet = sobraCalc.transf;
-    const gastosPropriosMatheus = sobraCalc.gastosProprios;
-    const sobraMatheus = sobraCalc.sobra;
+    // 5. Card 3: Sobra pra Mim (Matheus) & Sobra do Casal
+    // PARTE 1 (TOPO): SOBRA PRA MIM (MATHEUS)
+    // + Meu salario + rendas extras + outros (13º ou correlato, não somar VA e VR)
+    // - Gastos fixos+variaveis+diarios
+    // = Sobra pra mim
+    const rendaMatheus = salMatheus + outrosGanhos; // Salário USP + Rendas Extras (exclui VA e VR)
+    const gastosTotaisMatheus = totalGastos; // Fixos + Variáveis + Diários da conta
+    const sobraMatheus = rendaMatheus - gastosTotaisMatheus;
 
     const eqMatheusRendaEl = document.getElementById('topEqMatheusRenda');
-    if (eqMatheusRendaEl) eqMatheusRendaEl.textContent = formatBRL(ganhosMatheus);
+    if (eqMatheusRendaEl) eqMatheusRendaEl.textContent = formatBRL(rendaMatheus);
 
     const eqMatheusContasEl = document.getElementById('topEqMatheusContas');
-    if (eqMatheusContasEl) eqMatheusContasEl.textContent = formatBRL(gastosPropriosMatheus);
-
-    const eqMatheusTransfEl = document.getElementById('topEqMatheusTransf');
-    if (eqMatheusTransfEl) eqMatheusTransfEl.textContent = formatBRL(transfScarlet);
+    if (eqMatheusContasEl) eqMatheusContasEl.textContent = formatBRL(gastosTotaisMatheus);
 
     const eqMatheusSobraEl = document.getElementById('topEqMatheusSobra');
     if (eqMatheusSobraEl) {
@@ -1563,6 +1506,7 @@ const MatrixApp = (function () {
       eqMatheusSobraEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
+    // Valor Principal no topo do Card: Sobra pra Mim
     const topSobraMatheusEl = document.getElementById('topSobraMatheusVal');
     if (topSobraMatheusEl) {
       topSobraMatheusEl.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
@@ -1571,17 +1515,72 @@ const MatrixApp = (function () {
 
     const topMatheusExpl = document.getElementById('topMatheusExplFormula');
     if (topMatheusExpl) {
-      topMatheusExpl.innerHTML = `Renda (<strong>${formatBRL(ganhosMatheus)}</strong>) - Contas Próprias (<strong>${formatBRL(gastosPropriosMatheus)}</strong>) - Transf. Scarlet (<strong>${formatBRL(transfScarlet)}</strong>) = <strong style="color:${sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}</strong>`;
+      topMatheusExpl.innerHTML = `Renda (<strong>${formatBRL(rendaMatheus)}</strong>) - Gastos Totais (<strong>${formatBRL(gastosTotaisMatheus)}</strong>) = <strong style="color:${sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}</strong>`;
     }
 
     const topMatheusReceitasEl = document.getElementById('topMatheusReceitasVal');
-    if (topMatheusReceitasEl) topMatheusReceitasEl.textContent = formatBRL(ganhosMatheus);
+    if (topMatheusReceitasEl) topMatheusReceitasEl.textContent = formatBRL(rendaMatheus);
 
     const topMatheusGastosEl = document.getElementById('topMatheusGastosVal');
-    if (topMatheusGastosEl) topMatheusGastosEl.textContent = `- ${formatBRL(gastosPropriosMatheus)}`;
+    if (topMatheusGastosEl) topMatheusGastosEl.textContent = `- ${formatBRL(gastosTotaisMatheus)}`;
 
-    const topMatheusTransfEl = document.getElementById('topMatheusTransfScarletVal');
-    if (topMatheusTransfEl) topMatheusTransfEl.textContent = `- ${formatBRL(transfScarlet)}`;
+    const topMatheusSobraCalcEl = document.getElementById('topMatheusSobraCalcVal');
+    if (topMatheusSobraCalcEl) {
+      topMatheusSobraCalcEl.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      topMatheusSobraCalcEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const topMatheusStatusBadge = document.getElementById('topMatheusStatusBadge');
+    if (topMatheusStatusBadge) {
+      topMatheusStatusBadge.textContent = sobraMatheus >= 0 ? 'Sobra Positiva' : 'Déficit em Conta';
+      topMatheusStatusBadge.className = sobraMatheus >= 0 ? 'unified-badge green' : 'unified-badge rose';
+    }
+
+    // PARTE 2 (EMBAIXO DISSO): SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS
+    const transfScarlet = calcSobraMatheus(currentYear, currentMonth).transf;
+    const scarletFisio = ganhosScarlet;
+    const scarletSubtotal = scarletFisio + transfScarlet;
+    const scarletFatura = faturaNubank;
+    const scarletSobra = scarletSubtotal - scarletFatura;
+
+    const sobraCasalReal = sobraMatheus + scarletSobra;
+
+    const eqCasalSobraMatheus = document.getElementById('topEqCasalSobraMatheus');
+    if (eqCasalSobraMatheus) eqCasalSobraMatheus.textContent = formatBRL(sobraMatheus);
+
+    const eqCasalSobraScarlet = document.getElementById('topEqCasalSobraScarlet');
+    if (eqCasalSobraScarlet) eqCasalSobraScarlet.textContent = formatBRL(scarletSobra);
+
+    const eqCasalSobraFinal = document.getElementById('topEqCasalSobraFinal');
+    if (eqCasalSobraFinal) {
+      eqCasalSobraFinal.textContent = `${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}`;
+      eqCasalSobraFinal.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const sobraValEl = document.getElementById('topSobraNoMesVal');
+    if (sobraValEl) {
+      sobraValEl.textContent = `${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}`;
+      sobraValEl.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const casalSobraMatheusVal = document.getElementById('topCasalSobraMatheusVal');
+    if (casalSobraMatheusVal) casalSobraMatheusVal.textContent = formatBRL(sobraMatheus);
+
+    const casalSobraScarletVal = document.getElementById('topCasalSobraScarletVal');
+    if (casalSobraScarletVal) casalSobraScarletVal.textContent = formatBRL(scarletSobra);
+
+    const casalSobraTotalVal = document.getElementById('topCasalSobraTotalVal');
+    if (casalSobraTotalVal) {
+      casalSobraTotalVal.textContent = `${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}`;
+      casalSobraTotalVal.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const sobraFooterMsg = document.getElementById('topSobraFooterMsg');
+    if (sobraFooterMsg) {
+      sobraFooterMsg.textContent = sobraCasalReal >= 0 
+        ? '✅ Caixa conjunto positivo: sobra conjunta consolidada'
+        : '⚠️ Caixa conjunto em atenção: planejar cobertura';
+    }
 
     // 6. Card 4: Fluxo & Sobra Scarlet
     // + Ganhos Scarlet Fisio
@@ -1589,12 +1588,6 @@ const MatrixApp = (function () {
     // = Subtotal
     // - Fatura Nubank
     // = Sobra Scarlet
-    const scarletFisio = ganhosScarlet;
-    const scarletTransf = transfScarlet;
-    const scarletSubtotal = scarletFisio + scarletTransf;
-    const scarletFatura = faturaNubank;
-    const scarletSobra = scarletSubtotal - scarletFatura;
-
     const eqScarletFisioEl = document.getElementById('topEqScarletFisio');
     if (eqScarletFisioEl) eqScarletFisioEl.textContent = formatBRL(scarletFisio);
 

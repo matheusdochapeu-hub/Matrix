@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=60">
+  <link rel="stylesheet" href="css/matrix.css?v=61">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -278,113 +278,101 @@
           </div>
         </div>
 
-        <!-- COLUNA 3: SOBRA NO MÊS & SOBRA MATHEUS -->
-        <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('saldo')" title="Clique para ver a conciliação da sobra de caixa do casal">
+        <!-- COLUNA 3: SOBRA PRA MIM (MATHEUS) & SOBRA DO CASAL -->
+        <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('sobra_matheus')" title="Clique para ver a auditoria detalhada da sua sobra pessoal e do casal">
           <div class="unified-card-header">
-            <span class="unified-card-title">💵 Sobra no Mês</span>
-            <span class="unified-badge green" id="topSobraStatusBadge">Superávit</span>
+            <span class="unified-card-title">👨 Sobra pra Mim</span>
+            <span class="unified-badge green" id="topMatheusStatusBadge">Conta Matheus</span>
           </div>
 
-          <!-- Equação Visual: Ganhos em Conta - Gastos Totais = Sobra do Casal -->
+          <!-- Equação Visual: Renda Própria - Gastos Totais Matheus = Sobra pra Mim -->
           <div class="unified-equation-banner green-banner">
             <div class="eq-part">
-              <span class="eq-label">Ganhos Conta</span>
-              <strong class="eq-val" style="color:var(--cyan);" id="topEqSobraGanhos">R$ 0,00</strong>
+              <span class="eq-label">Salário + Extras</span>
+              <strong class="eq-val" style="color:var(--cyan);" id="topEqMatheusRenda">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--matrix-green);">-</span>
             <div class="eq-part">
-              <span class="eq-label">Gastos Conta</span>
-              <strong class="eq-val" style="color:var(--rose);" id="topEqSobraGastos">R$ 0,00</strong>
+              <span class="eq-label">Gastos Totais</span>
+              <strong class="eq-val" style="color:var(--rose);" id="topEqMatheusContas">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--matrix-green);">=</span>
             <div class="eq-part">
-              <span class="eq-label">Sobra Casal</span>
-              <strong class="eq-val" id="topEqSobraResultado">R$ 0,00</strong>
+              <span class="eq-label">Sobra pra Mim</span>
+              <strong class="eq-val" id="topEqMatheusSobra">R$ 0,00</strong>
             </div>
           </div>
 
-          <div class="unified-card-main-val green-glow" id="topSobraNoMesVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topSobraNoMesSub">Folga conjunta do casal em conta</div>
+          <!-- VALOR PRINCIPAL: SOBRA PRA MIM -->
+          <div class="unified-card-main-val green-glow" id="topSobraMatheusVal">R$ 0,00</div>
+          <div class="unified-card-sub" id="topSobraMatheusSub">Meu salário + rendas extras deduzindo fixos, variáveis e diários</div>
 
           <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box" style="border-left-color:var(--matrix-green);background:rgba(0,255,102,0.05);">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topSobraExplFormula">Ganhos Líquidos em Conta deduzindo Gastos Totais em Conta</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Mede se o caixa mensal do casal gera sobra ou exige reservas.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Posição consolidada das contas bancárias correntes.</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Balanço final apurado no fechamento do mês de referência.</div>
+          <div class="calc-explanation-box cyan" style="margin:6px 0;">
+            <div class="calc-expl-line"><strong>Como:</strong> <span id="topMatheusExplFormula">(+ Meu Salário + Extras) (-) (Gastos Fixos + Variáveis + Diários) = Sobra pra Mim</span></div>
+            <div class="calc-expl-line"><strong>Por que:</strong> Mede o saldo líquido que sobra na conta bancária do Matheus (não soma VA e VR).</div>
+            <div class="calc-expl-line"><strong>Onde:</strong> Conta Corrente Banco do Brasil (BB).</div>
+            <div class="calc-expl-line"><strong>Quando:</strong> Posição do mês após débitos, boletos e repasse.</div>
           </div>
 
-          <div class="unified-sobra-box">
-            <div class="sobra-calc-line">
-              <span>(+) Ganhos Conjuntos:</span>
-              <strong id="topSobraCalcGanhos">R$ 0,00</strong>
+          <!-- Linhas do Cálculo do Matheus -->
+          <div class="unified-breakdown-list" style="margin-top:4px;">
+            <div class="unified-row">
+              <span>(+) Salário + Rendas Extras + Outros (13º):</span>
+              <strong style="color:var(--cyan);" id="topMatheusReceitasVal">R$ 0,00</strong>
             </div>
-            <div class="sobra-calc-line">
-              <span>(-) Gastos Totais:</span>
-              <strong id="topSobraCalcGastos" style="color:var(--rose);">- R$ 0,00</strong>
+            <div class="unified-row">
+              <span>(-) Gastos Fixos + Variáveis + Diários:</span>
+              <strong style="color:var(--rose);" id="topMatheusGastosVal">- R$ 0,00</strong>
             </div>
-            <div class="sobra-divider"></div>
-            <div class="sobra-calc-line total">
-              <span>(=) Sobra do Casal:</span>
-              <strong id="topSobraCalcFinal" style="color:var(--matrix-green);">R$ 0,00</strong>
+            <div class="unified-row" style="border-top:1px dashed var(--border-dim);padding-top:3px;margin-top:2px;">
+              <strong style="color:var(--matrix-green);">(=) Sobra pra Mim:</strong>
+              <strong style="color:var(--matrix-green);" id="topMatheusSobraCalcVal">R$ 0,00</strong>
             </div>
           </div>
 
-          <!-- SUB-CARD DEDICADO: O QUE SOBRA PRA MIM (MATHEUS) -->
-          <div style="margin-top:10px;background:rgba(5,8,7,0.88);border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-xs);padding:9px 10px;box-shadow:inset 0 0 10px rgba(0,255,102,0.05);cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('sobra_matheus');" title="Clique para ver a auditoria detalhada da sua sobra pessoal">
+          <!-- EMBAIXO DISSO: SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS -->
+          <div class="sobra-casal-box" style="margin-top:10px;background:rgba(0,0,0,0.55);border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-xs);padding:9px 10px;box-shadow:inset 0 0 10px rgba(0,255,102,0.04);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-              <span style="font-size:11.5px;font-weight:700;color:var(--cyan);display:flex;align-items:center;gap:5px;">
-                <span>👨</span> Sobra pra Mim (Matheus)
+              <span style="font-size:11.5px;font-weight:700;color:var(--matrix-green);display:flex;align-items:center;gap:5px;">
+                <span>👫</span> Sobra do Casal
               </span>
-              <strong id="topSobraMatheusVal" style="font-size:14px;color:var(--matrix-green);font-family:var(--font-mono);font-weight:800;">R$ 0,00</strong>
+              <strong id="topSobraNoMesVal" style="font-size:14px;color:var(--matrix-green);font-family:var(--font-mono);font-weight:800;">R$ 0,00</strong>
             </div>
-            <div style="font-size:9.5px;color:var(--text-muted);line-height:1.3;margin-bottom:6px;">
-              Suas contas + transf. p/ Scarlet (exclui Nubank dela)
+            <div style="font-size:9.5px;color:var(--text-muted);margin-bottom:6px;">
+              Sobra do casal = Sobra Scarlet + Sobra Matheus
             </div>
 
-            <!-- Equação Visual: Renda Própria - Suas Contas - Transf Scarlet = Sua Sobra -->
-            <div class="unified-equation-banner" style="background:rgba(0,0,0,0.55);margin:4px 0 6px 0;border-color:rgba(0,255,102,0.25);">
+            <!-- Equação Visual: Sobra Matheus + Sobra Scarlet = Sobra Casal -->
+            <div class="unified-equation-banner green-banner" style="background:rgba(0,0,0,0.6);margin:4px 0 6px 0;">
               <div class="eq-part">
-                <span class="eq-label">Renda Própria</span>
-                <strong class="eq-val" style="color:var(--cyan);" id="topEqMatheusRenda">R$ 0,00</strong>
+                <span class="eq-label">Sobra Matheus</span>
+                <strong class="eq-val" id="topEqCasalSobraMatheus">R$ 0,00</strong>
               </div>
-              <span class="eq-op" style="color:var(--cyan);">-</span>
+              <span class="eq-op" style="color:var(--matrix-green);">+</span>
               <div class="eq-part">
-                <span class="eq-label">Suas Contas</span>
-                <strong class="eq-val" style="color:var(--rose);" id="topEqMatheusContas">R$ 0,00</strong>
+                <span class="eq-label">Sobra Scarlet</span>
+                <strong class="eq-val" style="color:var(--purple);" id="topEqCasalSobraScarlet">R$ 0,00</strong>
               </div>
-              <span class="eq-op" style="color:var(--cyan);">-</span>
+              <span class="eq-op" style="color:var(--matrix-green);">=</span>
               <div class="eq-part">
-                <span class="eq-label">Transf. Scarlet</span>
-                <strong class="eq-val" style="color:var(--amber);" id="topEqMatheusTransf">R$ 0,00</strong>
-              </div>
-              <span class="eq-op" style="color:var(--cyan);">=</span>
-              <div class="eq-part">
-                <span class="eq-label">Sua Sobra</span>
-                <strong class="eq-val" id="topEqMatheusSobra">R$ 0,00</strong>
+                <span class="eq-label">Sobra Casal</span>
+                <strong class="eq-val" id="topEqCasalSobraFinal">R$ 0,00</strong>
               </div>
             </div>
 
-            <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-            <div class="calc-explanation-box" style="border-left-color:var(--cyan);background:rgba(6,182,212,0.05);margin:6px 0;">
-              <div class="calc-expl-line"><strong>Como:</strong> <span id="topMatheusExplFormula">Renda Líquida deduzindo Contas Próprias e Repasse para Scarlet</span></div>
-              <div class="calc-expl-line"><strong>Por que:</strong> Mede seu bolso pessoal isolado, sem o cartão Nubank dela.</div>
-              <div class="calc-expl-line"><strong>Onde:</strong> Débitos em conta corrente e Pix na Conta BB.</div>
-              <div class="calc-expl-line"><strong>Quando:</strong> Conforme os débitos automáticos e transferências do mês.</div>
-            </div>
-
-            <div style="font-family:var(--font-mono);font-size:10px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:6px;">
+            <div style="font-family:var(--font-mono);font-size:10px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:5px;">
               <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text-muted);">(+) Salário USP + Extras:</span>
-                <strong id="topMatheusReceitasVal" style="color:var(--text-bright);">R$ 0,00</strong>
+                <span style="color:var(--text-muted);">(+) Sobra Matheus:</span>
+                <strong id="topCasalSobraMatheusVal">R$ 0,00</strong>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text-muted);">(-) Suas Contas (Fixos + Outros):</span>
-                <strong id="topMatheusGastosVal" style="color:var(--rose);">- R$ 0,00</strong>
+                <span style="color:var(--purple);">(+) Sobra Scarlet:</span>
+                <strong style="color:var(--purple);" id="topCasalSobraScarletVal">R$ 0,00</strong>
               </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text-muted);">(-) Transf. para Scarlet:</span>
-                <strong id="topMatheusTransfScarletVal" style="color:var(--amber);">- R$ 0,00</strong>
+              <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border-dim);padding-top:3px;margin-top:2px;">
+                <strong style="color:var(--matrix-green);">(=) Sobra do Casal:</strong>
+                <strong style="color:var(--matrix-green);" id="topCasalSobraTotalVal">R$ 0,00</strong>
               </div>
             </div>
           </div>
@@ -2701,21 +2689,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=60"></script>
-  <script src="js/matrix-rain.js?v=60"></script>
-  <script src="js/db.js?v=60"></script>
-  <script src="js/calendar-engine.js?v=60"></script>
-  <script src="js/amortization-engine.js?v=60"></script>
-  <script src="js/scenario-simulator.js?v=60"></script>
-  <script src="js/pdf-reader.js?v=60"></script>
-  <script src="js/satellite-connectors.js?v=60"></script>
-  <script src="js/sync-engine.js?v=60"></script>
-  <script src="js/app.js?v=60"></script>
+  <script src="js/seed-data.js?v=61"></script>
+  <script src="js/matrix-rain.js?v=61"></script>
+  <script src="js/db.js?v=61"></script>
+  <script src="js/calendar-engine.js?v=61"></script>
+  <script src="js/amortization-engine.js?v=61"></script>
+  <script src="js/scenario-simulator.js?v=61"></script>
+  <script src="js/pdf-reader.js?v=61"></script>
+  <script src="js/satellite-connectors.js?v=61"></script>
+  <script src="js/sync-engine.js?v=61"></script>
+  <script src="js/app.js?v=61"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=60', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=61', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>
