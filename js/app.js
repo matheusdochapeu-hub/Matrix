@@ -232,16 +232,22 @@ const MatrixApp = (function () {
           changedNov = true;
         }
         if (novData.receitas) {
-          let rVr = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('vr') || (r.nome || '').toLowerCase().includes('refei') || (r.id && r.id.includes('rec_vr')));
+          let rVr = novData.receitas.find(r => isItemVR(r));
           if (rVr && novData.vrManual == null && rVr.valor !== 1105.16) {
             rVr.valor = 1105.16;
             rVr.naoPecunia = true;
+            rVr.categoria = 'Benefício (Não Pecúnia)';
+            rVr.conta = 'cartao_vr';
+            rVr.renda = 'vr_almoco';
             changedNov = true;
           }
-          let rVa = novData.receitas.find(r => (r.nome || '').toLowerCase().includes('va') || (r.nome || '').toLowerCase().includes('alimenta') || (r.id && r.id.includes('rec_va')));
+          let rVa = novData.receitas.find(r => isItemVA(r));
           if (rVa && novData.vaManual == null && rVa.valor !== 2059.84) {
             rVa.valor = 2059.84;
             rVa.naoPecunia = true;
+            rVa.categoria = 'Benefício (Não Pecúnia)';
+            rVa.conta = 'cartao_va';
+            rVa.renda = 'va_mercado';
             changedNov = true;
           }
         }
@@ -271,6 +277,33 @@ const MatrixApp = (function () {
                 }
               });
             });
+
+            // Restauração de integridade de VA e VR contra contaminação
+            if (mData.receitas) {
+              mData.receitas.forEach(r => {
+                if (isItemVR(r)) {
+                  r.naoPecunia = true;
+                  r.categoria = 'Benefício (Não Pecúnia)';
+                  r.conta = 'cartao_vr';
+                  r.renda = 'vr_almoco';
+                  // Se o valor foi contaminado pelo valor do VA (2059.84)
+                  if (r.valor === 2059.84 || r.valor === '2059.84') {
+                    const vrReal = (ano === '2026' && mes === 'Novembro') ? 1105.16 : 1105.00;
+                    r.valor = vrReal;
+                    changedLegacy = true;
+                  }
+                } else if (isItemVA(r)) {
+                  r.naoPecunia = true;
+                  r.categoria = 'Benefício (Não Pecúnia)';
+                  r.conta = 'cartao_va';
+                  r.renda = 'va_mercado';
+                  if (ano === '2026' && mes === 'Novembro' && (r.valor !== 2059.84)) {
+                    r.valor = 2059.84;
+                    changedLegacy = true;
+                  }
+                }
+              });
+            }
           });
         });
         if (changedLegacy) {
@@ -278,7 +311,7 @@ const MatrixApp = (function () {
         }
       }
     } catch (e) {
-      console.warn('Erro ao higienizar orcamento_geral:', e);
+      console.warn('Erro ao higienizar orcamento_geral e VR:', e);
     }
     populateYearSelector();
     setupEventListeners();
@@ -1445,10 +1478,10 @@ const MatrixApp = (function () {
         } else if (!isBeneficioNaoPecunia(it)) {
           ganhosPecunia += val;
         } else {
-          if (n.includes('va') || n.includes('alimenta')) {
-            it.valor = va;
-          } else if (n.includes('vr') || n.includes('refei')) {
+          if (isItemVR(it)) {
             it.valor = vr;
+          } else if (isItemVA(it)) {
+            it.valor = va;
           }
         }
       });
@@ -3141,8 +3174,8 @@ const MatrixApp = (function () {
     (monthData.receitas || []).forEach(r => {
       const n = (r.nome || '').toLowerCase();
       const val = parseFloat(r.valor) || 0;
-      if (n.includes('va') || n.includes('alimenta')) vaTotal = val;
-      if (n.includes('vr') || n.includes('refei')) vrTotal = val;
+      if (isItemVR(r)) vrTotal = val;
+      else if (isItemVA(r)) vaTotal = val;
     });
 
     // Renderizar Bloco de Origens com discriminação Como / Por que / Onde / Quando
@@ -7177,7 +7210,7 @@ function onModalCategoriaChange(catVal) {
     }
 
     // Vale Alimentação (VA)
-    let recVa = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('vale alimentação') || (r.nome || '').toLowerCase().includes('va') || (r.id && r.id.startsWith('rec_va')));
+    let recVa = monthData.receitas.find(r => isItemVA(r));
     if (recVa) {
       recVa.valor = va;
     } else {
@@ -7192,7 +7225,7 @@ function onModalCategoriaChange(catVal) {
     }
 
     // Vale Refeição (VR)
-    let recVr = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('vale refeição') || (r.nome || '').toLowerCase().includes('vr') || (r.id && r.id.startsWith('rec_vr')));
+    let recVr = monthData.receitas.find(r => isItemVR(r));
     if (recVr) {
       recVr.valor = vr;
     } else {
