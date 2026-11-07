@@ -271,7 +271,6 @@ const MatrixApp = (function () {
         }
         if (changedNov) MatrixDB.saveMonth('2026', 'Novembro', novData, { skipCloudSync: true, reason: 'init_calibration' });
       }
-      }
     } catch (e) {
       console.warn('Erro ao calibrar VA/VR de Novembro:', e);
     }
