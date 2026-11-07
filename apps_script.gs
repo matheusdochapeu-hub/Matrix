@@ -1,25 +1,26 @@
 /**
  * ============================================================================
- * MATRIX FINANCE - GOOGLE APPS SCRIPT BACKEND (v1.0.0)
+ * MATRIX FINANCE - GOOGLE APPS SCRIPT BACKEND (v2.0.0)
  * ============================================================================
- * Conector de alta confiabilidade para o Google Sheets, inspirado na arquitetura
- * de alta integridade do FisioFlow (com travas de concorrência, abas estruturadas
- * e snapshot JSON para restauração 100% fiel em qualquer dispositivo).
+ * Conector de alta confiabilidade para o Google Sheets (Planilha Matrix Finance 360),
+ * com travas de concorrência (LockService), suporte a CORS (POST/GET), fallback
+ * JSONP nativo, abas estruturadas e snapshot JSON para restauração 100% fiel.
  *
  * INSTRUÇÕES DE INSTALAÇÃO:
- * 1. Abra o Google Sheets onde deseja salvar as finanças do Matrix.
+ * 1. Abra a planilha "Matrix Finance 360" no Google Sheets:
+ *    https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit
  * 2. Clique em Extensões > Apps Script.
- * 3. Cole este código completo no editor.
- * 4. Altere a constante SHARED_SECRET abaixo (ou defina MATRIX_TOKEN nas Propriedades).
- * 5. Clique em Implantar > Nova implantação > Tipo: "App da Web".
+ * 3. Cole este código completo no editor e salve (Ctrl+S).
+ * 4. Clique em Implantar > Nova implantação > Tipo: "App da Web".
  *    - Executar como: "Eu (seu e-mail)"
  *    - Quem pode acessar: "Qualquer pessoa"
- * 6. Copie a URL do App da Web gerada (termina com /exec).
- * 7. No Matrix App, vá na aba "Backup & Conexões" e cole a URL e o Segredo.
+ * 5. Copie a URL do App da Web gerada (termina com /exec).
+ * 6. No Matrix App, vá na aba "Backup & Conexões" e cole a URL e o Segredo.
  * ============================================================================
  */
 
 var SHARED_SECRET = "MatrixReloaded2026!"; // Altere para seu segredo preferido
+var DEFAULT_SPREADSHEET_ID = "1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU"; // Matrix Finance 360
 var SHEET_LANCAMENTOS = "Lancamentos";
 var SHEET_INVESTIMENTOS = "Investimentos";
 var SHEET_HOLERITES = "Holerites";
@@ -53,8 +54,24 @@ function isAuthorized(e) {
   return token === secret;
 }
 
-function jsonResponse(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
+function getTargetSpreadsheet(e) {
+  try {
+    var active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+  } catch (err) {}
+  var customId = (e && e.parameter && e.parameter.sheetId) || DEFAULT_SPREADSHEET_ID;
+  return SpreadsheetApp.openById(customId);
+}
+
+function jsonResponse(data, e) {
+  var jsonStr = JSON.stringify(data);
+  var callback = e && e.parameter && e.parameter.callback;
+  if (callback) {
+    var cleanCb = String(callback).replace(/[^a-zA-Z0-9_$.]/g, "");
+    return ContentService.createTextOutput(cleanCb + "(" + jsonStr + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(jsonStr)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -72,46 +89,50 @@ function ensureSheetWithHeaders(ss, sheetName, headers) {
 function doGet(e) {
   try {
     if (!isAuthorized(e)) {
-      return jsonResponse({ success: false, error: "Acesso não autorizado" });
+      return jsonResponse({ success: false, error: "Acesso não autorizado (token inválido)" }, e);
     }
 
     var action = (e && e.parameter && e.parameter.action) || "get_state";
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getTargetSpreadsheet(e);
 
     if (action === "ping") {
       return jsonResponse({
         success: true,
         ping: "pong",
         title: ss.getName(),
+        spreadsheetId: ss.getId(),
         timestamp: new Date().toISOString()
-      });
+      }, e);
     }
 
-    if (action === "get_state") {
+    if (action === "get_state" || action === "restore" || action === "getData") {
       var sheetRaw = ss.getSheetByName(SHEET_BACKUP_JSON);
       if (!sheetRaw || sheetRaw.getLastRow() < 2) {
         return jsonResponse({
           success: true,
+          title: ss.getName(),
           data: null,
           message: "Nenhum backup encontrado nesta planilha."
-        });
+        }, e);
       }
 
       var jsonStr = sheetRaw.getRange(2, 2).getValue();
-      var parsed = JSON.parse(jsonStr);
+      var parsed = jsonStr ? JSON.parse(jsonStr) : null;
       var updated = sheetRaw.getRange(2, 1).getValue();
 
       return jsonResponse({
         success: true,
+        title: ss.getName(),
         timestamp: updated,
         data: parsed,
+        state: parsed,
         message: "Dados recuperados com sucesso da nuvem."
-      });
+      }, e);
     }
 
-    return jsonResponse({ success: false, error: "Ação inválida" });
+    return jsonResponse({ success: false, error: "Ação inválida: " + action }, e);
   } catch (err) {
-    return jsonResponse({ success: false, error: err.toString() });
+    return jsonResponse({ success: false, error: err.toString() }, e);
   }
 }
 
@@ -123,24 +144,30 @@ function doPost(e) {
     return jsonResponse({
       success: false,
       error: "Servidor ocupado. Tente novamente em alguns segundos."
-    });
+    }, e);
   }
 
   try {
     if (!isAuthorized(e)) {
-      return jsonResponse({ success: false, error: "Acesso não autorizado" });
+      return jsonResponse({ success: false, error: "Acesso não autorizado (token inválido)" }, e);
     }
 
-    var body = JSON.parse(e.postData.contents);
-    var action = body.action || "sync_all";
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var body = (e && e.postData && e.postData.contents) ? JSON.parse(e.postData.contents) : {};
+    var action = body.action || (e && e.parameter && e.parameter.action) || "sync_all";
+    var ss = getTargetSpreadsheet(e);
 
     if (action === "ping") {
-      return jsonResponse({ success: true, ping: "pong" });
+      return jsonResponse({
+        success: true,
+        ping: "pong",
+        title: ss.getName(),
+        spreadsheetId: ss.getId(),
+        timestamp: new Date().toISOString()
+      }, e);
     }
 
-    if (action === "sync_all" && body.state) {
-      var state = body.state;
+    var state = body.state || body.data;
+    if ((action === "sync_all" || action === "backup" || action === "save") && state) {
       var nowIso = new Date().toISOString();
 
       // 1. Gravar Snapshot JSON integral no SHEET_BACKUP_JSON
@@ -159,6 +186,12 @@ function doPost(e) {
         for (var ano in state.anos) {
           for (var mes in state.anos[ano]) {
             var mData = state.anos[ano][mes];
+            if (!mData) continue;
+            if (mData.receitas && Array.isArray(mData.receitas)) {
+              mData.receitas.forEach(function (r) {
+                rowsLanc.push([r.id || "", ano, mes, "Receita", r.nome || "", r.valor || 0, r.pago ? "SIM" : "NÃO", r.categoria || "Salário / Proventos", nowIso]);
+              });
+            }
             if (mData.fixos && Array.isArray(mData.fixos)) {
               mData.fixos.forEach(function (f) {
                 rowsLanc.push([f.id || "", ano, mes, "Fixo", f.nome || "", f.valor || 0, f.pago ? "SIM" : "NÃO", f.categoria || "Geral", nowIso]);
@@ -167,6 +200,11 @@ function doPost(e) {
             if (mData.outros && Array.isArray(mData.outros)) {
               mData.outros.forEach(function (o) {
                 rowsLanc.push([o.id || "", ano, mes, "Variável", o.nome || "", o.valor || 0, o.pago ? "SIM" : "NÃO", o.categoria || "Variável", nowIso]);
+              });
+            }
+            if (mData.diarios && Array.isArray(mData.diarios)) {
+              mData.diarios.forEach(function (d) {
+                rowsLanc.push([d.id || "", ano, mes, "Diário", d.nome || "", d.valor || 0, d.pago !== false ? "SIM" : "NÃO", d.categoria || "Alimentação & Lanches", nowIso]);
               });
             }
           }
@@ -210,15 +248,16 @@ function doPost(e) {
 
       return jsonResponse({
         success: true,
+        title: ss.getName(),
         timestamp: nowIso,
         message: "Sincronização realizada com sucesso absoluto."
-      });
+      }, e);
     }
 
-    return jsonResponse({ success: false, error: "Payload inválido para sync" });
+    return jsonResponse({ success: false, error: "Payload inválido para sync" }, e);
 
   } catch (err) {
-    return jsonResponse({ success: false, error: err.toString() });
+    return jsonResponse({ success: false, error: err.toString() }, e);
   } finally {
     lock.releaseLock();
   }

@@ -348,14 +348,24 @@ const MatrixDB = (function () {
   const BACKUP_LAST_KEY = 'matrix_backup_auto_last';
   const BACKUP_HISTORY_KEY = 'matrix_backup_history_v1';
 
-  function saveState(state, reason = 'alteracao_sistema') {
+  function saveState(state, reason = 'alteracao_sistema', options = {}) {
     state.atualizadoEm = new Date().toISOString();
     memoryCache = state;
     const serialized = JSON.stringify(state);
     try {
-      // 1. Gravação no armazenamento ativo
+      // 1. Gravação prioritária no armazenamento ativo
       localStorage.setItem(STORAGE_KEY, serialized);
+    } catch (quotaErr) {
+      try {
+        localStorage.removeItem(BACKUP_LAST_KEY);
+        localStorage.removeItem(BACKUP_HISTORY_KEY);
+        localStorage.setItem(STORAGE_KEY, serialized);
+      } catch (e2) {
+        console.error('Falha crítica ao gravar estado principal no localStorage:', e2);
+      }
+    }
 
+    try {
       // 2. Backup Impecável: Snapshot completo imediato
       localStorage.setItem(BACKUP_LAST_KEY, JSON.stringify({
         timestamp: new Date().toISOString(),
@@ -379,9 +389,22 @@ const MatrixDB = (function () {
       if (hist.length > 20) hist = hist.slice(0, 20);
       localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(hist));
     } catch (e) {
-      console.error('Falha ao gravar no localStorage ou criar backup:', e);
+      // Se exceder a cota de 5MB do navegador com o backup duplicado, preserva o estado principal intacto
+      console.warn('Aviso: cota de histórico local atingida, mantendo STORAGE_KEY principal intacto.');
     }
-    window.dispatchEvent(new CustomEvent('matrix_data_changed', { detail: state }));
+
+    const skipCloudSync = !!(
+      (options && options.skipCloudSync) ||
+      reason === 'init_calibration' ||
+      reason === 'cloud_restore' ||
+      reason === 'satellite_scrape'
+    );
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('matrix_data_changed', {
+        detail: { state, reason, skipCloudSync }
+      }));
+    }
     return state;
   }
 
@@ -511,11 +534,12 @@ const MatrixDB = (function () {
     return month;
   }
 
-  function saveMonth(ano, mes, data) {
+  function saveMonth(ano, mes, data, options = {}) {
     const s = getState();
     if (!s.anos[ano]) s.anos[ano] = {};
     s.anos[ano][mes] = data;
-    saveState(s);
+    const reason = (options && options.reason) || 'alteracao_mes';
+    saveState(s, reason, options);
     return data;
   }
 

@@ -171,9 +171,9 @@ const MatrixApp = (function () {
           if (!octData.fixos) octData.fixos = [];
           let caronaItem = octData.fixos.find(f => f.nome && f.nome.toLowerCase().includes('carona'));
           if (caronaItem) caronaItem.valor = commute.totalCaronas;
-          MatrixDB.saveMonth('2026', 'Outubro', octData);
+          MatrixDB.saveMonth('2026', 'Outubro', octData, { skipCloudSync: true, reason: 'init_calibration' });
         }
-        MatrixDB.saveState(state);
+        MatrixDB.saveState(state, 'init_calibration', { skipCloudSync: true });
       }
     } catch (e) {
       console.warn('Erro ao inicializar override do calendário:', e);
@@ -216,7 +216,7 @@ const MatrixApp = (function () {
           reformasAndamento: 0,
           manutencoesCarro: 0
         };
-        MatrixDB.saveState(state);
+        MatrixDB.saveState(state, 'init_calibration', { skipCloudSync: true });
       }
 
       const novData = MatrixDB.getMonth('2026', 'Novembro');
@@ -245,7 +245,7 @@ const MatrixApp = (function () {
             changedNov = true;
           }
         }
-        if (changedNov) MatrixDB.saveMonth('2026', 'Novembro', novData);
+        if (changedNov) MatrixDB.saveMonth('2026', 'Novembro', novData, { skipCloudSync: true, reason: 'init_calibration' });
       }
     } catch (e) {
       console.warn('Erro ao calibrar VA/VR de Novembro:', e);
@@ -274,6 +274,8 @@ const MatrixApp = (function () {
             renderAll();
           }
         });
+      } else {
+        SyncEngine.updateStatusUI('offline');
       }
 
       // Scraping dos satélites em segundo plano
@@ -3275,7 +3277,7 @@ const MatrixApp = (function () {
     }
 
     if (changed) {
-      MatrixDB.saveMonth(yearStr, monthName, monthData);
+      MatrixDB.saveMonth(yearStr, monthName, monthData, { skipCloudSync: true, reason: 'init_calibration' });
     }
     return commute;
   }
@@ -6459,8 +6461,10 @@ function onModalCategoriaChange(catVal) {
       faturasBadge.textContent = faturasAtivo ? 'ATIVO' : 'PENDENTE';
     }
     if (sat.faturas) {
-      if (document.getElementById('satFaturaAtual')) document.getElementById('satFaturaAtual').textContent = formatBRL(sat.faturas.faturaAtualValor);
-      if (document.getElementById('satFaturasFuturas')) document.getElementById('satFaturasFuturas').textContent = formatBRL(sat.faturas.faturasFuturasTotal);
+      const fatAtual = sat.faturas.faturaAtualReal ?? sat.faturas.faturaAtualValor ?? 0;
+      const fatFutura = sat.faturas.faturasFuturasCompromissadas ?? sat.faturas.faturasFuturasTotal ?? 0;
+      if (document.getElementById('satFaturaAtual')) document.getElementById('satFaturaAtual').textContent = formatBRL(fatAtual);
+      if (document.getElementById('satFaturasFuturas')) document.getElementById('satFaturasFuturas').textContent = formatBRL(fatFutura);
     }
 
     // 3. Casa Maracaju 88
@@ -7588,8 +7592,31 @@ function onModalCategoriaChange(catVal) {
     const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
     const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
     SyncEngine.saveConfig({ cloudUrl, cloudToken });
+    if (!cloudUrl) {
+      SyncEngine.updateStatusUI('offline');
+    }
     alert('✅ Configurações de nuvem salvas com sucesso!');
     renderBackup();
+  }
+
+  async function copiarCodigoAppsScript() {
+    try {
+      const res = await fetch('apps_script.gs?v=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const code = await res.text();
+      await navigator.clipboard.writeText(code);
+      alert(
+        '✅ Código do Conector (apps_script.gs v2.0) copiado para a Área de Transferência!\n\n' +
+        'COMO ATIVAR NA PLANILHA "Matrix Finance 360":\n' +
+        '1. Clique em "📊 Abrir Planilha Matrix Finance 360";\n' +
+        '2. No menu superior da planilha, clique em Extensões > Apps Script;\n' +
+        '3. Apague o que estiver lá, cole este código (Ctrl+V) e salve (Ctrl+S);\n' +
+        '4. Clique em "Implantar > Nova implantação" (Tipo: App da Web, Executar como: Eu, Quem pode acessar: Qualquer pessoa);\n' +
+        '5. Copie a URL terminada em /exec gerada pelo Google e cole no campo abaixo!'
+      );
+    } catch (e) {
+      alert('Não foi possível copiar automaticamente: ' + e.message + '\nAbra o arquivo apps_script.gs na pasta do projeto.');
+    }
   }
 
   async function testCloudConnection() {
@@ -8612,6 +8639,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarCotacaoAcaoModal,
     excluirInvestimento,
     saveCloudSettings,
+    copiarCodigoAppsScript,
     testCloudConnection,
     forceSyncToCloud,
     forceFetchFromCloud,

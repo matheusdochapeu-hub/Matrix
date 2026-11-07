@@ -496,13 +496,16 @@ const SatelliteConnectors = (function () {
     }
 
     const faturaAtualReal = faturasPorMes['2026-Novembro'] ? faturasPorMes['2026-Novembro'].total : 4568.57;
+    const faturasFuturasCompromissadas = faturasPorMes['2026-Dezembro'] ? faturasPorMes['2026-Dezembro'].total : 1568.05;
 
     return {
       origem: 'Faturas (Parcelado a Vista)',
       atualizadoEm: new Date().toISOString(),
       faturasPorMes,
       faturaAtualReal,
-      faturasFuturasCompromissadas: faturasPorMes['2026-Dezembro'] ? faturasPorMes['2026-Dezembro'].total : 1568.05,
+      faturaAtualValor: faturaAtualReal,
+      faturasFuturasCompromissadas,
+      faturasFuturasTotal: faturasFuturasCompromissadas,
       includeSimulated,
       mensalidadeBlack: 89.0,
       limiteMetaMensal: parseFloat(profile.meta || 3000.0),
@@ -658,18 +661,28 @@ const SatelliteConnectors = (function () {
     if (!state.satellites) state.satellites = {};
 
     const statusResults = { fisio: null, faturas: null, maracaju: null };
+    const fetchOpts = {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      redirect: 'follow',
+      cache: 'no-store'
+    };
 
     // 1. FisioFlow
     if (cfg.fisioUrl) {
       try {
         const sep = cfg.fisioUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.fisioUrl}${sep}action=getData&token=${encodeURIComponent(cfg.fisioToken || '')}`);
+        const res = await fetch(`${cfg.fisioUrl}${sep}action=getData&token=${encodeURIComponent(cfg.fisioToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
           state.satellites.fisioflow = processFisioData(json);
           statusResults.fisio = { success: true };
         }
       } catch (e) {
+        if (!state.satellites.fisioflow) {
+          state.satellites.fisioflow = getBaselineFisioData();
+        }
         statusResults.fisio = { success: false, error: e.message };
       }
     }
@@ -680,7 +693,7 @@ const SatelliteConnectors = (function () {
     if (cfg.faturasUrl) {
       try {
         const sep = cfg.faturasUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken || '')}`);
+        const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
           faturasRaw = json.data || json;
@@ -712,7 +725,7 @@ const SatelliteConnectors = (function () {
     if (cfg.maracajuUrl) {
       try {
         const sep = cfg.maracajuUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken || '')}`);
+        const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
           const payload = json.data || json;
@@ -733,7 +746,7 @@ const SatelliteConnectors = (function () {
     }
 
     state.satellites.lastScraped = new Date().toISOString();
-    MatrixDB.saveState(state);
+    MatrixDB.saveState(state, 'satellite_scrape', { skipCloudSync: true });
     localStorage.setItem(STORAGE_KEYS.lastScraped, state.satellites.lastScraped);
 
     return statusResults;

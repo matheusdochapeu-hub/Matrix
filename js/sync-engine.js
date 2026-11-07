@@ -1,7 +1,7 @@
 /**
  * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE
- * Sincronização em nuvem resiliente com Google Sheets (modelo FisioFlow / Faturas)
- * com suporte a CORS (credentials: omit), fallback JSONP e POST no-cors.
+ * Sincronização em nuvem resiliente com Google Sheets (Planilha Matrix Finance 360)
+ * com suporte a CORS (credentials: omit), fallback JSONP validado e trava anti-loop.
  */
 
 const SyncEngine = (function () {
@@ -16,6 +16,9 @@ const SyncEngine = (function () {
     fisioflowUrl: 'matrix_fisioflow_url',
     fisioflowToken: 'matrix_fisioflow_token'
   };
+
+  const DEFAULT_SPREADSHEET_ID = '1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU';
+  const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit';
 
   let debounceTimer = null;
   let isSyncing = false;
@@ -38,6 +41,8 @@ const SyncEngine = (function () {
       cloudUrl: (localStorage.getItem(STORAGE_KEYS.cloudUrl) || '').trim(),
       cloudToken: (localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!').trim(),
       lastSync: localStorage.getItem(STORAGE_KEYS.lastSync) || '',
+      spreadsheetId: DEFAULT_SPREADSHEET_ID,
+      spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
       maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '',
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || '',
       faturasUrl: localStorage.getItem(STORAGE_KEYS.faturasUrl) || '',
@@ -65,30 +70,30 @@ const SyncEngine = (function () {
     if (status === 'syncing') {
       el.className = 'status-badge pendente';
       el.textContent = '🟡 Sincronizando...';
-      el.title = message || 'Enviando alterações para a nuvem';
+      el.title = message || 'Enviando alterações para a planilha Matrix Finance 360';
     } else if (status === 'synced') {
       el.className = 'status-badge pago';
       el.textContent = '🟢 Sincronizado';
-      el.title = message || 'Dados salvos no Google Sheets';
+      el.title = message || 'Dados salvos na planilha Matrix Finance 360';
     } else if (status === 'error') {
       el.className = 'status-badge danger';
       el.textContent = '🔴 Erro de Conexão';
-      el.title = message || 'Falha ao sincronizar';
+      el.title = message || 'Falha ao sincronizar com a planilha Matrix Finance 360';
     } else {
       el.className = 'status-badge';
       el.textContent = '⚪ Modo Offline';
-      el.title = 'Sem URL de sincronização configurada';
+      el.title = message || 'Backup local ativo • Configure a URL /exec da planilha Matrix Finance 360 para nuvem';
     }
   }
 
-  function jsonpRequest(url, params, timeoutMs = 9000) {
+  function jsonpRequest(url, params, timeoutMs = 10000) {
     return new Promise((resolve, reject) => {
       if (typeof document === 'undefined') return reject(new Error('Sem DOM'));
-      const cbName = '_matrix_gas_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const cbName = '_matrix_gas_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
       const script = document.createElement('script');
       const timer = setTimeout(() => {
         cleanup();
-        reject(new Error('Timeout JSONP'));
+        reject(new Error('Timeout JSONP ao conectar ao Google Apps Script'));
       }, timeoutMs);
 
       function cleanup() {
@@ -105,14 +110,14 @@ const SyncEngine = (function () {
       const sep = url.includes('?') ? '&' : '?';
       const query = Object.keys(params || {})
         .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
-        .concat(['callback=' + cbName])
+        .concat(['callback=' + cbName, '_t=' + Date.now()])
         .join('&');
 
       script.id = cbName;
       script.src = url + sep + query;
       script.onerror = function () {
         cleanup();
-        reject(new Error('Falha ao carregar script JSONP'));
+        reject(new Error('Falha ao carregar resposta JSONP do Apps Script'));
       };
       document.head.appendChild(script);
     });
@@ -120,12 +125,21 @@ const SyncEngine = (function () {
 
   function validateUrl(url) {
     if (!url) {
-      return { valid: false, error: 'Cole a URL do App da Web (https://script.google.com/macros/s/.../exec) antes de testar.' };
+      return {
+        valid: false,
+        error: 'Cole a URL do App da Web (https://script.google.com/macros/s/.../exec) da planilha "Matrix Finance 360" antes de testar.'
+      };
     }
     if (url.includes('/edit') || (url.includes('docs.google.com/spreadsheets') && !url.includes('script.google.com'))) {
       return {
         valid: false,
-        error: 'Você colou o link da planilha ou do editor (/edit). No Apps Script, clique em "Implantar > Nova implantação > App da Web" e copie a URL terminada em /exec.'
+        error: 'Você colou o link direto da planilha (/edit). Na planilha "Matrix Finance 360", clique em "Extensões > Apps Script > Implantar > Nova implantação (App da Web)" e copie a URL terminada em /exec.'
+      };
+    }
+    if (url.includes('script.google.com') && url.endsWith('/dev')) {
+      return {
+        valid: false,
+        error: 'Você colou a URL de teste (/dev), que exige login de desenvolvedor. Copie a URL de produção terminada em /exec em "Implantar > Gerenciar implantações".'
       };
     }
     return { valid: true };
@@ -136,7 +150,7 @@ const SyncEngine = (function () {
     if (data.success === true || data.status === 'success' || data.ok === true || data.ping === 'pong') {
       return {
         success: true,
-        title: data.title || data.spreadsheetTitle || 'Planilha Google Sheets Vinculada',
+        title: data.title || data.spreadsheetTitle || 'Matrix Finance 360',
         timestamp: data.timestamp || data.serverTime || new Date().toISOString()
       };
     }
@@ -149,10 +163,14 @@ const SyncEngine = (function () {
   async function pingCloud() {
     const cfg = getConfig();
     const check = validateUrl(cfg.cloudUrl);
-    if (!check.valid) return { success: false, error: check.error };
+    if (!check.valid) {
+      updateStatusUI('error', check.error);
+      return { success: false, error: check.error };
+    }
 
     const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
     const target = `${cfg.cloudUrl}${sep}action=ping&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
+    let explicitServerError = null;
 
     // 1. Tentativa GET com credentials: 'omit' (evita conflito de múltiplas contas Google logadas no navegador)
     try {
@@ -167,82 +185,86 @@ const SyncEngine = (function () {
         const data = await res.json();
         const norm = normalizePingResponse(data);
         if (norm) {
-          if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
-          return norm;
+          if (norm.success) {
+            updateStatusUI('synced', 'Conectado: ' + norm.title);
+            return norm;
+          }
+          explicitServerError = norm.error;
         }
       }
     } catch (e) {}
 
     // 2. Tentativa via JSONP (contorna bloqueios de CORS em redirecionamentos 302 do Google Apps Script)
-    try {
-      const jsonpData = await jsonpRequest(cfg.cloudUrl, { action: 'ping', token: cfg.cloudToken });
-      const norm = normalizePingResponse(jsonpData);
-      if (norm) {
-        if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
-        return norm;
-      }
-    } catch (e) {}
-
-    // 3. Tentativa via POST CORS (text/plain)
-    try {
-      const resPost = await fetch(cfg.cloudUrl, {
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'omit',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'ping', token: cfg.cloudToken })
-      });
-      if (resPost.ok) {
-        const dataPost = await resPost.json();
-        const norm = normalizePingResponse(dataPost);
+    if (!explicitServerError) {
+      try {
+        const jsonpData = await jsonpRequest(cfg.cloudUrl, { action: 'ping', token: cfg.cloudToken });
+        const norm = normalizePingResponse(jsonpData);
         if (norm) {
-          if (norm.success) updateStatusUI('synced', 'Conectado: ' + norm.title);
-          return norm;
+          if (norm.success) {
+            updateStatusUI('synced', 'Conectado: ' + norm.title);
+            return norm;
+          }
+          explicitServerError = norm.error;
         }
-      }
-    } catch (e) {}
-
-    // 4. Tentativa via modo no-cors (confirma que o endpoint /exec do Google Apps Script está ativo e respondendo)
-    try {
-      const resOpaque = await fetch(target, {
-        method: 'GET',
-        mode: 'no-cors',
-        credentials: 'omit',
-        cache: 'no-store'
-      });
-      if (resOpaque && (resOpaque.type === 'opaque' || resOpaque.status === 0 || resOpaque.ok)) {
-        updateStatusUI('synced', 'Planilha Google Sheets conectada');
-        return {
-          success: true,
-          title: 'Planilha Google Sheets (App da Web Ativo)',
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (err) {
-      updateStatusUI('error', err.message);
-      return {
-        success: false,
-        error: 'Não foi possível alcançar a URL informada. Verifique sua conexão e se a URL termina com /exec.'
-      };
+      } catch (e) {}
     }
 
+    // 3. Tentativa via POST CORS (text/plain)
+    if (!explicitServerError) {
+      try {
+        const resPost = await fetch(cfg.cloudUrl, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'ping', token: cfg.cloudToken })
+        });
+        if (resPost.ok) {
+          const dataPost = await resPost.json();
+          const norm = normalizePingResponse(dataPost);
+          if (norm) {
+            if (norm.success) {
+              updateStatusUI('synced', 'Conectado: ' + norm.title);
+              return norm;
+            }
+            explicitServerError = norm.error;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const finalError = explicitServerError ||
+      'Não foi possível validar a resposta do Apps Script na planilha "Matrix Finance 360". Verifique se:\n' +
+      '1) O código atualizado do apps_script.gs foi colado em Extensões > Apps Script;\n' +
+      '2) Foi criada uma Nova Implantação do tipo "App da Web" com "Quem pode acessar: Qualquer pessoa";\n' +
+      '3) A URL termina com /exec e o Token é "' + cfg.cloudToken + '".';
+
+    updateStatusUI('error', finalError);
     return {
       success: false,
-      error: 'A URL não respondeu como esperado. Certifique-se de implantar o Apps Script com acesso para "Qualquer pessoa".'
+      error: finalError
     };
   }
 
   async function fetchFromCloud() {
     const cfg = getConfig();
+    if (!cfg.cloudUrl) {
+      updateStatusUI('offline');
+      return { success: false, error: 'URL do Google Sheets não configurada.' };
+    }
     const check = validateUrl(cfg.cloudUrl);
-    if (!check.valid) return { success: false, error: check.error };
+    if (!check.valid) {
+      updateStatusUI('error', check.error);
+      return { success: false, error: check.error };
+    }
 
-    updateStatusUI('syncing', 'Buscando dados da planilha...');
+    updateStatusUI('syncing', 'Buscando dados da planilha Matrix Finance 360...');
     const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
     const target = `${cfg.cloudUrl}${sep}action=get_state&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
 
     let json = null;
+    // 1. Tenta GET CORS com credentials: 'omit'
     try {
       const res = await fetch(target, {
         method: 'GET',
@@ -256,6 +278,7 @@ const SyncEngine = (function () {
       }
     } catch (err) {}
 
+    // 2. Fallback para JSONP (suportado pelo apps_script.gs v2.0)
     if (!json) {
       try {
         json = await jsonpRequest(cfg.cloudUrl, { action: 'get_state', token: cfg.cloudToken });
@@ -263,20 +286,26 @@ const SyncEngine = (function () {
         updateStatusUI('error', err.message);
         return {
           success: false,
-          error: 'Não foi possível ler os dados da planilha. Verifique se em "Implantar > Gerenciar implantações" a opção "Quem pode acessar" está marcada como "Qualquer pessoa".'
+          error: 'Não foi possível ler os dados da planilha "Matrix Finance 360". Atualize o código em Extensões > Apps Script (botão "📋 Copiar Código Apps Script") e publique uma Nova Implantação com acesso para "Qualquer pessoa".'
         };
       }
     }
 
     const payloadData = json && (json.data || json.state);
     if (json && (json.success || json.status === 'success' || json.ok) && payloadData) {
-      MatrixDB.saveState(payloadData);
-      localStorage.setItem(STORAGE_KEYS.lastSync, json.timestamp || new Date().toISOString());
-      updateStatusUI('synced', 'Dados atualizados da planilha.');
-      return { success: true, data: payloadData };
+      // Importante: skipCloudSync = true evita disparar syncToCloud de volta logo após restaurar da nuvem
+      MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
+      const ts = json.timestamp || new Date().toISOString();
+      localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+      updateStatusUI('synced', 'Sincronizado com ' + (json.title || 'Matrix Finance 360'));
+      return { success: true, data: payloadData, timestamp: ts };
     } else if (json && (json.success || json.status === 'success' || json.ok)) {
-      updateStatusUI('synced', json.message || 'Planilha conectada (nenhum backup salvo ainda).');
-      return { success: true, data: null, message: json.message || 'Nenhum backup salvo ainda. Clique em "Fazer Backup" primeiro.' };
+      updateStatusUI('synced', json.message || 'Planilha Matrix Finance 360 conectada (aguardando 1º backup).');
+      return {
+        success: true,
+        data: null,
+        message: json.message || 'Nenhum backup salvo ainda na planilha Matrix Finance 360. Clique em "⬆️ Fazer Backup" para gravar os dados iniciais.'
+      };
     } else {
       const errMsg = (json && (json.error || json.message)) || 'Resposta inválida da planilha.';
       updateStatusUI('error', errMsg);
@@ -298,7 +327,7 @@ const SyncEngine = (function () {
 
     if (isSyncing) return { success: true, syncing: true };
     isSyncing = true;
-    updateStatusUI('syncing');
+    updateStatusUI('syncing', 'Gravando backup na planilha Matrix Finance 360...');
 
     const state = MatrixDB.getState();
     const payload = {
@@ -309,7 +338,7 @@ const SyncEngine = (function () {
     };
 
     try {
-      // 1. Tenta POST padrão com credentials: 'omit'
+      // 1. Tenta POST padrão com credentials: 'omit' e text/plain (evita preflight OPTIONS no Apps Script)
       try {
         const res = await fetch(cfg.cloudUrl, {
           method: 'POST',
@@ -321,18 +350,18 @@ const SyncEngine = (function () {
         });
         if (res.ok) {
           const json = await res.json();
-          if (json.success || json.status === 'success' || json.ok) {
+          if (json && (json.success || json.status === 'success' || json.ok)) {
             const ts = json.timestamp || new Date().toISOString();
             localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-            updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString());
-            return { success: true, timestamp: ts };
-          } else if (json.error || json.message) {
+            updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString('pt-BR'));
+            return { success: true, timestamp: ts, title: json.title || 'Matrix Finance 360' };
+          } else if (json && (json.error || json.message)) {
             updateStatusUI('error', json.error || json.message);
             return { success: false, error: json.error || json.message };
           }
         }
       } catch (corsErr) {
-        // 2. Fallback para POST no-cors (padrão Google Apps Script quando o redirect 302 omite cabeçalho CORS)
+        // 2. Fallback para POST no-cors seguido de verificação real via pingCloud
         await fetch(cfg.cloudUrl, {
           method: 'POST',
           mode: 'no-cors',
@@ -340,16 +369,31 @@ const SyncEngine = (function () {
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
-        const ts = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-        updateStatusUI('synced', 'Enviado ao Sheets às ' + new Date().toLocaleTimeString());
-        return { success: true, timestamp: ts, mode: 'no-cors' };
+
+        const pingCheck = await pingCloud();
+        if (pingCheck && pingCheck.success) {
+          const ts = new Date().toISOString();
+          localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+          updateStatusUI('synced', 'Enviado ao Sheets às ' + new Date().toLocaleTimeString('pt-BR'));
+          return { success: true, timestamp: ts, mode: 'no-cors' };
+        } else {
+          const errMsg = (pingCheck && pingCheck.error) || 'Falha ao confirmar gravação no Google Sheets.';
+          updateStatusUI('error', errMsg);
+          return { success: false, error: errMsg };
+        }
       }
 
-      const ts = new Date().toISOString();
-      localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-      updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString());
-      return { success: true, timestamp: ts };
+      const pingFallback = await pingCloud();
+      if (pingFallback && pingFallback.success) {
+        const ts = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+        updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString('pt-BR'));
+        return { success: true, timestamp: ts };
+      }
+
+      const failMsg = (pingFallback && pingFallback.error) || 'Não foi possível confirmar a gravação na planilha.';
+      updateStatusUI('error', failMsg);
+      return { success: false, error: failMsg };
     } catch (e) {
       console.warn('Falha na sincronização em nuvem:', e);
       updateStatusUI('error', e.message);
@@ -361,7 +405,10 @@ const SyncEngine = (function () {
 
   function queueSync() {
     const cfg = getConfig();
-    if (!cfg.cloudUrl) return;
+    if (!cfg.cloudUrl) {
+      updateStatusUI('offline');
+      return;
+    }
 
     updateStatusUI('syncing', 'Alteração pendente de envio...');
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -370,9 +417,12 @@ const SyncEngine = (function () {
     }, 2000);
   }
 
-  window.addEventListener('matrix_data_changed', () => {
-    queueSync();
-  });
+  if (typeof window !== 'undefined') {
+    window.addEventListener('matrix_data_changed', (e) => {
+      if (e && e.detail && e.detail.skipCloudSync) return;
+      queueSync();
+    });
+  }
 
   return {
     getConfig,
@@ -381,7 +431,9 @@ const SyncEngine = (function () {
     fetchFromCloud,
     syncToCloud,
     queueSync,
-    updateStatusUI
+    updateStatusUI,
+    DEFAULT_SPREADSHEET_ID,
+    DEFAULT_SPREADSHEET_URL
   };
 })();
 
