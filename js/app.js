@@ -1124,13 +1124,41 @@ const MatrixApp = (function () {
       const monthData = MatrixDB.getMonth(m.ano, m.mes);
       const isCurrent = (m.ano === currentYear && m.mes === currentMonth);
 
-      // 1. Salário Matheus (USP Líquido)
+      // 1. Rendas Matheus (Salário USP/MPSP + Renda Extra / Outros)
       const salMatheus = getSalarioLiquidoMes(m.ano, m.mes);
+      let outrosGanhosMatheus = 0;
+      let labelExtraMatheus = '';
+      (monthData.receitas || []).forEach(r => {
+        if (!isBeneficioNaoPecunia(r)) {
+          const n = (r.nome || '').toLowerCase();
+          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+            const val = parseFloat(r.valor) || 0;
+            outrosGanhosMatheus += val;
+            if (val > 0 && !labelExtraMatheus) labelExtraMatheus = r.nome;
+          }
+        }
+      });
+      const rendaMatheusTotal = salMatheus + outrosGanhosMatheus;
 
-      // 2. Ganhos Scarlet (FisioFlow)
+      // 2. Rendas Scarlet (FisioFlow + Outras Rendas dela)
       const salScarlet = getGanhosScarletMes(m.ano, m.mes);
+      let outrasRendasScarlet = 0;
+      let labelExtraScarlet = '';
+      (monthData.receitas || []).forEach(r => {
+        if (!isBeneficioNaoPecunia(r)) {
+          const n = (r.nome || '').toLowerCase();
+          if ((n.includes('scarlet') || n.includes('fisio')) && !n.includes('fisioflow') && !n.includes('salário scarlet')) {
+            const val = parseFloat(r.valor) || 0;
+            if (val !== salScarlet && val > 0) {
+              outrasRendasScarlet += val;
+              if (!labelExtraScarlet) labelExtraScarlet = r.nome;
+            }
+          }
+        }
+      });
+      const rendaScarletTotal = salScarlet + outrasRendasScarlet;
 
-      // 3. Vale Alimentação - VA (Casa Maracaju 88)
+      // 3. Benefícios Alimentação (VA + VR)
       let va = 2050.00;
       if (m.ano === '2026' && m.mes === 'Novembro') {
         va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
@@ -1141,7 +1169,6 @@ const MatrixApp = (function () {
       }
       if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
-      // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
       let vr = 1105.00;
       if (m.ano === '2026' && m.mes === 'Novembro') {
         vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
@@ -1151,79 +1178,107 @@ const MatrixApp = (function () {
         vr = parseFloat(monthData.totais['VR']) || vr;
       }
       if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
+      const totalBeneficios = va + vr;
 
-      // 5. Outros Ganhos em Pecúnia (13º Salário, Estúdio/Personalizado, etc.)
-      let outrosGanhos = 0;
-      let outrosLabel = '';
-      (monthData.receitas || []).forEach(r => {
-        if (!isBeneficioNaoPecunia(r)) {
-          const n = (r.nome || '').toLowerCase();
-          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
-            const val = parseFloat(r.valor) || 0;
-            outrosGanhos += val;
-            if (val > 0 && !outrosLabel) outrosLabel = r.nome;
-          }
-        }
-      });
+      // Ganhos Conjuntos Totais = soma de (Salario matheus + renda extra matheus + outras receitas matheus + ganhos Scarlet + outras Rendas Scarlet + VA + VR)
+      const ganhosConjuntosTotais = rendaMatheusTotal + rendaScarletTotal + totalBeneficios;
 
-      // Renda Total Conjunta em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
-      const rendaLiquidaPecunia = salMatheus + salScarlet + outrosGanhos;
-
-      // Gastos Fixos, Variáveis e Diários do mês
+      // 4. Gastos Fixos, Variáveis, Diários e Fatura Nubank
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      const totalGastos = fixos + outros + diarios;
-      const sobraPecunia = rendaLiquidaPecunia - totalGastos;
+      let contasInicio = 0;
+      if (m.mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+        contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+      }
+      const totalGastosConta = fixos + outros + diarios + contasInicio;
+      const faturaNubank = getFaturaNubankMes(m.ano, m.mes);
+      // Os gastos aqui têm que bater com a soma de gastos fixos + variaveis + diarios + nubank
+      const totalGastosCasal = totalGastosConta + faturaNubank;
+
+      // 5. Sobra Real = Sobra Casal do card anterior
+      const sobraMatheus = rendaMatheusTotal - totalGastosConta;
+      const transfScarlet = calcSobraMatheus(m.ano, m.mes).transf;
+      const subtotalScarlet = rendaScarletTotal + transfScarlet;
+      const sobraScarlet = subtotalScarlet - faturaNubank;
+      const sobraCasalReal = sobraMatheus + sobraScarlet;
 
       return `
         <div class="month-horizon-card ${isCurrent ? 'active-month' : ''}" onclick="MatrixApp.navegarParaMes('${m.ano}', '${m.mes}')" title="Clique para abrir e gerenciar ${m.mes}/${m.ano}">
           <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <div class="horizon-month-name">📅 ${m.mes} / ${m.ano}</div>
-              <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 6px;" onclick="event.stopPropagation();MatrixApp.openEditSaldosModal('${m.ano}', '${m.mes}')" title="Editar saldos e rendas de ${m.mes}/${m.ano}">✏️ Saldos</button>
+              <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 6px;margin-right:${isCurrent ? '75px' : '0'};" onclick="event.stopPropagation();MatrixApp.openEditSaldosModal('${m.ano}', '${m.mes}')" title="Editar saldos e rendas de ${m.mes}/${m.ano}">✏️ Saldos</button>
             </div>
-            <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);">Ganhos Conjuntos:</div>
-            <div class="horizon-total-renda">${formatBRL(rendaLiquidaPecunia)}</div>
-            <div style="font-size:9px;color:var(--text-dim);font-family:var(--font-mono);margin-top:-3px;margin-bottom:4px;">(Líquido em conta para pagar contas)</div>
+            
+            <div style="font-size:9.5px;color:var(--text-muted);text-transform:uppercase;font-family:var(--font-mono);letter-spacing:0.5px;">Ganhos Conjuntos Totais:</div>
+            <div class="horizon-total-renda" style="color:var(--matrix-green);font-size:1.35rem;font-weight:800;font-family:var(--font-mono);">${formatBRL(ganhosConjuntosTotais)}</div>
+            <div style="font-size:8.5px;color:var(--text-dim);font-family:var(--font-mono);margin-top:-2px;margin-bottom:6px;">(Matheus + Scarlet + Benefícios VA/VR)</div>
 
-            <!-- Fontes de Renda em Pecúnia -->
-            <div style="margin-top:4px;">
-              <div class="horizon-breakdown-row">
-                <span>👨‍💼 <strong>Salário Matheus (USP)</strong></span>
-                <span style="color:var(--text-main);font-weight:600;">${formatBRL(salMatheus)}</span>
-              </div>
-              <div class="horizon-breakdown-row">
-                <span>👩‍⚕️ <strong>Ganhos Scarlet (Fisio)</strong></span>
-                <span style="color:var(--cyan);font-weight:600;">${formatBRL(salScarlet)}</span>
-              </div>
-              ${outrosGanhos > 0 ? `
-              <div class="horizon-breakdown-row" style="color:var(--matrix-green-glow);">
-                <span>🎁 <strong>${outrosLabel || getNomeEstudio() || 'Outros'}</strong></span>
-                <span style="color:var(--matrix-green);font-weight:700;">+ ${formatBRL(outrosGanhos)}</span>
-              </div>` : ''}
-
-              <!-- Bloco Separado de Benefícios Alimentação (Não Pecúnia) -->
-              <div style="margin-top:6px;padding-top:5px;border-top:1px dashed var(--border-dim);">
-                <div style="font-size:9.5px;color:var(--amber);font-family:var(--font-mono);margin-bottom:2px;display:flex;justify-content:space-between;">
-                  <span>🛒 <strong>Benefícios (Alimentação / VA + VR):</strong></span>
-                  <strong>${formatBRL(va + vr)}</strong>
+            <!-- Grupos de Receitas discriminadas juntas -->
+            <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+              <!-- Grupo 1: Rendas Matheus Juntas -->
+              <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:6px;padding:5px 7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--text-main);font-weight:700;margin-bottom:3px;">
+                  <span>👨‍💼 <strong>Rendas Matheus:</strong></span>
+                  <span style="color:var(--text-main);">${formatBRL(rendaMatheusTotal)}</span>
                 </div>
-                <div class="horizon-breakdown-row" style="opacity:0.8;font-size:10.5px;">
-                  <span>🥗 VA (Maracaju 88)</span>
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
+                  <span>• Salário USP:</span>
+                  <span>${formatBRL(salMatheus)}</span>
+                </div>
+                ${outrosGanhosMatheus > 0 ? `
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;color:var(--matrix-green-glow);">
+                  <span>• ${labelExtraMatheus || getNomeEstudio() || 'Renda Extra / Outros'}:</span>
+                  <span style="color:var(--matrix-green);font-weight:600;">+ ${formatBRL(outrosGanhosMatheus)}</span>
+                </div>` : ''}
+              </div>
+
+              <!-- Grupo 2: Rendas Scarlet Juntas -->
+              <div style="background:rgba(0,229,255,0.03);border:1px solid rgba(0,229,255,0.12);border-radius:6px;padding:5px 7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--cyan);font-weight:700;margin-bottom:3px;">
+                  <span>👩‍⚕️ <strong>Rendas Scarlet:</strong></span>
+                  <span style="color:var(--cyan);">${formatBRL(rendaScarletTotal)}</span>
+                </div>
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
+                  <span>• Ganhos Fisio (FisioFlow):</span>
+                  <span>${formatBRL(salScarlet)}</span>
+                </div>
+                ${outrasRendasScarlet > 0 ? `
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
+                  <span>• ${labelExtraScarlet || 'Outras Rendas'}:</span>
+                  <span style="color:var(--cyan);font-weight:600;">+ ${formatBRL(outrasRendasScarlet)}</span>
+                </div>` : ''}
+              </div>
+
+              <!-- Grupo 3: Alimentação VA + VR Juntos -->
+              <div style="background:rgba(255,183,77,0.03);border:1px solid rgba(255,183,77,0.12);border-radius:6px;padding:5px 7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-size:9.5px;color:var(--amber);font-weight:700;margin-bottom:3px;">
+                  <span>🛒 <strong>Alimentação (VA + VR):</strong></span>
+                  <span style="color:var(--amber);">${formatBRL(totalBeneficios)}</span>
+                </div>
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
+                  <span>• VA (Maracaju 88):</span>
                   <span style="color:var(--matrix-green);">${formatBRL(va)}</span>
                 </div>
-                <div class="horizon-breakdown-row" style="opacity:0.8;font-size:10.5px;">
-                  <span>🍽️ VR (Almoço USP)</span>
+                <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
+                  <span>• VR (Almoço USP):</span>
                   <span style="color:var(--cyan);">${formatBRL(vr)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="horizon-bottom-bar">
-            <span>Gastos: <strong style="color:var(--rose);">${formatBRL(totalGastos)}</strong></span>
-            <span>Sobra Real: <strong style="color:${sobraPecunia >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(sobraPecunia)}</strong></span>
+          <!-- Rodapé: Gastos e Sobra Real (Igual Sobra do Casal do Card Anterior) -->
+          <div class="horizon-bottom-bar" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-dim);display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;">
+              <span style="color:var(--text-muted);" title="Fixos (${formatBRL(fixos)}) + Variáveis (${formatBRL(outros)}) + Diários (${formatBRL(diarios)}) + Nubank (${formatBRL(faturaNubank)})">Gastos (Fixos+Var+Diár+Nubank):</span>
+              <strong style="color:var(--rose);font-family:var(--font-mono);">${formatBRL(totalGastosCasal)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;" title="Sobra Matheus (${formatBRL(sobraMatheus)}) + Sobra Scarlet (${formatBRL(sobraScarlet)})">
+              <span style="color:var(--text-main);">Sobra Real (Casal):</span>
+              <strong style="color:${sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};font-family:var(--font-mono);">${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}</strong>
+            </div>
           </div>
         </div>
       `;
@@ -1588,6 +1643,7 @@ const MatrixApp = (function () {
     // = Subtotal
     // - Fatura Nubank
     // = Sobra Scarlet
+    const scarletTransf = transfScarlet;
     const eqScarletFisioEl = document.getElementById('topEqScarletFisio');
     if (eqScarletFisioEl) eqScarletFisioEl.textContent = formatBRL(scarletFisio);
 
