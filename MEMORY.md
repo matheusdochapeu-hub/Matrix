@@ -45,3 +45,21 @@ Corrigida a exibição e sincronização do **Saldo Atual de VA e VR** no chip s
 - Sintaxe validada em todos os 10 módulos JS do `Matrix` (`node -c` / `new Function`).
 - Suíte de verificação `verify_v75.js` executada com sucesso validando o abatimento exato de compras de VR de ontem (`06/11`) e hoje (`07/11`) sobre os `R$ 1.105,16`.
 - Suíte de testes automatizados do `maracaju88` executada: **73/73 testes aprovados (100%)**.
+
+---
+
+## [2026-11-07 20:40] - Sincronização Dinâmica em Tempo Real de VA/VR (Maracaju 88 v2.5.0 & Matrix v81)
+
+### Resumo das Melhorias
+1. **Maracaju 88 (`v2.5.0`):**
+   - **Remoção de Fotos Base64 no Backup Cloud (`maracaju88/js/sheets.js`):** Higienização de fotos em todas as coleções (`pets.fotos`, `pets.exames[].fotos`, `comprasRegistros[].photos`, `compras[].photos`, `sonhos[].photos`, `carro[].photos`), garantindo que o payload de backup seja sempre `< 44.000` caracteres, prevenindo falhas silenciosas no limite de 50.000 caracteres de célula do Google Sheets.
+   - **Geração e Envio de `settings.benefitsSummary`:** Salva o balanço calculado (`vaBalance`, `vrBalance`, `vaSpent`, `vrSpent`) tanto no `localStorage` quanto no backup do Google Sheets.
+   - **Push Pós-Merge no `syncPullFromSheets` (`maracaju88/js/app.js`):** Sobe automaticamente as compras feitas no celular para a planilha ao abrir o app caso a nuvem ainda não as possua.
+
+2. **Matrix Finance 360 (`v81`):**
+   - **Chip Superior de Satélite (`#topSatVaVal`, `#topSatVrVal`, `#topSatCasaVal`):** Exibe com fidelidade absoluta o saldo atual restante de VA e VR.
+   - **Interoperabilidade com `marketName` (`satellite-connectors.js`):** Reconhece compras do Maracaju 88 pelo campo oficial `marketName` e integra diretamente o `benefitsSummary`.
+   - **Fim dos Resets Destrutivos (`init()`):** Eliminada a redefinição arbitrária que zerava gastos de VA/VR para 2059.84 / 1105.16 no boot do Matrix.
+   - **Sincronização Bidirecional ao Editar Saldos / Receitas:** Ao alterar os valores de VA ou VR no modal de Saldos ou na tabela de Receitas, o saldo restante do satélite Maracaju é atualizado na hora e o badge reflete a alteração.
+   - **Auto-scraping ao Alternar Abas (`focus`):** Ao gastar no Maracaju 88 e voltar para a aba do Matrix, o Matrix atualiza automaticamente via Google Sheets em segundo plano.
+   - **Correção Visual de Espaçamento dos Símbolos:** Ajustado o espaçamento entre operadores `+`, `-`, `=` nos mini-cálculos para evitar sobreposição visual.
