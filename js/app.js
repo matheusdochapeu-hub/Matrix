@@ -256,6 +256,30 @@ const MatrixApp = (function () {
     } catch (e) {
       console.warn('Erro ao sincronizar caronas no init:', e);
     }
+
+    try {
+      if (state && state.anos) {
+        let changedLegacy = false;
+        Object.keys(state.anos).forEach(ano => {
+          Object.keys(state.anos[ano]).forEach(mes => {
+            const mData = state.anos[ano][mes];
+            ['fixos', 'outros', 'diarios'].forEach(col => {
+              (mData[col] || []).forEach(it => {
+                if (it.renda === 'orcamento_geral' || it.renda === 'estudio_extra') {
+                  it.renda = isGastoDaScarlet(it) ? 'ganhos_scarlet' : 'salario_usp';
+                  changedLegacy = true;
+                }
+              });
+            });
+          });
+        });
+        if (changedLegacy) {
+          MatrixDB.saveState(state, 'migrate_orcamento_geral', { skipCloudSync: true });
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao higienizar orcamento_geral:', e);
+    }
     populateYearSelector();
     setupEventListeners();
     updateInstallButtonVisibility();
@@ -6688,7 +6712,7 @@ function onModalCategoriaChange(catVal) {
 
     const rendaSelect = document.getElementById('modalItemRenda');
     if (rendaSelect) {
-      if (item.renda && item.renda !== 'orcamento_geral') {
+      if (item.renda && item.renda !== 'orcamento_geral' && item.renda !== 'estudio_extra') {
         rendaSelect.value = item.renda;
       } else if (item.conta) {
         const c = String(item.conta).toLowerCase();
@@ -6697,7 +6721,6 @@ function onModalCategoriaChange(catVal) {
         else if (c === 'cartao_vr' || c === 'vr') rendaSelect.value = 'vr_almoco';
         else if (c.includes('scarlet') || c.includes('fisio')) rendaSelect.value = 'ganhos_scarlet';
         else if (c.includes('resgate')) rendaSelect.value = 'investimento_resgate';
-        else if (c.includes('extra')) rendaSelect.value = 'estudio_extra';
         else if (c.includes('salario') || c === 'salario_bb' || c === 'bb') rendaSelect.value = 'salario_usp';
         else rendaSelect.value = isGastoDaScarlet(item) ? 'ganhos_scarlet' : 'salario_usp';
       } else {
