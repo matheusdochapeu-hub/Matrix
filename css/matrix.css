@@ -450,7 +450,7 @@ body {
   align-items: stretch;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1320px) {
   .unified-main-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -680,45 +680,55 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: nowrap;
-  gap: 3px;
+  gap: 4px;
   min-height: 46px;
   background: rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(234, 179, 8, 0.28);
   border-radius: var(--radius-xs);
-  padding: 6px 8px;
+  padding: 6px 7px;
   margin: 2px 0 8px 0;
+  overflow: hidden;
 }
 
 .eq-part {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: 2px;
+  flex: 0 0 auto;
 }
 
 .eq-label {
-  font-size: 8px;
+  font-size: 7.5px;
+  letter-spacing: -0.2px;
   color: var(--text-muted);
   text-transform: uppercase;
   font-family: var(--font-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.15;
 }
 
 .eq-val {
-  font-size: 10.5px;
+  font-size: 9.5px;
+  letter-spacing: -0.35px;
+  font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-main);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .eq-op {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   color: var(--amber);
-  padding: 0 1px;
+  padding: 0 2px;
   flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 1px;
+  line-height: 1.2;
 }
 
 /* Caixas Duplas de Visões Padronizadas nos 4 Cards */
@@ -3461,20 +3471,25 @@ body {
   }
 
   .unified-equation-banner {
-    padding: 6px 8px !important;
-    gap: 3px !important;
+    padding: 6px 7px !important;
+    gap: 4px !important;
   }
 
   .eq-label {
-    font-size: 8px !important;
+    font-size: 7.5px !important;
+    letter-spacing: -0.2px !important;
   }
 
   .eq-val {
-    font-size: 10.5px !important;
+    font-size: 9.6px !important;
+    letter-spacing: -0.3px !important;
   }
 
   .eq-op {
-    font-size: 12px !important;
+    font-size: 10.5px !important;
+    padding: 0 2px !important;
+    align-self: flex-end !important;
+    margin-bottom: 1px !important;
   }
 
   /* 6. Botão Flutuante (FAB) no Celular */
