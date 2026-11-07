@@ -445,7 +445,7 @@ body {
 /* Grid Principal de 3 Colunas Executivas */
 .unified-main-grid {
   display: grid;
-  grid-template-columns: 1fr 1.15fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
   gap: 12px;
 }
 
@@ -3659,4 +3659,17 @@ body {
 
 .unified-equation-banner.purple-banner {
   border-color: rgba(192, 132, 252, 0.35);
+}
+
+.unified-card.purple {
+  border-color: rgba(192, 132, 252, 0.35);
+}
+.unified-card.purple:hover {
+  border-color: #c084fc;
+  box-shadow: 0 0 15px rgba(192, 132, 252, 0.25);
+}
+.unified-badge.purple {
+  background: rgba(192, 132, 252, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.35);
 }

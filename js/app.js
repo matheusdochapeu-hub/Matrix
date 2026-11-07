@@ -1383,21 +1383,20 @@ const MatrixApp = (function () {
       satCasaChip.setAttribute('title', `Casa Maracaju: Saldo VA ${formatBRL(vaAtual)} (Gasto Mercado: ${formatBRL(satMaracaju.gastoMercadoMesAtual || 0)}) • Saldo VR ${formatBRL(vrAtual)} (Gasto Refeições: ${formatBRL(satMaracaju.gastoVrMesAtual || 0)})`);
     }
 
-    // 3. Card 1: Ganhos Conjuntos em Pecúnia
+    // 3. Card 1: Ganhos Matheus (Salário USP + Extras)
+    const rendaMatheusTotal = salMatheus + outrosGanhos;
+
     const eqSalMatheusEl = document.getElementById('topEqSalMatheus');
     if (eqSalMatheusEl) eqSalMatheusEl.textContent = formatBRL(salMatheus);
 
     const eqOutrosGanhosEl = document.getElementById('topEqOutrosGanhos');
     if (eqOutrosGanhosEl) eqOutrosGanhosEl.textContent = formatBRL(outrosGanhos);
 
-    const eqSalScarletEl = document.getElementById('topEqSalScarlet');
-    if (eqSalScarletEl) eqSalScarletEl.textContent = formatBRL(ganhosScarlet);
-
     const eqTotalGanhosEl = document.getElementById('topEqTotalGanhos');
-    if (eqTotalGanhosEl) eqTotalGanhosEl.textContent = formatBRL(ganhosPecunia);
+    if (eqTotalGanhosEl) eqTotalGanhosEl.textContent = formatBRL(rendaMatheusTotal);
 
     const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
-    if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(ganhosPecunia);
+    if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(rendaMatheusTotal);
 
     const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub') || document.getElementById('topRendaSub');
     if (rConjuntaSubEl) {
@@ -1406,7 +1405,7 @@ const MatrixApp = (function () {
 
     const topGanhosExpl = document.getElementById('topGanhosExplFormula');
     if (topGanhosExpl) {
-      topGanhosExpl.innerHTML = `Salário USP (<strong>${formatBRL(salMatheus)}</strong>) + FisioFlow (<strong>${formatBRL(ganhosScarlet)}</strong>) + Renda Extra (<strong>${formatBRL(outrosGanhos)}</strong>) = <strong>${formatBRL(ganhosPecunia)}</strong> em conta`;
+      topGanhosExpl.innerHTML = `Salário USP (<strong>${formatBRL(salMatheus)}</strong>) + Renda Extra (<strong>${formatBRL(outrosGanhos)}</strong>) = <strong>${formatBRL(rendaMatheusTotal)}</strong> em conta`;
     }
 
     const salMatheusEl = document.getElementById('topSalMatheusVal');
@@ -1416,9 +1415,6 @@ const MatrixApp = (function () {
     if (origemSalLabel) {
       origemSalLabel.textContent = 'USP';
     }
-
-    const salScarletEl = document.getElementById('topSalScarletVal');
-    if (salScarletEl) salScarletEl.textContent = formatBRL(ganhosScarlet);
 
     const outrosEl = document.getElementById('topOutrosVal');
     if (outrosEl) {
@@ -1586,6 +1582,68 @@ const MatrixApp = (function () {
 
     const topMatheusTransfEl = document.getElementById('topMatheusTransfScarletVal');
     if (topMatheusTransfEl) topMatheusTransfEl.textContent = `- ${formatBRL(transfScarlet)}`;
+
+    // 6. Card 4: Fluxo & Sobra Scarlet
+    // + Ganhos Scarlet Fisio
+    // + Transf. p/ Scarlet
+    // = Subtotal
+    // - Fatura Nubank
+    // = Sobra Scarlet
+    const scarletFisio = ganhosScarlet;
+    const scarletTransf = transfScarlet;
+    const scarletSubtotal = scarletFisio + scarletTransf;
+    const scarletFatura = faturaNubank;
+    const scarletSobra = scarletSubtotal - scarletFatura;
+
+    const eqScarletFisioEl = document.getElementById('topEqScarletFisio');
+    if (eqScarletFisioEl) eqScarletFisioEl.textContent = formatBRL(scarletFisio);
+
+    const eqScarletTransfEl = document.getElementById('topEqScarletTransf');
+    if (eqScarletTransfEl) eqScarletTransfEl.textContent = formatBRL(scarletTransf);
+
+    const eqScarletFaturaEl = document.getElementById('topEqScarletFatura');
+    if (eqScarletFaturaEl) eqScarletFaturaEl.textContent = formatBRL(scarletFatura);
+
+    const eqScarletSobraEl = document.getElementById('topEqScarletSobra');
+    if (eqScarletSobraEl) {
+      eqScarletSobraEl.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      eqScarletSobraEl.style.color = scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const topSobraScarletEl = document.getElementById('topSobraScarletVal');
+    if (topSobraScarletEl) {
+      topSobraScarletEl.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      topSobraScarletEl.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
+    }
+
+    const topScarletExpl = document.getElementById('topScarletExplFormula');
+    if (topScarletExpl) {
+      topScarletExpl.innerHTML = `Fisio (<strong>${formatBRL(scarletFisio)}</strong>) + Transf. (<strong>${formatBRL(scarletTransf)}</strong>) = Subtotal (<strong>${formatBRL(scarletSubtotal)}</strong>) - Fatura (<strong>${formatBRL(scarletFatura)}</strong>) = <strong style="color:${scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}</strong>`;
+    }
+
+    const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
+    if (topScarletFisioVal) topScarletFisioVal.textContent = formatBRL(scarletFisio);
+
+    const topScarletTransfVal = document.getElementById('topScarletTransfVal');
+    if (topScarletTransfVal) topScarletTransfVal.textContent = formatBRL(scarletTransf);
+
+    const topScarletSubtotalVal = document.getElementById('topScarletSubtotalVal');
+    if (topScarletSubtotalVal) topScarletSubtotalVal.textContent = formatBRL(scarletSubtotal);
+
+    const topScarletFaturaVal = document.getElementById('topScarletFaturaVal');
+    if (topScarletFaturaVal) topScarletFaturaVal.textContent = `- ${formatBRL(scarletFatura)}`;
+
+    const topScarletSobraFinalVal = document.getElementById('topScarletSobraFinalVal');
+    if (topScarletSobraFinalVal) {
+      topScarletSobraFinalVal.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      topScarletSobraFinalVal.style.color = scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const topScarletBadge = document.getElementById('topScarletStatusBadge');
+    if (topScarletBadge) {
+      topScarletBadge.textContent = scarletSobra >= 0 ? 'Sobra Positiva' : 'Fatura Excede Recursos';
+      topScarletBadge.className = scarletSobra >= 0 ? 'unified-badge purple' : 'unified-badge rose';
+    }
 
     // 6. Retrocompatibilidade para seletores legados
     const kpiGanhos = document.getElementById('kpiGanhos');
