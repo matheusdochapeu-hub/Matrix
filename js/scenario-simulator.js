@@ -151,23 +151,29 @@ const ScenarioSimulator = (function () {
   function getGanhosScarletCalculados(ano, mesName, monthData, state) {
     if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getGanhosScarletMes) {
       const val = window.MatrixApp.getGanhosScarletMes(ano, mesName);
-      if (typeof val === 'number' && val > 0) return val;
+      if (typeof val === 'number') return val;
     }
-    if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
+    if (monthData && monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
       const manual = parseFloat(monthData.scarlet.ganhosManual);
-      if (!isNaN(manual) && manual > 0) return manual;
+      if (!isNaN(manual)) return manual;
     }
-    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
-    if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
-      return parseFloat(recFisio.valor);
+    if (monthData && monthData.receitas) {
+      const recFisio = monthData.receitas.find(r => {
+        if (isBeneficioNaoPecunia(r)) return false;
+        const c = (r.categoria || '').toLowerCase();
+        if (c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'))) return false;
+        const n = (r.nome || '').toLowerCase();
+        return n.includes('scarlet') || n.includes('fisio') || n.includes('atendimento');
+      });
+      if (recFisio && recFisio.valor != null) {
+        return parseFloat(recFisio.valor) || 0;
+      }
     }
-    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
+    if (monthData && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
       return monthData.scarlet.ganhos;
     }
-    if (state.satellites && state.satellites.fisioflow && state.satellites.fisioflow.projecaoMensalRecorrente) {
-      return state.satellites.fisioflow.projecaoMensalRecorrente;
-    }
-    return 1500; // Baseline estimado da Scarlet no FisioFlow
+    // Regra estrita de integridade: se não há lançamento real no app fonte ou manual, estritamente ZERO (0)
+    return 0;
   }
 
   function runSimulation(state, activeScenarios = null, totalMonths = 14) {
