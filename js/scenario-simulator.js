@@ -169,7 +169,10 @@ const ScenarioSimulator = (function () {
         return parseFloat(recFisio.valor) || 0;
       }
     }
-    if (monthData && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
+    // Regra +1 Mês para 2026
+    if (ano === '2026' && mesName === 'Novembro') return 1140.00;
+    if (ano === '2026' && mesName === 'Dezembro') return 995.00;
+    if (parseInt(ano, 10) === 2026 && monthData && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
       return monthData.scarlet.ganhos;
     }
     // Regra estrita de integridade: se não há lançamento real no app fonte ou manual, estritamente ZERO (0)

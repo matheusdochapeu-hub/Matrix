@@ -154,6 +154,24 @@ const MatrixApp = (function () {
     return false;
   }
 
+  function isItemVR(it) {
+    if (!it) return false;
+    if (it.conta === 'cartao_vr' || it.renda === 'vr_almoco' || it.id === 'rec_vr_Novembro_2026') return true;
+    const n = (it.nome || '').toLowerCase();
+    if (/\bvr\b/.test(n) || n.includes('(vr)') || n.includes('refeição') || n.includes('refeicao')) return true;
+    return false;
+  }
+
+  function isItemVA(it) {
+    if (!it) return false;
+    if (it.conta === 'cartao_va' || it.renda === 'va_mercado' || it.id === 'rec_va_Novembro_2026') return true;
+    const n = (it.nome || '').toLowerCase();
+    if (/\bva\b/.test(n) || n.includes('(va') || n.includes('alimentação') || n.includes('alimentacao') || n.includes('maracaju')) {
+      if (!isItemVR(it)) return true;
+    }
+    return false;
+  }
+
   function init() {
     // Garantir que 2026-10-28 (Dia do Servidor) é reconhecido como trabalho presencial normal
     try {
@@ -264,6 +282,7 @@ const MatrixApp = (function () {
     }
 
     try {
+      const state = MatrixDB.getState();
       if (state && state.anos) {
         let changedLegacy = false;
         Object.keys(state.anos).forEach(ano => {
@@ -279,6 +298,22 @@ const MatrixApp = (function () {
             });
 
             // Restauração de integridade de VA e VR contra contaminação
+            // Regra estrita: de Janeiro/2027 em diante, sem invenção de rendas da Scarlet
+            if (parseInt(ano, 10) >= 2027) {
+              if (mData.scarlet && mData.scarlet.ganhosManual == null && mData.scarlet.ganhos !== 0) {
+                mData.scarlet.ganhos = 0;
+                changedLegacy = true;
+              }
+              if (mData.receitas) {
+                const initLen = mData.receitas.length;
+                mData.receitas = mData.receitas.filter(r => {
+                  const n = (r.nome || '').toLowerCase();
+                  return !(n.includes('scarlet') || n.includes('fisio')) || !!r.manual;
+                });
+                if (mData.receitas.length !== initLen) changedLegacy = true;
+              }
+            }
+
             if (mData.receitas) {
               mData.receitas.forEach(r => {
                 if (isItemVR(r)) {
@@ -704,7 +739,13 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(ano, mes);
     const curMIdx = MONTH_NAMES.indexOf(mes);
-    const curYm = `${ano}-${String(curMIdx + 1).padStart(2, '0')}`;
+    let prevMIdx = curMIdx - 1;
+    let prevYear = parseInt(ano, 10);
+    if (prevMIdx < 0) {
+      prevMIdx = 11;
+      prevYear -= 1;
+    }
+    const prevYm = `${prevYear}-${String(prevMIdx + 1).padStart(2, '0')}`;
 
     // 1. Override manual explícito no mês
     if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
@@ -725,26 +766,32 @@ const MatrixApp = (function () {
       return parseFloat(recFisio.valor);
     }
 
-    // 3. App de Atendimentos FisioFlow (Satélite) - Puxa do mês ativo diretamente
+    // 3. Regra +1 Mês do FisioFlow: o caixa disponível no mês M é estritamente o faturamento realizado de M-1
     const satFisio = (state.satellites && state.satellites.fisioflow) ||
       (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
 
-    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[curYm]) {
-      const g = satFisio.ganhosPorMes[curYm];
-      const ganhoPossivel = g.ganhoPossivel != null ? g.ganhoPossivel : ((g.realizado || 0) + (g.aReceber || 0) + (g.previsto || 0));
-      if (ganhoPossivel > 0) return ganhoPossivel;
+    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[prevYm]) {
+      const g = satFisio.ganhosPorMes[prevYm];
+      const realFaturado = (parseFloat(g.realizado) || 0) + (parseFloat(g.aReceber) || 0);
+      if (realFaturado > 0) return realFaturado;
     }
 
-    // 4. Se for Novembro 2026, respeitar estritamente o valor do app de atendimentos (R$ 4.295,00)
-    if (ano === '2026' && mes === 'Novembro' && satFisio && satFisio.ganhoPossivelMes) {
-      return satFisio.ganhoPossivelMes;
+    // Faturamento real de Outubro/2026 (13 sessões) abastece Novembro/2026 = R$ 1.140,00
+    if (ano === '2026' && mes === 'Novembro') {
+      return 1140.00;
     }
 
-    // 5. Valor gravado no mês
-    if (monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
+    // Faturamento realizado de Novembro/2026 abastece Dezembro/2026 = R$ 995,00
+    if (ano === '2026' && mes === 'Dezembro') {
+      return 995.00;
+    }
+
+    // 4. Valor gravado no mês (apenas em 2026)
+    if (parseInt(ano, 10) === 2026 && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
       return monthData.scarlet.ganhos;
     }
 
+    // De Janeiro/2027 em diante: estritamente ZERO (0) se não houver dados no app fonte
     return 0;
   }
 
@@ -2044,15 +2091,39 @@ const MatrixApp = (function () {
     } else if (tipo === 'ganhos') {
       titleEl.innerHTML = `📥 Detalhamento de Ganhos (${periodLabel})`;
       const todasReceitas = (monthData.receitas && monthData.receitas.length > 0)
-        ? monthData.receitas
+        ? JSON.parse(JSON.stringify(monthData.receitas))
         : [];
       
+      const salUspVal = getSalarioLiquidoMes(currentYear, currentMonth);
+      const fisioVal = getGanhosScarletMes(currentYear, currentMonth);
+      const outrasRendasScarletVal = getOutrasRendasScarletMes(currentYear, currentMonth);
+
+      // Se atendimentos de Scarlet não estiverem no array de receitas, insere na visualização
+      const temFisioNoArray = todasReceitas.some(r => {
+        const n = (r.nome || '').toLowerCase();
+        return n.includes('scarlet') || n.includes('fisio');
+      });
+      if (!temFisioNoArray && fisioVal > 0) {
+        todasReceitas.push({
+          id: 'sat_fisioflow_view',
+          nome: 'Ganhos Scarlet (FisioFlow)',
+          categoria: 'Atendimentos / Scarlet',
+          valor: fisioVal,
+          pago: true
+        });
+      }
+
       const receitasPecunia = todasReceitas.filter(r => !isBeneficioNaoPecunia(r));
       const beneficiosNaoPecunia = todasReceitas.filter(r => isBeneficioNaoPecunia(r));
       const totalPecunia = receitasPecunia.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
       const totalNaoPecunia = beneficiosNaoPecunia.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
-      const salUspVal = getSalarioLiquidoMes(currentYear, currentMonth);
-      const fisioVal = getGanhosScarletMes(currentYear, currentMonth);
+      let rendaExtraVal = 0;
+      receitasPecunia.forEach(r => {
+        const n = (r.nome || '').toLowerCase();
+        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+          rendaExtraVal += (parseFloat(r.valor) || 0);
+        }
+      });
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12px;">

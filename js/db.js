@@ -210,6 +210,7 @@ const MatrixDB = (function () {
         memoryCache.satellites.maracaju.saldoVrRestante === 1170 ||
         memoryCache.satellites.maracaju.saldoVrRestante === 1105 ||
         memoryCache.satellites.maracaju.saldoVrRestante === 1235 ||
+        memoryCache.satellites.maracaju.saldoVrRestante === 2059.84 ||
         !memoryCache.satellites.maracaju.cicloVigente ||
         memoryCache.satellites.maracaju.cicloVigente !== '2026-11';
       if (maracajuObsoleto) {
@@ -238,6 +239,67 @@ const MatrixDB = (function () {
           reformasAndamento: 0,
           manutencoesCarro: 0
         };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+    }
+
+    // Calibração e higienização estrita de dados persistidos no cache
+    if (memoryCache && memoryCache.anos) {
+      let cacheMutated = false;
+
+      // 1. VR de Novembro de 2026: deve ser R$ 1.105,16 (sem colisão com VA)
+      if (memoryCache.anos['2026'] && memoryCache.anos['2026']['Novembro']) {
+        const nov = memoryCache.anos['2026']['Novembro'];
+        if (!nov.totais) nov.totais = {};
+        if (nov.totais['VR'] !== 1105.16 && nov.vrManual == null) {
+          nov.totais['VR'] = 1105.16;
+          cacheMutated = true;
+        }
+        if (nov.totais['VA'] !== 2059.84 && nov.vaManual == null) {
+          nov.totais['VA'] = 2059.84;
+          cacheMutated = true;
+        }
+        if (nov.receitas) {
+          nov.receitas.forEach(r => {
+            const n = (r.nome || '').toLowerCase();
+            if ((/\bvr\b/.test(n) || n.includes('refeição') || n.includes('refeicao')) && r.valor !== 1105.16 && nov.vrManual == null) {
+              r.valor = 1105.16;
+              r.naoPecunia = true;
+              cacheMutated = true;
+            }
+            if ((/\bva\b/.test(n) || n.includes('alimentação') || n.includes('alimentacao')) && !(/\bvr\b/.test(n)) && r.valor !== 2059.84 && nov.vaManual == null) {
+              r.valor = 2059.84;
+              r.naoPecunia = true;
+              cacheMutated = true;
+            }
+          });
+        }
+      }
+
+      // 2. Zerar rendas inventadas de Scarlet de Janeiro/2027 em diante (a menos que tenha ganhosManual)
+      Object.keys(memoryCache.anos).forEach(ano => {
+        if (parseInt(ano, 10) >= 2027) {
+          Object.keys(memoryCache.anos[ano]).forEach(mes => {
+            const mData = memoryCache.anos[ano][mes];
+            if (mData.scarlet && mData.scarlet.ganhosManual == null && mData.scarlet.ganhos !== 0) {
+              mData.scarlet.ganhos = 0;
+              cacheMutated = true;
+            }
+            if (mData.receitas) {
+              mData.receitas = mData.receitas.filter(r => {
+                const n = (r.nome || '').toLowerCase();
+                if ((n.includes('scarlet') || n.includes('fisio')) && !r.manual) {
+                  cacheMutated = true;
+                  return false;
+                }
+                return true;
+              });
+            }
+          });
+        }
+      });
+
+      if (cacheMutated) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
       }
     }
