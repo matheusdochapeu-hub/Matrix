@@ -1713,6 +1713,9 @@ const MatrixApp = (function () {
     const vrEl = document.getElementById('topVrVal');
     if (vrEl) vrEl.textContent = formatBRL(vr);
 
+    const ganhosFooterTotalEl = document.getElementById('topGanhosFooterTotalVal');
+    if (ganhosFooterTotalEl) ganhosFooterTotalEl.textContent = formatBRL(ganhosComBeneficiosTotal);
+
     // 4. Card 2: Gastos Totais (Dois Cálculos: Sem Nubank e Com Nubank)
     const eqFixosEl = document.getElementById('topEqFixos');
     if (eqFixosEl) eqFixosEl.textContent = formatBRL(fixos);
@@ -1734,6 +1737,9 @@ const MatrixApp = (function () {
     const totalComNubank = totalGastos + faturaNubank;
     const gastosComNubankEl = document.getElementById('topGastosComNubankVal');
     if (gastosComNubankEl) gastosComNubankEl.textContent = formatBRL(totalComNubank);
+
+    const gastosFooterTotalEl = document.getElementById('topGastosFooterTotalVal');
+    if (gastosFooterTotalEl) gastosFooterTotalEl.textContent = formatBRL(totalComNubank);
 
     const resumoFixosEl = document.getElementById('topResumoFixosVal');
     if (resumoFixosEl) resumoFixosEl.textContent = formatBRL(fixos);
@@ -1834,10 +1840,16 @@ const MatrixApp = (function () {
     }
 
     const casalSobraMatheusVal = document.getElementById('topCasalSobraMatheusVal');
-    if (casalSobraMatheusVal) casalSobraMatheusVal.textContent = formatBRL(sobraMatheus);
+    if (casalSobraMatheusVal) {
+      casalSobraMatheusVal.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      casalSobraMatheusVal.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
 
     const casalSobraScarletVal = document.getElementById('topCasalSobraScarletVal');
-    if (casalSobraScarletVal) casalSobraScarletVal.textContent = formatBRL(scarletSobra);
+    if (casalSobraScarletVal) {
+      casalSobraScarletVal.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      casalSobraScarletVal.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
+    }
 
     const casalSobraTotalVal = document.getElementById('topCasalSobraTotalVal');
     if (casalSobraTotalVal) {
@@ -1847,9 +1859,10 @@ const MatrixApp = (function () {
 
     const sobraFooterMsg = document.getElementById('topSobraFooterMsg');
     if (sobraFooterMsg) {
-      sobraFooterMsg.textContent = sobraCasalReal >= 0 
-        ? '✅ Caixa conjunto positivo: sobra conjunta consolidada'
-        : '⚠️ Caixa conjunto em atenção: planejar cobertura';
+      sobraFooterMsg.textContent = sobraCasalReal >= 0
+        ? 'Caixa Conjunto Positivo'
+        : 'Atenção: Déficit Conjunto';
+      sobraFooterMsg.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
     // 6. Card 4: Fluxo & Sobra Scarlet
@@ -1894,7 +1907,7 @@ const MatrixApp = (function () {
     if (topScarletOutrasRow) {
       const topScarletOutrasLabel = document.getElementById('topScarletOutrasRendasLabel');
       if (topScarletOutrasLabel) {
-        topScarletOutrasLabel.textContent = `🎁 (+) ${descOutrasScarlet || 'Outras Rendas Scarlet'}:`;
+        topScarletOutrasLabel.textContent = `🎁 (+) ${descOutrasScarlet || 'Outras Rendas Scarlet'}`;
       }
     }
 
@@ -1915,7 +1928,7 @@ const MatrixApp = (function () {
 
     const topScarletBadge = document.getElementById('topScarletStatusBadge');
     if (topScarletBadge) {
-      topScarletBadge.textContent = scarletSobra >= 0 ? 'Sobra Positiva' : 'Fatura Excede Recursos';
+      topScarletBadge.textContent = scarletSobra >= 0 ? 'Sobra Positiva' : 'Fatura > Recursos';
       topScarletBadge.className = scarletSobra >= 0 ? 'unified-badge purple' : 'unified-badge rose';
     }
 

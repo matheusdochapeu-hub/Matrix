@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=74">
+  <link rel="stylesheet" href="css/matrix.css?v=76">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -121,21 +121,21 @@
         </div>
       </div>
 
-      <!-- Grade Principal de 3 Colunas Executivas -->
+      <!-- Grade Principal de 4 Colunas Executivas Simétricas -->
       <div class="unified-main-grid">
         
         <!-- COLUNA 1: GANHOS MATHEUS (2 VISÕES DE GANHOS) -->
         <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar suas receitas em conta e benefícios">
           <div class="unified-card-header">
-            <span class="unified-card-title">💵 Ganhos Matheus</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'matheus')" title="Editar Salário e Rendas Extras">✏️ Saldos</span>
-              <span class="unified-badge cyan" id="topBadgeRendaTipo">2 Visões de Ganhos</span>
+            <span class="unified-card-title" style="color:var(--cyan);">💵 Ganhos Matheus</span>
+            <div class="unified-header-actions">
+              <span class="unified-edit-btn cyan-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'matheus')" title="Editar Salário e Rendas Extras">✏️ Saldos</span>
+              <span class="unified-badge cyan" id="topBadgeRendaTipo">2 Visões</span>
             </div>
           </div>
           
-          <!-- Equação Visual: Salário USP + Renda Extra -->
-          <div class="unified-equation-banner">
+          <!-- Equação Visual Padronizada (4 parcelas: Salário USP + Renda Extra + VA + VR) -->
+          <div class="unified-equation-banner cyan-banner">
             <div class="eq-part">
               <span class="eq-label">Salário USP</span>
               <strong class="eq-val" style="color:var(--cyan);" id="topEqSalMatheus">R$ 0,00</strong>
@@ -145,64 +145,78 @@
               <span class="eq-label">Renda Extra</span>
               <strong class="eq-val" style="color:var(--matrix-green);" id="topEqOutrosGanhos">R$ 0,00</strong>
             </div>
+            <span class="eq-op" style="color:var(--cyan);">+</span>
+            <div class="eq-part">
+              <span class="eq-label" style="color:var(--amber);">VA</span>
+              <strong class="eq-val" style="color:var(--amber);" id="topEqVaVal">R$ 0,00</strong>
+            </div>
+            <span class="eq-op" style="color:var(--cyan);">+</span>
+            <div class="eq-part">
+              <span class="eq-label" style="color:var(--purple);">VR</span>
+              <strong class="eq-val" style="color:var(--purple);" id="topEqVrVal">R$ 0,00</strong>
+            </div>
           </div>
 
-          <!-- DOIS CÁLCULOS: 1. Sem Benefícios (Líquido em Conta) | 2. Com Benefícios (Total c/ VA e VR) -->
+          <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Conta Corrente | 2. Total c/ VA e VR -->
           <div class="dual-gastos-container">
-            <!-- 1. Salário + Renda Extra -->
             <div class="dual-gastos-box ganhos-calc1" title="Renda líquida depositada na conta corrente do Banco do Brasil">
               <div class="dual-gastos-header">
                 <span class="dual-gastos-title" style="color:var(--cyan);">1. SALÁRIO + RENDA EXTRA</span>
                 <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.3);">Conta Corrente</span>
               </div>
               <div class="dual-gastos-body">
-                <strong class="dual-gastos-val" style="font-size:18px;color:var(--cyan);" id="topRendaConjuntaVal">R$ 0,00</strong>
-                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topRendaSub">Sem Benefícios</span>
+                <strong class="dual-gastos-val" style="color:var(--cyan);" id="topRendaConjuntaVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topRendaSub">Líquido em Conta (BB)</span>
               </div>
             </div>
 
-            <!-- 2. Salário + Extras + Benefícios (VA + VR) -->
             <div class="dual-gastos-box ganhos-calc2" title="Ganhos totais do mês incluindo os cartões de alimentação VA e VR">
               <div class="dual-gastos-header">
-                <span class="dual-gastos-title" style="color:var(--matrix-green);">2. SALÁRIO + EXTRAS + BENEFÍCIOS (VA + VR)</span>
+                <span class="dual-gastos-title" style="color:var(--matrix-green);">2. SALÁRIO + EXTRAS + VA/VR</span>
                 <span class="dual-gastos-badge" style="color:var(--matrix-green);background:rgba(0,255,102,0.12);border:1px solid rgba(0,255,102,0.35);">Total c/ VA+VR</span>
               </div>
               <div class="dual-gastos-body">
-                <strong class="dual-gastos-val" style="font-size:20px;color:var(--matrix-green);" id="topGanhosComBeneficiosVal">R$ 0,00</strong>
+                <strong class="dual-gastos-val" style="color:var(--matrix-green);" id="topGanhosComBeneficiosVal">R$ 0,00</strong>
                 <span class="dual-gastos-sub" style="color:var(--matrix-green);font-weight:600;">Poder de Compra Total</span>
               </div>
             </div>
           </div>
 
-          <!-- Detalhamento das Fontes em Pecúnia e Benefícios -->
-          <div class="unified-breakdown-list" style="margin-top:8px;">
+          <!-- Detalhamento Padronizado (4 itens + linha de fechamento) -->
+          <div class="unified-breakdown-list">
             <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver extrato do Salário">
-              <span>👨‍💼 Salário Matheus (<span id="topOrigemSalarioLabel">USP</span>)</span>
-              <strong id="topSalMatheusVal">R$ 0,00</strong>
+              <span>👨‍💼 (+) Salário Matheus (<span id="topOrigemSalarioLabel">USP</span>):</span>
+              <strong style="color:var(--cyan);" id="topSalMatheusVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topOutrosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver Rendas Extras">
-              <span>🎁 <span id="topOutrosLabel">Renda Extra</span></span>
+              <span>🎁 (+) <span id="topOutrosLabel">Renda Extra</span>:</span>
               <strong style="color:var(--matrix-green);" id="topOutrosVal">+ R$ 0,00</strong>
             </div>
-            <div class="unified-row" style="cursor:pointer;" title="Vale Alimentação Casa Maracaju 88">
-              <span style="color:var(--amber);">🥗 Vale Alimentação (VA - Mercado)</span>
+            <div class="unified-row" style="cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('maracaju')" title="Vale Alimentação Casa Maracaju 88">
+              <span style="color:var(--amber);">🥗 (+) Vale Alimentação (VA):</span>
               <strong style="color:var(--amber);" id="topVaVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row" style="cursor:pointer;" title="Vale Refeição Almoço USP">
-              <span style="color:var(--purple);">🍽️ Vale Refeição (VR - Almoço)</span>
+            <div class="unified-row" style="cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('maracaju')" title="Vale Refeição Almoço USP">
+              <span style="color:var(--purple);">🍽️ (+) Vale Refeição (VR):</span>
               <strong style="color:var(--purple);" id="topVrVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row summary-row">
+              <strong style="color:var(--matrix-green);">(=) Total Ganhos c/ Benefícios:</strong>
+              <strong style="color:var(--matrix-green);" id="topGanhosFooterTotalVal">R$ 0,00</strong>
             </div>
           </div>
         </div>
 
-        <!-- COLUNA 2: GASTOS TOTAIS (FIXOS + VARIÁVEIS = GASTOS TOTAIS) -->
+        <!-- COLUNA 2: GASTOS TOTAIS DO MÊS (2 VISÕES DE GASTOS) -->
         <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('gastos_totais')" title="Clique para ver o detalhamento completo dos gastos totais (Fixos + Variáveis + Diários + Nubank)">
           <div class="unified-card-header">
-            <span class="unified-card-title">🔒 Gastos Totais do Mês</span>
-            <span class="unified-badge amber">2 Visões de Gastos</span>
+            <span class="unified-card-title" style="color:var(--amber);">🔒 Gastos Totais</span>
+            <div class="unified-header-actions">
+              <span class="unified-badge amber">2 Visões</span>
+            </div>
           </div>
           
-          <!-- Equação Visual: Fixos + Variáveis + Diários + Nubank -->
+          <!-- Equação Visual Padronizada (4 parcelas: Fixos + Variáveis + Diários + Nubank) -->
           <div class="unified-equation-banner">
             <div class="eq-part">
               <span class="eq-label">Fixos</span>
@@ -225,54 +239,56 @@
             </div>
           </div>
 
-          <!-- DOIS CÁLCULOS: 1. Sem Nubank | 2. Com Nubank -->
-
+          <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Sem Nubank | 2. Com Nubank -->
           <div class="dual-gastos-container">
-            <!-- 1. Fixos + Variáveis + Diários -->
             <div class="dual-gastos-box calc1" title="Gastos correntes em conta (sem fatura do cartão Nubank)">
               <div class="dual-gastos-header">
                 <span class="dual-gastos-title" style="color:var(--amber);">1. FIXOS + VARIÁVEIS + DIÁRIOS</span>
                 <span class="dual-gastos-badge" style="color:var(--amber);background:rgba(0,0,0,0.4);border:1px solid rgba(234,179,8,0.25);">Conta Corrente</span>
               </div>
               <div class="dual-gastos-body">
-                <strong class="dual-gastos-val" style="font-size:18px;color:var(--amber);" id="topGastosTotaisVal">R$ 0,00</strong>
+                <strong class="dual-gastos-val" style="color:var(--amber);" id="topGastosTotaisVal">R$ 0,00</strong>
                 <span class="dual-gastos-sub" style="color:var(--text-muted);">Sem Cartão Nubank</span>
               </div>
             </div>
 
-            <!-- 2. Fixos + Variáveis + Diários + Nubank -->
             <div class="dual-gastos-box calc2" title="Compromisso total do mês incluindo a fatura do cartão Nubank Black">
               <div class="dual-gastos-header">
-                <span class="dual-gastos-title" style="color:var(--rose);">2. FIXOS + VARIÁVEIS + DIÁRIOS + NUBANK</span>
+                <span class="dual-gastos-title" style="color:var(--rose);">2. FIXOS + VAR. + DIÁR. + NUBANK</span>
                 <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Total c/ Cartão</span>
               </div>
               <div class="dual-gastos-body">
-                <strong class="dual-gastos-val" style="font-size:20px;color:var(--rose);" id="topGastosComNubankVal">R$ 0,00</strong>
+                <strong class="dual-gastos-val" style="color:var(--rose);" id="topGastosComNubankVal">R$ 0,00</strong>
                 <span class="dual-gastos-sub" style="color:var(--purple);font-weight:600;">Compromisso Total</span>
               </div>
             </div>
           </div>
 
-          <div class="unified-breakdown-list" style="margin-top:8px;">
+          <!-- Detalhamento Padronizado (4 itens + linha de fechamento) -->
+          <div class="unified-breakdown-list">
             <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fixos')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Fixos">
-              <span>🔒 Gastos Fixos (Parcela, Contas)</span>
+              <span>🔒 (-) Gastos Fixos (Contas):</span>
               <strong id="topResumoFixosVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('outros')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Variáveis">
-              <span>🛍️ Gastos Variáveis (Cartões, Outros)</span>
+              <span>🛍️ (-) Gastos Variáveis (Outros):</span>
               <strong id="topResumoOutrosVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topResumoDiariosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('diarios')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Diários">
-              <span>⚡ Gastos Diários (Lançados Depois)</span>
+              <span>⚡ (-) Gastos Diários (Avulsos):</span>
               <strong style="color:var(--cyan);" id="topResumoDiariosVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topResumoNubankRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fatura')" style="cursor:pointer;" title="Clique para ver o detalhamento da Fatura Nubank Black">
-              <span style="color:var(--purple);">🟣 Fatura Nubank Black (Cartão)</span>
+              <span style="color:var(--purple);">🟣 (-) Fatura Nubank Black:</span>
               <strong style="color:var(--purple);" id="topResumoNubankVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topContasInicioRow" style="display:none;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('gastos_totais')" style="cursor:pointer;">
-              <span>⚠️ Contas Início de Ano (Jan)</span>
+              <span>⚠️ (-) Contas Início de Ano (Jan):</span>
               <strong id="topContasInicioVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row summary-row">
+              <strong style="color:var(--rose);">(=) Compromisso Total do Mês:</strong>
+              <strong style="color:var(--rose);" id="topGastosFooterTotalVal">R$ 0,00</strong>
             </div>
           </div>
         </div>
@@ -280,100 +296,97 @@
         <!-- COLUNA 3: SOBRA PRA MIM (MATHEUS) & SOBRA DO CASAL -->
         <div class="unified-card green highlighted-card" onclick="MatrixApp.abrirDrilldown('sobra_matheus')" title="Clique para ver a auditoria detalhada da sua sobra pessoal e do casal">
           <div class="unified-card-header">
-            <span class="unified-card-title">👨 Sobra pra Mim</span>
-            <span class="unified-badge green" id="topMatheusStatusBadge">Conta Matheus</span>
+            <span class="unified-card-title" style="color:var(--matrix-green);">👨 Sobra pra Mim</span>
+            <div class="unified-header-actions">
+              <span class="unified-badge green" id="topMatheusStatusBadge">Sobra Positiva</span>
+            </div>
           </div>
 
-          <!-- Equação Visual: Renda Própria - Gastos Totais Matheus = Sobra pra Mim -->
+          <!-- Equação Visual Padronizada (Salário+Extras - Gastos Conta + Sobra Scarlet) -->
           <div class="unified-equation-banner green-banner">
             <div class="eq-part">
-              <span class="eq-label">Salário + Extras</span>
+              <span class="eq-label">Renda Conta</span>
               <strong class="eq-val" style="color:var(--cyan);" id="topEqMatheusRenda">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--matrix-green);">-</span>
             <div class="eq-part">
-              <span class="eq-label">Gastos Totais</span>
+              <span class="eq-label">Gastos Conta</span>
               <strong class="eq-val" style="color:var(--rose);" id="topEqMatheusContas">R$ 0,00</strong>
+            </div>
+            <span class="eq-op" style="color:var(--matrix-green);">=</span>
+            <div class="eq-part">
+              <span class="eq-label">Sobra Matheus</span>
+              <strong class="eq-val" style="color:var(--matrix-green);" id="topEqCasalSobraMatheus">R$ 0,00</strong>
+            </div>
+            <span class="eq-op" style="color:var(--matrix-green);">+</span>
+            <div class="eq-part">
+              <span class="eq-label" style="color:var(--purple);">Sobra Scarlet</span>
+              <strong class="eq-val" style="color:var(--purple);" id="topEqCasalSobraScarlet">R$ 0,00</strong>
             </div>
           </div>
 
-          <!-- VALOR PRINCIPAL: SOBRA PRA MIM -->
-          <div class="unified-card-main-val green-glow" id="topSobraMatheusVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topSobraMatheusSub">Meu salário + rendas extras deduzindo fixos, variáveis e diários</div>
+          <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Sobra Individual (Matheus) | 2. Sobra Consolidada do Casal -->
+          <div class="dual-gastos-container">
+            <div class="dual-gastos-box sobra-calc1" title="Saldo líquido que sobra na conta bancária do Matheus após descontar fixos, variáveis e diários">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--matrix-green);">1. SOBRA INDIVIDUAL (MATHEUS)</span>
+                <span class="dual-gastos-badge" style="color:var(--matrix-green);background:rgba(0,0,0,0.4);border:1px solid rgba(0,255,102,0.3);">Conta Corrente</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="color:var(--matrix-green);" id="topSobraMatheusVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topSobraMatheusSub">Líquido em Conta (BB)</span>
+              </div>
+            </div>
 
-          <!-- Linhas do Cálculo do Matheus -->
-          <div class="unified-breakdown-list" style="margin-top:4px;">
+            <div class="dual-gastos-box sobra-calc2" title="Resultado consolidado do casal (Sobra Matheus + Sobra Scarlet)">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--cyan);">2. SOBRA CONSOLIDADA DO CASAL</span>
+                <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.35);">Matheus + Scarlet</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="color:var(--matrix-green);" id="topSobraNoMesVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topSobraFooterMsg">Sobra Matheus + Sobra Scarlet</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalhamento Padronizado (4 itens + linha de fechamento) -->
+          <div class="unified-breakdown-list">
             <div class="unified-row">
-              <span>(+) Salário + Rendas Extras + Outros (13º):</span>
+              <span>👨‍💼 (+) Salário + Rendas Extras:</span>
               <strong style="color:var(--cyan);" id="topMatheusReceitasVal">R$ 0,00</strong>
             </div>
             <div class="unified-row">
-              <span>(-) Gastos Fixos + Variáveis + Diários:</span>
+              <span>💸 (-) Gastos Fixos + Var. + Diários:</span>
               <strong style="color:var(--rose);" id="topMatheusGastosVal">- R$ 0,00</strong>
             </div>
-            <div class="unified-row" style="border-top:1px dashed var(--border-dim);padding-top:3px;margin-top:2px;">
-              <strong style="color:var(--matrix-green);">(=) Sobra pra Mim:</strong>
+            <div class="unified-row">
+              <span>🟢 (=) Sobra Individual Matheus:</span>
               <strong style="color:var(--matrix-green);" id="topMatheusSobraCalcVal">R$ 0,00</strong>
             </div>
-          </div>
-
-          <!-- EMBAIXO DISSO: SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS -->
-          <div class="sobra-casal-box" style="margin-top:10px;background:rgba(0,0,0,0.55);border:1.5px solid rgba(0,255,102,0.35);border-radius:var(--radius-xs);padding:9px 10px;box-shadow:inset 0 0 10px rgba(0,255,102,0.04);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-              <span style="font-size:11.5px;font-weight:700;color:var(--matrix-green);display:flex;align-items:center;gap:5px;">
-                <span>👫</span> Sobra do Casal
-              </span>
-              <strong id="topSobraNoMesVal" style="font-size:14px;color:var(--matrix-green);font-family:var(--font-mono);font-weight:800;">R$ 0,00</strong>
+            <div class="unified-row">
+              <span style="color:var(--purple);">👩‍⚕️ (+) Sobra Líquida Scarlet:</span>
+              <strong style="color:var(--purple);" id="topCasalSobraScarletVal">R$ 0,00</strong>
             </div>
-            <div style="font-size:9.5px;color:var(--text-muted);margin-bottom:6px;">
-              Sobra do casal = Sobra Scarlet + Sobra Matheus
+            <div class="unified-row summary-row">
+              <strong style="color:var(--matrix-green);">(=) Sobra Consolidada do Casal:</strong>
+              <strong style="color:var(--matrix-green);" id="topCasalSobraTotalVal">R$ 0,00</strong>
             </div>
-
-            <!-- Equação Visual: Sobra Matheus + Sobra Scarlet = Sobra Casal -->
-            <div class="unified-equation-banner green-banner" style="background:rgba(0,0,0,0.6);margin:4px 0 6px 0;">
-              <div class="eq-part">
-                <span class="eq-label">Sobra Matheus</span>
-                <strong class="eq-val" id="topEqCasalSobraMatheus">R$ 0,00</strong>
-              </div>
-              <span class="eq-op" style="color:var(--matrix-green);">+</span>
-              <div class="eq-part">
-                <span class="eq-label">Sobra Scarlet</span>
-                <strong class="eq-val" style="color:var(--purple);" id="topEqCasalSobraScarlet">R$ 0,00</strong>
-              </div>
-            </div>
-
-            <div style="font-family:var(--font-mono);font-size:10px;display:flex;flex-direction:column;gap:3px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:5px;">
-              <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--text-muted);">(+) Sobra Matheus:</span>
-                <strong id="topCasalSobraMatheusVal">R$ 0,00</strong>
-              </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span style="color:var(--purple);">(+) Sobra Scarlet:</span>
-                <strong style="color:var(--purple);" id="topCasalSobraScarletVal">R$ 0,00</strong>
-              </div>
-              <div style="display:flex;justify-content:space-between;border-top:1px dashed var(--border-dim);padding-top:3px;margin-top:2px;">
-                <strong style="color:var(--matrix-green);">(=) Sobra do Casal:</strong>
-                <strong style="color:var(--matrix-green);" id="topCasalSobraTotalVal">R$ 0,00</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="unified-sobra-footer" id="topSobraFooterMsg" style="margin-top:8px;">
-            ✅ Caixa positivo: dinheiro livre para aportes ou reserva
+            <span id="topCasalSobraMatheusVal" style="display:none;"></span>
           </div>
         </div>
 
-        <!-- COLUNA 4: FLUXO & SOBRA SCARLET (CARD EXCLUSIVO) -->
+        <!-- COLUNA 4: FLUXO & SOBRA SCARLET (2 VISÕES DE CAIXA SCARLET) -->
         <div class="unified-card purple" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para ver a fatura Nubank e atendimentos da Scarlet">
           <div class="unified-card-header">
             <span class="unified-card-title" style="color:var(--purple);">👩‍⚕️ Sobra Scarlet</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span class="unified-edit-btn" style="border-color:rgba(192,132,252,0.4);color:var(--purple);background:rgba(192,132,252,0.1);font-size:10px;padding:2px 6px;" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'scarlet')" title="Lançar / Editar Atendimentos e Outras Rendas da Scarlet">✏️ Rendas</span>
-              <span class="unified-badge purple" id="topScarletStatusBadge">FisioFlow + Nubank</span>
+            <div class="unified-header-actions">
+              <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'scarlet')" title="Lançar / Editar Atendimentos e Outras Rendas da Scarlet">✏️ Rendas</span>
+              <span class="unified-badge purple" id="topScarletStatusBadge">Fisio + Nubank</span>
             </div>
           </div>
 
-          <!-- Equação Visual: Ganhos Fisio + Outras Rendas + Transf Matheus - Fatura Nubank = Sobra Scarlet -->
+          <!-- Equação Visual Padronizada (Fisio + Outras + Transf. - Fatura) -->
           <div class="unified-equation-banner purple-banner">
             <div class="eq-part">
               <span class="eq-label">Fisio</span>
@@ -396,11 +409,33 @@
             </div>
           </div>
 
-          <div class="unified-card-main-val" style="color:var(--purple);" id="topSobraScarletVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topSobraScarletSub">Sobra pessoal pós-quitação do cartão</div>
+          <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Subtotal Recursos | 2. Sobra Pós-Fatura Nubank -->
+          <div class="dual-gastos-container">
+            <div class="dual-gastos-box scarlet-calc1" title="Soma dos Atendimentos FisioFlow (M+1), Outras Rendas e Transferência recebida do Matheus">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--cyan);">1. RECURSOS DISPONÍVEIS SCARLET</span>
+                <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.3);">Fisio + Repasse</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="color:var(--cyan);" id="topScarletSubtotalVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);">Atendimentos + Transf.</span>
+              </div>
+            </div>
 
-          <!-- Estrutura Solicitada: Atendimento Fisio + Outras Rendas + Transf = Subtotal - Fatura = Sobra -->
-          <div class="unified-breakdown-list" style="margin-top:6px;">
+            <div class="dual-gastos-box scarlet-calc2" title="Saldo líquido da Scarlet após quitar a Fatura Nubank Black">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--purple);">2. SOBRA PÓS-FATURA NUBANK</span>
+                <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Pós-Cartão</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="color:var(--purple);" id="topSobraScarletVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topSobraScarletSub">Recursos − Fatura Nubank</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalhamento Padronizado (4 itens + linha de fechamento) -->
+          <div class="unified-breakdown-list">
             <div class="unified-row">
               <span>🩺 (+) Atendimentos Scarlet Fisio:</span>
               <strong style="color:var(--cyan);" id="topScarletGanhosFisioVal">R$ 0,00</strong>
@@ -410,20 +445,16 @@
               <strong style="color:var(--purple);" id="topScarletOutrasRendasVal">R$ 0,00</strong>
             </div>
             <div class="unified-row">
-              <span>🤝 (+) Transf. p/ Scarlet:</span>
+              <span>🤝 (+) Transf. Matheus p/ Scarlet:</span>
               <strong style="color:var(--amber);" id="topScarletTransfVal">R$ 0,00</strong>
-            </div>
-            <div class="unified-row" style="border-top:1px dashed rgba(192,132,252,0.3);padding-top:4px;margin-top:2px;">
-              <span style="font-weight:700;color:var(--text-bright);">(=) Subtotal Recursos:</span>
-              <strong style="font-weight:700;color:var(--text-bright);" id="topScarletSubtotalVal">R$ 0,00</strong>
             </div>
             <div class="unified-row">
               <span>💳 (-) Fatura Nubank Black:</span>
               <strong style="color:var(--rose);" id="topScarletFaturaVal">- R$ 0,00</strong>
             </div>
-            <div class="unified-row" style="border-top:1.5px solid rgba(192,132,252,0.5);padding-top:5px;margin-top:3px;font-size:12px;">
-              <strong style="color:var(--purple);">(=) Sobra Scarlet:</strong>
-              <strong style="font-size:13px;" id="topScarletSobraFinalVal">R$ 0,00</strong>
+            <div class="unified-row summary-row">
+              <strong style="color:var(--purple);">(=) Sobra Líquida Scarlet:</strong>
+              <strong style="color:var(--purple);" id="topScarletSobraFinalVal">R$ 0,00</strong>
             </div>
           </div>
         </div>
@@ -2702,16 +2733,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=75"></script>
-  <script src="js/matrix-rain.js?v=75"></script>
-  <script src="js/db.js?v=75"></script>
-  <script src="js/calendar-engine.js?v=75"></script>
-  <script src="js/amortization-engine.js?v=75"></script>
-  <script src="js/scenario-simulator.js?v=75"></script>
-  <script src="js/pdf-reader.js?v=75"></script>
-  <script src="js/satellite-connectors.js?v=75"></script>
-  <script src="js/sync-engine.js?v=75"></script>
-  <script src="js/app.js?v=75"></script>
+  <script src="js/seed-data.js?v=76"></script>
+  <script src="js/matrix-rain.js?v=76"></script>
+  <script src="js/db.js?v=76"></script>
+  <script src="js/calendar-engine.js?v=76"></script>
+  <script src="js/amortization-engine.js?v=76"></script>
+  <script src="js/scenario-simulator.js?v=76"></script>
+  <script src="js/pdf-reader.js?v=76"></script>
+  <script src="js/satellite-connectors.js?v=76"></script>
+  <script src="js/sync-engine.js?v=76"></script>
+  <script src="js/app.js?v=76"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2723,7 +2754,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=75', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=76', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

@@ -442,30 +442,38 @@ body {
 .sat-chip.cyan .sat-chip-val { color: var(--cyan); }
 .sat-chip.green .sat-chip-val { color: var(--matrix-green); }
 
-/* Grid Principal de 3 Colunas Executivas */
+/* Grid Principal de 4 Colunas Executivas Simétricas */
 .unified-main-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  align-items: stretch;
 }
 
-@media (max-width: 950px) {
+@media (max-width: 1200px) {
+  .unified-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
   .unified-main-grid {
     grid-template-columns: 1fr;
   }
 }
 
 .unified-card {
-  background: rgba(10, 16, 13, 0.85);
+  background: rgba(10, 16, 13, 0.88);
   border: 1px solid var(--border-dim);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  padding: 12px 13px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
   cursor: pointer;
   transition: all var(--transition-fast);
+  min-width: 0;
 }
 
 .unified-card:hover {
@@ -476,17 +484,29 @@ body {
 .unified-card.cyan { border-left: 3px solid var(--cyan); }
 .unified-card.amber { border-left: 3px solid var(--amber); }
 .unified-card.green { border-left: 3px solid var(--matrix-green); }
+.unified-card.purple { border-left: 3px solid var(--purple); }
 
 .unified-card.highlighted-card {
-  background: linear-gradient(180deg, rgba(0, 255, 102, 0.06) 0%, rgba(10, 16, 13, 0.95) 100%);
-  border-color: rgba(0, 255, 102, 0.35);
+  background: linear-gradient(180deg, rgba(0, 255, 102, 0.05) 0%, rgba(10, 16, 13, 0.94) 100%);
+  border-color: rgba(0, 255, 102, 0.32);
 }
 
 .unified-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-height: 26px;
   margin-bottom: 6px;
+}
+
+.unified-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .unified-card-title {
@@ -494,19 +514,36 @@ body {
   font-family: var(--font-mono);
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  letter-spacing: 0.4px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .unified-edit-btn {
-  font-size: 9.5px;
+  font-size: 9px;
   font-family: var(--font-mono);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   color: var(--text-main);
   padding: 2px 6px;
   border-radius: 4px;
   border: 1px solid var(--border-dim);
   cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.unified-edit-btn.cyan-btn {
+  border-color: rgba(6, 182, 212, 0.4);
+  color: var(--cyan);
+  background: rgba(6, 182, 212, 0.1);
+}
+
+.unified-edit-btn.purple-btn {
+  border-color: rgba(192, 132, 252, 0.4);
+  color: var(--purple);
+  background: rgba(192, 132, 252, 0.1);
 }
 
 .unified-edit-btn:hover {
@@ -517,28 +554,41 @@ body {
 .unified-badge {
   font-size: 9px;
   font-family: var(--font-mono);
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 10px;
   font-weight: 700;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.unified-badge.cyan {
+  background: rgba(6, 182, 212, 0.14);
+  color: var(--cyan);
+  border: 1px solid rgba(6, 182, 212, 0.35);
 }
 
 .unified-badge.amber {
   background: rgba(234, 179, 8, 0.15);
   color: var(--amber);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  border: 1px solid rgba(234, 179, 8, 0.35);
 }
 
 .unified-badge.green {
   background: rgba(0, 255, 102, 0.15);
   color: var(--matrix-green);
-  border: 1px solid rgba(0, 255, 102, 0.3);
+  border: 1px solid rgba(0, 255, 102, 0.35);
+}
+
+.unified-badge.purple {
+  background: rgba(192, 132, 252, 0.15);
+  color: var(--purple);
+  border: 1px solid rgba(192, 132, 252, 0.35);
 }
 
 .unified-badge.rose {
   background: rgba(244, 63, 94, 0.15);
   color: var(--rose);
-  border: 1px solid rgba(244, 63, 94, 0.3);
+  border: 1px solid rgba(244, 63, 94, 0.35);
 }
 
 .unified-card-main-val {
@@ -562,14 +612,15 @@ body {
   margin-bottom: 8px;
 }
 
-/* Lista de Detalhamento */
+/* Lista de Detalhamento Padronizada */
 .unified-breakdown-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 6px;
-  font-size: 11px;
+  gap: 5px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 8px;
+  margin-top: auto;
+  font-size: 10.5px;
   font-family: var(--font-mono);
 }
 
@@ -577,11 +628,29 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+  min-height: 19px;
   color: var(--text-main);
+  white-space: nowrap;
+}
+
+.unified-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .unified-row strong {
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.unified-row.summary-row {
+  border-top: 1px dashed rgba(255, 255, 255, 0.16);
+  padding-top: 6px;
+  margin-top: 3px;
+  font-size: 11px;
 }
 
 /* Bloco Alimentação (Não Pecúnia) */
@@ -605,56 +674,68 @@ body {
   color: var(--text-dim);
 }
 
-/* Equação de Gastos: Fixos + Variáveis + Diários + Nubank */
+/* Equação Visual Padronizada (1 Linha Uniforme em Todos os 4 Cards) */
 .unified-equation-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(234, 179, 8, 0.25);
+  flex-wrap: nowrap;
+  gap: 3px;
+  min-height: 46px;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(234, 179, 8, 0.28);
   border-radius: var(--radius-xs);
-  padding: 6px 10px;
-  margin: 4px 0 8px 0;
+  padding: 6px 8px;
+  margin: 2px 0 8px 0;
 }
 
 .eq-part {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .eq-label {
-  font-size: 8.5px;
+  font-size: 8px;
   color: var(--text-muted);
   text-transform: uppercase;
   font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .eq-val {
-  font-size: 12px;
+  font-size: 10.5px;
   font-family: var(--font-mono);
   color: var(--text-main);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .eq-op {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--amber);
-  padding: 0 2px;
+  padding: 0 1px;
+  flex-shrink: 0;
 }
 
-/* Card 2: Caixa dos Dois Cálculos de Gastos */
+/* Caixas Duplas de Visões Padronizadas nos 4 Cards */
 .dual-gastos-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 8px 0;
+  margin: 4px 0 10px 0;
 }
 
 .dual-gastos-box {
   border-radius: var(--radius-xs);
   padding: 8px 10px;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
@@ -682,42 +763,78 @@ body {
   border: 1px solid rgba(244, 63, 94, 0.4);
 }
 
+.dual-gastos-box.sobra-calc1 {
+  background: rgba(0, 255, 102, 0.08);
+  border: 1px solid rgba(0, 255, 102, 0.38);
+}
+
+.dual-gastos-box.sobra-calc2 {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.38);
+}
+
+.dual-gastos-box.scarlet-calc1 {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+.dual-gastos-box.scarlet-calc2 {
+  background: rgba(192, 132, 252, 0.08);
+  border: 1px solid rgba(192, 132, 252, 0.4);
+}
+
 .dual-gastos-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .dual-gastos-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   font-family: var(--font-mono);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dual-gastos-badge {
-  font-size: 9.5px;
+  font-size: 9px;
   font-family: var(--font-mono);
   padding: 2px 6px;
   border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dual-gastos-body {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: nowrap;
 }
 
 .dual-gastos-val {
+  font-size: 17px;
   font-family: var(--font-mono);
   font-weight: 800;
   line-height: 1.1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .dual-gastos-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
 }
 
 /* Caixa de Sobra no Mês */
