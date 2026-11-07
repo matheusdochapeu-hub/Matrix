@@ -160,12 +160,12 @@ const SatelliteConnectors = (function () {
       '2026-08': { realizado: 4670, aReceber: 0, previsto: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
       '2026-09': { realizado: 3700, aReceber: 0, previsto: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
       '2026-10': { realizado: 950, aReceber: 190, previsto: 0, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
-      '2026-11': { realizado: 995, aReceber: 0, previsto: 4200, sessoes: 11, total: 995, ganhoPossivel: 5195 }
+      '2026-11': { realizado: 0, aReceber: 995, previsto: 3300, sessoes: 11, total: 995, ganhoPossivel: 4295 }
     },
     totalHistoricoRecebido: 10505.00,
     mesAtualTotal: 995.00,
-    mesAtualPrevisto: 4200.00,
-    ganhoPossivelMes: 5195.00,
+    mesAtualPrevisto: 3300.00,
+    ganhoPossivelMes: 4295.00,
     capacidadeMensalRecorrente: 4400.00,
     projecaoMensalRecorrente: 4400.00,
     pacientesAtivos: 7,
@@ -174,6 +174,14 @@ const SatelliteConnectors = (function () {
 
   function getBaselineFisioData() {
     return JSON.parse(JSON.stringify(BASELINE_FISIO));
+  }
+
+  function normName(s) {
+    return String(s || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   function processFisioData(rawData) {
@@ -185,6 +193,80 @@ const SatelliteConnectors = (function () {
       return getBaselineFisioData();
     }
 
+    const patientMap = {};
+    pacientes.forEach(p => {
+      const pid = p.ID || p.id;
+      if (pid) patientMap[pid] = p;
+    });
+
+    function getSchedulePatient(sc) {
+      const pid = sc.PacienteID || sc.pacienteId || sc.PacienteId;
+      if (pid && patientMap[pid]) return patientMap[pid];
+      const scName = normName(sc.PacienteNome || sc.pacienteNome || sc.Paciente || '');
+      if (!scName) return null;
+      return pacientes.find(p => {
+        return (p.Nome && normName(p.Nome) === scName) ||
+               (p.NomeFantasia && normName(p.NomeFantasia) === scName) ||
+               (p.Paciente && normName(p.Paciente) === scName);
+      }) || null;
+    }
+
+    function entryMatchesPatient(at, pObj) {
+      if (!at || !pObj) return false;
+      const atName = normName(at.Paciente || at.paciente || at.Nome || '');
+      if (!atName) return false;
+      if (pObj.Nome && normName(pObj.Nome) === atName) return true;
+      if (pObj.NomeFantasia && normName(pObj.NomeFantasia) === atName) return true;
+      if (pObj.Paciente && normName(pObj.Paciente) === atName) return true;
+      return false;
+    }
+
+    // Reconciliação idêntica ao motor financeiro do FisioFlow (reconcileSchedulesWithEntries):
+    // Vincula sessões já realizadas aos agendamentos para não duplicar valores na previsão
+    const usedEntryIds = {};
+    const processedSchedules = agendamentos.map(ag => ({ ...ag }));
+
+    // 1) Marca agendamentos já vinculados explicitamente por AtendimentoId
+    processedSchedules.forEach(sc => {
+      const atId = sc.AtendimentoId || sc.atendimentoId;
+      if (atId) {
+        const match = atendimentos.find(e => (e.ID || e.id) === atId);
+        if (match) {
+          usedEntryIds[match.ID || match.id] = sc.ID || sc.id;
+          if (sc.Status !== 'Realizado' && sc.Status !== 'Cancelado') {
+            sc.Status = 'Realizado';
+          }
+        }
+      }
+    });
+
+    // 2) Vincula agendamentos que ocorreram no mesmo dia e mesmo paciente de um atendimento realizado
+    processedSchedules.forEach(sc => {
+      const st = sc.Status || 'Agendado';
+      const atId = sc.AtendimentoId || sc.atendimentoId;
+      if (st === 'Cancelado' || atId) return;
+
+      const scData = String(sc.Data || '').slice(0, 10);
+      const pObj = getSchedulePatient(sc);
+      const scRawName = normName(sc.PacienteNome || sc.pacienteNome || sc.Paciente || '');
+
+      const matchEntry = atendimentos.find(e => {
+        const eId = e.ID || e.id;
+        if (usedEntryIds[eId]) return false;
+        const eData = String(e.Data || '').slice(0, 10);
+        if (eData !== scData) return false;
+        if (pObj) return entryMatchesPatient(e, pObj);
+        return normName(e.Paciente || e.paciente || e.Nome || '') === scRawName;
+      });
+
+      if (matchEntry) {
+        const eId = matchEntry.ID || matchEntry.id;
+        sc.AtendimentoId = eId;
+        sc.Status = 'Realizado';
+        usedEntryIds[eId] = sc.ID || sc.id;
+      }
+    });
+
     const ganhosPorMes = {};
     let totalPassado = 0;
     let mesAtualTotal = 0;
@@ -192,6 +274,7 @@ const SatelliteConnectors = (function () {
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+    // Somar atendimentos realizados/lançados
     atendimentos.forEach(at => {
       const val = parseFloat(at.Valor) || 0;
       const dataStr = String(at.Data || '');
@@ -215,11 +298,21 @@ const SatelliteConnectors = (function () {
       }
     });
 
-    agendamentos.forEach(ag => {
-      const val = parseFloat(ag.Valor) || 0;
-      const dataStr = String(ag.Data || '');
+    // Somar apenas agendamentos pendentes (não realizados e não cancelados)
+    processedSchedules.forEach(sc => {
+      const st = sc.Status || 'Agendado';
+      if (st !== 'Agendado') return;
+      if (sc.AtendimentoId && atendimentos.some(e => (e.ID || e.id) === sc.AtendimentoId)) return;
+
+      let val = parseFloat(sc.Valor) || 0;
+      if (!val) {
+        const pObj = getSchedulePatient(sc);
+        if (pObj) val = parseFloat(pObj.ValorPadrao || pObj.valorPadrao) || 0;
+      }
+
+      const dataStr = String(sc.Data || '');
       const ym = dataStr.slice(0, 7);
-      if (ym && ag.Status !== 'Cancelado') {
+      if (ym) {
         if (!ganhosPorMes[ym]) ganhosPorMes[ym] = { realizado: 0, aReceber: 0, previsto: 0, sessoes: 0, total: 0, ganhoPossivel: 0 };
         ganhosPorMes[ym].previsto += val;
         if (ym === curYearMonth) {

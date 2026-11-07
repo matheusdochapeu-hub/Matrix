@@ -2358,7 +2358,7 @@ const MatrixApp = (function () {
         '2026-08': { realizado: 4670, aReceber: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
         '2026-09': { realizado: 3700, aReceber: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
         '2026-10': { realizado: 950, aReceber: 190, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
-        '2026-11': { realizado: 995, aReceber: 0, previsto: 4200, sessoes: 11, total: 995, ganhoPossivel: 5195 }
+        '2026-11': { realizado: 0, aReceber: 995, previsto: 3300, sessoes: 11, total: 995, ganhoPossivel: 4295 }
       };
 
       html = `
@@ -2447,7 +2447,7 @@ const MatrixApp = (function () {
           </div>
 
           <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, enquanto o faturamento em andamento de Novembro (com ganho possível de até R$ 5.195 e capacidade de R$ 4.400/mês com 7 pacientes ativos) financiará Dezembro.
+            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, enquanto o faturamento em andamento de Novembro (com ganho possível de até R$ 4.295 e capacidade de R$ 4.400/mês com 7 pacientes ativos) financiará Dezembro.
           </div>
         </div>
       `;
@@ -6185,6 +6185,7 @@ function onModalCategoriaChange(catVal) {
     try {
       const results = await SatelliteConnectors.scrapeAll();
       renderSatellitesUI();
+      renderAll();
       if (!silent) {
         alert('Scraping concluído com sucesso nos apps configurados!');
       }

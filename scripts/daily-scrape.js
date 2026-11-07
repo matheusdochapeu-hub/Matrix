@@ -52,7 +52,7 @@ async function main() {
   const cfg = loadConfig();
   const results = {
     scrapedAt: new Date().toISOString(),
-    fisioflow: await scrapeApp('FisioFlow', cfg.fisioflow.url, cfg.fisioflow.token),
+    fisioflow: await scrapeApp('FisioFlow', cfg.fisioflow.url, cfg.fisioflow.token, 'getData'),
     faturas: await scrapeApp('Faturas', cfg.faturas.url, cfg.faturas.token, 'restore'),
     maracaju88: await scrapeApp('Maracaju88', cfg.maracaju88.url, cfg.maracaju88.token, 'restore')
   };
