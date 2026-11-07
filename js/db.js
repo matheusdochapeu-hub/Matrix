@@ -205,12 +205,8 @@ const MatrixDB = (function () {
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};
       const maracajuObsoleto = !memoryCache.satellites.maracaju ||
-        memoryCache.satellites.maracaju.saldoVaRestante === 1659.59 ||
-        memoryCache.satellites.maracaju.saldoVaRestante === 2050 ||
-        memoryCache.satellites.maracaju.saldoVrRestante === 1170 ||
-        memoryCache.satellites.maracaju.saldoVrRestante === 1105 ||
-        memoryCache.satellites.maracaju.saldoVrRestante === 1235 ||
-        memoryCache.satellites.maracaju.saldoVrRestante === 2059.84 ||
+        memoryCache.satellites.maracaju.vaTotal !== 2059.84 ||
+        memoryCache.satellites.maracaju.vrTotal !== 1105.16 ||
         !memoryCache.satellites.maracaju.cicloVigente ||
         memoryCache.satellites.maracaju.cicloVigente !== '2026-11';
       if (maracajuObsoleto) {
@@ -236,10 +232,15 @@ const MatrixDB = (function () {
           totalDisponivel: 3165.0,
           gastoMercadoCicloAnterior: 390.41,
           gastoVrCicloAnterior: 0.0,
+          comprasCicloAtual: [],
+          comprasCicloAnterior: [],
           reformasAndamento: 0,
           manutencoesCarro: 0
         };
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (e) {}
+      }
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal(memoryCache);
       }
     }
 
@@ -247,10 +248,18 @@ const MatrixDB = (function () {
     if (memoryCache && memoryCache.anos) {
       let cacheMutated = false;
 
-      // 1. VR de Novembro de 2026: deve ser R$ 1.105,16 (sem colisão com VA)
+      // 1. VR de Novembro de 2026: deve ser R$ 1.105,16 (sem colisão com VA) e não travar o saldo dinâmico
       if (memoryCache.anos['2026'] && memoryCache.anos['2026']['Novembro']) {
         const nov = memoryCache.anos['2026']['Novembro'];
         if (!nov.totais) nov.totais = {};
+        if (nov.vrManual === 1105.16 || nov.vrManual === 1105 || nov.vrManual === 2059.84) {
+          delete nov.vrManual;
+          cacheMutated = true;
+        }
+        if (nov.vaManual === 2059.84 || nov.vaManual === 2050) {
+          delete nov.vaManual;
+          cacheMutated = true;
+        }
         if (nov.totais['VR'] !== 1105.16 && nov.vrManual == null) {
           nov.totais['VR'] = 1105.16;
           cacheMutated = true;

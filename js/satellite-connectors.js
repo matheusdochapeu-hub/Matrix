@@ -522,33 +522,154 @@ const SatelliteConnectors = (function () {
   //   * VA: R$ 2.050,00 (depósito) + R$ 9,84 (sobra Out) = R$ 2.059,84
   //   * VR: R$ 1.105,00 (17 dias úteis USP x R$ 65) + R$ 0,16 (sobra Out) = R$ 1.105,16
   //   * Total: R$ 3.165,00
+  // - Sincroniza também via localStorage same-origin (MARACAJU_STATE_v1)
   // ========================================================
-  function processMaracajuData(rawData, vrCreditadoNoMes = 1105.0) {
-    if (!rawData) rawData = {};
-    const payload = rawData.data || rawData;
+  function getLocalMaracajuRawState() {
+    if (typeof localStorage === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('MARACAJU_STATE_v1') || localStorage.getItem('MARACAJU88_STATE_v1');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
-    const registros = payload.comprasRegistros || payload.registros || [];
-    const comprasList = payload.compras || payload.comprasMercado || (payload.mercado && payload.mercado.compras) || [];
-    const refeicoesList = payload.refeicoes || (payload.mercado && payload.mercado.refeicoes) || [];
-    const reformas = payload.reformas || [];
-    const carro = payload.carro || [];
+  function mergeMaracajuPayloads(cloudPayload, localPayload) {
+    if (!cloudPayload && !localPayload) return {};
+    if (!cloudPayload || cloudPayload.status === 'error') return localPayload || {};
+    if (!localPayload || localPayload.status === 'error') return cloudPayload || {};
+
+    const cData = cloudPayload.data || cloudPayload;
+    const lData = localPayload.data || localPayload;
+
+    const mapReg = new Map();
+    const addRecord = (r) => {
+      if (!r || typeof r !== 'object') return;
+      const key = r.id || r.nfeKey || `${String(r.date || r.data || '').slice(0, 10)}_${Number(r.total || r.valor || 0).toFixed(2)}_${String(r.establishment || r.estabelecimento || '').trim().toLowerCase()}`;
+      const existing = mapReg.get(key);
+      if (!existing) {
+        mapReg.set(key, r);
+      } else {
+        const tNew = new Date(r.updatedAt || r.createdAt || 0).getTime();
+        const tOld = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+        if (tNew >= tOld) mapReg.set(key, { ...existing, ...r });
+      }
+    };
+
+    (Array.isArray(cData.comprasRegistros || cData.registros) ? (cData.comprasRegistros || cData.registros) : []).forEach(addRecord);
+    (Array.isArray(lData.comprasRegistros || lData.registros) ? (lData.comprasRegistros || lData.registros) : []).forEach(addRecord);
+
+    const cBenefits = (cData.settings && cData.settings.benefits) || {};
+    const lBenefits = (lData.settings && lData.settings.benefits) || {};
+    const mergedBenefits = {
+      ...cBenefits,
+      ...lBenefits,
+      monthlyDays: { ...(cBenefits.monthlyDays || {}), ...(lBenefits.monthlyDays || {}) },
+      monthlyCreditDates: { ...(cBenefits.monthlyCreditDates || {}), ...(lBenefits.monthlyCreditDates || {}) },
+      monthlyEndingBalances: { ...(cBenefits.monthlyEndingBalances || {}), ...(lBenefits.monthlyEndingBalances || {}) },
+      monthlyRolloverOverrides: { ...(cBenefits.monthlyRolloverOverrides || {}), ...(lBenefits.monthlyRolloverOverrides || {}) }
+    };
+
+    return {
+      ...cData,
+      ...lData,
+      comprasRegistros: Array.from(mapReg.values()),
+      settings: {
+        ...(cData.settings || {}),
+        ...(lData.settings || {}),
+        benefits: mergedBenefits
+      }
+    };
+  }
+
+  function compactMaracajuStateForCloud(rawState) {
+    if (!rawState || typeof rawState !== 'object') return null;
+    const s = rawState.data || rawState;
+    const stripBase64 = (val) => (typeof val === 'string' && val.startsWith('data:image/')) ? '' : val;
+    return {
+      updatedAt: s.updatedAt || new Date().toISOString(),
+      reformas: (Array.isArray(s.reformas) ? s.reformas : []).map(r => ({
+        ...r,
+        photoUrl: stripBase64(r.photoUrl),
+        photos: Array.isArray(r.photos) ? r.photos.filter(p => !String(p).startsWith('data:image/')) : undefined
+      })),
+      compras: (Array.isArray(s.compras) ? s.compras : []).map(c => ({
+        ...c,
+        imageUrl: stripBase64(c.imageUrl)
+      })),
+      comprasRegistros: (Array.isArray(s.comprasRegistros) ? s.comprasRegistros : []).map(r => ({
+        id: r.id,
+        date: r.date || r.data,
+        establishment: r.establishment || r.estabelecimento,
+        cnpj: r.cnpj || '',
+        total: r.total !== undefined ? r.total : r.valor,
+        paymentMethod: r.paymentMethod || r.metodoPagamento || 'va',
+        nfeKey: r.nfeKey || '',
+        sourceUrl: r.sourceUrl || '',
+        createdAt: r.createdAt,
+        items: (Array.isArray(r.items) ? r.items : []).map(it => ({
+          name: it.name,
+          qty: it.qty,
+          unit: it.unit,
+          unitPrice: it.unitPrice,
+          totalPrice: it.totalPrice,
+          category: it.category
+        }))
+      })),
+      carro: Array.isArray(s.carro) ? s.carro : [],
+      pets: (Array.isArray(s.pets) ? s.pets : []).map(p => ({
+        ...p,
+        photoUrl: stripBase64(p.photoUrl)
+      })),
+      settings: {
+        benefits: (s.settings && s.settings.benefits) ? s.settings.benefits : undefined
+      }
+    };
+  }
+
+  function processMaracajuData(rawData, vrCreditadoNoMes = 1105.0, matrixDiarios = []) {
+    if (!rawData || rawData.status === 'error') rawData = {};
+    const payload = (rawData.data && typeof rawData.data === 'object') ? rawData.data : rawData;
+
+    const registros = Array.isArray(payload.comprasRegistros || payload.registros)
+      ? (payload.comprasRegistros || payload.registros)
+      : [];
+    const refeicoesList = Array.isArray(payload.refeicoes || (payload.mercado && payload.mercado.refeicoes))
+      ? (payload.refeicoes || (payload.mercado && payload.mercado.refeicoes))
+      : [];
+    const reformas = Array.isArray(payload.reformas) ? payload.reformas : [];
+    const carro = Array.isArray(payload.carro) ? payload.carro : [];
 
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth() + 1;
     const curCycleKey = `${curYear}-${String(curMonth).padStart(2, '0')}`;
 
-    // Configurações de crédito e rollover oficiais da Casa Maracaju 88
+    const rawBenefits = (payload.settings && payload.settings.benefits) || payload.benefits || {};
+
+    // Configurações de crédito e rollover oficiais da Casa Maracaju 88 (mescladas com payload.settings.benefits)
     const benefitsConfig = {
-      vaFixedAmount: 2050.00,
-      vrDailyAmount: 65.00,
-      monthlyDays: { '2026-10': 17, '2026-11': 17 },
-      monthlyCreditDates: { '2026-10': '2026-10-06', '2026-11': '2026-11-06' },
+      vaFixedAmount: Number(rawBenefits.vaFixedAmount) > 0 ? Number(rawBenefits.vaFixedAmount) : 2050.00,
+      vrDailyAmount: Number(rawBenefits.vrDailyAmount) > 0 ? Number(rawBenefits.vrDailyAmount) : 65.00,
+      monthlyDays: {
+        '2026-10': 17,
+        '2026-11': 17,
+        ...(rawBenefits.monthlyDays || {})
+      },
+      monthlyCreditDates: {
+        '2026-10': '2026-10-06',
+        '2026-11': '2026-11-06',
+        ...(rawBenefits.monthlyCreditDates || {})
+      },
       monthlyEndingBalances: {
-        '2026-10': { vaEndingBalance: 9.84, vrEndingBalance: 0.16 }
+        '2026-10': { vaEndingBalance: 9.84, vrEndingBalance: 0.16 },
+        ...(rawBenefits.monthlyEndingBalances || {})
       },
       monthlyRolloverOverrides: {
-        '2026-11': { vaRollover: 9.84, vrRollover: 0.16 }
+        '2026-11': { vaRollover: 9.84, vrRollover: 0.16 },
+        ...(rawBenefits.monthlyRolloverOverrides || {})
       }
     };
 
@@ -571,59 +692,147 @@ const SatelliteConnectors = (function () {
     let gastoMercadoCicloAnterior = 0;
     let gastoVrCicloAnterior = 0;
 
-    // 1. Processa NFC-e e compras
+    const comprasCicloAtual = [];
+    const comprasCicloAnterior = [];
+    const seenKeys = new Set();
+
+    // 1. Processa comprasRegistros (NFC-e e lançamentos manuais de VA/VR no Maracaju 88)
     registros.forEach(r => {
-      const val = parseFloat(r.total || r.valor || 0);
+      const val = parseFloat(r.total !== undefined ? r.total : (r.valor || 0));
+      if (!Number.isFinite(val) || val <= 0) return;
+
       const dataStr = String(r.date || r.data || r.createdAt || '').slice(0, 10);
-      const method = String(r.paymentMethod || r.metodoPagamento || 'va').toLowerCase();
+      const methodRaw = String(r.paymentMethod || r.metodoPagamento || 'va').toLowerCase();
+      const isVr = methodRaw === 'vr' || methodRaw.includes('refei') || methodRaw === 'cartao_vr';
+      const isVa = methodRaw === 'va' || methodRaw.includes('aliment') || methodRaw === 'cartao_va';
+      if (!isVr && !isVa) return;
+
+      const dedupKey = r.id || r.nfeKey || `${dataStr}_${val.toFixed(2)}_${String(r.establishment || r.estabelecimento || '').trim().toLowerCase()}`;
+      if (seenKeys.has(dedupKey)) return;
+      seenKeys.add(dedupKey);
+
+      const itemEntry = {
+        id: r.id || dedupKey,
+        date: dataStr,
+        establishment: r.establishment || r.estabelecimento || (isVr ? 'Despesa VR' : 'Mercado VA'),
+        total: Math.round(val * 100) / 100,
+        paymentMethod: isVr ? 'vr' : 'va',
+        itemsCount: Array.isArray(r.items) ? r.items.length : 0
+      };
 
       // Compras anteriores à data do crédito (ex: 03/11 < 06/11) pertencem ao ciclo anterior (Outubro)
       if (dataStr && dataStr < creditDateNov) {
-        if (method === 'vr' || method.includes('refei')) {
-          gastoVrCicloAnterior += val;
-        } else {
-          gastoMercadoCicloAnterior += val;
-        }
+        if (isVr) gastoVrCicloAnterior += val;
+        else gastoMercadoCicloAnterior += val;
+        comprasCicloAnterior.push(itemEntry);
       } else {
         // Compras efetuadas a partir de 06/11 pertencem ao ciclo vigente (Novembro)
-        if (method === 'vr' || method.includes('refei')) {
-          gastoVrCicloAtual += val;
-        } else {
-          gastoMercadoCicloAtual += val;
-        }
+        if (isVr) gastoVrCicloAtual += val;
+        else gastoMercadoCicloAtual += val;
+        comprasCicloAtual.push(itemEntry);
       }
     });
 
-    comprasList.forEach(c => {
-      if (c.bought) {
-        const val = parseFloat(c.totalPrice || c.price || c.valor || 0);
-        const dataStr = String(c.date || c.data || c.createdAt || '').slice(0, 10);
-        const method = String(c.paymentMethod || 'va').toLowerCase();
-        if (dataStr && dataStr < creditDateNov) {
-          if (method === 'vr') gastoVrCicloAnterior += val;
-          else gastoMercadoCicloAnterior += val;
-        } else {
-          if (method === 'vr') gastoVrCicloAtual += val;
-          else gastoMercadoCicloAtual += val;
-        }
-      }
-    });
-
+    // 2. Processa refeicoesList legado se houver
     refeicoesList.forEach(rf => {
-      const val = parseFloat(rf.total || rf.valor || 0);
+      const val = parseFloat(rf.total !== undefined ? rf.total : (rf.valor || 0));
+      if (!Number.isFinite(val) || val <= 0) return;
       const dataStr = String(rf.date || rf.data || '').slice(0, 10);
+      const dedupKey = rf.id || `${dataStr}_${val.toFixed(2)}_${String(rf.establishment || rf.nome || 'refeicao').trim().toLowerCase()}`;
+      if (seenKeys.has(dedupKey)) return;
+      seenKeys.add(dedupKey);
+
+      const itemEntry = {
+        id: dedupKey,
+        date: dataStr,
+        establishment: rf.establishment || rf.nome || 'Refeição VR',
+        total: Math.round(val * 100) / 100,
+        paymentMethod: 'vr',
+        itemsCount: 1
+      };
+
       if (dataStr && dataStr < creditDateNov) {
         gastoVrCicloAnterior += val;
+        comprasCicloAnterior.push(itemEntry);
       } else {
         gastoVrCicloAtual += val;
+        comprasCicloAtual.push(itemEntry);
       }
     });
 
-    const saldoVaRestante = Math.max(0, Math.round((vaTotal - gastoMercadoCicloAtual) * 100) / 100);
-    const transbordouVa = gastoMercadoCicloAtual > vaTotal ? Math.round((gastoMercadoCicloAtual - vaTotal) * 100) / 100 : 0;
+    // 3. Integra gastos diários lançados no próprio Matrix com conta Cartão VA / Cartão VR
+    if (Array.isArray(matrixDiarios)) {
+      matrixDiarios.forEach(d => {
+        if (!d || typeof d !== 'object') return;
+        const conta = String(d.conta || '').toLowerCase();
+        const isVr = conta === 'cartao_vr' || conta === 'vr';
+        const isVa = conta === 'cartao_va' || conta === 'va';
+        if (!isVr && !isVa) return;
 
-    const saldoVrRestante = Math.max(0, Math.round((vrTotal - gastoVrCicloAtual) * 100) / 100);
-    const transbordouVr = gastoVrCicloAtual > vrTotal ? Math.round((gastoVrCicloAtual - vrTotal) * 100) / 100 : 0;
+        const val = parseFloat(d.valor || 0);
+        if (!Number.isFinite(val) || val <= 0) return;
+
+        const dataStr = String(d.data || '').slice(0, 10);
+        const dedupKey = `${dataStr}_${val.toFixed(2)}_${String(d.nome || '').trim().toLowerCase()}`;
+        if (seenKeys.has(dedupKey)) return;
+        seenKeys.add(dedupKey);
+
+        const itemEntry = {
+          id: d.id || dedupKey,
+          date: dataStr || creditDateNov,
+          establishment: d.nome || (isVr ? 'Gasto VR (Matrix)' : 'Gasto VA (Matrix)'),
+          total: Math.round(val * 100) / 100,
+          paymentMethod: isVr ? 'vr' : 'va',
+          itemsCount: 1,
+          fromMatrix: true
+        };
+
+        if (dataStr && dataStr < creditDateNov) {
+          if (isVr) gastoVrCicloAnterior += val;
+          else gastoMercadoCicloAnterior += val;
+          comprasCicloAnterior.push(itemEntry);
+        } else {
+          if (isVr) gastoVrCicloAtual += val;
+          else gastoMercadoCicloAtual += val;
+          comprasCicloAtual.push(itemEntry);
+        }
+      });
+    }
+
+    gastoMercadoCicloAtual = Math.round(gastoMercadoCicloAtual * 100) / 100;
+    gastoVrCicloAtual = Math.round(gastoVrCicloAtual * 100) / 100;
+
+    let saldoVaRestante = Math.max(0, Math.round((vaTotal - gastoMercadoCicloAtual) * 100) / 100);
+    let transbordouVa = gastoMercadoCicloAtual > vaTotal ? Math.round((gastoMercadoCicloAtual - vaTotal) * 100) / 100 : 0;
+
+    let saldoVrRestante = Math.max(0, Math.round((vrTotal - gastoVrCicloAtual) * 100) / 100);
+    let transbordouVr = gastoVrCicloAtual > vrTotal ? Math.round((gastoVrCicloAtual - vrTotal) * 100) / 100 : 0;
+
+    // Respeita override de saldo final manual (monthlyEndingBalances) se configurado no Maracaju 88 para o ciclo vigente
+    const endingOverride = benefitsConfig.monthlyEndingBalances && benefitsConfig.monthlyEndingBalances[curCycleKey];
+    if (endingOverride && typeof endingOverride === 'object') {
+      if (endingOverride.vaEndingBalance !== undefined && endingOverride.vaEndingBalance !== null && endingOverride.vaEndingBalance !== '') {
+        const manualVaEnd = Number(endingOverride.vaEndingBalance);
+        if (Number.isFinite(manualVaEnd) && manualVaEnd >= 0) {
+          saldoVaRestante = Math.round(manualVaEnd * 100) / 100;
+          if (gastoMercadoCicloAtual === 0 && vaTotal > saldoVaRestante) {
+            gastoMercadoCicloAtual = Math.round((vaTotal - saldoVaRestante) * 100) / 100;
+          }
+        }
+      }
+      if (endingOverride.vrEndingBalance !== undefined && endingOverride.vrEndingBalance !== null && endingOverride.vrEndingBalance !== '') {
+        const manualVrEnd = Number(endingOverride.vrEndingBalance);
+        if (Number.isFinite(manualVrEnd) && manualVrEnd >= 0) {
+          saldoVrRestante = Math.round(manualVrEnd * 100) / 100;
+          if (gastoVrCicloAtual === 0 && vrTotal > saldoVrRestante) {
+            gastoVrCicloAtual = Math.round((vrTotal - saldoVrRestante) * 100) / 100;
+          }
+        }
+      }
+    }
+
+    comprasCicloAtual.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    comprasCicloAnterior.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
     return {
       origem: 'Maracaju 88',
@@ -647,9 +856,41 @@ const SatelliteConnectors = (function () {
       totalDisponivel: Math.round((saldoVaRestante + saldoVrRestante) * 100) / 100,
       gastoMercadoCicloAnterior: Math.round(gastoMercadoCicloAnterior * 100) / 100,
       gastoVrCicloAnterior: Math.round(gastoVrCicloAnterior * 100) / 100,
+      comprasCicloAtual,
+      comprasCicloAnterior,
       reformasAndamento: reformas.filter(r => r.status === 'Em Andamento' || r.status === 'andamento').length,
       manutencoesCarro: carro.length
     };
+  }
+
+  function syncMaracajuFromLocal(stateObj) {
+    try {
+      const state = stateObj || (typeof MatrixDB !== 'undefined' ? MatrixDB.getState() : null);
+      if (!state) return null;
+      if (!state.satellites) state.satellites = {};
+
+      const localRaw = getLocalMaracajuRawState();
+      const novDiarios = (state.anos && state.anos['2026'] && state.anos['2026']['Novembro'] && state.anos['2026']['Novembro'].diarios) || [];
+      const hasMatrixBenefitDiarios = novDiarios.some(d => {
+        const c = String((d && d.conta) || '').toLowerCase();
+        return c === 'cartao_vr' || c === 'vr' || c === 'cartao_va' || c === 'va';
+      });
+
+      if (localRaw || hasMatrixBenefitDiarios) {
+        const computed = processMaracajuData(localRaw || {}, 1105.0, novDiarios);
+        const existing = state.satellites.maracaju;
+        if (!localRaw && existing && existing.cicloVigente === computed.cicloVigente) {
+          if ((existing.gastoVrMesAtual || 0) > computed.gastoVrMesAtual || (existing.gastoMercadoMesAtual || 0) > computed.gastoMercadoMesAtual) {
+            return existing;
+          }
+        }
+        state.satellites.maracaju = computed;
+        return computed;
+      }
+      return state.satellites.maracaju || null;
+    } catch (e) {
+      return null;
+    }
   }
 
   // ========================================================
@@ -676,8 +917,10 @@ const SatelliteConnectors = (function () {
         const res = await fetch(`${cfg.fisioUrl}${sep}action=getData&token=${encodeURIComponent(cfg.fisioToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
-          state.satellites.fisioflow = processFisioData(json);
-          statusResults.fisio = { success: true };
+          if (json && json.status !== 'error') {
+            state.satellites.fisioflow = processFisioData(json);
+            statusResults.fisio = { success: true };
+          }
         }
       } catch (e) {
         if (!state.satellites.fisioflow) {
@@ -696,7 +939,9 @@ const SatelliteConnectors = (function () {
         const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
-          faturasRaw = json.data || json;
+          if (json && json.status !== 'error') {
+            faturasRaw = json.data || json;
+          }
         }
       } catch (e) {
         // Fallback local caso fetch falhe
@@ -721,28 +966,64 @@ const SatelliteConnectors = (function () {
     state.satellites.faturas = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
     statusResults.faturas = { success: true };
 
-    // 3. Maracaju 88 (Confronto Duplo: VA e VR)
+    // 3. Maracaju 88 (Confronto Duplo: VA e VR + Ponte Local MARACAJU_STATE_v1)
+    const localMaracajuRaw = getLocalMaracajuRawState();
+    let cloudMaracajuRaw = null;
+    let cloudHadError = false;
+
     if (cfg.maracajuUrl) {
       try {
         const sep = cfg.maracajuUrl.includes('?') ? '&' : '?';
         const res = await fetch(`${cfg.maracajuUrl}${sep}action=restore&token=${encodeURIComponent(cfg.maracajuToken || '')}&_t=${Date.now()}`, fetchOpts);
         if (res.ok) {
           const json = await res.json();
-          const payload = json.data || json;
-
-          let vrAtual = 1105.0;
-          try {
-            const now = new Date();
-            const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);
-            if (commute && commute.totalVR) vrAtual = commute.totalVR;
-          } catch (err) {}
-
-          state.satellites.maracaju = processMaracajuData(payload, vrAtual);
-          statusResults.maracaju = { success: true };
+          if (json && json.status !== 'error') {
+            cloudMaracajuRaw = json.data || json;
+          } else {
+            cloudHadError = true;
+          }
+        } else {
+          cloudHadError = true;
         }
       } catch (e) {
+        cloudHadError = true;
         statusResults.maracaju = { success: false, error: e.message };
       }
+    }
+
+    const mergedMaracajuRaw = mergeMaracajuPayloads(cloudMaracajuRaw, localMaracajuRaw);
+    const novDiarios = (state.anos && state.anos['2026'] && state.anos['2026']['Novembro'] && state.anos['2026']['Novembro'].diarios) || [];
+
+    let vrAtual = 1105.0;
+    try {
+      const now = new Date();
+      const commute = CalendarEngine.calculateCommuteAndVR(now.getFullYear(), now.getMonth() + 1);
+      if (commute && commute.totalVR) vrAtual = commute.totalVR;
+    } catch (err) {}
+
+    if (cloudMaracajuRaw || localMaracajuRaw || novDiarios.length > 0) {
+      state.satellites.maracaju = processMaracajuData(mergedMaracajuRaw, vrAtual, novDiarios);
+      statusResults.maracaju = { success: true, source: localMaracajuRaw ? 'local+cloud' : 'cloud' };
+    }
+
+    // Auto-heal da nuvem Maracaju 88 caso a célula B2 do Google Sheets estivesse corrompida (>50k chars) e tenhamos o estado local
+    if (localMaracajuRaw && cfg.maracajuUrl && (cloudHadError || !cloudMaracajuRaw)) {
+      try {
+        const compacted = compactMaracajuStateForCloud(mergedMaracajuRaw);
+        const bodyStr = JSON.stringify({
+          action: 'backup',
+          token: cfg.maracajuToken || 'Maracaju88CasalSegredo2026!',
+          data: compacted
+        });
+        if (bodyStr.length < 45000) {
+          fetch(cfg.maracajuUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: bodyStr
+          }).catch(() => {});
+        }
+      } catch (e) {}
     }
 
     state.satellites.lastScraped = new Date().toISOString();
@@ -759,6 +1040,8 @@ const SatelliteConnectors = (function () {
     processFisioData,
     processFaturasData,
     processMaracajuData,
+    getLocalMaracajuRawState,
+    syncMaracajuFromLocal,
     scrapeAll
   };
 })();

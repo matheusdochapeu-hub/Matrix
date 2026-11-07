@@ -201,7 +201,14 @@ const ScenarioSimulator = (function () {
         .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
 
       const diariosMatheus = (monthData.diarios || [])
-        .filter(d => (d.titular || '').toLowerCase() !== 'scarlet' && (d.conta || '').toLowerCase() !== 'credito_nubank_scarlet')
+        .filter(d => {
+          if (!d || d.jaAlocadoVariavel) return false;
+          const tit = (d.titular || '').toLowerCase();
+          const cta = (d.conta || '').toLowerCase();
+          if (tit === 'scarlet' || cta === 'credito_nubank_scarlet') return false;
+          if (cta === 'va' || cta === 'cartao_va' || cta === 'vr' || cta === 'cartao_vr') return false;
+          return true;
+        })
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
 
       const transfParaScarlet = [...(monthData.fixos || []), ...(monthData.outros || [])]
@@ -224,7 +231,7 @@ const ScenarioSimulator = (function () {
         .filter(isGastoDaScarlet)
         .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const scarletDiarios = (monthData.diarios || [])
-        .filter(d => (d.titular || '').toLowerCase() === 'scarlet' || (d.conta || '').toLowerCase() === 'credito_nubank_scarlet')
+        .filter(d => !d.jaAlocadoVariavel && ((d.titular || '').toLowerCase() === 'scarlet' || (d.conta || '').toLowerCase() === 'credito_nubank_scarlet'))
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
       const scarletGastosBase = scarletFaturaNubank + scarletDiarios;
       const scarletSaldoBase = scarletGanhos - scarletGastosBase;
@@ -232,19 +239,29 @@ const ScenarioSimulator = (function () {
       // ==========================================
       // 3. CONTA 🛒 VALE ALIMENTAÇÃO (VA USP)
       // ==========================================
-      const vaGanhos = (state.perfil && state.perfil.vaMensal) || 2050.00;
-      const vaGastosBase = (monthData.diarios || [])
-        .filter(d => (d.conta || '').toLowerCase() === 'va')
+      const satMaracaju = (state.satellites && state.satellites.maracaju) || {};
+      const isNov2026 = (yearStr === '2026' && m.monthName === 'Novembro');
+      const vaGanhos = isNov2026 ? (satMaracaju.vaTotal || 2059.84) : ((state.perfil && state.perfil.vaMensal) || 2050.00);
+      const vaGastosDiarios = (monthData.diarios || [])
+        .filter(d => {
+          const cta = (d.conta || '').toLowerCase();
+          return cta === 'va' || cta === 'cartao_va';
+        })
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+      const vaGastosBase = isNov2026 ? Math.max(vaGastosDiarios, satMaracaju.gastoMercadoMesAtual || 0) : vaGastosDiarios;
       const vaSaldoBase = vaGanhos - vaGastosBase;
 
       // ==========================================
       // 4. CONTA 🍽️ VALE REFEIÇÃO (VR USP)
       // ==========================================
-      const vrGanhos = 1105.00;
-      const vrGastosBase = (monthData.diarios || [])
-        .filter(d => (d.conta || '').toLowerCase() === 'vr')
+      const vrGanhos = isNov2026 ? (satMaracaju.vrTotal || 1105.16) : 1105.00;
+      const vrGastosDiarios = (monthData.diarios || [])
+        .filter(d => {
+          const cta = (d.conta || '').toLowerCase();
+          return cta === 'vr' || cta === 'cartao_vr';
+        })
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+      const vrGastosBase = isNov2026 ? Math.max(vrGastosDiarios, satMaracaju.gastoVrMesAtual || 0) : vrGastosDiarios;
       const vrSaldoBase = vrGanhos - vrGastosBase;
 
       // ==========================================

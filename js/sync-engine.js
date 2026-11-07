@@ -109,6 +109,28 @@ const SyncEngine = (function () {
       simulacoesAtivas: Array.isArray(rawState.simulacoesAtivas) ? JSON.parse(JSON.stringify(rawState.simulacoesAtivas)) : [],
       simulacoesAmortizacao: [],
       calendarioCustom: rawState.calendarioCustom ? JSON.parse(JSON.stringify(rawState.calendarioCustom)) : { overrides: {}, folgas: [] },
+      satellites: (rawState.satellites && rawState.satellites.maracaju) ? {
+        maracaju: {
+          origem: rawState.satellites.maracaju.origem || 'Maracaju 88',
+          atualizadoEm: rawState.satellites.maracaju.atualizadoEm,
+          cicloVigente: rawState.satellites.maracaju.cicloVigente || '2026-11',
+          creditDate: rawState.satellites.maracaju.creditDate || '2026-11-06',
+          vaMensal: rawState.satellites.maracaju.vaMensal || 2050,
+          vaRollover: rawState.satellites.maracaju.vaRollover != null ? rawState.satellites.maracaju.vaRollover : 9.84,
+          vaTotal: rawState.satellites.maracaju.vaTotal || 2059.84,
+          gastoMercadoMesAtual: rawState.satellites.maracaju.gastoMercadoMesAtual || 0,
+          saldoVaRestante: rawState.satellites.maracaju.saldoVaRestante != null ? rawState.satellites.maracaju.saldoVaRestante : 2059.84,
+          vrCreditadoNoMes: rawState.satellites.maracaju.vrCreditadoNoMes || 1105,
+          vrRollover: rawState.satellites.maracaju.vrRollover != null ? rawState.satellites.maracaju.vrRollover : 0.16,
+          vrTotal: rawState.satellites.maracaju.vrTotal || 1105.16,
+          gastoVrMesAtual: rawState.satellites.maracaju.gastoVrMesAtual || 0,
+          saldoVrRestante: rawState.satellites.maracaju.saldoVrRestante != null ? rawState.satellites.maracaju.saldoVrRestante : 1105.16,
+          totalBeneficios: rawState.satellites.maracaju.totalBeneficios || 3165,
+          totalDisponivel: rawState.satellites.maracaju.totalDisponivel != null ? rawState.satellites.maracaju.totalDisponivel : 3165,
+          gastoMercadoCicloAnterior: rawState.satellites.maracaju.gastoMercadoCicloAnterior || 390.41,
+          comprasCicloAtual: Array.isArray(rawState.satellites.maracaju.comprasCicloAtual) ? rawState.satellites.maracaju.comprasCicloAtual.slice(0, 30) : []
+        }
+      } : undefined,
       anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
     };
 
@@ -427,7 +449,22 @@ const SyncEngine = (function () {
 
     const rawPayload = json && (json.data || json.state);
     if (json && (json.success || json.status === 'success' || json.ok) && rawPayload) {
+      const currentLocalState = MatrixDB.getState();
+      const localMaracajuSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.maracaju;
       const payloadData = expandStateFromCloud(rawPayload);
+      if (!payloadData.satellites) payloadData.satellites = {};
+      if (!payloadData.satellites.maracaju && localMaracajuSat) {
+        payloadData.satellites.maracaju = localMaracajuSat;
+      } else if (payloadData.satellites.maracaju && localMaracajuSat) {
+        // Se o estado local já tiver gastos maiores/mais recentes no ciclo vigente, preserva
+        const cSat = payloadData.satellites.maracaju;
+        if (localMaracajuSat.cicloVigente === '2026-11' && ((localMaracajuSat.gastoVrMesAtual || 0) > (cSat.gastoVrMesAtual || 0) || (localMaracajuSat.gastoMercadoMesAtual || 0) > (cSat.gastoMercadoMesAtual || 0))) {
+          payloadData.satellites.maracaju = localMaracajuSat;
+        }
+      }
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal(payloadData);
+      }
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
       const ts = json.timestamp || new Date().toISOString();
       localStorage.setItem(STORAGE_KEYS.lastSync, ts);

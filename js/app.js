@@ -201,11 +201,8 @@ const MatrixApp = (function () {
       const state = MatrixDB.getState();
       if (!state.satellites) state.satellites = {};
       const maracajuObsoleto = !state.satellites.maracaju ||
-        state.satellites.maracaju.saldoVaRestante === 1659.59 ||
-        state.satellites.maracaju.saldoVaRestante === 2050 ||
-        state.satellites.maracaju.saldoVrRestante === 1170 ||
-        state.satellites.maracaju.saldoVrRestante === 1105 ||
-        state.satellites.maracaju.saldoVrRestante === 1235 ||
+        state.satellites.maracaju.vaTotal !== 2059.84 ||
+        state.satellites.maracaju.vrTotal !== 1105.16 ||
         !state.satellites.maracaju.cicloVigente ||
         state.satellites.maracaju.cicloVigente !== '2026-11';
       if (maracajuObsoleto) {
@@ -231,16 +228,29 @@ const MatrixApp = (function () {
           totalDisponivel: 3165.00,
           gastoMercadoCicloAnterior: 390.41,
           gastoVrCicloAnterior: 0.00,
+          comprasCicloAtual: [],
+          comprasCicloAnterior: [],
           reformasAndamento: 0,
           manutencoesCarro: 0
         };
         MatrixDB.saveState(state, 'init_calibration', { skipCloudSync: true });
+      }
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal(state);
       }
 
       const novData = MatrixDB.getMonth('2026', 'Novembro');
       if (novData) {
         let changedNov = false;
         if (!novData.totais) novData.totais = {};
+        if (novData.vrManual === 1105.16 || novData.vrManual === 1105 || novData.vrManual === 2059.84) {
+          delete novData.vrManual;
+          changedNov = true;
+        }
+        if (novData.vaManual === 2059.84 || novData.vaManual === 2050) {
+          delete novData.vaManual;
+          changedNov = true;
+        }
         if (novData.vrManual == null && novData.totais['VR'] !== 1105.16) {
           novData.totais['VR'] = 1105.16;
           changedNov = true;
@@ -362,6 +372,9 @@ const MatrixApp = (function () {
       if (cfg.cloudUrl) {
         SyncEngine.fetchFromCloud().then(res => {
           if (res.success && res.data) {
+            if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+              SatelliteConnectors.syncMaracajuFromLocal();
+            }
             populateYearSelector();
             renderAll();
           } else if (res.success && !res.data) {
@@ -381,6 +394,22 @@ const MatrixApp = (function () {
         executarScrapingSatellites(true);
       }
     }, 50);
+
+    // Sincronização em tempo real ao alternar abas (Maracaju 88 <-> Matrix no mesmo navegador)
+    window.addEventListener('focus', () => {
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        const updated = SatelliteConnectors.syncMaracajuFromLocal();
+        if (updated) renderKPIs();
+      }
+    });
+    window.addEventListener('storage', (e) => {
+      if (e && (e.key === 'MARACAJU_STATE_v1' || e.key === 'MARACAJU88_STATE_v1' || e.key === 'pv4_extra' || e.key === 'pv4_over')) {
+        if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+          SatelliteConnectors.syncMaracajuFromLocal();
+        }
+        renderAll();
+      }
+    });
 
     // Monitorar conectividade de rede em tempo real
     window.addEventListener('online', () => {
@@ -722,7 +751,14 @@ const MatrixApp = (function () {
     const fixos = somaPropria(monthData.fixos);
     const outros = somaPropria(monthData.outros);
     const diarios = (monthData.diarios || [])
-      .filter(d => (d.titular || '').toLowerCase() !== 'scarlet' && (d.conta || '').toLowerCase() !== 'credito_nubank_scarlet')
+      .filter(d => {
+        if (!d || d.jaAlocadoVariavel) return false;
+        const tit = (d.titular || '').toLowerCase();
+        const cta = (d.conta || '').toLowerCase();
+        if (tit === 'scarlet' || cta === 'credito_nubank_scarlet') return false;
+        if (cta === 'cartao_va' || cta === 'va' || cta === 'cartao_vr' || cta === 'vr') return false;
+        return true;
+      })
       .reduce((acc, d) => acc + num(d.valor), 0);
     const contasInicio = (mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano'])
       ? num(monthData.totais['Contas Inicio Ano']) : 0;
@@ -1319,11 +1355,11 @@ const MatrixApp = (function () {
       });
       const rendaScarletTotal = salScarlet + outrasRendasScarlet;
 
-      // 3. Benefícios Alimentação (VA + VR)
+      // 3. Benefícios Alimentação (VA + VR — Crédito do Mês para Ganhos Conjuntos)
       let va = 2050.00;
       if (m.ano === '2026' && m.mes === 'Novembro') {
-        va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
-          ? state.satellites.maracaju.saldoVaRestante
+        va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vaTotal != null)
+          ? state.satellites.maracaju.vaTotal
           : 2059.84;
       } else if (monthData.totais && monthData.totais['VA'] != null) {
         va = parseFloat(monthData.totais['VA']) || va;
@@ -1332,8 +1368,8 @@ const MatrixApp = (function () {
 
       let vr = 1105.00;
       if (m.ano === '2026' && m.mes === 'Novembro') {
-        vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
-          ? state.satellites.maracaju.saldoVrRestante
+        vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal != null)
+          ? state.satellites.maracaju.vrTotal
           : 1105.16;
       } else if (monthData.totais && monthData.totais['VR'] != null) {
         vr = parseFloat(monthData.totais['VR']) || vr;
@@ -1347,7 +1383,13 @@ const MatrixApp = (function () {
       // 4. Gastos Fixos, Variáveis, Diários e Fatura Nubank
       const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const diarios = (monthData.diarios || [])
+        .filter(d => {
+          if (!d || d.jaAlocadoVariavel) return false;
+          const cta = (d.conta || '').toLowerCase();
+          return cta !== 'cartao_va' && cta !== 'va' && cta !== 'cartao_vr' && cta !== 'vr';
+        })
+        .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       let contasInicio = 0;
       if (m.mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
         contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
@@ -1455,28 +1497,33 @@ const MatrixApp = (function () {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(currentYear, currentMonth);
 
+    // Sincroniza instantaneamente os saldos atuais de VA e VR do app Casa Maracaju 88 (localStorage + diários)
+    if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+      SatelliteConnectors.syncMaracajuFromLocal(state);
+    }
+
     // 1. Salário Matheus (USP ou MPSP Líquido do Holerite)
     const salMatheus = getSalarioLiquidoMes(currentYear, currentMonth);
 
     // 2. Ganhos Scarlet (FisioFlow)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
 
-    // 3. Vale Alimentação - VA (Casa Maracaju 88)
+    // 3. Vale Alimentação - VA (Crédito do Mês na Casa Maracaju 88)
     let va = 2050.00;
     if (currentYear === '2026' && currentMonth === 'Novembro') {
-      va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
-        ? state.satellites.maracaju.saldoVaRestante
+      va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vaTotal != null)
+        ? state.satellites.maracaju.vaTotal
         : 2059.84;
     } else if (monthData.totais && monthData.totais['VA'] != null) {
       va = parseFloat(monthData.totais['VA']) || va;
     }
     if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
-    // 4. Vale Refeição - VR (Casa Maracaju 88 / Depósito USP)
+    // 4. Vale Refeição - VR (Crédito do Mês na Casa Maracaju 88 / Depósito USP)
     let vr = 1105.00;
     if (currentYear === '2026' && currentMonth === 'Novembro') {
-      vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVrRestante != null)
-        ? state.satellites.maracaju.saldoVrRestante
+      vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal != null)
+        ? state.satellites.maracaju.vrTotal
         : 1105.16;
     } else if (monthData.totais && monthData.totais['VR'] != null) {
       vr = parseFloat(monthData.totais['VR']) || vr;
@@ -1533,8 +1580,14 @@ const MatrixApp = (function () {
     const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     // Gastos Outros/Variáveis
     const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-    // Gastos Diários Imediatos
-    const diarios = (monthData.diarios || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    // Gastos Diários Imediatos (exclui espelhos de cartão de crédito e gastos em cartão VA/VR)
+    const diarios = (monthData.diarios || [])
+      .filter(d => {
+        if (!d || d.jaAlocadoVariavel) return false;
+        const cta = (d.conta || '').toLowerCase();
+        return cta !== 'cartao_va' && cta !== 'va' && cta !== 'cartao_vr' && cta !== 'vr';
+      })
+      .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     // Contas início de ano
     let contasInicio = 0;
     if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
@@ -1570,18 +1623,20 @@ const MatrixApp = (function () {
     const satFisioEl = document.getElementById('topSatFisioVal');
     if (satFisioEl) satFisioEl.textContent = formatBRL(ganhosScarlet);
 
-    // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR)
+    // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR — SEMPRE mostra o SALDO ATUAL RESTANTE)
     const satMaracaju = (state.satellites && state.satellites.maracaju) || {
       saldoVaRestante: 2059.84,
       saldoVrRestante: 1105.16,
+      vaTotal: 2059.84,
+      vrTotal: 1105.16,
       gastoMercadoMesAtual: 0.00,
       gastoVrMesAtual: 0.00
     };
     const vaAtual = (currentYear === '2026' && currentMonth === 'Novembro')
-      ? (monthData.vaManual != null ? monthData.vaManual : (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : 2059.84))
+      ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
       : va;
     const vrAtual = (currentYear === '2026' && currentMonth === 'Novembro')
-      ? (monthData.vrManual != null ? monthData.vrManual : (satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : 1105.16))
+      ? (satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : Math.max(0, (satMaracaju.vrTotal || 1105.16) - (satMaracaju.gastoVrMesAtual || 0)))
       : vr;
 
     const satCasaEl = document.getElementById('topSatCasaVal');
@@ -2891,6 +2946,9 @@ const MatrixApp = (function () {
       `;
 
     } else if (tipo === 'maracaju') {
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal(state);
+      }
       titleEl.innerHTML = `🏡 Casa Maracaju 88 • Benefícios VA e VR (${periodLabel})`;
       const sat = (state.satellites && state.satellites.maracaju) || {
         saldoVaRestante: 2059.84,
@@ -2904,22 +2962,24 @@ const MatrixApp = (function () {
         vrRollover: 0.16,
         vrTotal: 1105.16,
         totalBeneficios: 3165.00,
-        gastoMercadoCicloAnterior: 390.41
+        gastoMercadoCicloAnterior: 390.41,
+        comprasCicloAtual: []
       };
 
       const vaCred = sat.vaMensal || 2050.00;
       const vaRoll = sat.vaRollover != null ? sat.vaRollover : 9.84;
       const vaTot = sat.vaTotal != null ? sat.vaTotal : (vaCred + vaRoll);
       const vaGasto = sat.gastoMercadoMesAtual || 0.00;
-      const vaSaldo = sat.saldoVaRestante != null ? sat.saldoVaRestante : (vaTot - vaGasto);
+      const vaSaldo = sat.saldoVaRestante != null ? sat.saldoVaRestante : Math.max(0, vaTot - vaGasto);
 
       const vrCred = sat.vrCreditadoNoMes || 1105.00;
       const vrRoll = sat.vrRollover != null ? sat.vrRollover : 0.16;
       const vrTot = sat.vrTotal != null ? sat.vrTotal : (vrCred + vrRoll);
       const vrGasto = sat.gastoVrMesAtual || 0.00;
-      const vrSaldo = sat.saldoVrRestante != null ? sat.saldoVrRestante : (vrTot - vrGasto);
+      const vrSaldo = sat.saldoVrRestante != null ? sat.saldoVrRestante : Math.max(0, vrTot - vrGasto);
 
       const gastoAnterior = sat.gastoMercadoCicloAnterior || 390.41;
+      const comprasAtuais = Array.isArray(sat.comprasCicloAtual) ? sat.comprasCicloAtual : [];
 
       const notasOutubro = [
         { mercado: 'Carrefour (03/11)', ciclo: 'Ciclo Outubro (Encerrado)', metodo: 'Cartão VA', valor: 280.66 },
@@ -2933,22 +2993,27 @@ const MatrixApp = (function () {
             <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
               <span class="live-pulse"></span> App Casa Maracaju 88 Conectado • Ciclo Novembro Vigente
             </span>
-            <span class="lock-pill" style="border-color:var(--matrix-green);color:var(--matrix-green);font-size:10px;">
-              🟢 4º Dia Útil (06/11): Crédito Ativo
-            </span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="btn-matrix btn-outline" style="padding:3px 8px;font-size:10px;" onclick="MatrixApp.sincronizarMaracajuAgora()">
+                🔄 Sincronizar Maracaju
+              </button>
+              <span class="lock-pill" style="border-color:var(--matrix-green);color:var(--matrix-green);font-size:10px;">
+                🟢 4º Dia Útil (06/11): Crédito Ativo
+              </span>
+            </div>
           </div>
 
-          <!-- CARDS DE SALDOS ATUAIS DE NOVEMBRO (COM SOBRA DE OUTUBRO) -->
+          <!-- CARDS DE SALDOS ATUAIS DE NOVEMBRO (COM SOBRA DE OUTUBRO E GASTOS DEDUZIDOS) -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
             <div style="background:var(--bg-card);border:1.5px solid rgba(0,255,102,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(0,255,102,0.05);">
               <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VA (Novembro)</div>
               <div style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:2px;">${formatBRL(vaSaldo)}</div>
-              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;">R$ 2.050 + R$ ${formatBRL(vaRoll)} sobra Out</div>
+              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;">Crédito ${formatBRL(vaTot)} − Gasto ${formatBRL(vaGasto)}</div>
             </div>
             <div style="background:var(--bg-card);border:1.5px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(6,182,212,0.05);">
               <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VR (Novembro)</div>
               <div style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:2px;">${formatBRL(vrSaldo)}</div>
-              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;">17 dias (R$ 1.105) + R$ ${formatBRL(vrRoll)} sobra</div>
+              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;">Crédito ${formatBRL(vrTot)} − Gasto ${formatBRL(vrGasto)}</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Total Alimentação Disponível</div>
@@ -2957,9 +3022,68 @@ const MatrixApp = (function () {
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Gastos Ciclo Novembro</div>
-              <div style="font-size:16px;font-weight:800;color:var(--text-main);margin-top:2px;">${formatBRL(vaGasto + vrGasto)}</div>
-              <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">A partir de 06/11 (0 compras)</div>
+              <div style="font-size:16px;font-weight:800;color:var(--rose);margin-top:2px;">- ${formatBRL(vaGasto + vrGasto)}</div>
+              <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">A partir de 06/11 (${comprasAtuais.length} compra${comprasAtuais.length === 1 ? '' : 's'})</div>
             </div>
+          </div>
+
+          <!-- AJUSTE RÁPIDO DE SALDO ATUAL / LANÇAMENTO DE GASTO VA & VR -->
+          <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.28);padding:12px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+              <strong style="color:var(--cyan);font-size:11.5px;">⚡ Atualizar Saldo Atual ou Lançar Gasto VA / VR</strong>
+              <span style="font-size:10px;color:var(--text-muted);">Sincroniza com o topo do Matrix e com o app Casa Maracaju 88</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px;align-items:end;">
+              <div>
+                <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VA (R$)</label>
+                <input type="number" step="0.01" id="inlineMaracajuVaSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vaSaldo.toFixed(2)}">
+              </div>
+              <div>
+                <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VR (R$)</label>
+                <input type="number" step="0.01" id="inlineMaracajuVrSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vrSaldo.toFixed(2)}">
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-matrix" style="padding:6px 10px;font-size:11px;width:100%;" onclick="MatrixApp.salvarSaldoAtualMaracajuInline()">
+                  💾 Aplicar Saldo Atual
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMPRAS DO CICLO VIGENTE (NOVEMBRO — A PARTIR DE 06/11) -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <strong style="color:var(--matrix-green);font-size:12.5px;">🛒 Gastos do Ciclo de Novembro (A partir de 06/11)</strong>
+              <span style="font-size:10.5px;color:var(--rose);font-weight:700;">Total Gasto: - ${formatBRL(vaGasto + vrGasto)} (VA: ${formatBRL(vaGasto)} | VR: ${formatBRL(vrGasto)})</span>
+            </div>
+            ${comprasAtuais.length > 0 ? `
+              <div style="max-height:180px;overflow-y:auto;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Estabelecimento</th>
+                      <th>Cartão</th>
+                      <th style="text-align:right;">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${comprasAtuais.map(c => `
+                      <tr>
+                        <td style="font-size:11px;color:var(--text-muted);">${c.date ? c.date.split('-').reverse().join('/') : 'Nov/2026'}</td>
+                        <td><strong>${c.establishment || 'Despesa'}</strong></td>
+                        <td><span class="status-badge pago" style="font-size:9px;border-color:${c.paymentMethod === 'vr' ? 'var(--cyan)' : 'var(--matrix-green)'};color:${c.paymentMethod === 'vr' ? 'var(--cyan)' : 'var(--matrix-green)'};">${c.paymentMethod === 'vr' ? 'Cartão VR' : 'Cartão VA'}</span></td>
+                        <td class="val-col" style="color:var(--rose);font-weight:700;">- ${formatBRL(c.total)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : `
+              <div style="font-size:11px;color:var(--text-muted);padding:6px 0;">
+                Nenhuma nota individual sincronizada na tabela ainda, ou saldo ajustado diretamente acima.
+              </div>
+            `}
           </div>
 
           <!-- HISTÓRICO DE COMPRAS ANTERIORES DO CICLO DE OUTUBRO -->
@@ -2991,7 +3115,7 @@ const MatrixApp = (function () {
               </table>
             </div>
             <div style="margin-top:8px;font-size:10.5px;color:var(--text-dim);line-height:1.4;">
-              💡 <em>Auditoria de Ciclos:</em> Como as compras de 03/11 foram realizadas antes do 4º dia útil (06/11), elas foram abatidas do saldo de Outubro. O ciclo de Outubro fechou com sobra de <strong>R$ 9,84 de VA</strong> e <strong>R$ 0,16 de VR</strong>, que foram somados ao novo depósito de Novembro, totalizando <strong>${formatBRL(vaSaldo)}</strong> de VA e <strong>${formatBRL(vrSaldo)}</strong> de VR 100% disponíveis.
+              💡 <em>Auditoria de Ciclos:</em> Como as compras de 03/11 foram realizadas antes do 4º dia útil (06/11), elas foram abatidas do saldo de Outubro. O ciclo de Outubro fechou com sobra de <strong>R$ 9,84 de VA</strong> e <strong>R$ 0,16 de VR</strong>, que foram somados ao novo depósito de Novembro (${formatBRL(vaTot)} de VA e ${formatBRL(vrTot)} de VR), restando atualmente <strong>${formatBRL(vaSaldo)} de VA</strong> e <strong>${formatBRL(vrSaldo)} de VR</strong> disponíveis.
             </div>
           </div>
         </div>
@@ -3045,6 +3169,60 @@ const MatrixApp = (function () {
 
     contentEl.innerHTML = html;
     openModal(backdrop);
+  }
+
+  async function sincronizarMaracajuAgora() {
+    if (typeof SatelliteConnectors !== 'undefined') {
+      if (typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal();
+      }
+      if (typeof SatelliteConnectors.scrapeAll === 'function') {
+        await SatelliteConnectors.scrapeAll();
+      }
+    }
+    renderAll();
+    abrirDrilldown('maracaju');
+  }
+
+  function salvarSaldoAtualMaracajuInline() {
+    const vaInp = document.getElementById('inlineMaracajuVaSaldo');
+    const vrInp = document.getElementById('inlineMaracajuVrSaldo');
+    const state = MatrixDB.getState();
+    if (!state.satellites) state.satellites = {};
+    if (!state.satellites.maracaju) state.satellites.maracaju = {};
+
+    const sat = state.satellites.maracaju;
+    const vaTot = sat.vaTotal || 2059.84;
+    const vrTot = sat.vrTotal || 1105.16;
+
+    const novoVaSaldo = vaInp && vaInp.value !== '' ? Math.max(0, Math.round(parseFloat(String(vaInp.value).replace(',', '.')) * 100) / 100) : (sat.saldoVaRestante != null ? sat.saldoVaRestante : vaTot);
+    const novoVrSaldo = vrInp && vrInp.value !== '' ? Math.max(0, Math.round(parseFloat(String(vrInp.value).replace(',', '.')) * 100) / 100) : (sat.saldoVrRestante != null ? sat.saldoVrRestante : vrTot);
+
+    sat.saldoVaRestante = novoVaSaldo;
+    sat.saldoVrRestante = novoVrSaldo;
+    sat.gastoMercadoMesAtual = Math.max(0, Math.round((vaTot - novoVaSaldo) * 100) / 100);
+    sat.gastoVrMesAtual = Math.max(0, Math.round((vrTot - novoVrSaldo) * 100) / 100);
+    sat.totalDisponivel = Math.round((novoVaSaldo + novoVrSaldo) * 100) / 100;
+    sat.atualizadoEm = new Date().toISOString();
+
+    // Sincroniza também no localStorage compartilhado com o App Casa Maracaju 88 (MARACAJU_STATE_v1)
+    try {
+      const rawLocal = localStorage.getItem('MARACAJU_STATE_v1');
+      const parsedLocal = rawLocal ? JSON.parse(rawLocal) : {};
+      if (!parsedLocal.settings) parsedLocal.settings = {};
+      if (!parsedLocal.settings.benefits) parsedLocal.settings.benefits = {};
+      if (!parsedLocal.settings.benefits.monthlyEndingBalances) parsedLocal.settings.benefits.monthlyEndingBalances = {};
+      parsedLocal.settings.benefits.monthlyEndingBalances['2026-11'] = {
+        vaEndingBalance: novoVaSaldo,
+        vrEndingBalance: novoVrSaldo
+      };
+      parsedLocal.updatedAt = new Date().toISOString();
+      localStorage.setItem('MARACAJU_STATE_v1', JSON.stringify(parsedLocal));
+    } catch (e) {}
+
+    MatrixDB.saveState(state, 'maracaju_inline_balance');
+    renderAll();
+    abrirDrilldown('maracaju');
   }
 
   // ==========================================
@@ -4045,7 +4223,7 @@ function onModalCategoriaChange(catVal) {
         });
       }
 
-      // Adiciona também aos gastos diários detalhados do mês seguinte para manter o histórico
+      // Adiciona também aos gastos diários detalhados do mês seguinte para manter o histórico (marcado como jaAlocadoVariavel para não duplicar soma)
       targetMonthObj.diarios.push({
         id: 'diar_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         nome: `${nome} (${isCreditoNubank ? 'Crédito Nubank' : 'Crédito BB'})`,
@@ -4054,6 +4232,7 @@ function onModalCategoriaChange(catVal) {
         categoria,
         conta,
         pago: false,
+        jaAlocadoVariavel: true,
         obs: obs ? `${obs} [Fatura ${targetMonthName}/${targetYear}]` : `[Fatura ${targetMonthName}/${targetYear}]`
       });
 
@@ -4064,7 +4243,7 @@ function onModalCategoriaChange(catVal) {
       return;
     }
 
-    // Regra 3: Débito Inter e demais contas à vista vão para o MÊS VIGENTE
+    // Regra 3: Débito Inter, Cartões VA/VR e demais contas à vista vão para o MÊS VIGENTE
     // Grava e memoriza a classificação da categoria escolhida pelo usuário para este gasto
     MatrixDB.learnCategoryMapping(nome, categoria);
 
@@ -4083,6 +4262,13 @@ function onModalCategoriaChange(catVal) {
       MatrixDB.updateTransactionByIndex(currentYear, currentMonth, 'diario', index, payload);
     } else {
       MatrixDB.addTransaction(currentYear, currentMonth, 'diario', payload);
+    }
+
+    // Se for gasto em Cartão VA ou Cartão VR, sincroniza imediatamente o saldo da Casa Maracaju 88
+    if (conta === 'cartao_vr' || conta === 'vr' || conta === 'cartao_va' || conta === 'va') {
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal();
+      }
     }
 
     closeModal('quickExpenseModalBackdrop');
@@ -7057,14 +7243,14 @@ function onModalCategoriaChange(catVal) {
     const outrasRendasScarlet = getOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
     const descOutrasScarlet = getDescOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
 
-    // 3. VA & VR — extração oficial do app Casa Maracaju 88
+    // 3. VA & VR — extração oficial do crédito do mês na Casa Maracaju 88
     const satMaracaju = state.satellites && state.satellites.maracaju;
     let va = 2050.00;
     let vr = 1105.00;
 
     if (saldosModalTargetAno === '2026' && saldosModalTargetMes === 'Novembro') {
-      va = (satMaracaju && satMaracaju.saldoVaRestante != null) ? satMaracaju.saldoVaRestante : 2059.84;
-      vr = (satMaracaju && satMaracaju.saldoVrRestante != null) ? satMaracaju.saldoVrRestante : 1105.16;
+      va = (satMaracaju && satMaracaju.vaTotal != null) ? satMaracaju.vaTotal : 2059.84;
+      vr = (satMaracaju && satMaracaju.vrTotal != null) ? satMaracaju.vrTotal : 1105.16;
     } else {
       if (monthData.totais) {
         if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
@@ -7174,26 +7360,27 @@ function onModalCategoriaChange(catVal) {
     monthData.totais['Outras Rendas Scarlet'] = outrasRendasScarlet;
     if (novoNomeEst !== 'Renda Extra') monthData.totais[novoNomeEst] = valorExtra;
 
-    // Registra marcações explícitas manuais
-    monthData.vaManual = va;
-    monthData.vrManual = vr;
-
-    // Sincroniza satélite Casa Maracaju se for o ciclo vigente
+    // Sincroniza satélite Casa Maracaju se for o ciclo vigente (preservando os gastos já abatidos do saldo atual)
     if (saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
       if (!state.satellites) state.satellites = {};
       if (!state.satellites.maracaju) {
         state.satellites.maracaju = {
           origem: 'Maracaju 88',
-          saldoVaRestante: va,
           vaTotal: va,
-          saldoVrRestante: vr,
-          vrTotal: vr
+          saldoVaRestante: va,
+          vrTotal: vr,
+          saldoVrRestante: vr
         };
       } else {
-        state.satellites.maracaju.saldoVaRestante = va;
+        const gastoVa = state.satellites.maracaju.gastoMercadoMesAtual || 0;
+        const gastoVr = state.satellites.maracaju.gastoVrMesAtual || 0;
         state.satellites.maracaju.vaTotal = va;
-        state.satellites.maracaju.saldoVrRestante = vr;
         state.satellites.maracaju.vrTotal = vr;
+        state.satellites.maracaju.saldoVaRestante = Math.max(0, Math.round((va - gastoVa) * 100) / 100);
+        state.satellites.maracaju.saldoVrRestante = Math.max(0, Math.round((vr - gastoVr) * 100) / 100);
+      }
+      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+        SatelliteConnectors.syncMaracajuFromLocal(state);
       }
     }
 
@@ -8756,7 +8943,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     isGastoDaScarlet,
     isTransferenciaParaScarlet,
     setSimuladorVisao,
-    onModalCategoriaChange,
+    sincronizarMaracajuAgora,
+    salvarSaldoAtualMaracajuInline,
     toggleEmprestimoParcelas,
     openEditSaldosModal,
     salvarSaldosModal,
