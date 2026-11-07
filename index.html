@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=72">
+  <link rel="stylesheet" href="css/matrix.css?v=73">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -124,17 +124,17 @@
       <!-- Grade Principal de 3 Colunas Executivas -->
       <div class="unified-main-grid">
         
-        <!-- COLUNA 1: GANHOS TOTAIS DO MÊS (2 VISÕES DE GANHOS) -->
+        <!-- COLUNA 1: GANHOS MATHEUS (2 VISÕES DE GANHOS) -->
         <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar suas receitas em conta e benefícios">
           <div class="unified-card-header">
-            <span class="unified-card-title">💵 Ganhos Totais do Mês</span>
+            <span class="unified-card-title">💵 Ganhos Matheus</span>
             <div style="display:flex;align-items:center;gap:6px;">
               <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'matheus')" title="Editar Salário e Rendas Extras">✏️ Saldos</span>
               <span class="unified-badge cyan" id="topBadgeRendaTipo">2 Visões de Ganhos</span>
             </div>
           </div>
           
-          <!-- Equação Visual: Salário USP + Renda Extra + VA + VR -->
+          <!-- Equação Visual: Salário USP + Renda Extra -->
           <div class="unified-equation-banner">
             <div class="eq-part">
               <span class="eq-label">Salário USP</span>
@@ -144,16 +144,6 @@
             <div class="eq-part">
               <span class="eq-label">Renda Extra</span>
               <strong class="eq-val" style="color:var(--matrix-green);" id="topEqOutrosGanhos">R$ 0,00</strong>
-            </div>
-            <span class="eq-op" style="color:var(--amber);">+</span>
-            <div class="eq-part">
-              <span class="eq-label" style="color:var(--amber);">VA</span>
-              <strong class="eq-val" style="color:var(--amber);" id="topEqVaVal">R$ 0,00</strong>
-            </div>
-            <span class="eq-op" style="color:var(--purple);">+</span>
-            <div class="eq-part">
-              <span class="eq-label" style="color:var(--purple);">VR</span>
-              <strong class="eq-val" style="color:var(--purple);" id="topEqVrVal">R$ 0,00</strong>
             </div>
           </div>
 
@@ -305,11 +295,6 @@
               <span class="eq-label">Gastos Totais</span>
               <strong class="eq-val" style="color:var(--rose);" id="topEqMatheusContas">R$ 0,00</strong>
             </div>
-            <span class="eq-op" style="color:var(--matrix-green);">=</span>
-            <div class="eq-part">
-              <span class="eq-label">Sobra pra Mim</span>
-              <strong class="eq-val" id="topEqMatheusSobra">R$ 0,00</strong>
-            </div>
           </div>
 
           <!-- VALOR PRINCIPAL: SOBRA PRA MIM -->
@@ -354,11 +339,6 @@
               <div class="eq-part">
                 <span class="eq-label">Sobra Scarlet</span>
                 <strong class="eq-val" style="color:var(--purple);" id="topEqCasalSobraScarlet">R$ 0,00</strong>
-              </div>
-              <span class="eq-op" style="color:var(--matrix-green);">=</span>
-              <div class="eq-part">
-                <span class="eq-label">Sobra Casal</span>
-                <strong class="eq-val" id="topEqCasalSobraFinal">R$ 0,00</strong>
               </div>
             </div>
 
@@ -413,11 +393,6 @@
             <div class="eq-part">
               <span class="eq-label">Fatura</span>
               <strong class="eq-val" style="color:var(--rose);" id="topEqScarletFatura">R$ 0,00</strong>
-            </div>
-            <span class="eq-op" style="color:var(--purple);">=</span>
-            <div class="eq-part">
-              <span class="eq-label">Sobra</span>
-              <strong class="eq-val" id="topEqScarletSobra">R$ 0,00</strong>
             </div>
           </div>
 
@@ -2727,16 +2702,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=72"></script>
-  <script src="js/matrix-rain.js?v=72"></script>
-  <script src="js/db.js?v=72"></script>
-  <script src="js/calendar-engine.js?v=72"></script>
-  <script src="js/amortization-engine.js?v=72"></script>
-  <script src="js/scenario-simulator.js?v=72"></script>
-  <script src="js/pdf-reader.js?v=72"></script>
-  <script src="js/satellite-connectors.js?v=72"></script>
-  <script src="js/sync-engine.js?v=72"></script>
-  <script src="js/app.js?v=72"></script>
+  <script src="js/seed-data.js?v=73"></script>
+  <script src="js/matrix-rain.js?v=73"></script>
+  <script src="js/db.js?v=73"></script>
+  <script src="js/calendar-engine.js?v=73"></script>
+  <script src="js/amortization-engine.js?v=73"></script>
+  <script src="js/scenario-simulator.js?v=73"></script>
+  <script src="js/pdf-reader.js?v=73"></script>
+  <script src="js/satellite-connectors.js?v=73"></script>
+  <script src="js/sync-engine.js?v=73"></script>
+  <script src="js/app.js?v=73"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2748,7 +2723,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=72', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=73', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>
