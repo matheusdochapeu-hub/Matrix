@@ -3599,3 +3599,64 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Caixas de Explicação Direta de Cálculos (Como, Por que, Onde, Quando) */
+.calc-explanation-box {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--matrix-green);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  margin: 6px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.calc-explanation-box.cyan {
+  border-left-color: var(--cyan);
+  background: rgba(6, 182, 212, 0.06);
+}
+
+.calc-explanation-box.amber {
+  border-left-color: var(--amber);
+  background: rgba(234, 179, 8, 0.06);
+}
+
+.calc-explanation-box.rose {
+  border-left-color: var(--rose);
+  background: rgba(244, 63, 94, 0.06);
+}
+
+.calc-explanation-box.purple {
+  border-left-color: var(--purple);
+  background: rgba(192, 132, 252, 0.06);
+}
+
+.calc-expl-line {
+  color: var(--text-dim);
+}
+
+.calc-expl-line strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.calc-expl-line span {
+  color: var(--text-bright);
+}
+
+.unified-equation-banner.cyan-banner {
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+.unified-equation-banner.green-banner {
+  border-color: rgba(0, 255, 102, 0.35);
+}
+
+.unified-equation-banner.purple-banner {
+  border-color: rgba(192, 132, 252, 0.35);
+}
