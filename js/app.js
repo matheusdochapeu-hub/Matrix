@@ -7618,7 +7618,8 @@ function onModalCategoriaChange(catVal) {
     SyncEngine.saveConfig({ cloudUrl, cloudToken });
     const res = await SyncEngine.syncToCloud();
     if (res && res.success) {
-      alert('✅ Backup enviado com sucesso para o Google Sheets!');
+      const sizeStr = res.chars ? ` (${(res.chars / 1024).toFixed(1)} KB)` : '';
+      alert(`✅ Backup enviado com sucesso para o Google Sheets!${sizeStr}`);
     } else {
       alert('Erro ao enviar backup: ' + ((res && res.error) || 'Verifique a URL da planilha.'));
     }

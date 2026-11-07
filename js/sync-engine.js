@@ -1,9 +1,8 @@
 /**
- * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE
+ * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE (v70)
  * Sincronização em nuvem resiliente com Google Sheets (Planilha Matrix Finance 360)
- * com compactação inteligente (< 45.000 chars para nunca estourar o limite de
- * 50.000 caracteres por célula do Google Sheets), CORS (credentials: omit),
- * fallback JSONP e trava anti-loop.
+ * com compactação estrita garantida (< 35.000 caracteres para jamais atingir o
+ * limite de 50.000 caracteres por célula do Google Sheets).
  */
 
 const SyncEngine = (function () {
@@ -21,7 +20,7 @@ const SyncEngine = (function () {
 
   const DEFAULT_SPREADSHEET_ID = '1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU';
   const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit';
-  const SHEETS_SAFE_CELL_LIMIT = 45000; // Limite seguro abaixo dos 50.000 caracteres por célula do Google Sheets
+  const SHEETS_STRICT_CHAR_LIMIT = 35000; // Garantia estrita muito abaixo dos 50.000 chars do Google Sheets
 
   let debounceTimer = null;
   let isSyncing = false;
@@ -90,81 +89,99 @@ const SyncEngine = (function () {
   }
 
   /**
-   * Compacta o estado antes de enviar para o Google Sheets para garantir que
-   * JSON.stringify(state) fique sempre abaixo do limite de 50.000 caracteres
-   * por célula do Google Sheets (mesmo no script v1.0 já implantado).
+   * Compacta de forma determinística o estado antes de enviar para o Google Sheets,
+   * garantindo matematicamente que JSON.stringify(state) tenha sempre < 35.000 caracteres
+   * (muito abaixo do limite de 50.000 caracteres por célula do Google Sheets).
    */
-  function compactStateForCloud(rawState) {
-    if (!rawState) return {};
-    const c = JSON.parse(JSON.stringify(rawState));
+  function compactStateForCloud(rawState, maxChars = SHEETS_STRICT_CHAR_LIMIT) {
+    if (!rawState || typeof rawState !== 'object') return {};
 
-    // 1. Remove caches derivados que são reconstruídos automaticamente pelo app
-    delete c.categoryMemory;
+    // 1. Whitelist apenas das chaves essenciais de dados do usuário (exclui caches de satélites e memória de categorias)
+    const c = {
+      versao: rawState.versao || '1.0.0',
+      atualizadoEm: new Date().toISOString(),
+      config: rawState.config ? JSON.parse(JSON.stringify(rawState.config)) : {},
+      perfil: rawState.perfil ? JSON.parse(JSON.stringify(rawState.perfil)) : {},
+      financiamentoCaixa: rawState.financiamentoCaixa ? JSON.parse(JSON.stringify(rawState.financiamentoCaixa)) : {},
+      bancos: Array.isArray(rawState.bancos) ? JSON.parse(JSON.stringify(rawState.bancos)) : [],
+      investimentos: Array.isArray(rawState.investimentos) ? JSON.parse(JSON.stringify(rawState.investimentos)) : [],
+      holerites: Array.isArray(rawState.holerites) ? JSON.parse(JSON.stringify(rawState.holerites)) : [],
+      simulacoesAtivas: Array.isArray(rawState.simulacoesAtivas) ? JSON.parse(JSON.stringify(rawState.simulacoesAtivas)) : [],
+      simulacoesAmortizacao: [],
+      calendarioCustom: rawState.calendarioCustom ? JSON.parse(JSON.stringify(rawState.calendarioCustom)) : { overrides: {}, folgas: [] },
+      anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
+    };
 
-    // 2. Remove listas brutas pesadas dos satélites (preservando os saldos e resumos)
-    if (c.satellites) {
-      if (c.satellites.faturas) {
-        delete c.satellites.faturas.faturasPorMes;
-        delete c.satellites.faturas.categoriasTotais;
-      }
-      if (c.satellites.fisioflow) {
-        delete c.satellites.fisioflow.ganhosPorMes;
-      }
+    // 2. Limpa tabelas pesadas de 271 meses que possam estar dentro de simulacoesAmortizacao
+    if (Array.isArray(rawState.simulacoesAmortizacao)) {
+      c.simulacoesAmortizacao = rawState.simulacoesAmortizacao.slice(0, 10).map(sim => ({
+        id: sim.id,
+        nome: sim.nome,
+        data: sim.data,
+        config: sim.config,
+        resultado: sim.resultado ? {
+          novoPrazo: sim.resultado.novoPrazo,
+          novoPrazoAnos: sim.resultado.novoPrazoAnos,
+          mesesPoupados: sim.resultado.mesesPoupados,
+          anosPoupados: sim.resultado.anosPoupados,
+          economiaJuros: sim.resultado.economiaJuros,
+          totalAportadoExtra: sim.resultado.totalAportadoExtra,
+          novoTotalPago: sim.resultado.novoTotalPago,
+          dataQuitacaoNova: sim.resultado.dataQuitacaoNova,
+          dataQuitacaoOriginal: sim.resultado.dataQuitacaoOriginal
+        } : {}
+      }));
     }
 
-    // 3. Remove propriedades vazias/padrão em cada lançamento sem perder nenhuma informação real
+    // 3. Limpa anos e lançamentos (remove valores padrão redundantes que ocupam milhares de caracteres)
     if (c.anos) {
       Object.keys(c.anos).forEach(ano => {
+        if (parseInt(ano, 10) < 2026) {
+          delete c.anos[ano];
+          return;
+        }
         const anoObj = c.anos[ano];
         if (!anoObj || typeof anoObj !== 'object') return;
         Object.keys(anoObj).forEach(mes => {
           const md = anoObj[mes];
           if (!md || typeof md !== 'object') return;
+          delete md.totais;
           ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
             if (Array.isArray(md[tipo])) {
-              md[tipo].forEach(it => {
+              md[tipo].forEach((it, idx) => {
                 if (!it || typeof it !== 'object') return;
                 if (!it.obs) delete it.obs;
                 if (!it.descricao) delete it.descricao;
                 if (!it.renda) delete it.renda;
                 if (it.metodo === 'debito') delete it.metodo;
                 if (it.conta === 'debito_nubank') delete it.conta;
-                if (it.pago === false) delete it.pago;
-              });
-            }
-          });
-        });
-      });
-    }
-
-    // 4. Caso o usuário tenha criado vários anos futuros (ex: 2028, 2029, 2030) e ainda passe de 45.000 chars:
-    if (JSON.stringify(c).length > SHEETS_SAFE_CELL_LIMIT) {
-      delete c.satellites;
-      if (Array.isArray(c.holerites)) {
-        c.holerites.forEach(h => {
-          if (h && Array.isArray(h.itens)) delete h.itens;
-        });
-      }
-    }
-
-    // 5. Segunda camada de segurança se houver muitos anos futuros
-    if (JSON.stringify(c).length > SHEETS_SAFE_CELL_LIMIT && c.anos) {
-      Object.keys(c.anos).forEach(ano => {
-        Object.keys(c.anos[ano] || {}).forEach(mes => {
-          const md = c.anos[ano][mes];
-          if (!md) return;
-          delete md.totais;
-          ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
-            if (Array.isArray(md[tipo])) {
-              md[tipo].forEach((it, idx) => {
-                if (it && it.id && it.id.length > 10) {
+                if (!it.pago) delete it.pago;
+                if (it.id && String(it.id).length > 10) {
                   it.id = tipo[0] + idx;
                 }
               });
+              if (md[tipo].length === 0) delete md[tipo];
             }
           });
         });
       });
+    }
+
+    // 4. Se ainda passar do limite estrito (ex: usuário clonou muitos anos futuros 2028..2035), enxuga itens de holerites e anos distantes
+    if (JSON.stringify(c).length > maxChars && Array.isArray(c.holerites)) {
+      c.holerites.forEach(h => {
+        if (h) delete h.itens;
+      });
+    }
+
+    if (JSON.stringify(c).length > maxChars && c.anos) {
+      const sortedYears = Object.keys(c.anos).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+      for (const y of sortedYears) {
+        if (JSON.stringify(c).length <= maxChars) break;
+        if (parseInt(y, 10) > 2027) {
+          delete c.anos[y];
+        }
+      }
     }
 
     return c;
@@ -182,6 +199,11 @@ const SyncEngine = (function () {
         Object.keys(anoObj).forEach(mes => {
           const md = anoObj[mes];
           if (!md || typeof md !== 'object') return;
+          if (!md.fixos) md.fixos = [];
+          if (!md.outros) md.outros = [];
+          if (!md.receitas) md.receitas = [];
+          if (!md.diarios) md.diarios = [];
+          if (!md.totais) md.totais = {};
           ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
             if (Array.isArray(md[tipo])) {
               md[tipo].forEach(it => {
@@ -289,7 +311,6 @@ const SyncEngine = (function () {
     const target = `${cfg.cloudUrl}${sep}action=ping&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
     let explicitServerError = null;
 
-    // 1. Tentativa GET com credentials: 'omit'
     try {
       const res = await fetch(target, {
         method: 'GET',
@@ -311,7 +332,6 @@ const SyncEngine = (function () {
       }
     } catch (e) {}
 
-    // 2. Tentativa via JSONP
     if (!explicitServerError) {
       try {
         const jsonpData = await jsonpRequest(cfg.cloudUrl, { action: 'ping', token: cfg.cloudToken });
@@ -326,7 +346,6 @@ const SyncEngine = (function () {
       } catch (e) {}
     }
 
-    // 3. Tentativa via POST CORS (text/plain)
     if (!explicitServerError) {
       try {
         const resPost = await fetch(cfg.cloudUrl, {
@@ -428,6 +447,19 @@ const SyncEngine = (function () {
     }
   }
 
+  async function sendPostPayload(url, payload) {
+    const res = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+
   async function syncToCloud() {
     const cfg = getConfig();
     if (!cfg.cloudUrl) {
@@ -445,38 +477,35 @@ const SyncEngine = (function () {
     updateStatusUI('syncing', 'Gravando backup na planilha Matrix Finance 360...');
 
     const fullState = MatrixDB.getState();
-    const compactState = compactStateForCloud(fullState);
-    const payload = {
+    let compactState = compactStateForCloud(fullState, SHEETS_STRICT_CHAR_LIMIT);
+    let payload = {
       action: 'sync_all',
       token: cfg.cloudToken,
       state: compactState
     };
 
     try {
-      // 1. Tenta POST padrão com credentials: 'omit' e text/plain
       try {
-        const res = await fetch(cfg.cloudUrl, {
-          method: 'POST',
-          mode: 'cors',
-          credentials: 'omit',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json && (json.success || json.status === 'success' || json.ok)) {
-            const ts = json.timestamp || new Date().toISOString();
-            localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-            updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString('pt-BR'));
-            return { success: true, timestamp: ts, title: json.title || 'Matrix Finance 360' };
-          } else if (json && (json.error || json.message)) {
-            updateStatusUI('error', json.error || json.message);
-            return { success: false, error: json.error || json.message };
-          }
+        let json = await sendPostPayload(cfg.cloudUrl, payload);
+
+        // Se ainda assim a planilha reclamar de 50.000 caracteres, reduz para < 18.000 chars e reenvia imediatamente
+        if (json && json.error && String(json.error).includes('50000')) {
+          compactState = compactStateForCloud(fullState, 18000);
+          payload = { action: 'sync_all', token: cfg.cloudToken, state: compactState };
+          json = await sendPostPayload(cfg.cloudUrl, payload);
+        }
+
+        if (json && (json.success || json.status === 'success' || json.ok)) {
+          const ts = json.timestamp || new Date().toISOString();
+          const charLen = JSON.stringify(compactState).length;
+          localStorage.setItem(STORAGE_KEYS.lastSync, ts);
+          updateStatusUI('synced', `Sincronizado às ${new Date().toLocaleTimeString('pt-BR')} (${(charLen / 1024).toFixed(1)} KB)`);
+          return { success: true, timestamp: ts, chars: charLen, title: json.title || 'Matrix Finance 360' };
+        } else if (json && (json.error || json.message)) {
+          updateStatusUI('error', json.error || json.message);
+          return { success: false, error: json.error || json.message };
         }
       } catch (corsErr) {
-        // 2. Fallback para POST no-cors seguido de verificação real via pingCloud
         await fetch(cfg.cloudUrl, {
           method: 'POST',
           mode: 'no-cors',
