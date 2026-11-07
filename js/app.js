@@ -200,12 +200,10 @@ const MatrixApp = (function () {
     try {
       const state = MatrixDB.getState();
       if (!state.satellites) state.satellites = {};
-      const maracajuObsoleto = !state.satellites.maracaju ||
-        state.satellites.maracaju.vaTotal !== 2059.84 ||
-        state.satellites.maracaju.vrTotal !== 1105.16 ||
+      const maracajuNaoInicializado = !state.satellites.maracaju ||
         !state.satellites.maracaju.cicloVigente ||
         state.satellites.maracaju.cicloVigente !== '2026-11';
-      if (maracajuObsoleto) {
+      if (maracajuNaoInicializado) {
         state.satellites.maracaju = {
           origem: 'Maracaju 88',
           atualizadoEm: new Date().toISOString(),
@@ -243,25 +241,17 @@ const MatrixApp = (function () {
       if (novData) {
         let changedNov = false;
         if (!novData.totais) novData.totais = {};
-        if (novData.vrManual === 1105.16 || novData.vrManual === 1105 || novData.vrManual === 2059.84) {
-          delete novData.vrManual;
-          changedNov = true;
-        }
-        if (novData.vaManual === 2059.84 || novData.vaManual === 2050) {
-          delete novData.vaManual;
-          changedNov = true;
-        }
-        if (novData.vrManual == null && novData.totais['VR'] !== 1105.16) {
+        if (novData.vrManual == null && novData.totais['VR'] == null) {
           novData.totais['VR'] = 1105.16;
           changedNov = true;
         }
-        if (novData.vaManual == null && novData.totais['VA'] !== 2059.84) {
+        if (novData.vaManual == null && novData.totais['VA'] == null) {
           novData.totais['VA'] = 2059.84;
           changedNov = true;
         }
         if (novData.receitas) {
           let rVr = novData.receitas.find(r => isItemVR(r));
-          if (rVr && novData.vrManual == null && rVr.valor !== 1105.16) {
+          if (rVr && novData.vrManual == null && rVr.valor == null) {
             rVr.valor = 1105.16;
             rVr.naoPecunia = true;
             rVr.categoria = 'Benefício (Não Pecúnia)';
@@ -270,7 +260,7 @@ const MatrixApp = (function () {
             changedNov = true;
           }
           let rVa = novData.receitas.find(r => isItemVA(r));
-          if (rVa && novData.vaManual == null && rVa.valor !== 2059.84) {
+          if (rVa && novData.vaManual == null && rVa.valor == null) {
             rVa.valor = 2059.84;
             rVa.naoPecunia = true;
             rVa.categoria = 'Benefício (Não Pecúnia)';
@@ -280,6 +270,7 @@ const MatrixApp = (function () {
           }
         }
         if (changedNov) MatrixDB.saveMonth('2026', 'Novembro', novData, { skipCloudSync: true, reason: 'init_calibration' });
+      }
       }
     } catch (e) {
       console.warn('Erro ao calibrar VA/VR de Novembro:', e);
@@ -342,10 +333,7 @@ const MatrixApp = (function () {
                   r.categoria = 'Benefício (Não Pecúnia)';
                   r.conta = 'cartao_va';
                   r.renda = 'va_mercado';
-                  if (ano === '2026' && mes === 'Novembro' && (r.valor !== 2059.84)) {
-                    r.valor = 2059.84;
-                    changedLegacy = true;
-                  }
+                  if (r.valor == null) { r.valor = 2059.84; changedLegacy = true; }
                 }
               });
             }
@@ -396,8 +384,15 @@ const MatrixApp = (function () {
     }, 50);
 
     // Sincronização em tempo real ao alternar abas (Maracaju 88 <-> Matrix no mesmo navegador)
+    let lastFocusScrape = 0;
     window.addEventListener('focus', () => {
-      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
+      const now = Date.now();
+      if (now - lastFocusScrape > 12000) {
+        lastFocusScrape = now;
+        if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.scrapeAll === 'function') {
+          SatelliteConnectors.scrapeAll().then(() => renderAll());
+        }
+      } else if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
         const updated = SatelliteConnectors.syncMaracajuFromLocal();
         if (updated) renderKPIs();
       }
@@ -7171,6 +7166,35 @@ function onModalCategoriaChange(catVal) {
       MatrixDB.addTransaction(currentYear, currentMonth, tipo, payload);
     }
 
+    if (tipo === 'receita') {
+      const curM = MatrixDB.getMonth(currentYear, currentMonth);
+      if (curM) {
+        if (isItemVR(payload)) {
+          curM.vrManual = valor;
+          if (!curM.totais) curM.totais = {};
+          curM.totais['VR'] = valor;
+          const st = MatrixDB.getState();
+          if (st && st.satellites && st.satellites.maracaju) {
+            st.satellites.maracaju.saldoVrRestante = valor;
+            st.satellites.maracaju.vrTotal = Math.max(valor, st.satellites.maracaju.vrTotal || 1105.16);
+            st.satellites.maracaju.manualOverride = true;
+            MatrixDB.saveState(st, 'manual_vr_override', { skipCloudSync: true });
+          }
+        } else if (isItemVA(payload)) {
+          curM.vaManual = valor;
+          if (!curM.totais) curM.totais = {};
+          curM.totais['VA'] = valor;
+          const st = MatrixDB.getState();
+          if (st && st.satellites && st.satellites.maracaju) {
+            st.satellites.maracaju.saldoVaRestante = valor;
+            st.satellites.maracaju.vaTotal = Math.max(valor, st.satellites.maracaju.vaTotal || 2059.84);
+            st.satellites.maracaju.manualOverride = true;
+            MatrixDB.saveState(st, 'manual_va_override', { skipCloudSync: true });
+          }
+        }
+      }
+    }
+
     // VÍNCULO BIDIRECIONAL COM INVESTIMENTOS 360 (Aportes & Resgates)
     const isInvest = document.getElementById('chkModalInvestLink') ? document.getElementById('chkModalInvestLink').checked : false;
     const n = nome.toLowerCase();
@@ -7442,24 +7466,24 @@ function onModalCategoriaChange(catVal) {
     // Sincroniza satélite Casa Maracaju se for o ciclo vigente (preservando os gastos já abatidos do saldo atual)
     if (saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
       if (!state.satellites) state.satellites = {};
+      monthData.vaManual = va;
+      monthData.vrManual = vr;
       if (!state.satellites.maracaju) {
         state.satellites.maracaju = {
           origem: 'Maracaju 88',
+          cicloVigente: '2026-11',
           vaTotal: va,
           saldoVaRestante: va,
           vrTotal: vr,
-          saldoVrRestante: vr
+          saldoVrRestante: vr,
+          manualOverride: true
         };
       } else {
-        const gastoVa = state.satellites.maracaju.gastoMercadoMesAtual || 0;
-        const gastoVr = state.satellites.maracaju.gastoVrMesAtual || 0;
         state.satellites.maracaju.vaTotal = va;
         state.satellites.maracaju.vrTotal = vr;
-        state.satellites.maracaju.saldoVaRestante = Math.max(0, Math.round((va - gastoVa) * 100) / 100);
-        state.satellites.maracaju.saldoVrRestante = Math.max(0, Math.round((vr - gastoVr) * 100) / 100);
-      }
-      if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
-        SatelliteConnectors.syncMaracajuFromLocal(state);
+        state.satellites.maracaju.saldoVaRestante = va;
+        state.satellites.maracaju.saldoVrRestante = vr;
+        state.satellites.maracaju.manualOverride = true;
       }
     }
 

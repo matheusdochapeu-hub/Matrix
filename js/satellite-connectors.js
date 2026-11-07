@@ -547,7 +547,8 @@ const SatelliteConnectors = (function () {
     const mapReg = new Map();
     const addRecord = (r) => {
       if (!r || typeof r !== 'object') return;
-      const key = r.id || r.nfeKey || `${String(r.date || r.data || '').slice(0, 10)}_${Number(r.total || r.valor || 0).toFixed(2)}_${String(r.establishment || r.estabelecimento || '').trim().toLowerCase()}`;
+      const mkt = String(r.marketName || r.establishment || r.estabelecimento || '').trim().toLowerCase();
+      const key = r.id || r.nfeKey || `${String(r.date || r.data || '').slice(0, 10)}_${Number(r.total || r.valor || 0).toFixed(2)}_${mkt}`;
       const existing = mapReg.get(key);
       if (!existing) {
         mapReg.set(key, r);
@@ -561,25 +562,44 @@ const SatelliteConnectors = (function () {
     (Array.isArray(cData.comprasRegistros || cData.registros) ? (cData.comprasRegistros || cData.registros) : []).forEach(addRecord);
     (Array.isArray(lData.comprasRegistros || lData.registros) ? (lData.comprasRegistros || lData.registros) : []).forEach(addRecord);
 
+    const tCloud = new Date(cData.lastUpdated || cData.updatedAt || 0).getTime();
+    const tLocal = new Date(lData.lastUpdated || lData.updatedAt || 0).getTime();
+    const cloudIsNewer = tCloud >= tLocal;
+
     const cBenefits = (cData.settings && cData.settings.benefits) || {};
     const lBenefits = (lData.settings && lData.settings.benefits) || {};
+    const primaryBenefits = cloudIsNewer ? cBenefits : lBenefits;
+    const secondaryBenefits = cloudIsNewer ? lBenefits : cBenefits;
+
     const mergedBenefits = {
-      ...cBenefits,
-      ...lBenefits,
-      monthlyDays: { ...(cBenefits.monthlyDays || {}), ...(lBenefits.monthlyDays || {}) },
-      monthlyCreditDates: { ...(cBenefits.monthlyCreditDates || {}), ...(lBenefits.monthlyCreditDates || {}) },
-      monthlyEndingBalances: { ...(cBenefits.monthlyEndingBalances || {}), ...(lBenefits.monthlyEndingBalances || {}) },
-      monthlyRolloverOverrides: { ...(cBenefits.monthlyRolloverOverrides || {}), ...(lBenefits.monthlyRolloverOverrides || {}) }
+      ...secondaryBenefits,
+      ...primaryBenefits,
+      monthlyDays: { ...(secondaryBenefits.monthlyDays || {}), ...(primaryBenefits.monthlyDays || {}) },
+      monthlyCreditDates: { ...(secondaryBenefits.monthlyCreditDates || {}), ...(primaryBenefits.monthlyCreditDates || {}) },
+      monthlyEndingBalances: { ...(secondaryBenefits.monthlyEndingBalances || {}), ...(primaryBenefits.monthlyEndingBalances || {}) },
+      monthlyRolloverOverrides: { ...(secondaryBenefits.monthlyRolloverOverrides || {}), ...(primaryBenefits.monthlyRolloverOverrides || {}) }
     };
 
+    const cSummary = (cData.settings && cData.settings.benefitsSummary) || null;
+    const lSummary = (lData.settings && lData.settings.benefitsSummary) || null;
+    let mergedSummary = cloudIsNewer ? (cSummary || lSummary) : (lSummary || cSummary);
+    if (cSummary && lSummary) {
+      const cSpent = (Number(cSummary.vaSpent) || 0) + (Number(cSummary.vrSpent) || 0);
+      const lSpent = (Number(lSummary.vaSpent) || 0) + (Number(lSummary.vrSpent) || 0);
+      if (cSpent > lSpent) mergedSummary = cSummary;
+      else if (lSpent > cSpent) mergedSummary = lSummary;
+    }
+
+    const baseData = cloudIsNewer ? { ...lData, ...cData } : { ...cData, ...lData };
+
     return {
-      ...cData,
-      ...lData,
+      ...baseData,
       comprasRegistros: Array.from(mapReg.values()),
       settings: {
-        ...(cData.settings || {}),
         ...(lData.settings || {}),
-        benefits: mergedBenefits
+        ...(cData.settings || {}),
+        benefits: mergedBenefits,
+        benefitsSummary: mergedSummary || undefined
       }
     };
   }
@@ -588,27 +608,33 @@ const SatelliteConnectors = (function () {
     if (!rawState || typeof rawState !== 'object') return null;
     const s = rawState.data || rawState;
     const stripBase64 = (val) => (typeof val === 'string' && val.startsWith('data:image/')) ? '' : val;
+    const stripPhotosArr = (arr) => Array.isArray(arr) ? arr.filter(p => !String(p).startsWith('data:image/')) : undefined;
     return {
-      updatedAt: s.updatedAt || new Date().toISOString(),
+      updatedAt: s.updatedAt || s.lastUpdated || new Date().toISOString(),
+      lastUpdated: s.lastUpdated || s.updatedAt || new Date().toISOString(),
       reformas: (Array.isArray(s.reformas) ? s.reformas : []).map(r => ({
         ...r,
         photoUrl: stripBase64(r.photoUrl),
-        photos: Array.isArray(r.photos) ? r.photos.filter(p => !String(p).startsWith('data:image/')) : undefined
+        photos: stripPhotosArr(r.photos)
       })),
       compras: (Array.isArray(s.compras) ? s.compras : []).map(c => ({
         ...c,
-        imageUrl: stripBase64(c.imageUrl)
+        imageUrl: stripBase64(c.imageUrl),
+        photos: stripPhotosArr(c.photos)
       })),
       comprasRegistros: (Array.isArray(s.comprasRegistros) ? s.comprasRegistros : []).map(r => ({
         id: r.id,
         date: r.date || r.data,
-        establishment: r.establishment || r.estabelecimento,
+        monthKey: r.monthKey || '',
+        marketName: r.marketName || r.establishment || r.estabelecimento || '',
+        establishment: r.establishment || r.marketName || r.estabelecimento || '',
         cnpj: r.cnpj || '',
         total: r.total !== undefined ? r.total : r.valor,
         paymentMethod: r.paymentMethod || r.metodoPagamento || 'va',
         nfeKey: r.nfeKey || '',
         sourceUrl: r.sourceUrl || '',
         createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
         items: (Array.isArray(r.items) ? r.items : []).map(it => ({
           name: it.name,
           qty: it.qty,
@@ -618,13 +644,22 @@ const SatelliteConnectors = (function () {
           category: it.category
         }))
       })),
-      carro: Array.isArray(s.carro) ? s.carro : [],
+      carro: (Array.isArray(s.carro) ? s.carro : []).map(c => ({
+        ...c,
+        photoUrl: stripBase64(c.photoUrl),
+        photos: stripPhotosArr(c.photos)
+      })),
       pets: (Array.isArray(s.pets) ? s.pets : []).map(p => ({
         ...p,
-        photoUrl: stripBase64(p.photoUrl)
+        photoUrl: stripBase64(p.photoUrl),
+        foto: stripBase64(p.foto),
+        photo: stripBase64(p.photo),
+        photos: stripPhotosArr(p.photos),
+        fotos: stripPhotosArr(p.fotos)
       })),
       settings: {
-        benefits: (s.settings && s.settings.benefits) ? s.settings.benefits : undefined
+        benefits: (s.settings && s.settings.benefits) ? s.settings.benefits : undefined,
+        benefitsSummary: (s.settings && s.settings.benefitsSummary) ? s.settings.benefitsSummary : undefined
       }
     };
   }
@@ -707,14 +742,16 @@ const SatelliteConnectors = (function () {
       const isVa = methodRaw === 'va' || methodRaw.includes('aliment') || methodRaw === 'cartao_va';
       if (!isVr && !isVa) return;
 
-      const dedupKey = r.id || r.nfeKey || `${dataStr}_${val.toFixed(2)}_${String(r.establishment || r.estabelecimento || '').trim().toLowerCase()}`;
+      const mktName = r.marketName || r.establishment || r.estabelecimento || (isVr ? 'Despesa VR' : 'Mercado VA');
+      const dedupKey = r.id || r.nfeKey || `${dataStr}_${val.toFixed(2)}_${String(mktName).trim().toLowerCase()}`;
       if (seenKeys.has(dedupKey)) return;
       seenKeys.add(dedupKey);
 
       const itemEntry = {
         id: r.id || dedupKey,
         date: dataStr,
-        establishment: r.establishment || r.estabelecimento || (isVr ? 'Despesa VR' : 'Mercado VA'),
+        marketName: mktName,
+        establishment: mktName,
         total: Math.round(val * 100) / 100,
         paymentMethod: isVr ? 'vr' : 'va',
         itemsCount: Array.isArray(r.items) ? r.items.length : 0
@@ -802,11 +839,35 @@ const SatelliteConnectors = (function () {
     gastoMercadoCicloAtual = Math.round(gastoMercadoCicloAtual * 100) / 100;
     gastoVrCicloAtual = Math.round(gastoVrCicloAtual * 100) / 100;
 
+    // 4. Integra resumo direto (benefitsSummary) salvo pelo Maracaju 88 se disponível para o ciclo vigente
+    const summary = (payload.settings && payload.settings.benefitsSummary) || payload.benefitsSummary || null;
+    if (summary && (!summary.cycleKey || summary.cycleKey === curCycleKey)) {
+      const sumVaSpent = Number(summary.vaSpent);
+      const sumVrSpent = Number(summary.vrSpent);
+      if (Number.isFinite(sumVaSpent) && sumVaSpent > gastoMercadoCicloAtual) {
+        gastoMercadoCicloAtual = Math.round(sumVaSpent * 100) / 100;
+      }
+      if (Number.isFinite(sumVrSpent) && sumVrSpent > gastoVrCicloAtual) {
+        gastoVrCicloAtual = Math.round(sumVrSpent * 100) / 100;
+      }
+    }
+
     let saldoVaRestante = Math.max(0, Math.round((vaTotal - gastoMercadoCicloAtual) * 100) / 100);
     let transbordouVa = gastoMercadoCicloAtual > vaTotal ? Math.round((gastoMercadoCicloAtual - vaTotal) * 100) / 100 : 0;
 
     let saldoVrRestante = Math.max(0, Math.round((vrTotal - gastoVrCicloAtual) * 100) / 100);
     let transbordouVr = gastoVrCicloAtual > vrTotal ? Math.round((gastoVrCicloAtual - vrTotal) * 100) / 100 : 0;
+
+    if (summary && (!summary.cycleKey || summary.cycleKey === curCycleKey)) {
+      const sumVaBal = Number(summary.vaBalance);
+      const sumVrBal = Number(summary.vrBalance);
+      if (Number.isFinite(sumVaBal) && sumVaBal >= 0 && sumVaBal < saldoVaRestante) {
+        saldoVaRestante = Math.round(sumVaBal * 100) / 100;
+      }
+      if (Number.isFinite(sumVrBal) && sumVrBal >= 0 && sumVrBal < saldoVrRestante) {
+        saldoVrRestante = Math.round(sumVrBal * 100) / 100;
+      }
+    }
 
     // Respeita override de saldo final manual (monthlyEndingBalances) se configurado no Maracaju 88 para o ciclo vigente
     const endingOverride = benefitsConfig.monthlyEndingBalances && benefitsConfig.monthlyEndingBalances[curCycleKey];
@@ -869,6 +930,7 @@ const SatelliteConnectors = (function () {
       if (!state) return null;
       if (!state.satellites) state.satellites = {};
 
+      const existing = state.satellites.maracaju || null;
       const localRaw = getLocalMaracajuRawState();
       const novDiarios = (state.anos && state.anos['2026'] && state.anos['2026']['Novembro'] && state.anos['2026']['Novembro'].diarios) || [];
       const hasMatrixBenefitDiarios = novDiarios.some(d => {
@@ -877,17 +939,40 @@ const SatelliteConnectors = (function () {
       });
 
       if (localRaw || hasMatrixBenefitDiarios) {
-        const computed = processMaracajuData(localRaw || {}, 1105.0, novDiarios);
-        const existing = state.satellites.maracaju;
-        if (!localRaw && existing && existing.cicloVigente === computed.cicloVigente) {
-          if ((existing.gastoVrMesAtual || 0) > computed.gastoVrMesAtual || (existing.gastoMercadoMesAtual || 0) > computed.gastoMercadoMesAtual) {
+        // Mescla compras que já vieram da nuvem (existing.comprasCicloAtual) com o localStorage para nunca apagar gastos sincronizados
+        const existingSynthetic = existing ? {
+          lastUpdated: existing.atualizadoEm,
+          comprasRegistros: Array.isArray(existing.comprasCicloAtual) ? existing.comprasCicloAtual : []
+        } : null;
+        const mergedInput = mergeMaracajuPayloads(existingSynthetic, localRaw || {});
+        const computed = processMaracajuData(mergedInput, 1105.0, novDiarios);
+
+        if (existing && existing.cicloVigente === computed.cicloVigente) {
+          // Se houve ajuste manual direto no Matrix ou se a nuvem já tinha mais gastos registrados do que o cache local antigo do navegador
+          if (existing.manualOverride) {
+            const gVa = Math.max(existing.gastoMercadoMesAtual || 0, computed.gastoMercadoMesAtual || 0);
+            const gVr = Math.max(existing.gastoVrMesAtual || 0, computed.gastoVrMesAtual || 0);
+            existing.gastoMercadoMesAtual = gVa;
+            existing.gastoVrMesAtual = gVr;
+            if (computed.comprasCicloAtual && computed.comprasCicloAtual.length > (existing.comprasCicloAtual || []).length) {
+              existing.comprasCicloAtual = computed.comprasCicloAtual;
+            }
             return existing;
           }
+          if ((existing.gastoVrMesAtual || 0) > computed.gastoVrMesAtual) {
+            computed.gastoVrMesAtual = existing.gastoVrMesAtual;
+            computed.saldoVrRestante = Math.max(0, Math.round((computed.vrTotal - computed.gastoVrMesAtual) * 100) / 100);
+          }
+          if ((existing.gastoMercadoMesAtual || 0) > computed.gastoMercadoMesAtual) {
+            computed.gastoMercadoMesAtual = existing.gastoMercadoMesAtual;
+            computed.saldoVaRestante = Math.max(0, Math.round((computed.vaTotal - computed.gastoMercadoMesAtual) * 100) / 100);
+          }
+          computed.totalDisponivel = Math.round((computed.saldoVaRestante + computed.saldoVrRestante) * 100) / 100;
         }
         state.satellites.maracaju = computed;
         return computed;
       }
-      return state.satellites.maracaju || null;
+      return existing;
     } catch (e) {
       return null;
     }
@@ -1002,12 +1087,30 @@ const SatelliteConnectors = (function () {
     } catch (err) {}
 
     if (cloudMaracajuRaw || localMaracajuRaw || novDiarios.length > 0) {
-      state.satellites.maracaju = processMaracajuData(mergedMaracajuRaw, vrAtual, novDiarios);
+      const prevMaracaju = state.satellites.maracaju;
+      const nextMaracaju = processMaracajuData(mergedMaracajuRaw, vrAtual, novDiarios);
+      // Preserva ajuste manual de saldo se não houver novas compras na nuvem que superem o ajuste
+      if (prevMaracaju && prevMaracaju.manualOverride && prevMaracaju.cicloVigente === nextMaracaju.cicloVigente) {
+        if (nextMaracaju.gastoVrMesAtual === 0 && prevMaracaju.saldoVrRestante !== nextMaracaju.saldoVrRestante) {
+          nextMaracaju.saldoVrRestante = prevMaracaju.saldoVrRestante;
+          nextMaracaju.gastoVrMesAtual = Math.max(0, Math.round((nextMaracaju.vrTotal - prevMaracaju.saldoVrRestante) * 100) / 100);
+          nextMaracaju.manualOverride = true;
+        }
+        if (nextMaracaju.gastoMercadoCicloAtual === 0 && prevMaracaju.saldoVaRestante !== nextMaracaju.saldoVaRestante) {
+          nextMaracaju.saldoVaRestante = prevMaracaju.saldoVaRestante;
+          nextMaracaju.gastoMercadoMesAtual = Math.max(0, Math.round((nextMaracaju.vaTotal - prevMaracaju.saldoVaRestante) * 100) / 100);
+          nextMaracaju.manualOverride = true;
+        }
+        nextMaracaju.totalDisponivel = Math.round((nextMaracaju.saldoVaRestante + nextMaracaju.saldoVrRestante) * 100) / 100;
+      }
+      state.satellites.maracaju = nextMaracaju;
       statusResults.maracaju = { success: true, source: localMaracajuRaw ? 'local+cloud' : 'cloud' };
     }
 
-    // Auto-heal da nuvem Maracaju 88 caso a célula B2 do Google Sheets estivesse corrompida (>50k chars) e tenhamos o estado local
-    if (localMaracajuRaw && cfg.maracajuUrl && (cloudHadError || !cloudMaracajuRaw)) {
+    // Só envia localMaracajuRaw para a nuvem se o local tiver MAIS registros de compra do que a nuvem
+    const localRegCount = (localMaracajuRaw && Array.isArray(localMaracajuRaw.comprasRegistros)) ? localMaracajuRaw.comprasRegistros.length : 0;
+    const cloudRegCount = (cloudMaracajuRaw && Array.isArray(cloudMaracajuRaw.comprasRegistros)) ? cloudMaracajuRaw.comprasRegistros.length : 0;
+    if (localMaracajuRaw && cfg.maracajuUrl && localRegCount > cloudRegCount) {
       try {
         const compacted = compactMaracajuStateForCloud(mergedMaracajuRaw);
         const bodyStr = JSON.stringify({
