@@ -24,6 +24,8 @@ const SyncEngine = (function () {
 
   let debounceTimer = null;
   let isSyncing = false;
+  let pendingFollowUpSync = false;
+  const DIRTY_LOCAL_KEY = 'matrix_local_dirty_since';
 
   function syncInputsIfPresent() {
     if (typeof document === 'undefined') return;
@@ -71,20 +73,20 @@ const SyncEngine = (function () {
 
     if (status === 'syncing') {
       el.className = 'status-badge pendente';
-      el.textContent = '🟡 Sincronizando...';
-      el.title = message || 'Enviando alterações para a planilha Matrix Finance 360';
+      el.textContent = '🟡 Salvando...';
+      el.title = message || 'Salvando alterações imediatamente no dispositivo e na nuvem';
     } else if (status === 'synced') {
       el.className = 'status-badge pago';
-      el.textContent = '🟢 Sincronizado';
-      el.title = message || 'Dados salvos na planilha Matrix Finance 360';
+      el.textContent = '🟢 Salvo & Sincronizado';
+      el.title = message || 'Todas as alterações estão salvas no dispositivo e na planilha Matrix Finance 360';
     } else if (status === 'error') {
       el.className = 'status-badge danger';
-      el.textContent = '🔴 Erro de Conexão';
-      el.title = message || 'Falha ao sincronizar com a planilha Matrix Finance 360';
+      el.textContent = '🟡 Salvo Local (Erro Nuvem)';
+      el.title = message || 'Salvo no aparelho • Falha ao sincronizar com a planilha Matrix Finance 360';
     } else {
-      el.className = 'status-badge';
-      el.textContent = '⚪ Modo Offline';
-      el.title = message || 'Backup local ativo • Configure a URL /exec da planilha Matrix Finance 360 para nuvem';
+      el.className = 'status-badge pago';
+      el.textContent = '💾 Salvo Automaticamente';
+      el.title = message || 'Alterações salvas instantaneamente no aparelho • Toque para configurar backup em nuvem';
     }
   }
 
@@ -178,7 +180,10 @@ const SyncEngine = (function () {
                 if (it.metodo === 'debito') delete it.metodo;
                 if (it.conta === 'debito_nubank') delete it.conta;
                 if (!it.pago) delete it.pago;
-                if (it.id && String(it.id).length > 10) {
+                // Preserva IDs semânticos da Scarlet/Fisio/Salário/VA/VR para não perder vínculo após restaurar da nuvem
+                const idStr = String(it.id || '');
+                const isSemanticId = idStr.includes('scarlet') || idStr.includes('fisio') || idStr.startsWith('rec_sal') || idStr.startsWith('rec_va') || idStr.startsWith('rec_vr') || idStr.startsWith('rec_extra');
+                if (idStr.length > 10 && !isSemanticId) {
                   it.id = tipo[0] + idx;
                 }
               });
@@ -450,6 +455,22 @@ const SyncEngine = (function () {
     const rawPayload = json && (json.data || json.state);
     if (json && (json.success || json.status === 'success' || json.ok) && rawPayload) {
       const currentLocalState = MatrixDB.getState();
+      const dirtySince = localStorage.getItem(DIRTY_LOCAL_KEY);
+      const localTs = (currentLocalState && currentLocalState.atualizadoEm) ? Date.parse(currentLocalState.atualizadoEm) : 0;
+      const cloudTs = rawPayload.atualizadoEm ? Date.parse(rawPayload.atualizadoEm) : 0;
+
+      // Se houver alterações locais pendentes de envio OU se o estado local for mais recente que o da nuvem,
+      // NUNCA sobrescreve as edições locais com dados antigos da nuvem: envia o estado local atualizado para a nuvem!
+      if (dirtySince || (localTs > 0 && cloudTs > 0 && localTs > cloudTs + 2000)) {
+        syncToCloud();
+        return {
+          success: true,
+          data: currentLocalState,
+          keptLocal: true,
+          timestamp: currentLocalState.atualizadoEm
+        };
+      }
+
       const localMaracajuSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.maracaju;
       const payloadData = expandStateFromCloud(rawPayload);
       if (!payloadData.satellites) payloadData.satellites = {};
@@ -509,9 +530,13 @@ const SyncEngine = (function () {
       return { success: false, error: check.error };
     }
 
-    if (isSyncing) return { success: true, syncing: true };
+    if (isSyncing) {
+      pendingFollowUpSync = true;
+      return { success: true, syncing: true };
+    }
     isSyncing = true;
-    updateStatusUI('syncing', 'Gravando backup na planilha Matrix Finance 360...');
+    pendingFollowUpSync = false;
+    updateStatusUI('syncing', 'Salvando alterações na planilha Matrix Finance 360...');
 
     const fullState = MatrixDB.getState();
     let compactState = compactStateForCloud(fullState, SHEETS_STRICT_CHAR_LIMIT);
@@ -536,7 +561,8 @@ const SyncEngine = (function () {
           const ts = json.timestamp || new Date().toISOString();
           const charLen = JSON.stringify(compactState).length;
           localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-          updateStatusUI('synced', `Sincronizado às ${new Date().toLocaleTimeString('pt-BR')} (${(charLen / 1024).toFixed(1)} KB)`);
+          if (!pendingFollowUpSync) localStorage.removeItem(DIRTY_LOCAL_KEY);
+          updateStatusUI('synced', `Salvo às ${new Date().toLocaleTimeString('pt-BR')} (${(charLen / 1024).toFixed(1)} KB)`);
           return { success: true, timestamp: ts, chars: charLen, title: json.title || 'Matrix Finance 360' };
         } else if (json && (json.error || json.message)) {
           updateStatusUI('error', json.error || json.message);
@@ -555,7 +581,8 @@ const SyncEngine = (function () {
         if (pingCheck && pingCheck.success) {
           const ts = new Date().toISOString();
           localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-          updateStatusUI('synced', 'Enviado ao Sheets às ' + new Date().toLocaleTimeString('pt-BR'));
+          if (!pendingFollowUpSync) localStorage.removeItem(DIRTY_LOCAL_KEY);
+          updateStatusUI('synced', 'Salvo no Sheets às ' + new Date().toLocaleTimeString('pt-BR'));
           return { success: true, timestamp: ts, mode: 'no-cors' };
         } else {
           const errMsg = (pingCheck && pingCheck.error) || 'Falha ao confirmar gravação no Google Sheets.';
@@ -568,7 +595,8 @@ const SyncEngine = (function () {
       if (pingFallback && pingFallback.success) {
         const ts = new Date().toISOString();
         localStorage.setItem(STORAGE_KEYS.lastSync, ts);
-        updateStatusUI('synced', 'Sincronizado às ' + new Date().toLocaleTimeString('pt-BR'));
+        if (!pendingFollowUpSync) localStorage.removeItem(DIRTY_LOCAL_KEY);
+        updateStatusUI('synced', 'Salvo às ' + new Date().toLocaleTimeString('pt-BR'));
         return { success: true, timestamp: ts };
       }
 
@@ -581,21 +609,50 @@ const SyncEngine = (function () {
       return { success: false, error: e.message };
     } finally {
       isSyncing = false;
+      if (pendingFollowUpSync) {
+        pendingFollowUpSync = false;
+        setTimeout(() => syncToCloud(), 150);
+      }
     }
   }
 
+  function showAutoSaveToast() {
+    if (typeof document === 'undefined') return;
+    let toast = document.getElementById('matrixAutoSaveToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'matrixAutoSaveToast';
+      toast.style.cssText = 'position:fixed;bottom:18px;left:18px;z-index:9999;background:rgba(5,16,11,0.94);border:1px solid var(--matrix-green);color:var(--matrix-green);font-family:var(--font-mono);font-size:11px;font-weight:700;padding:6px 12px;border-radius:999px;box-shadow:0 4px 16px rgba(0,255,102,0.22);pointer-events:none;opacity:0;transform:translateY(8px);transition:opacity 0.2s ease, transform 0.2s ease;display:flex;align-items:center;gap:6px;';
+      document.body.appendChild(toast);
+    }
+    const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    toast.innerHTML = `<span>💾</span> <span>Salvo automaticamente (${timeStr})</span>`;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+    if (toast._hideTimer) clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(8px)';
+    }, 1800);
+  }
+
   function queueSync() {
+    try {
+      localStorage.setItem(DIRTY_LOCAL_KEY, new Date().toISOString());
+    } catch (e) {}
+    showAutoSaveToast();
+
     const cfg = getConfig();
     if (!cfg.cloudUrl) {
-      updateStatusUI('offline');
+      updateStatusUI('offline', `Salvo automaticamente às ${new Date().toLocaleTimeString('pt-BR')}`);
       return;
     }
 
-    updateStatusUI('syncing', 'Alteração pendente de envio...');
+    updateStatusUI('syncing', 'Salvando alteração na nuvem...');
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       syncToCloud();
-    }, 2000);
+    }, 350);
   }
 
   if (typeof window !== 'undefined') {
@@ -603,6 +660,39 @@ const SyncEngine = (function () {
       if (e && e.detail && e.detail.skipCloudSync) return;
       queueSync();
     });
+
+    // Garante salvamento imediato se o usuário fechar a aba, minimizar o app no celular ou trocar de tela
+    const flushPendingChanges = () => {
+      try {
+        const s = typeof MatrixDB !== 'undefined' && MatrixDB.getState ? MatrixDB.getState() : null;
+        if (s) {
+          localStorage.setItem('MATRIX_FINANCE_STATE_v2', JSON.stringify(s));
+        }
+      } catch (e) {}
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+        const cfg = getConfig();
+        if (cfg.cloudUrl && navigator.sendBeacon) {
+          try {
+            const fullState = MatrixDB.getState();
+            const compactState = compactStateForCloud(fullState, SHEETS_STRICT_CHAR_LIMIT);
+            const payload = JSON.stringify({ action: 'sync_all', token: cfg.cloudToken, state: compactState });
+            navigator.sendBeacon(cfg.cloudUrl, new Blob([payload], { type: 'text/plain;charset=utf-8' }));
+          } catch (err) {
+            syncToCloud();
+          }
+        } else if (cfg.cloudUrl) {
+          syncToCloud();
+        }
+      }
+    };
+
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushPendingChanges();
+    });
+    window.addEventListener('pagehide', flushPendingChanges);
+    window.addEventListener('beforeunload', flushPendingChanges);
   }
 
   return {

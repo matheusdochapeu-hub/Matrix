@@ -1224,6 +1224,38 @@ const MatrixApp = (function () {
       });
     }
 
+    // Auto-save instantâneo na Aba Backup & Conexões
+    ['cfgCloudUrl', 'cfgCloudToken'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => {
+          const cloudUrl = (document.getElementById('cfgCloudUrl')?.value || '').trim();
+          const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
+          SyncEngine.saveConfig({ cloudUrl, cloudToken });
+          if (cloudUrl) SyncEngine.queueSync();
+        });
+      }
+    });
+
+    ['cfgFisioUrl', 'cfgFisioToken', 'cfgFaturasUrl', 'cfgFaturasToken', 'cfgMaracajuUrl', 'cfgMaracajuToken', 'chkAutoScrapeOnOpen'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => {
+          const cfg = {
+            fisioUrl: (document.getElementById('cfgFisioUrl')?.value || '').trim(),
+            fisioToken: (document.getElementById('cfgFisioToken')?.value || '').trim(),
+            faturasUrl: (document.getElementById('cfgFaturasUrl')?.value || '').trim(),
+            faturasToken: (document.getElementById('cfgFaturasToken')?.value || '').trim(),
+            maracajuUrl: (document.getElementById('cfgMaracajuUrl')?.value || '').trim(),
+            maracajuToken: (document.getElementById('cfgMaracajuToken')?.value || '').trim(),
+            autoScrapeOnOpen: !!document.getElementById('chkAutoScrapeOnOpen')?.checked
+          };
+          SatelliteConnectors.saveSatelliteConfig(cfg);
+          renderSatellitesUI();
+        });
+      }
+    });
+
     // Modal listeners
     setupModalListeners();
     setupHoleriteDropzone();
@@ -3056,11 +3088,11 @@ const MatrixApp = (function () {
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px;align-items:end;">
               <div>
                 <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VA (R$)</label>
-                <input type="number" step="0.01" id="inlineMaracajuVaSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vaSaldo.toFixed(2)}">
+                <input type="number" step="0.01" id="inlineMaracajuVaSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vaSaldo.toFixed(2)}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
               </div>
               <div>
                 <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VR (R$)</label>
-                <input type="number" step="0.01" id="inlineMaracajuVrSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vrSaldo.toFixed(2)}">
+                <input type="number" step="0.01" id="inlineMaracajuVrSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vrSaldo.toFixed(2)}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
               </div>
               <div style="display:flex;gap:6px;">
                 <button class="btn-matrix" style="padding:6px 10px;font-size:11px;width:100%;" onclick="MatrixApp.salvarSaldoAtualMaracajuInline()">
@@ -3204,7 +3236,7 @@ const MatrixApp = (function () {
     abrirDrilldown('maracaju');
   }
 
-  function salvarSaldoAtualMaracajuInline() {
+  function salvarSaldoAtualMaracajuInline(keepFocus = false) {
     const vaInp = document.getElementById('inlineMaracajuVaSaldo');
     const vrInp = document.getElementById('inlineMaracajuVrSaldo');
     const state = MatrixDB.getState();
@@ -3242,7 +3274,9 @@ const MatrixApp = (function () {
 
     MatrixDB.saveState(state, 'maracaju_inline_balance');
     renderAll();
-    abrirDrilldown('maracaju');
+    if (!keepFocus) {
+      abrirDrilldown('maracaju');
+    }
   }
 
   // ==========================================
@@ -6845,8 +6879,7 @@ function onModalCategoriaChange(catVal) {
 
   function togglePaidByIndex(ano, mes, tipo, index) {
     MatrixDB.togglePaidByIndex(ano, mes, tipo, index);
-    renderFluxoCaixa();
-    renderKPIs();
+    renderAll();
   }
 
   function removeItem(ano, mes, tipo, id) {
@@ -8753,6 +8786,21 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     if (elTitulosMes) elTitulosMes.textContent = (titulosPorMes).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' títulos';
     if (elTotalTitulos) elTotalTitulos.textContent = (totalTitulosAcumulados).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' cotas';
     if (elMontanteFinal) elMontanteFinal.textContent = formatBRL(vpSaques);
+
+    // Auto-save imediato dos parâmetros da simulação 2055
+    try {
+      const params = {
+        puTitulo,
+        taxaReal: parseFloat(document.getElementById('sim2055TaxaReal')?.value) || 6.5,
+        rendaDesejada,
+        planoSaude: parseFloat(document.getElementById('sim2055PlanoSaude')?.value) || 2776.70,
+        vales: parseFloat(document.getElementById('sim2055Vales')?.value) || 3350.00,
+        saldoAtual: saldoAtualRenda,
+        meta: currentSim2055Meta,
+        salvoEm: new Date().toISOString()
+      };
+      localStorage.setItem(SIMULADOR_2055_STORAGE_KEY, JSON.stringify(params));
+    } catch (e) {}
   }
 
   function salvarParametrosSimulador2055() {
