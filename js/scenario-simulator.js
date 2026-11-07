@@ -134,6 +134,49 @@ const ScenarioSimulator = (function () {
     return /vale\s*(aliment|refei)|\bva\b|\bvr\b|maracaju/i.test(n);
   }
 
+  function isReceitaDaScarlet(r) {
+    if (!r) return false;
+    if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.isReceitaDaScarlet) {
+      return window.MatrixApp.isReceitaDaScarlet(r);
+    }
+    const tit = String(r.titular || '').toLowerCase().trim();
+    const ren = String(r.renda || '').toLowerCase().trim();
+    const cta = String(r.conta || '').toLowerCase().trim();
+    const cat = String(r.categoria || '').toLowerCase().trim();
+    const n = String(r.nome || '').toLowerCase();
+    const id = String(r.id || '').toLowerCase();
+    if (tit === 'scarlet') return true;
+    if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet') return true;
+    if (cta === 'scarlet_fisio' || cta === 'scarlet_extra') return true;
+    if (cat === 'outras rendas scarlet' || cat === 'fisio scarlet') return true;
+    if (id.includes('scarlet_extra')) return true;
+    if (n.includes('scarlet') || n.includes('fisio')) return true;
+    return false;
+  }
+
+  function getOutrasRendasScarletCalculadas(ano, mesName, monthData) {
+    if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getOutrasRendasScarletMes) {
+      const val = window.MatrixApp.getOutrasRendasScarletMes(ano, mesName);
+      if (typeof val === 'number') return val;
+    }
+    if (!monthData) return 0;
+    const items = (monthData.receitas || []).filter(r => {
+      if (!isReceitaDaScarlet(r)) return false;
+      const n = String(r.nome || '').toLowerCase();
+      const id = String(r.id || '').toLowerCase();
+      const isFisioBase = id === 'rec_fisio_scarlet' || n.includes('fisioflow') || (n.includes('scarlet') && n.includes('fisio'));
+      return !isFisioBase;
+    });
+    if (items.length > 0) {
+      return items.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+    }
+    if (monthData.scarlet && monthData.scarlet.outrasRendas != null && monthData.scarlet.outrasRendas !== '') {
+      const val = parseFloat(monthData.scarlet.outrasRendas);
+      if (!isNaN(val)) return val;
+    }
+    return 0;
+  }
+
   function isGastoDaScarlet(it) {
     if (!it) return false;
     const n = (it.nome || '').toLowerCase().trim();
@@ -182,8 +225,7 @@ const ScenarioSimulator = (function () {
       if (monthData.receitas && monthData.receitas.length > 0) {
         monthData.receitas.forEach(r => {
           if (isBeneficioNaoPecunia(r)) return;
-          const n = (r.nome || '').toLowerCase();
-          if (n.includes('scarlet') || n.includes('fisio')) return;
+          if (isReceitaDaScarlet(r)) return;
           matheusGanhos += parseFloat(r.valor) || 0;
         });
       }
@@ -226,7 +268,7 @@ const ScenarioSimulator = (function () {
       // ==========================================
       // 2. CONTA 👩 SCARLET (FISIOFLOW / NUBANK)
       // ==========================================
-      const scarletGanhos = getGanhosScarletCalculados(yearStr, m.monthName, monthData, state);
+      const scarletGanhos = getGanhosScarletCalculados(yearStr, m.monthName, monthData, state) + getOutrasRendasScarletCalculadas(yearStr, m.monthName, monthData);
       const scarletFaturaNubank = (monthData.outros || [])
         .filter(isGastoDaScarlet)
         .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);

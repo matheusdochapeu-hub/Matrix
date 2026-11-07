@@ -724,25 +724,79 @@ const MatrixApp = (function () {
     return !!(hol && hol.liquido);
   }
 
-// Sobra pessoal do Matheus = ganhos dele - gastos próprios - transferência para a Scarlet.
+  // Identifica qualquer receita pertencente à Scarlet (seja FisioFlow ou Outras Rendas/Renda Extra da Scarlet)
+  function isReceitaDaScarlet(r) {
+    if (!r || isBeneficioNaoPecunia(r)) return false;
+    const n = (r.nome || '').toLowerCase().trim();
+    const c = (r.categoria || '').toLowerCase().trim();
+    const ren = (r.renda || '').toLowerCase().trim();
+    const cta = (r.conta || '').toLowerCase().trim();
+    const tit = (r.titular || '').toLowerCase().trim();
+    const id = (r.id || '').toLowerCase().trim();
+
+    if (tit === 'scarlet') return true;
+    if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet' || ren.includes('scarlet')) return true;
+    if (cta === 'scarlet_fisio' || cta === 'scarlet_extra' || cta === 'scarlet' || cta === 'nubank_scarlet' || cta === 'credito_nubank_scarlet' || cta.includes('scarlet')) return true;
+    if (c === 'outras rendas scarlet' || c === 'fisio scarlet' || c.includes('scarlet')) return true;
+    if (id.startsWith('rec_scarlet') || id.startsWith('rec_fisio') || id === 'sat_fisioflow_view') return true;
+    if (n.includes('scarlet') || n.includes('fisio')) return true;
+    return false;
+  }
+
+  // Identifica se a receita da Scarlet é o lançamento base de atendimentos FisioFlow (para separar de Outras Rendas/Extras da Scarlet)
+  function isReceitaFisioFlowBase(r) {
+    if (!isReceitaDaScarlet(r)) return false;
+    const n = (r.nome || '').toLowerCase().trim();
+    const c = (r.categoria || '').toLowerCase().trim();
+    const ren = (r.renda || '').toLowerCase().trim();
+    const cta = (r.conta || '').toLowerCase().trim();
+    const id = (r.id || '').toLowerCase().trim();
+
+    if (id.startsWith('rec_scarlet_extra') || c === 'outras rendas scarlet' || ren === 'outras_rendas_scarlet' || cta === 'scarlet_extra') {
+      return false;
+    }
+    if (id.startsWith('rec_fisio') || id === 'sat_fisioflow_view') return true;
+    if (n.includes('fisioflow') || n === 'ganhos scarlet' || n === 'ganhos scarlet (fisio)' || n === 'atendimentos scarlet' || n === 'fisio scarlet') {
+      return true;
+    }
+    return false;
+  }
+
+  // Identifica se a receita é uma Renda Extra / Outra Renda da Scarlet (ex: "Pgt sheila", consultoria, aulas, etc.)
+  function isOutraRendaDaScarlet(r) {
+    return isReceitaDaScarlet(r) && !isReceitaFisioFlowBase(r);
+  }
+
+  // Identifica se a receita é Salário/13º base do Matheus
+  function isReceitaSalarioMatheus(r) {
+    if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r)) return false;
+    const n = (r.nome || '').toLowerCase().trim();
+    const id = (r.id || '').toLowerCase().trim();
+    return id.startsWith('rec_sal') || n.includes('salário');
+  }
+
+  // Identifica se a receita é Renda Extra / Outros Ganhos exclusivamente do Matheus (Estúdio, Empréstimo Matheus, etc.)
+  function isReceitaExtraMatheus(r) {
+    if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r) || isReceitaSalarioMatheus(r)) return false;
+    return true;
+  }
+
+  // Sobra pessoal do Matheus = ganhos dele - gastos próprios - transferência para a Scarlet.
   // Usada pelo card do painel executivo e pela auditoria (drilldown), garantindo números idênticos.
   function calcSobraMatheus(ano, mes) {
     const monthData = MatrixDB.getMonth(ano, mes);
     const num = (v) => parseFloat(v) || 0;
     const receitas = monthData.receitas || [];
 
-    // Ganhos: tudo que cai na conta dele (salário, 13º, renda extra), sem VA/VR e sem ganhos da Scarlet.
-    let ganhos = 0;
-    if (receitas.length > 0) {
-      receitas.forEach(r => {
-        if (isBeneficioNaoPecunia(r)) return;
-        const n = (r.nome || '').toLowerCase();
-        if (n.includes('scarlet') || n.includes('fisio')) return;
-        ganhos += num(r.valor);
-      });
-    } else {
-      ganhos = getSalarioLiquidoMes(ano, mes);
-    }
+    // Ganhos: salário líquido do Matheus + rendas extras exclusivamente dele (exclui VA/VR e exclui 100% das rendas da Scarlet).
+    const salMatheus = getSalarioLiquidoMes(ano, mes);
+    let outrosGanhosMatheus = 0;
+    receitas.forEach(r => {
+      if (isReceitaExtraMatheus(r)) {
+        outrosGanhosMatheus += num(r.valor);
+      }
+    });
+    const ganhos = salMatheus + outrosGanhosMatheus;
 
     const somaPropria = (lista) => (lista || [])
       .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && !isConsignadoFolhaJaDescontado(it, ano, mes))
@@ -819,27 +873,16 @@ const MatrixApp = (function () {
     return 0;
   }
 
-  // Outras Rendas da Scarlet (além do atendimento fisioterapêutico)
+  // Outras Rendas da Scarlet (além do atendimento fisioterapêutico, ex: "Pgt sheila", consultoria, etc.)
   function getOutrasRendasScarletMes(ano, mes) {
     const monthData = MatrixDB.getMonth(ano, mes);
 
     let total = 0;
     let foundInReceitas = false;
 
-    // 1. Receitas lançadas explicitamente como Outras Rendas da Scarlet
+    // 1. Receitas lançadas como Outras Rendas / Renda Extra da Scarlet
     (monthData.receitas || []).forEach(r => {
-      if (isBeneficioNaoPecunia(r)) return;
-      const c = (r.categoria || '').toLowerCase();
-      const ren = (r.renda || '').toLowerCase();
-      const n = (r.nome || '').toLowerCase();
-      const isExtraScarlet = (
-        c === 'outras rendas scarlet' ||
-        ren === 'outras_rendas_scarlet' ||
-        (r.id && r.id.startsWith('rec_scarlet_extra')) ||
-        ((n.includes('scarlet') || (r.titular || '').toLowerCase() === 'scarlet') && 
-         (n.includes('extra') || n.includes('outras') || n.includes('consultoria') || n.includes('plantão') || n.includes('aulas') || n.includes('domiciliar')))
-      );
-      if (isExtraScarlet) {
+      if (isOutraRendaDaScarlet(r)) {
         total += parseFloat(r.valor) || 0;
         foundInReceitas = true;
       }
@@ -863,14 +906,13 @@ const MatrixApp = (function () {
 
   function getDescOutrasRendasScarletMes(ano, mes) {
     const monthData = MatrixDB.getMonth(ano, mes);
+    const recs = (monthData.receitas || []).filter(r => isOutraRendaDaScarlet(r) && (parseFloat(r.valor) || 0) > 0);
+    if (recs.length > 0) {
+      return recs.map(r => r.nome).join(' + ');
+    }
     if (monthData.scarlet && monthData.scarlet.descOutrasRendas) {
       return monthData.scarlet.descOutrasRendas;
     }
-    const rec = (monthData.receitas || []).find(r => {
-      const c = (r.categoria || '').toLowerCase();
-      return c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'));
-    });
-    if (rec && rec.nome) return rec.nome;
     return 'Outras Rendas Scarlet';
   }
 
@@ -1321,38 +1363,23 @@ const MatrixApp = (function () {
       const monthData = MatrixDB.getMonth(m.ano, m.mes);
       const isCurrent = (m.ano === currentYear && m.mes === currentMonth);
 
-      // 1. Rendas Matheus (Salário USP/MPSP + Renda Extra / Outros)
+      // 1. Rendas Matheus (Salário USP/MPSP + Renda Extra / Outros exclusivamente do Matheus)
       const salMatheus = getSalarioLiquidoMes(m.ano, m.mes);
       let outrosGanhosMatheus = 0;
       let labelExtraMatheus = '';
       (monthData.receitas || []).forEach(r => {
-        if (!isBeneficioNaoPecunia(r)) {
-          const n = (r.nome || '').toLowerCase();
-          if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
-            const val = parseFloat(r.valor) || 0;
-            outrosGanhosMatheus += val;
-            if (val > 0 && !labelExtraMatheus) labelExtraMatheus = r.nome;
-          }
+        if (isReceitaExtraMatheus(r)) {
+          const val = parseFloat(r.valor) || 0;
+          outrosGanhosMatheus += val;
+          if (val > 0 && !labelExtraMatheus) labelExtraMatheus = r.nome;
         }
       });
       const rendaMatheusTotal = salMatheus + outrosGanhosMatheus;
 
       // 2. Rendas Scarlet (FisioFlow + Outras Rendas dela)
       const salScarlet = getGanhosScarletMes(m.ano, m.mes);
-      let outrasRendasScarlet = 0;
-      let labelExtraScarlet = '';
-      (monthData.receitas || []).forEach(r => {
-        if (!isBeneficioNaoPecunia(r)) {
-          const n = (r.nome || '').toLowerCase();
-          if ((n.includes('scarlet') || n.includes('fisio')) && !n.includes('fisioflow') && !n.includes('salário scarlet')) {
-            const val = parseFloat(r.valor) || 0;
-            if (val !== salScarlet && val > 0) {
-              outrasRendasScarlet += val;
-              if (!labelExtraScarlet) labelExtraScarlet = r.nome;
-            }
-          }
-        }
-      });
+      const outrasRendasScarlet = getOutrasRendasScarletMes(m.ano, m.mes);
+      const labelExtraScarlet = getDescOutrasRendasScarletMes(m.ano, m.mes);
       const rendaScarletTotal = salScarlet + outrasRendasScarlet;
 
       // 3. Benefícios Alimentação (VA + VR — Crédito do Mês para Ganhos Conjuntos)
@@ -1530,36 +1557,25 @@ const MatrixApp = (function () {
     }
     if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
-    // 5. Outros Ganhos em Pecúnia (13º, Férias proporcionais, Estúdio/Personalizado, etc.)
+    // 5. Outros Ganhos em Pecúnia do Matheus (Estúdio/Renda Extra, Empréstimo Matheus, etc. — exclui estritamente rendas da Scarlet)
     let outrosGanhos = 0;
     let outrosLabel = '';
     (monthData.receitas || []).forEach(r => {
-      if (!isBeneficioNaoPecunia(r)) {
-        const n = (r.nome || '').toLowerCase();
-        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
-          const val = parseFloat(r.valor) || 0;
-          outrosGanhos += val;
-          if (val > 0 && !outrosLabel) outrosLabel = r.nome;
-        }
+      if (isReceitaExtraMatheus(r)) {
+        const val = parseFloat(r.valor) || 0;
+        outrosGanhos += val;
+        if (val > 0 && !outrosLabel) outrosLabel = r.nome;
       }
     });
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
-    // Composição rigorosa: Salário USP Matheus + FisioFlow Scarlet + Renda Extra
-    let temReceitaScarletNoArray = false;
-    let ganhosPecunia = 0;
+    // Composição rigorosa: Salário USP Matheus + Renda Extra Matheus + FisioFlow Scarlet + Outras Rendas Scarlet
+    const outrasRendasScarletMes = getOutrasRendasScarletMes(currentYear, currentMonth);
     const beneficiosNaoPecunia = Math.round((va + vr) * 100) / 100;
 
     if (monthData.receitas && monthData.receitas.length > 0) {
       monthData.receitas.forEach(it => {
-        const val = parseFloat(it.valor) || 0;
-        const n = (it.nome || '').toLowerCase();
-        if (n.includes('scarlet') || n.includes('fisio')) {
-          temReceitaScarletNoArray = true;
-          ganhosPecunia += val;
-        } else if (!isBeneficioNaoPecunia(it)) {
-          ganhosPecunia += val;
-        } else {
+        if (isBeneficioNaoPecunia(it)) {
           if (isItemVR(it)) {
             it.valor = vr;
           } else if (isItemVA(it)) {
@@ -1567,14 +1583,8 @@ const MatrixApp = (function () {
           }
         }
       });
-    } else {
-      ganhosPecunia = salMatheus + outrosGanhos;
     }
-
-    // Se Scarlet não estiver no array de receitas, somar o ganho real apurado do app dela
-    if (!temReceitaScarletNoArray && ganhosScarlet > 0) {
-      ganhosPecunia += ganhosScarlet;
-    }
+    const ganhosPecunia = salMatheus + outrosGanhos + ganhosScarlet + outrasRendasScarletMes;
 
     // Gastos Fixos
     const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
@@ -2153,12 +2163,10 @@ const MatrixApp = (function () {
       const salUspVal = getSalarioLiquidoMes(currentYear, currentMonth);
       const fisioVal = getGanhosScarletMes(currentYear, currentMonth);
       const outrasRendasScarletVal = getOutrasRendasScarletMes(currentYear, currentMonth);
+      const scarletTotalVal = fisioVal + outrasRendasScarletVal;
 
       // Se atendimentos de Scarlet não estiverem no array de receitas, insere na visualização
-      const temFisioNoArray = todasReceitas.some(r => {
-        const n = (r.nome || '').toLowerCase();
-        return n.includes('scarlet') || n.includes('fisio');
-      });
+      const temFisioNoArray = todasReceitas.some(r => isReceitaFisioFlowBase(r));
       if (!temFisioNoArray && fisioVal > 0) {
         todasReceitas.push({
           id: 'sat_fisioflow_view',
@@ -2175,8 +2183,7 @@ const MatrixApp = (function () {
       const totalNaoPecunia = beneficiosNaoPecunia.reduce((a, b) => a + (parseFloat(b.valor) || 0), 0);
       let rendaExtraVal = 0;
       receitasPecunia.forEach(r => {
-        const n = (r.nome || '').toLowerCase();
-        if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
+        if (isReceitaExtraMatheus(r)) {
           rendaExtraVal += (parseFloat(r.valor) || 0);
         }
       });
@@ -2192,17 +2199,17 @@ const MatrixApp = (function () {
             <span class="eq-op" style="color:var(--cyan);">+</span>
             <div class="eq-part">
               <span class="eq-label">Renda Extra</span>
-              <strong class="eq-val" style="color:var(--matrix-green);">${formatBRL(Math.max(0, totalPecunia - salUspVal - fisioVal))}</strong>
+              <strong class="eq-val" style="color:var(--matrix-green);">${formatBRL(rendaExtraVal)}</strong>
             </div>
             <span class="eq-op" style="color:var(--cyan);">+</span>
             <div class="eq-part">
-              <span class="eq-label">Scarlet (Fisio)</span>
-              <strong class="eq-val" style="color:var(--cyan);">${formatBRL(fisioVal)}</strong>
+              <span class="eq-label">Scarlet Total</span>
+              <strong class="eq-val" style="color:var(--cyan);">${formatBRL(scarletTotalVal)}</strong>
             </div>
             <span class="eq-op" style="color:var(--cyan);">=</span>
             <div class="eq-part">
               <span class="eq-label">Total Pecúnia</span>
-              <strong class="eq-val" style="color:var(--text-bright);">${formatBRL(totalPecunia)}</strong>
+              <strong class="eq-val" style="color:var(--text-bright);">${formatBRL(salUspVal + rendaExtraVal + scarletTotalVal)}</strong>
             </div>
           </div>
 
@@ -3282,6 +3289,7 @@ const MatrixApp = (function () {
 
     // Scarlet / FisioFlow
     scarlet_fisio: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
+    scarlet_extra: { label: 'Renda Extra Scarlet', class: 'fisio', icon: '👩‍⚕️🎁' },
     scarlet: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
 
     // Investimentos / Resgates
@@ -3310,6 +3318,11 @@ const MatrixApp = (function () {
     // 0. Empréstimos
     if (c.includes('emprestimo') || r.includes('emprestimo') || n.includes('empréstimo') || n.includes('emprestimo')) {
       return '<span class="bank-badge resgate" title="Recursos originados de Empréstimo / Financiamento"><span class="bank-icon">🏦</span> <strong>Empréstimo</strong></span>';
+    }
+
+    // 0.5 Outras Rendas / Renda Extra da Scarlet explícita
+    if (r === 'outras_rendas_scarlet' || c === 'scarlet_extra') {
+      return '<span class="bank-badge fisio" title="Outras Rendas / Renda Extra da Scarlet"><span class="bank-icon">👩‍⚕️🎁</span> <strong>Renda Extra Scarlet</strong></span>';
     }
 
     // 1. Direct match in dictionary
@@ -3371,14 +3384,11 @@ const MatrixApp = (function () {
     // 1. Receitas e Ganhos
     let salUsp = getSalarioLiquidoMes(currentYear, currentMonth) || 5788.19;
     let outrosGanhos = 0;
-    let scarletTotal = getGanhosScarletMes(currentYear, currentMonth);
+    let scarletTotal = getGanhosScarletMes(currentYear, currentMonth) + getOutrasRendasScarletMes(currentYear, currentMonth);
 
     (monthData.receitas || []).forEach(r => {
-      if (isBeneficioNaoPecunia(r)) return;
-      const n = (r.nome || '').toLowerCase();
-      const val = parseFloat(r.valor) || 0;
-      if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio')) {
-        outrosGanhos += val;
+      if (isReceitaExtraMatheus(r)) {
+        outrosGanhos += parseFloat(r.valor) || 0;
       }
     });
 
@@ -4101,6 +4111,11 @@ function onModalCategoriaChange(catVal) {
       recalcEmprestimoParcelaSugestao();
     } else {
       if (empSection) empSection.style.display = 'none';
+      if (catVal === 'Outras Rendas Scarlet' && rendaSel) {
+        rendaSel.value = 'outras_rendas_scarlet';
+      } else if (catVal === 'Fisio Scarlet' && rendaSel) {
+        rendaSel.value = 'ganhos_scarlet';
+      }
     }
   }
 
@@ -7072,7 +7087,8 @@ function onModalCategoriaChange(catVal) {
     if (renda === 'emprestimo') conta = 'emprestimo_familiar';
     else if (renda === 'va_mercado') conta = 'cartao_va';
     else if (renda === 'vr_almoco') conta = 'cartao_vr';
-    else if (renda === 'ganhos_scarlet' || renda === 'outras_rendas_scarlet') conta = 'scarlet_fisio';
+    else if (renda === 'outras_rendas_scarlet' || cat === 'Outras Rendas Scarlet') conta = 'scarlet_extra';
+    else if (renda === 'ganhos_scarlet' || cat === 'Fisio Scarlet') conta = 'scarlet_fisio';
     else if (renda === 'investimento_resgate') conta = 'resgate_tesouro_reserva';
     else if (renda === 'estudio_extra') conta = 'pix_inter';
     else if (renda === 'outros_ganhos') conta = 'outros';
@@ -7273,16 +7289,17 @@ function onModalCategoriaChange(catVal) {
     if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
     if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
-    // 4. Ganho Extra / Estúdio
+    // 4. Ganho Extra / Estúdio (exclusivamente do Matheus, sem somar Empréstimos nem rendas da Scarlet)
     const nomeEst = getNomeEstudio();
     let valExtra = 0;
     let contaExtra = 'salario_bb';
     (monthData.receitas || []).forEach(r => {
+      if (!isReceitaExtraMatheus(r)) return;
       const n = (r.nome || '').toLowerCase();
-      if (!n.includes('salário') && !n.includes('scarlet') && !n.includes('fisio') && !n.includes('va') && !n.includes('alimentação') && !n.includes('vr') && !n.includes('refeição')) {
-        valExtra += (parseFloat(r.valor) || 0);
-        if (r.conta) contaExtra = r.conta;
-      }
+      const c = (r.categoria || '').toLowerCase();
+      if (c === 'empréstimo' || n.includes('empréstimo') || n.includes('emprestimo')) return;
+      valExtra += (parseFloat(r.valor) || 0);
+      if (r.conta) contaExtra = r.conta;
     });
     if (valExtra === 0 && monthData.totais) {
       valExtra = parseFloat(monthData.totais[nomeEst] || monthData.totais['Estúdio']) || 0;
@@ -7443,29 +7460,34 @@ function onModalCategoriaChange(catVal) {
       recFisio.valor = 0;
     }
 
-    // Outras Rendas da Scarlet (Consultoria, Plantão, Cursos, etc.)
-    let recOutrasScarlet = monthData.receitas.find(r => (r.id && r.id.startsWith('rec_scarlet_extra')) || (r.categoria === 'Outras Rendas Scarlet'));
+    // Outras Rendas da Scarlet (ex: "Pgt sheila", Consultoria, Plantão, Cursos, etc.)
+    const listaOutrasScarlet = monthData.receitas.filter(r => isOutraRendaDaScarlet(r));
+    const somaAtualOutrasScarlet = listaOutrasScarlet.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
     if (outrasRendasScarlet > 0) {
-      if (recOutrasScarlet) {
+      if (listaOutrasScarlet.length === 1) {
+        const recOutrasScarlet = listaOutrasScarlet[0];
         recOutrasScarlet.nome = descOutrasScarlet;
         recOutrasScarlet.valor = outrasRendasScarlet;
-        recOutrasScarlet.categoria = 'Outras Rendas Scarlet';
         recOutrasScarlet.renda = 'outras_rendas_scarlet';
         recOutrasScarlet.titular = 'scarlet';
-      } else {
+      } else if (listaOutrasScarlet.length === 0) {
         monthData.receitas.push({
           id: 'rec_scarlet_extra_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
           nome: descOutrasScarlet,
           valor: outrasRendasScarlet,
           categoria: 'Outras Rendas Scarlet',
-          conta: 'scarlet_fisio',
+          conta: 'scarlet_extra',
           renda: 'outras_rendas_scarlet',
           titular: 'scarlet',
           pago: true
         });
+      } else if (Math.abs(somaAtualOutrasScarlet - outrasRendasScarlet) > 0.01) {
+        const recTarget = listaOutrasScarlet.find(r => r.id && r.id.startsWith('rec_scarlet_extra')) || listaOutrasScarlet[0];
+        const somaDemais = somaAtualOutrasScarlet - (parseFloat(recTarget.valor) || 0);
+        recTarget.valor = Math.max(0, Math.round((outrasRendasScarlet - somaDemais) * 100) / 100);
       }
-    } else if (recOutrasScarlet) {
-      recOutrasScarlet.valor = 0;
+    } else if (listaOutrasScarlet.length > 0) {
+      listaOutrasScarlet.forEach(r => { r.valor = 0; });
     }
 
     // Vale Alimentação (VA)
@@ -7498,8 +7520,9 @@ function onModalCategoriaChange(catVal) {
       });
     }
 
-    // Ganho Extra
+    // Ganho Extra (exclusivo do Matheus)
     let recExtra = monthData.receitas.find(r => {
+      if (!isReceitaExtraMatheus(r)) return false;
       const n = (r.nome || '').toLowerCase();
       return n.includes('extra') || n.includes('estúdio') || n.includes(novoNomeEst.toLowerCase());
     });
@@ -8952,6 +8975,9 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     getGanhosScarletMes,
     getOutrasRendasScarletMes,
     getDescOutrasRendasScarletMes,
+    isReceitaDaScarlet,
+    isOutraRendaDaScarlet,
+    isReceitaExtraMatheus,
     calcSobraMatheus,
     isGastoDaScarlet,
     isTransferenciaParaScarlet,
