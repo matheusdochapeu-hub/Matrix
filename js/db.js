@@ -345,16 +345,58 @@ const MatrixDB = (function () {
     return memoryCache;
   }
 
-  function saveState(state) {
+  const BACKUP_LAST_KEY = 'matrix_backup_auto_last';
+  const BACKUP_HISTORY_KEY = 'matrix_backup_history_v1';
+
+  function saveState(state, reason = 'alteracao_sistema') {
     state.atualizadoEm = new Date().toISOString();
     memoryCache = state;
+    const serialized = JSON.stringify(state);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // 1. Gravação no armazenamento ativo
+      localStorage.setItem(STORAGE_KEY, serialized);
+
+      // 2. Backup Impecável: Snapshot completo imediato
+      localStorage.setItem(BACKUP_LAST_KEY, JSON.stringify({
+        timestamp: new Date().toISOString(),
+        motivo: reason,
+        state: state
+      }));
+
+      // 3. Histórico de snapshots rotativos (mantém as últimas 20 alterações)
+      let hist = [];
+      try {
+        const histRaw = localStorage.getItem(BACKUP_HISTORY_KEY);
+        if (histRaw) hist = JSON.parse(histRaw);
+      } catch (_) {}
+      if (!Array.isArray(hist)) hist = [];
+      hist.unshift({
+        id: 'snap_' + Date.now(),
+        dataHora: new Date().toISOString(),
+        motivo: reason,
+        resumo: `Backup automático às ${new Date().toLocaleTimeString('pt-BR')}`
+      });
+      if (hist.length > 20) hist = hist.slice(0, 20);
+      localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(hist));
     } catch (e) {
-      console.error('Falha ao gravar no localStorage:', e);
+      console.error('Falha ao gravar no localStorage ou criar backup:', e);
     }
     window.dispatchEvent(new CustomEvent('matrix_data_changed', { detail: state }));
     return state;
+  }
+
+  function getLastAutoBackup() {
+    try {
+      const raw = localStorage.getItem(BACKUP_LAST_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }
+
+  function getBackupSnapshots() {
+    try {
+      const raw = localStorage.getItem(BACKUP_HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (_) { return []; }
   }
 
   const MONTH_NAMES = [

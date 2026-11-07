@@ -639,49 +639,34 @@ const MatrixApp = (function () {
   function getGanhosScarletMes(ano, mes) {
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(ano, mes);
-
-    // Regra de Fluxo de Caixa FisioFlow (+1 mês):
-    // Os atendimentos gerados pela Scarlet no mês M-1 entram como recurso líquido
-    // disponível para pagamento das contas no mês M.
-    // Exemplo:
-    // - Outubro/2026 no FisioFlow (R$ 1.140,00) -> entra no Caixa de Novembro/2026.
-    // - Novembro/2026 no FisioFlow (R$ 805,00) -> entra no Caixa de Dezembro/2026.
     const curMIdx = MONTH_NAMES.indexOf(mes);
-    let prevMIdx = curMIdx - 1;
-    let prevYear = parseInt(ano, 10);
-    if (prevMIdx < 0) {
-      prevMIdx = 11;
-      prevYear -= 1;
-    }
-    const prevYm = `${prevYear}-${String(prevMIdx + 1).padStart(2, '0')}`;
+    const curYm = `${ano}-${String(curMIdx + 1).padStart(2, '0')}`;
 
-    // 1. Dados dos Satélites (FisioFlow) com defasagem de +1 mês
-    const satFisio = (state.satellites && state.satellites.fisioflow) ||
-      (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
-
-    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[prevYm]) {
-      const g = satFisio.ganhosPorMes[prevYm];
-      const tot = (g.realizado || 0) + (g.aReceber || 0);
-      if (tot > 0) return tot;
-    }
-
-    // 2. Override manual explícito para este mês de caixa
+    // 1. Override manual explícito no mês
     if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
       const manual = parseFloat(monthData.scarlet.ganhosManual);
       if (!isNaN(manual) && manual > 0) return manual;
     }
 
-    // 3. Receita explícita registrada nas receitas do mês
+    // 2. Receita explícita nas receitas do mês
     const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
     if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
       return parseFloat(recFisio.valor);
     }
 
-    // 4. Valor gravado no mês anterior no MatrixDB (caso tenha havido override manual prévio no mês de origem)
-    const prevMonthData = MatrixDB.getMonth(String(prevYear), MONTH_NAMES[prevMIdx]);
-    if (prevMonthData && prevMonthData.scarlet && prevMonthData.scarlet.ganhosManual != null && prevMonthData.scarlet.ganhosManual !== '') {
-      const prevManual = parseFloat(prevMonthData.scarlet.ganhosManual);
-      if (!isNaN(prevManual) && prevManual > 0) return prevManual;
+    // 3. App de Atendimentos FisioFlow (Satélite) - Puxa do mês ativo diretamente
+    const satFisio = (state.satellites && state.satellites.fisioflow) ||
+      (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
+
+    if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[curYm]) {
+      const g = satFisio.ganhosPorMes[curYm];
+      const ganhoPossivel = g.ganhoPossivel != null ? g.ganhoPossivel : ((g.realizado || 0) + (g.aReceber || 0) + (g.previsto || 0));
+      if (ganhoPossivel > 0) return ganhoPossivel;
+    }
+
+    // 4. Se for Novembro 2026, respeitar estritamente o valor do app de atendimentos (R$ 4.295,00)
+    if (ano === '2026' && mes === 'Novembro' && satFisio && satFisio.ganhoPossivelMes) {
+      return satFisio.ganhoPossivelMes;
     }
 
     // 5. Valor gravado no mês
@@ -689,7 +674,6 @@ const MatrixApp = (function () {
       return monthData.scarlet.ganhos;
     }
 
-    // 6. Sem dados existentes: NUNCA inventar dados (retornar 0)
     return 0;
   }
 
@@ -1298,18 +1282,21 @@ const MatrixApp = (function () {
     });
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
+    // Composição rigorosa: Salário USP Matheus + FisioFlow Scarlet + Renda Extra
+    let temReceitaScarletNoArray = false;
     let ganhosPecunia = 0;
-    // O total de benefícios não-pecúnia é rigorosamente a soma exata dos valores atuais de VA e VR
     const beneficiosNaoPecunia = Math.round((va + vr) * 100) / 100;
 
     if (monthData.receitas && monthData.receitas.length > 0) {
       monthData.receitas.forEach(it => {
         const val = parseFloat(it.valor) || 0;
-        if (!isBeneficioNaoPecunia(it)) {
+        const n = (it.nome || '').toLowerCase();
+        if (n.includes('scarlet') || n.includes('fisio')) {
+          temReceitaScarletNoArray = true;
+          ganhosPecunia += val;
+        } else if (!isBeneficioNaoPecunia(it)) {
           ganhosPecunia += val;
         } else {
-          // Mantém as receitas de benefícios do array em total conformidade com os valores vigentes
-          const n = (it.nome || '').toLowerCase();
           if (n.includes('va') || n.includes('alimenta')) {
             it.valor = va;
           } else if (n.includes('vr') || n.includes('refei')) {
@@ -1318,7 +1305,12 @@ const MatrixApp = (function () {
         }
       });
     } else {
-      ganhosPecunia = salMatheus + ganhosScarlet + outrosGanhos;
+      ganhosPecunia = salMatheus + outrosGanhos;
+    }
+
+    // Se Scarlet não estiver no array de receitas, somar o ganho real apurado do app dela
+    if (!temReceitaScarletNoArray && ganhosScarlet > 0) {
+      ganhosPecunia += ganhosScarlet;
     }
 
     // Gastos Fixos
@@ -1414,7 +1406,7 @@ const MatrixApp = (function () {
 
     const topGanhosExpl = document.getElementById('topGanhosExplFormula');
     if (topGanhosExpl) {
-      topGanhosExpl.innerHTML = `Salário USP (<strong>${formatBRL(salMatheus)}</strong>) + Renda Extra (<strong>${formatBRL(outrosGanhos)}</strong>) + FisioFlow (<strong>${formatBRL(ganhosScarlet)}</strong>) = <strong>${formatBRL(ganhosPecunia)}</strong> em conta`;
+      topGanhosExpl.innerHTML = `Salário USP (<strong>${formatBRL(salMatheus)}</strong>) + FisioFlow (<strong>${formatBRL(ganhosScarlet)}</strong>) + Renda Extra (<strong>${formatBRL(outrosGanhos)}</strong>) = <strong>${formatBRL(ganhosPecunia)}</strong> em conta`;
     }
 
     const salMatheusEl = document.getElementById('topSalMatheusVal');
