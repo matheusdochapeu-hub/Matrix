@@ -157,25 +157,11 @@ const ScenarioSimulator = (function () {
       const manual = parseFloat(monthData.scarlet.ganhosManual);
       if (!isNaN(manual)) return manual;
     }
-    if (monthData && monthData.receitas) {
-      const recFisio = monthData.receitas.find(r => {
-        if (isBeneficioNaoPecunia(r)) return false;
-        const c = (r.categoria || '').toLowerCase();
-        if (c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'))) return false;
-        const n = (r.nome || '').toLowerCase();
-        return n.includes('scarlet') || n.includes('fisio') || n.includes('atendimento');
-      });
-      if (recFisio && recFisio.valor != null) {
-        return parseFloat(recFisio.valor) || 0;
-      }
-    }
-    // Regra +1 Mês para 2026
+    // Regra estrita M+1 do FisioFlow para 2026
+    if (ano === '2026' && mesName === 'Outubro') return 3700.00;
     if (ano === '2026' && mesName === 'Novembro') return 1140.00;
     if (ano === '2026' && mesName === 'Dezembro') return 995.00;
-    if (parseInt(ano, 10) === 2026 && monthData && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number') {
-      return monthData.scarlet.ganhos;
-    }
-    // Regra estrita de integridade: se não há lançamento real no app fonte ou manual, estritamente ZERO (0)
+    // De Janeiro/2027 em diante: estritamente ZERO (0) se não houver dados no app fonte
     return 0;
   }
 

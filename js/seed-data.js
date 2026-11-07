@@ -475,7 +475,7 @@ const MATRIX_SEED_DATA = {
         },
         "scarlet": {
           "gastos": [],
-          "ganhos": 3629.86,
+          "ganhos": 3700,
           "faturaNubank": 4835.22
         },
         "receitas": [
@@ -682,7 +682,7 @@ const MATRIX_SEED_DATA = {
         },
         "scarlet": {
           "gastos": [],
-          "ganhos": 1100,
+          "ganhos": 1140,
           "faturaNubank": 4568.57
         },
         "receitas": [
@@ -875,7 +875,7 @@ const MATRIX_SEED_DATA = {
         },
         "scarlet": {
           "gastos": [],
-          "ganhos": 5200,
+          "ganhos": 995,
           "faturaNubank": 1568.05
         },
         "receitas": [

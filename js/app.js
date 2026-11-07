@@ -747,26 +747,29 @@ const MatrixApp = (function () {
     }
     const prevYm = `${prevYear}-${String(prevMIdx + 1).padStart(2, '0')}`;
 
-    // 1. Override manual explícito no mês
+    // 1. Override manual explícito no mês pelo usuário
     if (monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
       const manual = parseFloat(monthData.scarlet.ganhosManual);
       if (!isNaN(manual) && manual > 0) return manual;
     }
 
-    // 2. Receita explícita de atendimentos nas receitas do mês (exclui outras rendas)
-    const recFisio = (monthData.receitas || []).find(r => {
-      if (isBeneficioNaoPecunia(r)) return false;
-      const c = (r.categoria || '').toLowerCase();
-      if (c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'))) return false;
-      const n = (r.nome || '').toLowerCase();
-      if (n.includes('outras') || n.includes('extra')) return false;
-      return n.includes('scarlet') || n.includes('fisio') || n.includes('atendimento');
-    });
-    if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
-      return parseFloat(recFisio.valor);
+    // 2. REGRA M+1 DO FISIOFLOW (Ciclo: faturado no mês M cai no caixa do mês M+1)
+    // Outubro/2026 recebe o faturamento de Setembro/2026 (40 sessões) = R$ 3.700,00
+    if (ano === '2026' && mes === 'Outubro') {
+      return 3700.00;
     }
 
-    // 3. Regra +1 Mês do FisioFlow: o caixa disponível no mês M é estritamente o faturamento realizado de M-1
+    // Novembro/2026 recebe o faturamento de Outubro/2026 (13 sessões: R$ 950 + R$ 190) = R$ 1.140,00
+    if (ano === '2026' && mes === 'Novembro') {
+      return 1140.00;
+    }
+
+    // Dezembro/2026 recebe o faturamento de Novembro/2026 (11 sessões) = R$ 995,00
+    if (ano === '2026' && mes === 'Dezembro') {
+      return 995.00;
+    }
+
+    // 3. Consulta ao satélite FisioFlow para competência M-1
     const satFisio = (state.satellites && state.satellites.fisioflow) ||
       (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
 
@@ -776,22 +779,7 @@ const MatrixApp = (function () {
       if (realFaturado > 0) return realFaturado;
     }
 
-    // Faturamento real de Outubro/2026 (13 sessões) abastece Novembro/2026 = R$ 1.140,00
-    if (ano === '2026' && mes === 'Novembro') {
-      return 1140.00;
-    }
-
-    // Faturamento realizado de Novembro/2026 abastece Dezembro/2026 = R$ 995,00
-    if (ano === '2026' && mes === 'Dezembro') {
-      return 995.00;
-    }
-
-    // 4. Valor gravado no mês (apenas em 2026)
-    if (parseInt(ano, 10) === 2026 && monthData.scarlet && typeof monthData.scarlet.ganhos === 'number' && monthData.scarlet.ganhos > 0) {
-      return monthData.scarlet.ganhos;
-    }
-
-    // De Janeiro/2027 em diante: estritamente ZERO (0) se não houver dados no app fonte
+    // De Janeiro/2027 em diante: estritamente ZERO (0) se não houver faturamento real no app fonte
     return 0;
   }
 

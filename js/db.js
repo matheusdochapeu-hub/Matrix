@@ -276,7 +276,38 @@ const MatrixDB = (function () {
         }
       }
 
-      // 2. Zerar rendas inventadas de Scarlet de Janeiro/2027 em diante (a menos que tenha ganhosManual)
+      // 2. Regra M+1 para Scarlet em 2026 (Outubro: 3.700, Novembro: 1.140, Dezembro: 995)
+      if (memoryCache.anos['2026']) {
+        const ano2026 = memoryCache.anos['2026'];
+        if (ano2026['Outubro'] && ano2026['Outubro'].scarlet && ano2026['Outubro'].scarlet.ganhosManual == null) {
+          if (ano2026['Outubro'].scarlet.ganhos !== 3700) {
+            ano2026['Outubro'].scarlet.ganhos = 3700;
+            cacheMutated = true;
+          }
+        }
+        if (ano2026['Novembro'] && ano2026['Novembro'].scarlet && ano2026['Novembro'].scarlet.ganhosManual == null) {
+          if (ano2026['Novembro'].scarlet.ganhos !== 1140) {
+            ano2026['Novembro'].scarlet.ganhos = 1140;
+            cacheMutated = true;
+          }
+        }
+        if (ano2026['Dezembro'] && ano2026['Dezembro'].scarlet && ano2026['Dezembro'].scarlet.ganhosManual == null) {
+          if (ano2026['Dezembro'].scarlet.ganhos !== 995) {
+            ano2026['Dezembro'].scarlet.ganhos = 995;
+            cacheMutated = true;
+          }
+          if (ano2026['Dezembro'].receitas) {
+            ano2026['Dezembro'].receitas.forEach(r => {
+              if (r.valor === 5200 || r.valor === '5200') {
+                r.valor = 995;
+                cacheMutated = true;
+              }
+            });
+          }
+        }
+      }
+
+      // 3. Zerar rendas inventadas de Scarlet de Janeiro/2027 em diante (a menos que tenha ganhosManual)
       Object.keys(memoryCache.anos).forEach(ano => {
         if (parseInt(ano, 10) >= 2027) {
           Object.keys(memoryCache.anos[ano]).forEach(mes => {
