@@ -1569,7 +1569,7 @@ body {
 }
 
 .matrix-modal-backdrop.open {
-  display: flex;
+  display: flex !important;
   animation: fadeInFast 0.18s ease-out;
 }
 

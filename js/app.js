@@ -2606,7 +2606,7 @@ const MatrixApp = (function () {
     }
 
     contentEl.innerHTML = html;
-    backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   // ==========================================
@@ -3545,7 +3545,7 @@ function onModalCategoriaChange(catVal) {
           else pagoNao.checked = true;
         }
         if (obsInput) obsInput.value = item.obs || '';
-        document.getElementById('quickExpenseModalBackdrop').classList.add('open');
+        openModal('quickExpenseModalBackdrop');
         return;
       }
     }
@@ -3564,7 +3564,7 @@ function onModalCategoriaChange(catVal) {
     const qeHint = document.getElementById('quickExpenseCatHint');
     if (qeHint) qeHint.style.display = 'none';
 
-    document.getElementById('quickExpenseModalBackdrop').classList.add('open');
+    openModal('quickExpenseModalBackdrop');
   }
 
   function saveQuickExpense() {
@@ -4704,7 +4704,7 @@ function onModalCategoriaChange(catVal) {
     `;
 
     contentEl.innerHTML = html;
-    backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   // ==========================================
@@ -5872,7 +5872,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invModalStatus').value = 'Ativo (Foco de novos aportes)';
 
     const backdrop = document.getElementById('investModalBackdrop');
-    if (backdrop) backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   function openEditInvestmentModal(id) {
@@ -5894,7 +5894,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invModalStatus').value = inv.status || 'Ativo';
 
     const backdrop = document.getElementById('investModalBackdrop');
-    if (backdrop) backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   function salvarInvestimentoModal() {
@@ -5962,7 +5962,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invOperacaoObs').value = 'Aporte mensal planejado';
 
     const backdrop = document.getElementById('investAporteModalBackdrop');
-    if (backdrop) backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   function openResgateModal(id) {
@@ -5981,7 +5981,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invOperacaoObs').value = 'Resgate parcial de investimento';
 
     const backdrop = document.getElementById('investAporteModalBackdrop');
-    if (backdrop) backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   function onChangeOperacaoTipo(tipo) {
@@ -6046,7 +6046,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invCotacaoNovoPreco').value = (parseFloat(pAtual) || 0).toFixed(2);
 
     const backdrop = document.getElementById('investCotacaoModalBackdrop');
-    if (backdrop) backdrop.classList.add('open');
+    openModal(backdrop);
   }
 
   function salvarCotacaoAcaoModal() {
@@ -6351,7 +6351,7 @@ function onModalCategoriaChange(catVal) {
     const miHint = document.getElementById('modalItemCatHint');
     if (miHint) miHint.style.display = 'none';
 
-    document.getElementById('itemModalBackdrop').classList.add('open');
+    openModal('itemModalBackdrop');
   }
 
   function editItemModal(ano, mes, tipo, id, nome, valor) {
@@ -6360,7 +6360,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('modalItemNome').value = nome;
     document.getElementById('modalItemValor').value = valor;
     document.getElementById('modalItemTitle').textContent = 'Editar Lançamento';
-    document.getElementById('itemModalBackdrop').classList.add('open');
+    openModal('itemModalBackdrop');
   }
 
   function editItemByIndex(ano, mes, tipo, index) {
@@ -6460,7 +6460,7 @@ function onModalCategoriaChange(catVal) {
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Despesa:';
     }
 
-    document.getElementById('itemModalBackdrop').classList.add('open');
+    openModal('itemModalBackdrop');
   }
 
   function saveItemFromModal() {
@@ -6706,7 +6706,7 @@ function onModalCategoriaChange(catVal) {
     setVal('saldosFaturaNubank', fatura);
     setVal('saldosAjusteConciliacao', ajuste !== 0 ? ajuste : '');
 
-    document.getElementById('saldosEditModalBackdrop').classList.add('open');
+    openModal('saldosEditModalBackdrop');
   }
 
   function salvarSaldosModal() {
@@ -6918,7 +6918,7 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('scenModalAtivo').checked = scen ? (scen.ativo !== false) : true;
 
     document.getElementById('scenModalHeaderTitle').textContent = scen ? `Editar Hipótese: ${scen.titulo}` : 'Nova Hipótese / Cenário';
-    document.getElementById('scenarioModalBackdrop').classList.add('open');
+    openModal('scenarioModalBackdrop');
   }
 
   function toggleScenarioModalParcelas(tipo) {
@@ -7053,7 +7053,7 @@ function onModalCategoriaChange(catVal) {
 
     // Abre o modal
     const modal = document.getElementById('calDayEditModalBackdrop');
-    if (modal) modal.classList.add('open');
+    openModal(modal);
   }
 
   function salvarStatusDiaCalendario() {
@@ -7344,8 +7344,10 @@ function onModalCategoriaChange(catVal) {
           const isOpen = backdrop.classList.contains('open');
           if (isOpen === backdrop._wasOpen) return;
           backdrop._wasOpen = isOpen;
+          if (!isOpen) backdrop.style.removeProperty('display');
 
           if (isOpen) {
+            backdrop.style.removeProperty('display');
             if (!isHandlingPopstate && window.history && typeof window.history.pushState === 'function') {
               modalHistoryCount++;
               try {
@@ -7380,16 +7382,10 @@ function onModalCategoriaChange(catVal) {
         isHandlingPopstate = true;
         const topModal = openModals[openModals.length - 1];
         topModal._wasOpen = false;
-        topModal.classList.remove('open');
+        closeModal(topModal);
         if (modalHistoryCount > 0) modalHistoryCount--;
         setTimeout(() => { isHandlingPopstate = false; }, 60);
         return;
-      }
-      // Mantém a trava do histórico ativa para não fechar o app ao clicar em Voltar
-      if (window.history && typeof window.history.pushState === 'function') {
-        try {
-          window.history.pushState({ matrixGuard: true }, '', window.location.href);
-        } catch (e) {}
       }
     });
 
@@ -7408,25 +7404,31 @@ function onModalCategoriaChange(catVal) {
       btn.addEventListener('click', (e) => {
         const backdrop = e.target.closest('.matrix-modal-backdrop');
         if (backdrop) {
-          backdrop.classList.remove('open', 'active');
-          backdrop.style.display = 'none';
+          closeModal(backdrop);
         }
       });
     });
 
     window.addEventListener('click', (e) => {
       if (e.target.classList.contains('matrix-modal-backdrop')) {
-        e.target.classList.remove('open', 'active');
-        e.target.style.display = 'none';
+        closeModal(e.target);
       }
     });
   }
 
-  function closeModal(id) {
-    const el = document.getElementById(id);
+  function openModal(idOrEl) {
+    const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+    if (el) {
+      el.style.removeProperty('display');
+      el.classList.add('open', 'active');
+    }
+  }
+
+  function closeModal(idOrEl) {
+    const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
     if (el) {
       el.classList.remove('open', 'active');
-      el.style.display = 'none';
+      el.style.removeProperty('display');
     }
   }
 
@@ -7940,7 +7942,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
       setSim2055Meta(currentSim2055Meta);
     }
 
-    backdrop.classList.add('open', 'active');
+    openModal(backdrop);
     recalcularSimulador2055();
   }
 
@@ -8185,6 +8187,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     editItemModal,
     editItemByIndex,
     saveItemFromModal,
+    openModal,
     closeModal,
     toggleScenarioActive,
     removeScenario,
