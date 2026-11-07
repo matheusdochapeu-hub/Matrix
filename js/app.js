@@ -3066,7 +3066,7 @@ const MatrixApp = (function () {
       return '<span class="bank-badge dinheiro" title="Dinheiro em Espécie"><span class="bank-icon">💵</span> <strong>Dinheiro Vivo</strong></span>';
     }
 
-    return `<span class="bank-badge default" title="Conta de Origem"><span class="bank-icon">💳</span> <strong>${conta || 'Orçamento Geral'}</strong></span>`;
+    return `<span class="bank-badge default" title="Conta de Origem"><span class="bank-icon">💳</span> <strong>${conta || 'Conta BB (USP)'}</strong></span>`;
   }
 
   function renderCashflowTrace(monthData, totalReceitas, fixosList, outrosList, diariosList = []) {
@@ -4404,9 +4404,7 @@ function onModalCategoriaChange(catVal) {
       ganhos_scarlet: 'Ganhos da Scarlet (FisioFlow)',
       va_mercado: 'Vale Alimentação (VA Maracaju 88)',
       vr_almoco: 'Vale Refeição (VR Presencial)',
-      estudio_extra: 'Renda Extra (Matheus)',
-      reserva_aportes: 'Reserva de Emergência',
-      orcamento_geral: 'Orçamento Geral Conjunto'
+      reserva_aportes: 'Reserva de Emergência / Investimentos'
     };
     const tipoLabels = {
       recorrente: '🔄 Recorrente Mensal',
@@ -4457,7 +4455,8 @@ function onModalCategoriaChange(catVal) {
           const tipoKey = scen.tipo || (scen.recorrente === false ? 'pontual' : 'recorrente');
           const tipoDesc = tipoKey === 'parcelado' ? `📦 Parcelado (${scen.parcelas || 2}x)` : (tipoLabels[tipoKey] || '🔄 Recorrente Mensal');
           const contaDesc = contaLabels[scen.conta] || scen.conta || 'Nubank Scarlet (Mastercard Black)';
-          const rendaDesc = rendaLabels[scen.renda] || scen.renda || 'Ganhos da Scarlet (FisioFlow)';
+          const scenRendaKey = (scen.renda === 'orcamento_geral' || scen.renda === 'estudio_extra') ? (pilar === 'scarlet' ? 'ganhos_scarlet' : 'salario_usp') : (scen.renda || 'salario_usp');
+          const rendaDesc = rendaLabels[scenRendaKey] || (pilar === 'scarlet' ? 'Ganhos da Scarlet (FisioFlow)' : 'Salário Líquido USP (Matheus)');
 
           const pilar = ScenarioSimulator.getScenarioPilar(scen);
           let pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(56,189,248,0.12);color:var(--cyan);border-color:var(--cyan);">👨 Conta Matheus</span>`;
@@ -6728,7 +6727,7 @@ function onModalCategoriaChange(catVal) {
 
     const rendaSelect = document.getElementById('modalItemRenda');
     if (rendaSelect) {
-      if (item.renda) {
+      if (item.renda && item.renda !== 'orcamento_geral') {
         rendaSelect.value = item.renda;
       } else if (item.conta) {
         const c = String(item.conta).toLowerCase();
@@ -6739,9 +6738,9 @@ function onModalCategoriaChange(catVal) {
         else if (c.includes('resgate')) rendaSelect.value = 'investimento_resgate';
         else if (c.includes('extra')) rendaSelect.value = 'estudio_extra';
         else if (c.includes('salario') || c === 'salario_bb' || c === 'bb') rendaSelect.value = 'salario_usp';
-        else rendaSelect.value = 'orcamento_geral';
+        else rendaSelect.value = isGastoDaScarlet(item) ? 'ganhos_scarlet' : 'salario_usp';
       } else {
-        rendaSelect.value = 'orcamento_geral';
+        rendaSelect.value = isGastoDaScarlet(item) ? 'ganhos_scarlet' : 'salario_usp';
       }
     }
 
@@ -6802,7 +6801,7 @@ function onModalCategoriaChange(catVal) {
     else if (renda === 'investimento_resgate') conta = 'resgate_tesouro_reserva';
     else if (renda === 'estudio_extra') conta = 'pix_inter';
     else if (renda === 'outros_ganhos') conta = 'outros';
-    else if (renda === 'orcamento_geral') conta = 'orcamento_geral';
+    
     else conta = 'salario_bb';
 
     if (document.getElementById('modalItemConta')) {

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=63">
+  <link rel="stylesheet" href="css/matrix.css?v=64">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1742,7 +1742,7 @@
           <option value="estudio_extra">Renda Extra</option>
           <option value="emprestimo">Empréstimo</option>
           <option value="outros_ganhos">Outros Ganhos</option>
-          <option value="orcamento_geral" selected>Orçamento Geral</option>
+          
         </select>
       </div>
 
@@ -1934,9 +1934,7 @@
             <option value="ganhos_scarlet" selected>Ganhos da Scarlet (FisioFlow)</option>
             <option value="va_mercado">Vale Alimentação (VA Maracaju 88)</option>
             <option value="vr_almoco">Vale Refeição (VR Presencial)</option>
-            <option value="estudio_extra">Renda Extra</option>
             <option value="reserva_aportes">Reserva de Emergência / Aportes</option>
-            <option value="orcamento_geral">Orçamento Familiar Conjunto</option>
           </select>
         </div>
       </div>
@@ -2724,21 +2722,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=63"></script>
-  <script src="js/matrix-rain.js?v=63"></script>
-  <script src="js/db.js?v=63"></script>
-  <script src="js/calendar-engine.js?v=63"></script>
-  <script src="js/amortization-engine.js?v=63"></script>
-  <script src="js/scenario-simulator.js?v=63"></script>
-  <script src="js/pdf-reader.js?v=63"></script>
-  <script src="js/satellite-connectors.js?v=63"></script>
-  <script src="js/sync-engine.js?v=63"></script>
-  <script src="js/app.js?v=63"></script>
+  <script src="js/seed-data.js?v=64"></script>
+  <script src="js/matrix-rain.js?v=64"></script>
+  <script src="js/db.js?v=64"></script>
+  <script src="js/calendar-engine.js?v=64"></script>
+  <script src="js/amortization-engine.js?v=64"></script>
+  <script src="js/scenario-simulator.js?v=64"></script>
+  <script src="js/pdf-reader.js?v=64"></script>
+  <script src="js/satellite-connectors.js?v=64"></script>
+  <script src="js/sync-engine.js?v=64"></script>
+  <script src="js/app.js?v=64"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=63', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=64', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

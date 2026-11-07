@@ -445,21 +445,20 @@ const ScenarioSimulator = (function () {
       }
     };
 
-    // Cálculo de correlação com fontes de renda
+    // Cálculo de correlação com fontes de renda (O dinheiro sai dos ganhos do Matheus ou da Scarlet)
     const correlacaoRendas = {
       salario_usp: { id: 'salario_usp', pilar: 'matheus', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
       ganhos_scarlet: { id: 'ganhos_scarlet', pilar: 'scarlet', nome: 'Ganhos Scarlet (FisioFlow)', totalMensal: 0, count: 0 },
       va_mercado: { id: 'va_mercado', pilar: 'va', nome: 'Vale Alimentação (VA)', totalMensal: 0, count: 0 },
       vr_almoco: { id: 'vr_almoco', pilar: 'vr', nome: 'Vale Refeição (VR)', totalMensal: 0, count: 0 },
-      estudio_extra: { id: 'estudio_extra', pilar: 'matheus', nome: 'Renda Extra', totalMensal: 0, count: 0 },
-      reserva_aportes: { id: 'reserva_aportes', pilar: 'reserva', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 },
-      orcamento_geral: { id: 'orcamento_geral', pilar: 'consolidado', nome: 'Orçamento Geral', totalMensal: 0, count: 0 }
+      reserva_aportes: { id: 'reserva_aportes', pilar: 'reserva', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 }
     };
 
     scenarios.forEach(scen => {
-      const rKey = scen.renda || 'salario_usp';
-      if (!correlacaoRendas[rKey]) {
-        correlacaoRendas[rKey] = { id: rKey, pilar: getScenarioPilar(scen), nome: rKey, totalMensal: 0, count: 0 };
+      let rKey = scen.renda || 'salario_usp';
+      // Mapeia legados ou descartados (orçamento geral / renda extra) para Matheus ou Scarlet
+      if (rKey === 'orcamento_geral' || rKey === 'estudio_extra' || !correlacaoRendas[rKey]) {
+        rKey = (getScenarioPilar(scen) === 'scarlet') ? 'ganhos_scarlet' : 'salario_usp';
       }
       const val = parseFloat(scen.valorAdotado || scen.valor || 0);
       correlacaoRendas[rKey].totalMensal += val;
