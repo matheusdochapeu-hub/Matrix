@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=67">
+  <link rel="stylesheet" href="css/matrix.css?v=68">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -124,59 +124,83 @@
       <!-- Grade Principal de 3 Colunas Executivas -->
       <div class="unified-main-grid">
         
-        <!-- COLUNA 1: GANHOS MATHEUS (USP + EXTRAS) -->
-        <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar suas receitas em conta">
+        <!-- COLUNA 1: GANHOS TOTAIS DO MÊS (2 VISÕES DE GANHOS) -->
+        <div class="unified-card cyan" onclick="MatrixApp.abrirDrilldown('ganhos')" title="Clique para detalhar suas receitas em conta e benefícios">
           <div class="unified-card-header">
-            <span class="unified-card-title">📥 Ganhos Matheus</span>
-            <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth)">✏️ Saldos</span>
+            <span class="unified-card-title">💵 Ganhos Totais do Mês</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="unified-edit-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'matheus')" title="Editar Salário e Rendas Extras">✏️ Saldos</span>
+              <span class="unified-badge cyan" id="topBadgeRendaTipo">2 Visões de Ganhos</span>
+            </div>
           </div>
-
-          <!-- Equação Visual: Salário USP + Extras = Total Matheus -->
-          <div class="unified-equation-banner cyan-banner">
+          
+          <!-- Equação Visual: Salário USP + Renda Extra + VA + VR -->
+          <div class="unified-equation-banner">
             <div class="eq-part">
               <span class="eq-label">Salário USP</span>
-              <strong class="eq-val" id="topEqSalMatheus">R$ 0,00</strong>
+              <strong class="eq-val" style="color:var(--cyan);" id="topEqSalMatheus">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--cyan);">+</span>
             <div class="eq-part">
               <span class="eq-label">Renda Extra</span>
               <strong class="eq-val" style="color:var(--matrix-green);" id="topEqOutrosGanhos">R$ 0,00</strong>
             </div>
-            <span class="eq-op" style="color:var(--cyan);">=</span>
+            <span class="eq-op" style="color:var(--amber);">+</span>
             <div class="eq-part">
-              <span class="eq-label">Renda Própria</span>
-              <strong class="eq-val" style="color:var(--text-bright);" id="topEqTotalGanhos">R$ 0,00</strong>
+              <span class="eq-label" style="color:var(--amber);">VA</span>
+              <strong class="eq-val" style="color:var(--amber);" id="topEqVaVal">R$ 0,00</strong>
+            </div>
+            <span class="eq-op" style="color:var(--purple);">+</span>
+            <div class="eq-part">
+              <span class="eq-label" style="color:var(--purple);">VR</span>
+              <strong class="eq-val" style="color:var(--purple);" id="topEqVrVal">R$ 0,00</strong>
             </div>
           </div>
 
-          <div class="unified-card-main-val" id="topRendaConjuntaVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topRendaSub">Líquido em conta corrente (Matheus)</div>
+          <!-- DOIS CÁLCULOS: 1. Sem Benefícios (Líquido em Conta) | 2. Com Benefícios (Total c/ VA e VR) -->
+          <div class="dual-gastos-container">
+            <!-- 1. Salário + Renda Extra -->
+            <div class="dual-gastos-box ganhos-calc1" title="Renda líquida depositada na conta corrente do Banco do Brasil">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--cyan);">1. SALÁRIO + RENDA EXTRA</span>
+                <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.3);">Conta Corrente</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="font-size:18px;color:var(--cyan);" id="topRendaConjuntaVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topRendaSub">Sem Benefícios</span>
+              </div>
+            </div>
 
-          <!-- Detalhamento das Fontes em Pecúnia -->
-          <div class="unified-breakdown-list">
-            <div class="unified-row">
+            <!-- 2. Salário + Extras + Benefícios (VA + VR) -->
+            <div class="dual-gastos-box ganhos-calc2" title="Ganhos totais do mês incluindo os cartões de alimentação VA e VR">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--matrix-green);">2. SALÁRIO + EXTRAS + BENEFÍCIOS (VA + VR)</span>
+                <span class="dual-gastos-badge" style="color:var(--matrix-green);background:rgba(0,255,102,0.12);border:1px solid rgba(0,255,102,0.35);">Total c/ VA+VR</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="font-size:20px;color:var(--matrix-green);" id="topGanhosComBeneficiosVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--matrix-green);font-weight:600;">Poder de Compra Total</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detalhamento das Fontes em Pecúnia e Benefícios -->
+          <div class="unified-breakdown-list" style="margin-top:8px;">
+            <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver extrato do Salário">
               <span>👨‍💼 Salário Matheus (<span id="topOrigemSalarioLabel">USP</span>)</span>
               <strong id="topSalMatheusVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row" id="topOutrosRow">
+            <div class="unified-row" id="topOutrosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver Rendas Extras">
               <span>🎁 <span id="topOutrosLabel">Renda Extra</span></span>
               <strong style="color:var(--matrix-green);" id="topOutrosVal">+ R$ 0,00</strong>
             </div>
-          </div>
-
-          <!-- Benefícios Alimentação (Não Pecúnia) -->
-          <div class="unified-benefits-block">
-            <div class="unified-benefits-header">
-              <span>🛒 Benefícios (Alimentação / VA + VR):</span>
-              <strong id="topTotalBeneficiosVal">R$ 0,00</strong>
+            <div class="unified-row" style="cursor:pointer;" title="Vale Alimentação Casa Maracaju 88">
+              <span style="color:var(--amber);">🥗 Vale Alimentação (VA - Mercado)</span>
+              <strong style="color:var(--amber);" id="topVaVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row benefits-sub">
-              <span>🥗 VA (Maracaju 88)</span>
-              <span id="topVaVal">R$ 0,00</span>
-            </div>
-            <div class="unified-row benefits-sub">
-              <span>🍽️ VR (Almoço)</span>
-              <span id="topVrVal">R$ 0,00</span>
+            <div class="unified-row" style="cursor:pointer;" title="Vale Refeição Almoço USP">
+              <span style="color:var(--purple);">🍽️ Vale Refeição (VR - Almoço)</span>
+              <strong style="color:var(--purple);" id="topVrVal">R$ 0,00</strong>
             </div>
           </div>
         </div>
@@ -2705,21 +2729,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=67"></script>
-  <script src="js/matrix-rain.js?v=67"></script>
-  <script src="js/db.js?v=67"></script>
-  <script src="js/calendar-engine.js?v=67"></script>
-  <script src="js/amortization-engine.js?v=67"></script>
-  <script src="js/scenario-simulator.js?v=67"></script>
-  <script src="js/pdf-reader.js?v=67"></script>
-  <script src="js/satellite-connectors.js?v=67"></script>
-  <script src="js/sync-engine.js?v=67"></script>
-  <script src="js/app.js?v=67"></script>
+  <script src="js/seed-data.js?v=68"></script>
+  <script src="js/matrix-rain.js?v=68"></script>
+  <script src="js/db.js?v=68"></script>
+  <script src="js/calendar-engine.js?v=68"></script>
+  <script src="js/amortization-engine.js?v=68"></script>
+  <script src="js/scenario-simulator.js?v=68"></script>
+  <script src="js/pdf-reader.js?v=68"></script>
+  <script src="js/satellite-connectors.js?v=68"></script>
+  <script src="js/sync-engine.js?v=68"></script>
+  <script src="js/app.js?v=68"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=67', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=68', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

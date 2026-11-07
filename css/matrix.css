@@ -662,6 +662,16 @@ body {
   transform: translateY(-1px);
 }
 
+.dual-gastos-box.ganhos-calc1 {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+}
+
+.dual-gastos-box.ganhos-calc2 {
+  background: rgba(0, 255, 102, 0.08);
+  border: 1px solid rgba(0, 255, 102, 0.4);
+}
+
 .dual-gastos-box.calc1 {
   background: rgba(234, 179, 8, 0.08);
   border: 1px solid rgba(234, 179, 8, 0.35);

@@ -1,21 +1,19 @@
 /**
  * ============================================================================
- * MATRIX FINANCE - GOOGLE APPS SCRIPT BACKEND (v2.0.0)
+ * MATRIX FINANCE - GOOGLE APPS SCRIPT BACKEND (v2.1.0)
  * ============================================================================
  * Conector de alta confiabilidade para o Google Sheets (Planilha Matrix Finance 360),
  * com travas de concorrência (LockService), suporte a CORS (POST/GET), fallback
- * JSONP nativo, abas estruturadas e snapshot JSON para restauração 100% fiel.
+ * JSONP nativo, fatiamento automático multi-célula (supera o limite de 50.000
+ * caracteres por célula do Google Sheets) e abas estruturadas completas.
  *
- * INSTRUÇÕES DE INSTALAÇÃO:
+ * INSTRUÇÕES DE INSTALAÇÃO / ATUALIZAÇÃO:
  * 1. Abra a planilha "Matrix Finance 360" no Google Sheets:
  *    https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit
  * 2. Clique em Extensões > Apps Script.
  * 3. Cole este código completo no editor e salve (Ctrl+S).
- * 4. Clique em Implantar > Nova implantação > Tipo: "App da Web".
- *    - Executar como: "Eu (seu e-mail)"
- *    - Quem pode acessar: "Qualquer pessoa"
- * 5. Copie a URL do App da Web gerada (termina com /exec).
- * 6. No Matrix App, vá na aba "Backup & Conexões" e cole a URL e o Segredo.
+ * 4. Clique em Implantar > Gerenciar implantações > Editar (ícone de lápis) >
+ *    Versão: "Nova versão" > Implantar (ou "Nova implantação" se for a primeira vez).
  * ============================================================================
  */
 
@@ -116,9 +114,13 @@ function doGet(e) {
         }, e);
       }
 
-      var jsonStr = sheetRaw.getRange(2, 2).getValue();
+      var lastCol = Math.max(2, sheetRaw.getLastColumn());
+      var rowVals = sheetRaw.getRange(2, 1, 1, lastCol).getValues()[0];
+      var updated = rowVals[0];
+      var jsonStr = rowVals.slice(1).filter(function (c) {
+        return c !== null && c !== undefined && String(c) !== "";
+      }).join("");
       var parsed = jsonStr ? JSON.parse(jsonStr) : null;
-      var updated = sheetRaw.getRange(2, 1).getValue();
 
       return jsonResponse({
         success: true,
@@ -170,9 +172,19 @@ function doPost(e) {
     if ((action === "sync_all" || action === "backup" || action === "save") && state) {
       var nowIso = new Date().toISOString();
 
-      // 1. Gravar Snapshot JSON integral no SHEET_BACKUP_JSON
-      var sheetRaw = ensureSheetWithHeaders(ss, SHEET_BACKUP_JSON, ["Timestamp", "Payload_JSON"]);
-      sheetRaw.getRange("A2:B2").setValues([[nowIso, JSON.stringify(state)]]);
+      // 1. Gravar Snapshot JSON fatiado em blocos de 45.000 caracteres (evita limite de 50.000 chars/célula do Google Sheets)
+      var sheetRaw = ensureSheetWithHeaders(ss, SHEET_BACKUP_JSON, ["Timestamp", "Payload_JSON", "Payload_Parte_2", "Payload_Parte_3", "Payload_Parte_4"]);
+      var fullJson = JSON.stringify(state);
+      var chunkSize = 45000;
+      var chunks = [];
+      for (var offset = 0; offset < fullJson.length; offset += chunkSize) {
+        chunks.push(fullJson.slice(offset, offset + chunkSize));
+      }
+      if (chunks.length === 0) chunks.push("{}");
+      var rowPayload = [nowIso].concat(chunks);
+      var clearCols = Math.max(rowPayload.length, sheetRaw.getLastColumn(), 2);
+      sheetRaw.getRange(2, 1, 1, clearCols).clearContent();
+      sheetRaw.getRange(2, 1, 1, rowPayload.length).setValues([rowPayload]);
 
       // 2. Gravar Lançamentos tabulados (Ano / Mês)
       if (state.anos) {
@@ -250,6 +262,7 @@ function doPost(e) {
         success: true,
         title: ss.getName(),
         timestamp: nowIso,
+        chunks: chunks.length,
         message: "Sincronização realizada com sucesso absoluto."
       }, e);
     }

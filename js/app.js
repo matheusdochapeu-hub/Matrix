@@ -1502,8 +1502,9 @@ const MatrixApp = (function () {
       satCasaChip.setAttribute('title', `Casa Maracaju: Saldo VA ${formatBRL(vaAtual)} (Gasto Mercado: ${formatBRL(satMaracaju.gastoMercadoMesAtual || 0)}) • Saldo VR ${formatBRL(vrAtual)} (Gasto Refeições: ${formatBRL(satMaracaju.gastoVrMesAtual || 0)})`);
     }
 
-    // 3. Card 1: Ganhos Matheus (Salário USP + Extras)
+    // 3. Card 1: Ganhos Totais (Dois Cálculos: Sem Benefícios e Com Benefícios)
     const rendaMatheusTotal = salMatheus + outrosGanhos;
+    const ganhosComBeneficiosTotal = rendaMatheusTotal + beneficiosNaoPecunia;
 
     const eqSalMatheusEl = document.getElementById('topEqSalMatheus');
     if (eqSalMatheusEl) eqSalMatheusEl.textContent = formatBRL(salMatheus);
@@ -1511,15 +1512,26 @@ const MatrixApp = (function () {
     const eqOutrosGanhosEl = document.getElementById('topEqOutrosGanhos');
     if (eqOutrosGanhosEl) eqOutrosGanhosEl.textContent = formatBRL(outrosGanhos);
 
+    const eqVaEl = document.getElementById('topEqVaVal');
+    if (eqVaEl) eqVaEl.textContent = formatBRL(va);
+
+    const eqVrEl = document.getElementById('topEqVrVal');
+    if (eqVrEl) eqVrEl.textContent = formatBRL(vr);
+
     const eqTotalGanhosEl = document.getElementById('topEqTotalGanhos');
     if (eqTotalGanhosEl) eqTotalGanhosEl.textContent = formatBRL(rendaMatheusTotal);
 
+    // Cálculo 1: Salário + Renda Extra (Conta Corrente)
     const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
     if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(rendaMatheusTotal);
 
+    // Cálculo 2: Salário + Renda Extra + Benefícios (VA + VR)
+    const gComBeneficiosEl = document.getElementById('topGanhosComBeneficiosVal');
+    if (gComBeneficiosEl) gComBeneficiosEl.textContent = formatBRL(ganhosComBeneficiosTotal);
+
     const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub') || document.getElementById('topRendaSub');
     if (rConjuntaSubEl) {
-      rConjuntaSubEl.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em benefícios)`;
+      rConjuntaSubEl.textContent = `Líquido em Conta (BB)`;
     }
 
     const salMatheusEl = document.getElementById('topSalMatheusVal');
