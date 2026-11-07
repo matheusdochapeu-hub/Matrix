@@ -1430,7 +1430,7 @@ const MatrixApp = (function () {
     const vrEl = document.getElementById('topVrVal');
     if (vrEl) vrEl.textContent = formatBRL(vr);
 
-    // 4. Card 2: Gastos Totais (Equação: Fixos + Variáveis + Diários = Totais)
+    // 4. Card 2: Gastos Totais (Dois Cálculos: Sem Nubank e Com Nubank)
     const eqFixosEl = document.getElementById('topEqFixos');
     if (eqFixosEl) eqFixosEl.textContent = formatBRL(fixos);
 
@@ -1440,8 +1440,17 @@ const MatrixApp = (function () {
     const eqDiariosEl = document.getElementById('topEqDiarios');
     if (eqDiariosEl) eqDiariosEl.textContent = formatBRL(diarios);
 
+    const eqNubankEl = document.getElementById('topEqNubank');
+    if (eqNubankEl) eqNubankEl.textContent = formatBRL(faturaNubank);
+
+    // Cálculo 1: Fixos + Variáveis + Diários (+ Início de Ano se houver)
     const gastosTotaisEl = document.getElementById('topGastosTotaisVal');
     if (gastosTotaisEl) gastosTotaisEl.textContent = formatBRL(totalGastos);
+
+    // Cálculo 2: Fixos + Variáveis + Diários + Nubank
+    const totalComNubank = totalGastos + faturaNubank;
+    const gastosComNubankEl = document.getElementById('topGastosComNubankVal');
+    if (gastosComNubankEl) gastosComNubankEl.textContent = formatBRL(totalComNubank);
 
     const resumoFixosEl = document.getElementById('topResumoFixosVal');
     if (resumoFixosEl) resumoFixosEl.textContent = formatBRL(fixos);
@@ -1451,6 +1460,9 @@ const MatrixApp = (function () {
 
     const resumoDiariosEl = document.getElementById('topResumoDiariosVal');
     if (resumoDiariosEl) resumoDiariosEl.textContent = formatBRL(diarios);
+
+    const resumoNubankEl = document.getElementById('topResumoNubankVal');
+    if (resumoNubankEl) resumoNubankEl.textContent = formatBRL(faturaNubank);
 
     const contasInicioRow = document.getElementById('topContasInicioRow');
     const contasInicioVal = document.getElementById('topContasInicioVal');
@@ -1807,6 +1819,8 @@ const MatrixApp = (function () {
         contasInicio = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
       }
       const totalGastos = totalFixos + totalOutros + totalDiarios + contasInicio;
+      const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+      const totalComNubank = totalGastos + faturaNubank;
 
       const renderGastosTabs = (activeTab) => `
         <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--border-dim);padding-bottom:10px;">
@@ -1814,6 +1828,7 @@ const MatrixApp = (function () {
           <button type="button" class="btn-matrix ${activeTab === 'fixos' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'fixos' ? 'background:var(--amber);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('fixos')">🔒 Fixos (${formatBRL(totalFixos)})</button>
           <button type="button" class="btn-matrix ${activeTab === 'outros' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'outros' ? 'background:var(--rose);color:#fff;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('outros')">🛍️ Variáveis (${formatBRL(totalOutros)})</button>
           <button type="button" class="btn-matrix ${activeTab === 'diarios' ? '' : 'secondary'}" style="font-size:11px;padding:4px 10px;${activeTab === 'diarios' ? 'background:var(--cyan);color:#050807;font-weight:bold;' : ''}" onclick="MatrixApp.abrirDrilldown('diarios')">⚡ Diários (${formatBRL(totalDiarios)})</button>
+          <button type="button" class="btn-matrix secondary" style="font-size:11px;padding:4px 10px;background:rgba(192,132,252,0.15);color:var(--purple);font-weight:bold;border:1px solid rgba(192,132,252,0.4);" onclick="MatrixApp.abrirDrilldown('fatura')">🟣 Fatura Nubank (${formatBRL(faturaNubank)})</button>
         </div>
       `;
 
@@ -1821,12 +1836,17 @@ const MatrixApp = (function () {
         <div style="font-family:var(--font-mono);font-size:12px;">
           ${renderGastosTabs('todos')}
 
-          <!-- Cards Resumo no Topo -->
+          <!-- Cards Resumo no Topo: 2 Cálculos + Detalhes -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:8px;margin-bottom:16px;">
-            <div style="background:var(--bg-card);border:1px solid var(--border-glow);padding:10px;border-radius:var(--radius-sm);">
-              <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;">Gastos Totais</div>
-              <div style="font-size:16px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalGastos)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Consolidado do mês</div>
+            <div style="background:var(--bg-card);border:1px solid rgba(234,179,8,0.4);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:10.5px;color:var(--amber);text-transform:uppercase;font-weight:700;">1. Sem Nubank (Conta)</div>
+              <div style="font-size:16px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(totalGastos)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Fixos + Var. + Diários</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(244,63,94,0.4);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:10.5px;color:var(--rose);text-transform:uppercase;font-weight:700;">2. Com Nubank (Total)</div>
+              <div style="font-size:16px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalComNubank)}</div>
+              <div style="font-size:10px;color:var(--purple);margin-top:2px;">Compromisso total c/ cartão</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid rgba(251,191,36,0.3);padding:10px;border-radius:var(--radius-sm);cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fixos')">
               <div style="font-size:10.5px;color:var(--amber);text-transform:uppercase;">🔒 Gastos Fixos</div>
@@ -1948,12 +1968,36 @@ const MatrixApp = (function () {
             `}
           </div>
 
-          <!-- Rodapé Consolidado -->
-          <div style="background:rgba(0,255,65,0.05);border:1px solid var(--border-glow);border-radius:var(--radius-sm);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <span style="font-size:11.5px;color:var(--text-dim);">
-              🔒 Fixos (${formatBRL(totalFixos)}) + 🛍️ Variáveis (${formatBRL(totalOutros)}) + ⚡ Diários (${formatBRL(totalDiarios)})
-            </span>
-            <span style="font-size:13px;font-weight:bold;color:var(--rose);">Total: ${formatBRL(totalGastos)}</span>
+          <!-- BLOCO 4: FATURA NUBANK BLACK -->
+          <div style="background:var(--bg-card);border:1px solid rgba(192,132,252,0.3);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <strong style="color:var(--purple);font-size:13px;display:flex;align-items:center;gap:6px;">
+                <span>🟣</span> Fatura Nubank Black (Cartão de Crédito)
+              </strong>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-weight:bold;color:var(--purple);font-size:14px;">${formatBRL(faturaNubank)}</span>
+                <button type="button" class="btn-matrix secondary" style="font-size:10.5px;padding:3px 8px;color:var(--purple);border-color:var(--purple);" onclick="MatrixApp.abrirDrilldown('fatura')">Ver Fatura Completa ➔</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">
+              Fatura mensal do cartão de crédito Ultravioleta / Black vinculada ao mês de referência.
+            </div>
+          </div>
+
+          <!-- Rodapé Consolidado com os 2 Cálculos -->
+          <div style="background:rgba(0,0,0,0.4);border:1px solid var(--border-glow);border-radius:var(--radius-sm);padding:10px 14px;display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:12px;color:var(--amber);font-weight:700;">
+                1. Fixos + Variáveis + Diários (Conta Corrente):
+              </span>
+              <strong style="font-size:14px;color:var(--amber);">${formatBRL(totalGastos)}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px dashed var(--border-dim);padding-top:6px;">
+              <span style="font-size:12px;color:var(--rose);font-weight:700;">
+                2. Fixos + Variáveis + Diários + Nubank (Compromisso Total):
+              </span>
+              <strong style="font-size:15px;color:var(--rose);">${formatBRL(totalComNubank)}</strong>
+            </div>
           </div>
         </div>
       `;

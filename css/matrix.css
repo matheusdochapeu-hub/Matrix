@@ -605,11 +605,13 @@ body {
   color: var(--text-dim);
 }
 
-/* Equação de Gastos: Fixos + Variáveis = Gastos Totais */
+/* Equação de Gastos: Fixos + Variáveis + Diários + Nubank */
 .unified-equation-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(234, 179, 8, 0.25);
   border-radius: var(--radius-xs);
@@ -636,10 +638,76 @@ body {
 }
 
 .eq-op {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--amber);
-  padding: 0 4px;
+  padding: 0 2px;
+}
+
+/* Card 2: Caixa dos Dois Cálculos de Gastos */
+.dual-gastos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.dual-gastos-box {
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dual-gastos-box:hover {
+  transform: translateY(-1px);
+}
+
+.dual-gastos-box.calc1 {
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.dual-gastos-box.calc2 {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.dual-gastos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dual-gastos-title {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+}
+
+.dual-gastos-badge {
+  font-size: 9.5px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dual-gastos-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 4px;
+}
+
+.dual-gastos-val {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dual-gastos-sub {
+  font-size: 10px;
+  font-family: var(--font-mono);
 }
 
 /* Caixa de Sobra no Mês */

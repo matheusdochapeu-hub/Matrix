@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=56">
+  <link rel="stylesheet" href="css/matrix.css?v=57">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -167,13 +167,13 @@
         </div>
 
         <!-- COLUNA 2: GASTOS TOTAIS (FIXOS + VARIÁVEIS = GASTOS TOTAIS) -->
-        <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('gastos_totais')" title="Clique para ver o detalhamento completo dos gastos totais (Fixos + Variáveis + Diários)">
+        <div class="unified-card amber" onclick="MatrixApp.abrirDrilldown('gastos_totais')" title="Clique para ver o detalhamento completo dos gastos totais (Fixos + Variáveis + Diários + Nubank)">
           <div class="unified-card-header">
             <span class="unified-card-title">🔒 Gastos Totais do Mês</span>
-            <span class="unified-badge amber">Fixos + Variáveis</span>
+            <span class="unified-badge amber">2 Visões de Gastos</span>
           </div>
           
-          <!-- Equação Visual: Gastos Fixos + Gastos Variáveis + Gastos Diários = Gastos Totais -->
+          <!-- Equação Visual: Fixos + Variáveis + Diários + Nubank -->
           <div class="unified-equation-banner">
             <div class="eq-part">
               <span class="eq-label">Fixos</span>
@@ -189,11 +189,39 @@
               <span class="eq-label">Diários</span>
               <strong class="eq-val" style="color:var(--cyan);" id="topEqDiarios">R$ 0,00</strong>
             </div>
-            <span class="eq-op">=</span>
+            <span class="eq-op">+</span>
+            <div class="eq-part" style="cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fatura')" title="Clique para ver a Fatura Nubank Black">
+              <span class="eq-label" style="color:var(--purple);">Nubank</span>
+              <strong class="eq-val" style="color:var(--purple);" id="topEqNubank">R$ 0,00</strong>
+            </div>
           </div>
 
-          <div class="unified-card-main-val" style="color:var(--rose);" id="topGastosTotaisVal">R$ 0,00</div>
-          <div class="unified-card-sub" id="topGastosTotaisSub">Gastos fixos + variáveis + gastos diários</div>
+          <!-- DOIS CÁLCULOS: 1. Sem Nubank | 2. Com Nubank -->
+          <div class="dual-gastos-container">
+            <!-- 1. Fixos + Variáveis + Diários -->
+            <div class="dual-gastos-box calc1" title="Gastos correntes em conta (sem fatura do cartão Nubank)">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--amber);">1. FIXOS + VARIÁVEIS + DIÁRIOS</span>
+                <span class="dual-gastos-badge" style="color:var(--amber);background:rgba(0,0,0,0.4);border:1px solid rgba(234,179,8,0.25);">Conta Corrente</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="font-size:18px;color:var(--amber);" id="topGastosTotaisVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);">Sem Cartão Nubank</span>
+              </div>
+            </div>
+
+            <!-- 2. Fixos + Variáveis + Diários + Nubank -->
+            <div class="dual-gastos-box calc2" title="Compromisso total do mês incluindo a fatura do cartão Nubank Black">
+              <div class="dual-gastos-header">
+                <span class="dual-gastos-title" style="color:var(--rose);">2. FIXOS + VARIÁVEIS + DIÁRIOS + NUBANK</span>
+                <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Total c/ Cartão</span>
+              </div>
+              <div class="dual-gastos-body">
+                <strong class="dual-gastos-val" style="font-size:20px;color:var(--rose);" id="topGastosComNubankVal">R$ 0,00</strong>
+                <span class="dual-gastos-sub" style="color:var(--purple);font-weight:600;">Compromisso Total</span>
+              </div>
+            </div>
+          </div>
 
           <div class="unified-breakdown-list" style="margin-top:8px;">
             <div class="unified-row" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fixos')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Fixos">
@@ -207,6 +235,10 @@
             <div class="unified-row" id="topResumoDiariosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('diarios')" style="cursor:pointer;" title="Clique para filtrar apenas Gastos Diários">
               <span>⚡ Gastos Diários (Lançados Depois)</span>
               <strong style="color:var(--cyan);" id="topResumoDiariosVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topResumoNubankRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('fatura')" style="cursor:pointer;" title="Clique para ver o detalhamento da Fatura Nubank Black">
+              <span style="color:var(--purple);">🟣 Fatura Nubank Black (Cartão)</span>
+              <strong style="color:var(--purple);" id="topResumoNubankVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topContasInicioRow" style="display:none;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('gastos_totais')" style="cursor:pointer;">
               <span>⚠️ Contas Início de Ano (Jan)</span>
@@ -2514,21 +2546,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=56"></script>
-  <script src="js/matrix-rain.js?v=56"></script>
-  <script src="js/db.js?v=56"></script>
-  <script src="js/calendar-engine.js?v=56"></script>
-  <script src="js/amortization-engine.js?v=56"></script>
-  <script src="js/scenario-simulator.js?v=56"></script>
-  <script src="js/pdf-reader.js?v=56"></script>
-  <script src="js/satellite-connectors.js?v=56"></script>
-  <script src="js/sync-engine.js?v=56"></script>
-  <script src="js/app.js?v=56"></script>
+  <script src="js/seed-data.js?v=57"></script>
+  <script src="js/matrix-rain.js?v=57"></script>
+  <script src="js/db.js?v=57"></script>
+  <script src="js/calendar-engine.js?v=57"></script>
+  <script src="js/amortization-engine.js?v=57"></script>
+  <script src="js/scenario-simulator.js?v=57"></script>
+  <script src="js/pdf-reader.js?v=57"></script>
+  <script src="js/satellite-connectors.js?v=57"></script>
+  <script src="js/sync-engine.js?v=57"></script>
+  <script src="js/app.js?v=57"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=56', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=57', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>
