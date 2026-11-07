@@ -4810,11 +4810,11 @@ function onModalCategoriaChange(catVal) {
       labelSimulado = 'Cenários:';
       labelSaldo = 'Sobra pra Mim:';
     } else if (currentSimVisao === 'scarlet') {
-      if (thGanhos) thGanhos.textContent = 'Faturamento FisioFlow';
+      if (thGanhos) thGanhos.textContent = 'Recursos Scarlet (Fisio+Extras+Transf)';
       if (thGastos) thGastos.textContent = 'Fatura Nubank Scarlet';
       if (thSimulado) thSimulado.textContent = 'Cenários Scarlet';
       if (thSaldo) thSaldo.textContent = 'Sobra Scarlet';
-      labelRenda = 'FisioFlow:';
+      labelRenda = 'Recursos Scarlet:';
       labelGastos = 'Fatura Nubank:';
       labelSimulado = 'Cenários Scarlet:';
       labelSaldo = 'Sobra Scarlet:';
@@ -5168,18 +5168,34 @@ function onModalCategoriaChange(catVal) {
           <!-- 👩 Scarlet -->
           <div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:700;color:#f472b6;font-size:12px;">👩 Scarlet (FisioFlow)</span>
+              <span style="font-weight:700;color:#f472b6;font-size:12px;">👩 Scarlet (FisioFlow + Nubank)</span>
               <span class="status-badge ${rowContas.scarlet.saldoSimulado >= 0 ? 'pago' : 'danger'}" style="font-size:9.5px;">
                 ${rowContas.scarlet.saldoSimulado >= 0 ? 'Folga' : 'Déficit'}
               </span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
-              <span>Faturamento FisioFlow:</span>
+              <span>FisioFlow (M+1):</span>
+              <span style="color:var(--text-main);">${formatBRL(rowContas.scarlet.ganhosFisio != null ? rowContas.scarlet.ganhosFisio : rowContas.scarlet.ganhos)}</span>
+            </div>
+            ${rowContas.scarlet.outrasRendas > 0 ? `
+              <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+                <span>Outras Rendas Scarlet:</span>
+                <span style="color:var(--matrix-green);">+ ${formatBRL(rowContas.scarlet.outrasRendas)}</span>
+              </div>
+            ` : ''}
+            ${rowContas.scarlet.transferencia > 0 ? `
+              <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
+                <span>Transf. p/ Scarlet:</span>
+                <span style="color:var(--amber);">+ ${formatBRL(rowContas.scarlet.transferencia)}</span>
+              </div>
+            ` : ''}
+            <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;font-weight:600;">
+              <span>Subtotal Recursos Scarlet:</span>
               <span style="color:var(--text-main);">${formatBRL(rowContas.scarlet.ganhos)}</span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
               <span>Fatura Nubank Scarlet:</span>
-              <span style="color:var(--text-main);">- ${formatBRL(rowContas.scarlet.gastos)}</span>
+              <span style="color:var(--rose);">- ${formatBRL(rowContas.scarlet.gastos)}</span>
             </div>
             ${rowContas.scarlet.custoCenarios > 0 ? `
               <div style="font-size:11px;color:#f472b6;display:flex;justify-content:space-between;padding:2px 0;">

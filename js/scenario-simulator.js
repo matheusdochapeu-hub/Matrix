@@ -191,6 +191,34 @@ const ScenarioSimulator = (function () {
     return n === 'scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
   }
 
+  function getFaturaNubankScarletCalculada(ano, mesName, monthData, state) {
+    if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getFaturaNubankMes) {
+      const val = window.MatrixApp.getFaturaNubankMes(ano, mesName);
+      if (typeof val === 'number') return val;
+    }
+    if (monthData && monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
+      return parseFloat(monthData.scarlet.faturaNubankManual) || 0;
+    }
+    const monthKey = `${ano}-${mesName}`;
+    const sat = state && state.satellites && state.satellites.faturas;
+    if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
+      const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
+      if (!isNaN(val)) return val;
+    }
+    if (ano === '2026') {
+      if (mesName === 'Novembro') return 4568.57;
+      if (mesName === 'Dezembro') return 1568.05;
+      if (mesName === 'Outubro') return 3418.03;
+      if (mesName === 'Setembro') return 0;
+    } else if (ano === '2027') {
+      if (mesName === 'Janeiro') return 1628.89;
+    }
+    if (monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
+      return monthData.scarlet.faturaNubank;
+    }
+    return 0;
+  }
+
   function getGanhosScarletCalculados(ano, mesName, monthData, state) {
     if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getGanhosScarletMes) {
       const val = window.MatrixApp.getGanhosScarletMes(ano, mesName);
@@ -268,10 +296,16 @@ const ScenarioSimulator = (function () {
       // ==========================================
       // 2. CONTA 👩 SCARLET (FISIOFLOW / NUBANK)
       // ==========================================
-      const scarletGanhos = getGanhosScarletCalculados(yearStr, m.monthName, monthData, state) + getOutrasRendasScarletCalculadas(yearStr, m.monthName, monthData);
-      const scarletFaturaNubank = (monthData.outros || [])
+      const scarletFisio = getGanhosScarletCalculados(yearStr, m.monthName, monthData, state);
+      const scarletOutras = getOutrasRendasScarletCalculadas(yearStr, m.monthName, monthData);
+      const scarletGanhosProprios = scarletFisio + scarletOutras;
+      const scarletGanhos = scarletGanhosProprios + transfParaScarlet;
+
+      const faturaNubankMes = getFaturaNubankScarletCalculada(yearStr, m.monthName, monthData, state);
+      const scarletGastosItens = (monthData.outros || [])
         .filter(isGastoDaScarlet)
         .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const scarletFaturaNubank = faturaNubankMes > 0 ? faturaNubankMes : scarletGastosItens;
       const scarletDiarios = (monthData.diarios || [])
         .filter(d => !d.jaAlocadoVariavel && ((d.titular || '').toLowerCase() === 'scarlet' || (d.conta || '').toLowerCase() === 'credito_nubank_scarlet'))
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
@@ -376,11 +410,11 @@ const ScenarioSimulator = (function () {
       const vrSaldoSim = vrSaldoBase - vrCustoCen;
       const vrStatus = vrSaldoSim < 0 ? 'deficit' : (vrSaldoSim < 50 ? 'atencao' : 'seguro');
 
-      // Balanço Consolidado (Casal em Conta Corrente)
-      const casalGanhosBase = matheusGanhos + scarletGanhos;
-      const casalGastosBase = matheusGastosBase + scarletGastosBase - transfParaScarlet;
-      const casalSaldoBase = casalGanhosBase - casalGastosBase;
-      const casalSaldoSim = casalGanhosBase - casalGastosBase - consolidadoCustoCen;
+      // Balanço Consolidado (Casal em Conta Corrente: Sobra Matheus + Sobra Scarlet, sem duplicar transferência interna)
+      const casalGanhosBase = matheusGanhos + scarletGanhosProprios;
+      const casalGastosBase = (matheusGastosBase - transfParaScarlet) + scarletGastosBase;
+      const casalSaldoBase = matheusSaldoBase + scarletSaldoBase;
+      const casalSaldoSim = casalSaldoBase - consolidadoCustoCen;
       const casalStatus = casalSaldoSim < 0 ? 'deficit' : (casalSaldoSim < 200 ? 'atencao' : 'seguro');
 
       results.push({
@@ -412,6 +446,10 @@ const ScenarioSimulator = (function () {
             nome: 'Scarlet (FisioFlow)',
             icon: '👩',
             ganhos: scarletGanhos,
+            ganhosFisio: scarletFisio,
+            outrasRendas: scarletOutras,
+            transferencia: transfParaScarlet,
+            faturaNubank: scarletFaturaNubank,
             gastos: scarletGastosBase,
             custoCenarios: scarletCustoCen,
             saldoBase: scarletSaldoBase,
