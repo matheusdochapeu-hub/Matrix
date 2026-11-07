@@ -648,8 +648,15 @@ const MatrixApp = (function () {
       if (!isNaN(manual) && manual > 0) return manual;
     }
 
-    // 2. Receita explícita nas receitas do mês
-    const recFisio = (monthData.receitas || []).find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    // 2. Receita explícita de atendimentos nas receitas do mês (exclui outras rendas)
+    const recFisio = (monthData.receitas || []).find(r => {
+      if (isBeneficioNaoPecunia(r)) return false;
+      const c = (r.categoria || '').toLowerCase();
+      if (c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'))) return false;
+      const n = (r.nome || '').toLowerCase();
+      if (n.includes('outras') || n.includes('extra')) return false;
+      return n.includes('scarlet') || n.includes('fisio') || n.includes('atendimento');
+    });
     if (recFisio && recFisio.valor != null && parseFloat(recFisio.valor) > 0) {
       return parseFloat(recFisio.valor);
     }
@@ -675,6 +682,61 @@ const MatrixApp = (function () {
     }
 
     return 0;
+  }
+
+  // Outras Rendas da Scarlet (além do atendimento fisioterapêutico)
+  function getOutrasRendasScarletMes(ano, mes) {
+    const monthData = MatrixDB.getMonth(ano, mes);
+
+    let total = 0;
+    let foundInReceitas = false;
+
+    // 1. Receitas lançadas explicitamente como Outras Rendas da Scarlet
+    (monthData.receitas || []).forEach(r => {
+      if (isBeneficioNaoPecunia(r)) return;
+      const c = (r.categoria || '').toLowerCase();
+      const ren = (r.renda || '').toLowerCase();
+      const n = (r.nome || '').toLowerCase();
+      const isExtraScarlet = (
+        c === 'outras rendas scarlet' ||
+        ren === 'outras_rendas_scarlet' ||
+        (r.id && r.id.startsWith('rec_scarlet_extra')) ||
+        ((n.includes('scarlet') || (r.titular || '').toLowerCase() === 'scarlet') && 
+         (n.includes('extra') || n.includes('outras') || n.includes('consultoria') || n.includes('plantão') || n.includes('aulas') || n.includes('domiciliar')))
+      );
+      if (isExtraScarlet) {
+        total += parseFloat(r.valor) || 0;
+        foundInReceitas = true;
+      }
+    });
+
+    if (foundInReceitas) return total;
+
+    // 2. Se não estiver no array de receitas, verificar registro direto no objeto scarlet do mês
+    if (monthData.scarlet) {
+      if (monthData.scarlet.outrasRendasManual != null && monthData.scarlet.outrasRendasManual !== '') {
+        const m = parseFloat(monthData.scarlet.outrasRendasManual);
+        if (!isNaN(m)) return m;
+      }
+      if (typeof monthData.scarlet.outrasRendas === 'number') {
+        return monthData.scarlet.outrasRendas;
+      }
+    }
+
+    return 0;
+  }
+
+  function getDescOutrasRendasScarletMes(ano, mes) {
+    const monthData = MatrixDB.getMonth(ano, mes);
+    if (monthData.scarlet && monthData.scarlet.descOutrasRendas) {
+      return monthData.scarlet.descOutrasRendas;
+    }
+    const rec = (monthData.receitas || []).find(r => {
+      const c = (r.categoria || '').toLowerCase();
+      return c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'));
+    });
+    if (rec && rec.nome) return rec.nome;
+    return 'Outras Rendas Scarlet';
   }
 
   function populateYearSelector() {
@@ -1594,7 +1656,9 @@ const MatrixApp = (function () {
     // PARTE 2 (EMBAIXO DISSO): SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS
     const transfScarlet = calcSobraMatheus(currentYear, currentMonth).transf;
     const scarletFisio = ganhosScarlet;
-    const scarletSubtotal = scarletFisio + transfScarlet;
+    const scarletOutras = getOutrasRendasScarletMes(currentYear, currentMonth);
+    const descOutrasScarlet = getDescOutrasRendasScarletMes(currentYear, currentMonth);
+    const scarletSubtotal = scarletFisio + scarletOutras + transfScarlet;
     const scarletFatura = faturaNubank;
     const scarletSobra = scarletSubtotal - scarletFatura;
 
@@ -1639,6 +1703,7 @@ const MatrixApp = (function () {
 
     // 6. Card 4: Fluxo & Sobra Scarlet
     // + Ganhos Scarlet Fisio
+    // + Outras Rendas Scarlet
     // + Transf. p/ Scarlet
     // = Subtotal
     // - Fatura Nubank
@@ -1646,6 +1711,9 @@ const MatrixApp = (function () {
     const scarletTransf = transfScarlet;
     const eqScarletFisioEl = document.getElementById('topEqScarletFisio');
     if (eqScarletFisioEl) eqScarletFisioEl.textContent = formatBRL(scarletFisio);
+
+    const eqScarletOutrasEl = document.getElementById('topEqScarletOutras');
+    if (eqScarletOutrasEl) eqScarletOutrasEl.textContent = formatBRL(scarletOutras);
 
     const eqScarletTransfEl = document.getElementById('topEqScarletTransf');
     if (eqScarletTransfEl) eqScarletTransfEl.textContent = formatBRL(scarletTransf);
@@ -1667,11 +1735,22 @@ const MatrixApp = (function () {
 
     const topScarletExpl = document.getElementById('topScarletExplFormula');
     if (topScarletExpl) {
-      topScarletExpl.innerHTML = `Fisio (<strong>${formatBRL(scarletFisio)}</strong>) + Transf. (<strong>${formatBRL(scarletTransf)}</strong>) = Subtotal (<strong>${formatBRL(scarletSubtotal)}</strong>) - Fatura (<strong>${formatBRL(scarletFatura)}</strong>) = <strong style="color:${scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}</strong>`;
+      topScarletExpl.innerHTML = `Atendimentos (<strong>${formatBRL(scarletFisio)}</strong>) + Outras (<strong>${formatBRL(scarletOutras)}</strong>) + Transf. (<strong>${formatBRL(scarletTransf)}</strong>) = Subtotal (<strong>${formatBRL(scarletSubtotal)}</strong>) - Fatura (<strong>${formatBRL(scarletFatura)}</strong>) = <strong style="color:${scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}</strong>`;
     }
 
     const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
     if (topScarletFisioVal) topScarletFisioVal.textContent = formatBRL(scarletFisio);
+
+    const topScarletOutrasVal = document.getElementById('topScarletOutrasRendasVal');
+    if (topScarletOutrasVal) topScarletOutrasVal.textContent = formatBRL(scarletOutras);
+
+    const topScarletOutrasRow = document.getElementById('topScarletOutrasRendasRow');
+    if (topScarletOutrasRow) {
+      const topScarletOutrasLabel = document.getElementById('topScarletOutrasRendasLabel');
+      if (topScarletOutrasLabel) {
+        topScarletOutrasLabel.textContent = `🎁 (+) ${descOutrasScarlet || 'Outras Rendas Scarlet'}:`;
+      }
+    }
 
     const topScarletTransfVal = document.getElementById('topScarletTransfVal');
     if (topScarletTransfVal) topScarletTransfVal.textContent = formatBRL(scarletTransf);
@@ -6719,7 +6798,7 @@ function onModalCategoriaChange(catVal) {
     if (renda === 'emprestimo') conta = 'emprestimo_familiar';
     else if (renda === 'va_mercado') conta = 'cartao_va';
     else if (renda === 'vr_almoco') conta = 'cartao_vr';
-    else if (renda === 'ganhos_scarlet') conta = 'scarlet_fisio';
+    else if (renda === 'ganhos_scarlet' || renda === 'outras_rendas_scarlet') conta = 'scarlet_fisio';
     else if (renda === 'investimento_resgate') conta = 'resgate_tesouro_reserva';
     else if (renda === 'estudio_extra') conta = 'pix_inter';
     else if (renda === 'outros_ganhos') conta = 'outros';
@@ -6740,6 +6819,9 @@ function onModalCategoriaChange(catVal) {
     MatrixDB.learnCategoryMapping(nome, cat);
 
     const payload = { nome, valor, categoria: cat, conta, renda, pago };
+    if (cat === 'Outras Rendas Scarlet' || renda === 'outras_rendas_scarlet' || cat === 'Fisio Scarlet' || renda === 'ganhos_scarlet') {
+      payload.titular = 'scarlet';
+    }
 
     if (editId && editId.startsWith('idx_')) {
       const idx = parseInt(editId.replace('idx_', ''), 10);
@@ -6882,7 +6964,7 @@ function onModalCategoriaChange(catVal) {
   let saldosModalTargetAno = null;
   let saldosModalTargetMes = null;
 
-  function openEditSaldosModal(anoParam = null, mesParam = null) {
+  function openEditSaldosModal(anoParam = null, mesParam = null, focusSection = null) {
     saldosModalTargetAno = anoParam || currentYear;
     saldosModalTargetMes = mesParam || currentMonth;
 
@@ -6895,8 +6977,10 @@ function onModalCategoriaChange(catVal) {
     // 1. Salário Matheus
     const salMatheus = getSalarioLiquidoMes(saldosModalTargetAno, saldosModalTargetMes);
 
-    // 2. Ganhos Scarlet
+    // 2. Ganhos Scarlet (Atendimentos FisioFlow + Outras Rendas)
     const ganhosScarlet = getGanhosScarletMes(saldosModalTargetAno, saldosModalTargetMes);
+    const outrasRendasScarlet = getOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
+    const descOutrasScarlet = getDescOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
 
     // 3. VA & VR — extração oficial do app Casa Maracaju 88
     const satMaracaju = state.satellites && state.satellites.maracaju;
@@ -6943,6 +7027,8 @@ function onModalCategoriaChange(catVal) {
 
     setVal('saldosSalMatheus', salMatheus);
     setVal('saldosGanhosScarlet', ganhosScarlet);
+    setVal('saldosOutrasRendasScarlet', outrasRendasScarlet > 0 ? outrasRendasScarlet : '');
+    setVal('saldosDescOutrasRendasScarlet', descOutrasScarlet || 'Outras Rendas Scarlet');
     setVal('saldosVa', va);
     setVal('saldosVr', vr);
     setVal('saldosNomeEstudio', (nomeEst && nomeEst !== 'Estúdio') ? nomeEst : 'Renda Extra');
@@ -6952,6 +7038,16 @@ function onModalCategoriaChange(catVal) {
     setVal('saldosAjusteConciliacao', ajuste !== 0 ? ajuste : '');
 
     openModal('saldosEditModalBackdrop');
+
+    if (focusSection === 'scarlet') {
+      setTimeout(() => {
+        const inp = document.getElementById('saldosOutrasRendasScarlet');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      }, 150);
+    }
   }
 
   function salvarSaldosModal() {
@@ -6969,6 +7065,8 @@ function onModalCategoriaChange(catVal) {
 
     const salMatheus = parseVal('saldosSalMatheus', 5788.19);
     const ganhosScarlet = parseVal('saldosGanhosScarlet', 0);
+    const outrasRendasScarlet = parseVal('saldosOutrasRendasScarlet', 0);
+    const descOutrasScarlet = (document.getElementById('saldosDescOutrasRendasScarlet')?.value || '').trim() || 'Outras Rendas Scarlet';
     const va = parseVal('saldosVa', 2059.84);
     const vr = parseVal('saldosVr', 1105.16);
     const novoNomeEst = (document.getElementById('saldosNomeEstudio')?.value || '').trim() || 'Renda Extra';
@@ -6985,6 +7083,9 @@ function onModalCategoriaChange(catVal) {
     if (!monthData.scarlet) monthData.scarlet = {};
     monthData.scarlet.ganhos = ganhosScarlet;
     monthData.scarlet.ganhosManual = ganhosScarlet;
+    monthData.scarlet.outrasRendas = outrasRendasScarlet;
+    monthData.scarlet.outrasRendasManual = outrasRendasScarlet;
+    monthData.scarlet.descOutrasRendas = descOutrasScarlet;
     monthData.scarlet.faturaNubank = faturaNubank;
     monthData.scarlet.faturaNubankManual = faturaNubank;
     monthData.ajusteSaldo = ajuste;
@@ -6995,6 +7096,7 @@ function onModalCategoriaChange(catVal) {
     monthData.totais['VA'] = va;
     monthData.totais['VR'] = vr;
     monthData.totais['Renda Extra'] = valorExtra;
+    monthData.totais['Outras Rendas Scarlet'] = outrasRendasScarlet;
     if (novoNomeEst !== 'Renda Extra') monthData.totais[novoNomeEst] = valorExtra;
 
     // Registra marcações explícitas manuais
@@ -7039,8 +7141,14 @@ function onModalCategoriaChange(catVal) {
       });
     }
 
-    // Ganhos Scarlet
-    let recFisio = monthData.receitas.find(r => (r.nome || '').toLowerCase().includes('scarlet') || (r.nome || '').toLowerCase().includes('fisio'));
+    // Ganhos Scarlet - Atendimentos Fisioterapia
+    let recFisio = monthData.receitas.find(r => {
+      const n = (r.nome || '').toLowerCase();
+      const c = (r.categoria || '').toLowerCase();
+      if (c === 'outras rendas scarlet' || (r.id && r.id.startsWith('rec_scarlet_extra'))) return false;
+      if (n.includes('outras') || n.includes('extra')) return false;
+      return n.includes('scarlet') || n.includes('fisio') || n.includes('atendimento');
+    });
     if (ganhosScarlet > 0) {
       if (recFisio) {
         recFisio.valor = ganhosScarlet;
@@ -7052,11 +7160,37 @@ function onModalCategoriaChange(catVal) {
           categoria: 'Fisio Scarlet',
           conta: 'scarlet_fisio',
           renda: 'ganhos_scarlet',
+          titular: 'scarlet',
           pago: false
         });
       }
     } else if (recFisio) {
       recFisio.valor = 0;
+    }
+
+    // Outras Rendas da Scarlet (Consultoria, Plantão, Cursos, etc.)
+    let recOutrasScarlet = monthData.receitas.find(r => (r.id && r.id.startsWith('rec_scarlet_extra')) || (r.categoria === 'Outras Rendas Scarlet'));
+    if (outrasRendasScarlet > 0) {
+      if (recOutrasScarlet) {
+        recOutrasScarlet.nome = descOutrasScarlet;
+        recOutrasScarlet.valor = outrasRendasScarlet;
+        recOutrasScarlet.categoria = 'Outras Rendas Scarlet';
+        recOutrasScarlet.renda = 'outras_rendas_scarlet';
+        recOutrasScarlet.titular = 'scarlet';
+      } else {
+        monthData.receitas.push({
+          id: 'rec_scarlet_extra_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
+          nome: descOutrasScarlet,
+          valor: outrasRendasScarlet,
+          categoria: 'Outras Rendas Scarlet',
+          conta: 'scarlet_fisio',
+          renda: 'outras_rendas_scarlet',
+          titular: 'scarlet',
+          pago: true
+        });
+      }
+    } else if (recOutrasScarlet) {
+      recOutrasScarlet.valor = 0;
     }
 
     // Vale Alimentação (VA)
@@ -8516,6 +8650,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     promptAlterarNomeEstudio,
     getFaturaNubankMes,
     getGanhosScarletMes,
+    getOutrasRendasScarletMes,
+    getDescOutrasRendasScarletMes,
     calcSobraMatheus,
     isGastoDaScarlet,
     isTransferenciaParaScarlet,

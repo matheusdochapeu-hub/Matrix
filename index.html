@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=62">
+  <link rel="stylesheet" href="css/matrix.css?v=63">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -386,28 +386,36 @@
         <div class="unified-card purple" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para ver a fatura Nubank e atendimentos da Scarlet">
           <div class="unified-card-header">
             <span class="unified-card-title" style="color:var(--purple);">👩‍⚕️ Sobra Scarlet</span>
-            <span class="unified-badge purple" id="topScarletStatusBadge">FisioFlow + Nubank</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="unified-edit-btn" style="border-color:rgba(192,132,252,0.4);color:var(--purple);background:rgba(192,132,252,0.1);font-size:10px;padding:2px 6px;" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'scarlet')" title="Lançar / Editar Atendimentos e Outras Rendas da Scarlet">✏️ Rendas</span>
+              <span class="unified-badge purple" id="topScarletStatusBadge">FisioFlow + Nubank</span>
+            </div>
           </div>
 
-          <!-- Equação Visual: Ganhos Fisio + Transf Matheus - Fatura Nubank = Sobra Scarlet -->
+          <!-- Equação Visual: Ganhos Fisio + Outras Rendas + Transf Matheus - Fatura Nubank = Sobra Scarlet -->
           <div class="unified-equation-banner purple-banner">
             <div class="eq-part">
-              <span class="eq-label">FisioFlow</span>
+              <span class="eq-label">Fisio</span>
               <strong class="eq-val" style="color:var(--cyan);" id="topEqScarletFisio">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--purple);">+</span>
             <div class="eq-part">
-              <span class="eq-label">Transf. Matheus</span>
+              <span class="eq-label">Outras</span>
+              <strong class="eq-val" style="color:var(--purple);" id="topEqScarletOutras">R$ 0,00</strong>
+            </div>
+            <span class="eq-op" style="color:var(--purple);">+</span>
+            <div class="eq-part">
+              <span class="eq-label">Transf.</span>
               <strong class="eq-val" style="color:var(--amber);" id="topEqScarletTransf">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--purple);">-</span>
             <div class="eq-part">
-              <span class="eq-label">Fatura Nubank</span>
+              <span class="eq-label">Fatura</span>
               <strong class="eq-val" style="color:var(--rose);" id="topEqScarletFatura">R$ 0,00</strong>
             </div>
             <span class="eq-op" style="color:var(--purple);">=</span>
             <div class="eq-part">
-              <span class="eq-label">Sobra Scarlet</span>
+              <span class="eq-label">Sobra</span>
               <strong class="eq-val" id="topEqScarletSobra">R$ 0,00</strong>
             </div>
           </div>
@@ -417,17 +425,21 @@
 
           <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
           <div class="calc-explanation-box purple">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topScarletExplFormula">(+ Ganhos Fisio + Transf. Matheus) = Subtotal (-) Fatura Nubank = Sobra</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Mede se os atendimentos de fisioterapia e o repasse cobrem integralmente o cartão de crédito.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> FisioFlow (atendimentos) + Pix recebido + Fatura Nubank Black.</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Conforme atendimentos são realizados e no vencimento da fatura.</div>
+            <div class="calc-expl-line"><strong>Como:</strong> <span id="topScarletExplFormula">(+ Atendimentos Fisio + Outras Rendas + Transf.) = Subtotal (-) Fatura Nubank = Sobra</span></div>
+            <div class="calc-expl-line"><strong>Por que:</strong> Mede se os atendimentos, outras receitas da Scarlet e o repasse cobrem o cartão de crédito.</div>
+            <div class="calc-expl-line"><strong>Onde:</strong> FisioFlow + Outras Rendas + Pix recebido + Fatura Nubank Black.</div>
+            <div class="calc-expl-line"><strong>Quando:</strong> Conforme atendimentos/atividades são realizados e no vencimento da fatura.</div>
           </div>
 
-          <!-- Estrutura Solicitada: Ganhos + Transf = Subtotal - Fatura = Sobra -->
+          <!-- Estrutura Solicitada: Atendimento Fisio + Outras Rendas + Transf = Subtotal - Fatura = Sobra -->
           <div class="unified-breakdown-list" style="margin-top:6px;">
             <div class="unified-row">
-              <span>🩺 (+) Ganhos Scarlet Fisio:</span>
+              <span>🩺 (+) Atendimentos Scarlet Fisio:</span>
               <strong style="color:var(--cyan);" id="topScarletGanhosFisioVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topScarletOutrasRendasRow">
+              <span id="topScarletOutrasRendasLabel">🎁 (+) Outras Rendas Scarlet:</span>
+              <strong style="color:var(--purple);" id="topScarletOutrasRendasVal">R$ 0,00</strong>
             </div>
             <div class="unified-row">
               <span>🤝 (+) Transf. p/ Scarlet:</span>
@@ -1708,7 +1720,8 @@
           <!-- Receitas -->
           <option value="Salário">Salário</option>
           <option value="Benefícios">Benefícios (VA/VR)</option>
-          <option value="Fisio Scarlet">Fisio Scarlet</option>
+          <option value="Fisio Scarlet">Fisio Scarlet (Atendimentos)</option>
+          <option value="Outras Rendas Scarlet">Outras Rendas Scarlet</option>
           <option value="Renda Extra" id="catOptionEstudio">Renda Extra</option>
           <option value="Empréstimo">Empréstimo</option>
           <option value="Outros Ganhos">Outros Ganhos</option>
@@ -1721,7 +1734,8 @@
         <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Renda Vinculada:</label>
         <select id="modalItemRenda" class="matrix-select" onchange="MatrixApp.onModalRendaChange(this.value)">
           <option value="salario_usp">Salário Matheus</option>
-          <option value="ganhos_scarlet">Ganhos Scarlet</option>
+          <option value="ganhos_scarlet">Ganhos Scarlet (FisioFlow)</option>
+          <option value="outras_rendas_scarlet">Outras Rendas Scarlet</option>
           <option value="va_mercado">Vale Alimentação (VA)</option>
           <option value="vr_almoco">Vale Refeição (VR)</option>
           <option value="investimento_resgate">Resgate Investimento</option>
@@ -2229,40 +2243,22 @@
         Ajuste fino dos saldos e entradas do casal. Toda alteração reflete imediatamente nos KPIs, cartões do horizonte mensal, rastreabilidade e saldo final.
       </p>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <label style="font-size:11px;color:var(--text-muted);">👨‍💼 Salário USP (Matheus) Líquido:</label>
-          <input type="number" step="0.01" id="saldosSalMatheus" class="matrix-input" placeholder="5788.19">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--cyan);">👩‍⚕️ Ganhos Scarlet (FisioFlow):</label>
-          <input type="number" step="0.01" id="saldosGanhosScarlet" class="matrix-input" placeholder="1100.00">
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div>
-          <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA):</label>
-          <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2059.84">
-        </div>
-        <div>
-          <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR):</label>
-          <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1105.16">
-        </div>
-      </div>
-
-      <!-- Renda Extra / Outros Ganhos -->
-      <div style="background:rgba(5,8,7,0.6);border:1px solid var(--border-dim);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
-        <label style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:block;margin-bottom:4px;">
-          🎁 Renda Extra / Outros Ganhos:
+      <!-- BLOCO 1: RENDAS MATHEUS -->
+      <div style="background:rgba(0,255,102,0.03);border:1px solid rgba(0,255,102,0.2);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:block;margin-bottom:6px;">
+          👨‍💼 Rendas Matheus:
         </label>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:10.5px;color:var(--text-muted);">Salário USP Líquido (R$):</label>
+          <input type="number" step="0.01" id="saldosSalMatheus" class="matrix-input" placeholder="5788.19" style="font-size:12px;color:var(--matrix-green);font-weight:600;">
+        </div>
         <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:8px;">
           <div>
-            <label style="font-size:10.5px;color:var(--text-muted);">Nome da Renda Extra:</label>
+            <label style="font-size:10.5px;color:var(--text-muted);">Nome da Renda Extra (Matheus):</label>
             <input type="text" id="saldosNomeEstudio" class="matrix-input" placeholder="Renda Extra" style="font-size:12px;">
           </div>
           <div>
-            <label style="font-size:10.5px;color:var(--text-muted);">Valor no Mês (R$):</label>
+            <label style="font-size:10.5px;color:var(--text-muted);">Valor Renda Extra (R$):</label>
             <input type="number" step="0.01" id="saldosValorEstudio" class="matrix-input" placeholder="0.00" style="font-size:12px;">
           </div>
         </div>
@@ -2276,6 +2272,45 @@
             <option value="emprestimo_bancario">🏦 Empréstimo</option>
             <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
           </select>
+        </div>
+      </div>
+
+      <!-- BLOCO 2: RENDAS SCARLET (ATENDIMENTOS FISIO + OUTRAS RENDAS) -->
+      <div style="background:rgba(130,10,209,0.06);border:1px solid rgba(192,132,252,0.35);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:11px;color:var(--purple);font-weight:bold;margin:0;">
+            👩‍⚕️ Rendas Scarlet (Atendimentos & Extras):
+          </label>
+          <span style="font-size:9.5px;color:var(--cyan);background:rgba(0,229,255,0.12);padding:1px 6px;border-radius:3px;">FisioFlow + Extras</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Atendimentos Fisio (R$):</label>
+            <input type="number" step="0.01" id="saldosGanhosScarlet" class="matrix-input" placeholder="4295.00" style="font-size:12px;color:var(--cyan);font-weight:600;">
+          </div>
+          <div>
+            <label style="font-size:10.5px;color:var(--text-muted);">Outras Rendas Scarlet (R$):</label>
+            <input type="number" step="0.01" id="saldosOutrasRendasScarlet" class="matrix-input" placeholder="0.00" style="font-size:12px;color:var(--purple);font-weight:600;">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10.5px;color:var(--text-muted);">Descrição de Outras Rendas Scarlet:</label>
+          <input type="text" id="saldosDescOutrasRendasScarlet" class="matrix-input" placeholder="Ex: Consultoria, Plantão, Cursos, Aulas..." style="font-size:12px;">
+        </div>
+        <div style="font-size:9.5px;color:var(--text-dim);font-family:var(--font-mono);margin-top:6px;">
+          💡 Recursos Scarlet = Atendimentos Fisio + Outras Rendas + Transf. Matheus
+        </div>
+      </div>
+
+      <!-- BLOCO 3: BENEFÍCIOS ALIMENTAÇÃO (VA & VR) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA):</label>
+          <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2059.84">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR):</label>
+          <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1105.16">
         </div>
       </div>
 
@@ -2689,21 +2724,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=62"></script>
-  <script src="js/matrix-rain.js?v=62"></script>
-  <script src="js/db.js?v=62"></script>
-  <script src="js/calendar-engine.js?v=62"></script>
-  <script src="js/amortization-engine.js?v=62"></script>
-  <script src="js/scenario-simulator.js?v=62"></script>
-  <script src="js/pdf-reader.js?v=62"></script>
-  <script src="js/satellite-connectors.js?v=62"></script>
-  <script src="js/sync-engine.js?v=62"></script>
-  <script src="js/app.js?v=62"></script>
+  <script src="js/seed-data.js?v=63"></script>
+  <script src="js/matrix-rain.js?v=63"></script>
+  <script src="js/db.js?v=63"></script>
+  <script src="js/calendar-engine.js?v=63"></script>
+  <script src="js/amortization-engine.js?v=63"></script>
+  <script src="js/scenario-simulator.js?v=63"></script>
+  <script src="js/pdf-reader.js?v=63"></script>
+  <script src="js/satellite-connectors.js?v=63"></script>
+  <script src="js/sync-engine.js?v=63"></script>
+  <script src="js/app.js?v=63"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=62', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=63', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>
