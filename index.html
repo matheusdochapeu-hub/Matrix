@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=66">
+  <link rel="stylesheet" href="css/matrix.css?v=67">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -151,14 +151,6 @@
 
           <div class="unified-card-main-val" id="topRendaConjuntaVal">R$ 0,00</div>
           <div class="unified-card-sub" id="topRendaSub">Líquido em conta corrente (Matheus)</div>
-          
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box cyan">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topGanhosExplFormula">Salário Líquido USP + Renda Extra</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Renda líquida de titularidade própria do Matheus que entra no Banco do Brasil.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Conta Corrente BB. Exclui benefícios (VA/VR de R$ 3.165,00 em cartões pré-pagos).</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Creditado no 5º dia útil / virada de mês.</div>
-          </div>
 
           <!-- Detalhamento das Fontes em Pecúnia -->
           <div class="unified-breakdown-list">
@@ -220,13 +212,6 @@
           </div>
 
           <!-- DOIS CÁLCULOS: 1. Sem Nubank | 2. Com Nubank -->
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box amber">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topGastosExplFormula">1. Conta: Fixos + Variáveis + Diários. 2. Total: soma Fatura Nubank Black.</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Separa o que debita direto da conta corrente do compromisso da fatura do cartão.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Conta BB (débitos/boletos/Caixa) + Fatura Cartão Nubank Black.</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Vencimentos distribuídos no mês e corte da fatura do cartão.</div>
-          </div>
 
           <div class="dual-gastos-container">
             <!-- 1. Fixos + Variáveis + Diários -->
@@ -306,14 +291,6 @@
           <!-- VALOR PRINCIPAL: SOBRA PRA MIM -->
           <div class="unified-card-main-val green-glow" id="topSobraMatheusVal">R$ 0,00</div>
           <div class="unified-card-sub" id="topSobraMatheusSub">Meu salário + rendas extras deduzindo fixos, variáveis e diários</div>
-
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box cyan" style="margin:6px 0;">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topMatheusExplFormula">(+ Meu Salário + Extras) (-) (Gastos Fixos + Variáveis + Diários) = Sobra pra Mim</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Mede o saldo líquido que sobra na conta bancária do Matheus (não soma VA e VR).</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Conta Corrente Banco do Brasil (BB).</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Posição do mês após débitos, boletos e repasse.</div>
-          </div>
 
           <!-- Linhas do Cálculo do Matheus -->
           <div class="unified-breakdown-list" style="margin-top:4px;">
@@ -422,14 +399,6 @@
 
           <div class="unified-card-main-val" style="color:var(--purple);" id="topSobraScarletVal">R$ 0,00</div>
           <div class="unified-card-sub" id="topSobraScarletSub">Sobra pessoal pós-quitação do cartão</div>
-
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box purple">
-            <div class="calc-expl-line"><strong>Como:</strong> <span id="topScarletExplFormula">(+ Atendimentos Fisio + Outras Rendas + Transf.) = Subtotal (-) Fatura Nubank = Sobra</span></div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Mede se os atendimentos, outras receitas da Scarlet e o repasse cobrem o cartão de crédito.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> FisioFlow + Outras Rendas + Pix recebido + Fatura Nubank Black.</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Conforme atendimentos/atividades são realizados e no vencimento da fatura.</div>
-          </div>
 
           <!-- Estrutura Solicitada: Atendimento Fisio + Outras Rendas + Transf = Subtotal - Fatura = Sobra -->
           <div class="unified-breakdown-list" style="margin-top:6px;">
@@ -2736,21 +2705,21 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=66"></script>
-  <script src="js/matrix-rain.js?v=66"></script>
-  <script src="js/db.js?v=66"></script>
-  <script src="js/calendar-engine.js?v=66"></script>
-  <script src="js/amortization-engine.js?v=66"></script>
-  <script src="js/scenario-simulator.js?v=66"></script>
-  <script src="js/pdf-reader.js?v=66"></script>
-  <script src="js/satellite-connectors.js?v=66"></script>
-  <script src="js/sync-engine.js?v=66"></script>
-  <script src="js/app.js?v=66"></script>
+  <script src="js/seed-data.js?v=67"></script>
+  <script src="js/matrix-rain.js?v=67"></script>
+  <script src="js/db.js?v=67"></script>
+  <script src="js/calendar-engine.js?v=67"></script>
+  <script src="js/amortization-engine.js?v=67"></script>
+  <script src="js/scenario-simulator.js?v=67"></script>
+  <script src="js/pdf-reader.js?v=67"></script>
+  <script src="js/satellite-connectors.js?v=67"></script>
+  <script src="js/sync-engine.js?v=67"></script>
+  <script src="js/app.js?v=67"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=66', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=67', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

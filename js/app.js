@@ -1522,11 +1522,6 @@ const MatrixApp = (function () {
       rConjuntaSubEl.textContent = `Líquido em conta (exclui ${formatBRL(beneficiosNaoPecunia)} em benefícios)`;
     }
 
-    const topGanhosExpl = document.getElementById('topGanhosExplFormula');
-    if (topGanhosExpl) {
-      topGanhosExpl.innerHTML = `Salário USP (<strong>${formatBRL(salMatheus)}</strong>) + Renda Extra (<strong>${formatBRL(outrosGanhos)}</strong>) = <strong>${formatBRL(rendaMatheusTotal)}</strong> em conta`;
-    }
-
     const salMatheusEl = document.getElementById('topSalMatheusVal');
     if (salMatheusEl) salMatheusEl.textContent = formatBRL(salMatheus);
 
@@ -1575,11 +1570,6 @@ const MatrixApp = (function () {
     const totalComNubank = totalGastos + faturaNubank;
     const gastosComNubankEl = document.getElementById('topGastosComNubankVal');
     if (gastosComNubankEl) gastosComNubankEl.textContent = formatBRL(totalComNubank);
-
-    const topGastosExpl = document.getElementById('topGastosExplFormula');
-    if (topGastosExpl) {
-      topGastosExpl.innerHTML = `1. Conta: Fixos (<strong>${formatBRL(fixos)}</strong>) + Var. (<strong>${formatBRL(outros)}</strong>) + Diários (<strong>${formatBRL(diarios)}</strong>) = <strong>${formatBRL(totalGastos)}</strong> • 2. Total: soma Fatura Nubank (<strong>${formatBRL(faturaNubank)}</strong>) = <strong>${formatBRL(totalComNubank)}</strong>`;
-    }
 
     const resumoFixosEl = document.getElementById('topResumoFixosVal');
     if (resumoFixosEl) resumoFixosEl.textContent = formatBRL(fixos);
@@ -1630,11 +1620,6 @@ const MatrixApp = (function () {
     if (topSobraMatheusEl) {
       topSobraMatheusEl.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
       topSobraMatheusEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
-    }
-
-    const topMatheusExpl = document.getElementById('topMatheusExplFormula');
-    if (topMatheusExpl) {
-      topMatheusExpl.innerHTML = `Renda (<strong>${formatBRL(rendaMatheus)}</strong>) - Gastos Totais (<strong>${formatBRL(gastosTotaisMatheus)}</strong>) = <strong style="color:${sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}</strong>`;
     }
 
     const topMatheusReceitasEl = document.getElementById('topMatheusReceitasVal');
@@ -1733,11 +1718,6 @@ const MatrixApp = (function () {
     if (topSobraScarletEl) {
       topSobraScarletEl.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
       topSobraScarletEl.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
-    }
-
-    const topScarletExpl = document.getElementById('topScarletExplFormula');
-    if (topScarletExpl) {
-      topScarletExpl.innerHTML = `Atendimentos (<strong>${formatBRL(scarletFisio)}</strong>) + Outras (<strong>${formatBRL(scarletOutras)}</strong>) + Transf. (<strong>${formatBRL(scarletTransf)}</strong>) = Subtotal (<strong>${formatBRL(scarletSubtotal)}</strong>) - Fatura (<strong>${formatBRL(scarletFatura)}</strong>) = <strong style="color:${scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}</strong>`;
     }
 
     const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
@@ -1955,14 +1935,6 @@ const MatrixApp = (function () {
             </div>
           </div>
 
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box cyan" style="margin-bottom:14px;">
-            <div class="calc-expl-line"><strong>Como:</strong> Renda Líquida (${formatBRL(ganhosMatheusTot)}) menos Contas Próprias (${formatBRL(contasPropriasTot)}) menos Repasse Scarlet (${formatBRL(transfScarletVal)}) = <strong style="color:${sobraFinalMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraFinalMatheus >= 0 ? '+' : ''}${formatBRL(sobraFinalMatheus)}</strong>.</div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Demonstra a saúde financeira do Matheus de forma estritamente pessoal, sem incluir as contas ou a fatura Nubank dela.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Conta Corrente Banco do Brasil (BB).</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> Executado no dia a dia conforme vencimentos de boletos e transferências efetuadas no mês.</div>
-          </div>
-
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
             <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:8px;">Detalhamento das Contas Próprias:</div>
             
@@ -2031,14 +2003,6 @@ const MatrixApp = (function () {
               <span class="eq-label">Total Pecúnia</span>
               <strong class="eq-val" style="color:var(--text-bright);">${formatBRL(totalPecunia)}</strong>
             </div>
-          </div>
-
-          <!-- Discriminação Direta: Como, Por que, Onde e Quando -->
-          <div class="calc-explanation-box cyan" style="margin-bottom:14px;">
-            <div class="calc-expl-line"><strong>Como:</strong> Salário USP (${formatBRL(salUspVal)}) + Renda Extra + Ganhos Scarlet (${formatBRL(fisioVal)}) = ${formatBRL(totalPecunia)} em conta corrente.</div>
-            <div class="calc-expl-line"><strong>Por que:</strong> Recursos líquidos para pagamento de contas, excluindo vales restritos de alimentação.</div>
-            <div class="calc-expl-line"><strong>Onde:</strong> Creditado na Conta Corrente Banco do Brasil (BB).</div>
-            <div class="calc-expl-line"><strong>Quando:</strong> No 5º dia útil de cada mês de competência.</div>
           </div>
 
           <!-- Bloco Receitas em Pecúnia -->
@@ -3148,12 +3112,6 @@ const MatrixApp = (function () {
           <strong style="color:var(--cyan);font-size:11px;">🏦 Trilha 1: Dinheiro em Conta Corrente</strong>
           <span style="font-size:10px;color:var(--cyan);font-weight:700;">Entradas: ${formatBRL(totalEntradasConta)}</span>
         </div>
-        <div class="calc-explanation-box cyan" style="margin:4px 0;">
-          <div class="calc-expl-line"><strong>Como:</strong> Salário USP (${formatBRL(salUsp)}) + Renda Extra (${formatBRL(outrosGanhos)}) + FisioFlow (${formatBRL(scarletTotal)}) = ${formatBRL(totalEntradasConta)}.</div>
-          <div class="calc-expl-line"><strong>Por que:</strong> Renda líquida real que ingressa no banco para quitar as despesas do mês.</div>
-          <div class="calc-expl-line"><strong>Onde:</strong> Creditado na Conta Corrente Banco do Brasil (BB).</div>
-          <div class="calc-expl-line"><strong>Quando:</strong> No 5º dia útil / virada de competência.</div>
-        </div>
         <div style="font-size:10.5px;display:flex;flex-direction:column;gap:3px;margin-top:6px;">
           <div style="display:flex;justify-content:space-between;"><span>🏛️ Salário USP (BB):</span><strong>${formatBRL(salUsp)}</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>🎁 Renda Extra:</span><strong>${formatBRL(outrosGanhos)}</strong></div>
@@ -3166,12 +3124,6 @@ const MatrixApp = (function () {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <strong style="color:var(--amber);font-size:11px;">🛒 Trilha 2: Benefícios em Cartão Pré-Pago</strong>
           <span style="font-size:10px;color:var(--amber);font-weight:700;">Total: ${formatBRL(vaTotal + vrTotal)}</span>
-        </div>
-        <div class="calc-explanation-box amber" style="margin:4px 0;">
-          <div class="calc-expl-line"><strong>Como:</strong> VA (${formatBRL(vaTotal)}) + VR (${formatBRL(vrTotal)}) = ${formatBRL(vaTotal + vrTotal)} em benefícios.</div>
-          <div class="calc-expl-line"><strong>Por que:</strong> Destinados exclusivamente a compras de supermercado e almoços diários.</div>
-          <div class="calc-expl-line"><strong>Onde:</strong> Cartões de benefícios Alelo/Sodexo (não misturados à conta corrente).</div>
-          <div class="calc-expl-line"><strong>Quando:</strong> Carregados no início de cada mês.</div>
         </div>
         <div style="font-size:10.5px;display:flex;flex-direction:column;gap:3px;margin-top:6px;">
           <div style="display:flex;justify-content:space-between;"><span>🥗 Vale Alimentação (VA - Mercado):</span><strong>${formatBRL(vaTotal)}</strong></div>
@@ -3187,12 +3139,6 @@ const MatrixApp = (function () {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <strong style="color:var(--rose);font-size:11px;">📤 Para Onde Foi (Saídas em Conta):</strong>
           <span style="font-size:10px;color:var(--rose);font-weight:700;">Total: ${formatBRL(totalSaidasConta)}</span>
-        </div>
-        <div class="calc-explanation-box rose" style="margin:4px 0;">
-          <div class="calc-expl-line"><strong>Como:</strong> Soma de boletos, débitos automáticos, caronas USP, aportes e transferências.</div>
-          <div class="calc-expl-line"><strong>Por que:</strong> Cobre moradia, saúde, locomoção e compromissos essenciais do casal.</div>
-          <div class="calc-expl-line"><strong>Onde:</strong> Débitos na Conta Corrente BB e Caixa Econômica.</div>
-          <div class="calc-expl-line"><strong>Quando:</strong> Vencimentos programados de 1º a 31 do mês.</div>
         </div>
         <div style="font-size:10.5px;display:flex;flex-direction:column;gap:3px;margin-top:6px;">
           <div style="display:flex;justify-content:space-between;"><span>🏠 Moradia (Parcela Caixa + Água + Luz):</span><strong>${formatBRL(destMoradia)}</strong></div>
@@ -3210,12 +3156,6 @@ const MatrixApp = (function () {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <strong style="color:var(--purple);font-size:11px;">🟣 Trilha 3: Fatura Cartão Nubank Black</strong>
           <span style="font-size:10px;color:var(--purple);font-weight:700;">Fatura: ${formatBRL(faturaNubank)}</span>
-        </div>
-        <div class="calc-explanation-box purple" style="margin:4px 0;">
-          <div class="calc-expl-line"><strong>Como:</strong> Despesas acumuladas no cartão de crédito durante o ciclo da fatura.</div>
-          <div class="calc-expl-line"><strong>Por que:</strong> Controla os compromissos em cartão que vencem na data de corte.</div>
-          <div class="calc-expl-line"><strong>Onde:</strong> Fatura do Nubank Ultravioleta/Black.</div>
-          <div class="calc-expl-line"><strong>Quando:</strong> Fechamento e vencimento mensal do cartão.</div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:10.5px;">
           <span style="color:var(--text-dim);">Compromisso Total Cartão:</span>
