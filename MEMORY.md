@@ -103,3 +103,24 @@ Correção estrutural na vinculação entre status de pagamento (`pago: true` vs
 
 5. **Versionamento e Service Worker:**
    - Cache de PWA e parâmetros de assets atualizados para `v84` em `sw.js` e `index.html`.
+
+---
+
+## [2026-11-07 22:15] - Despesas e Repasses Pendentes Não Debitam Antecipadamente e Sobram na Conta do Matheus (v85)
+
+### Regra de Caixa Real Consolidada ("Sobra na Minha"):
+1. **Transferência Matheus → Scarlet:**
+   - Enquanto `pago !== true`:
+     - **Card da Scarlet:** Transferência = `R$ 0,00` (exibe aviso `⏳ R$ 1.600,00 pendente`).
+     - **Card do Matheus:** Como o Pix ainda não foi emitido, os `R$ 1.600,00` **continuam na conta bancária do Matheus** e **sobram no caixa dele** (`sobraMatheus`).
+   - Ao marcar `[PAGO]`:
+     - O valor de `R$ 1.600,00` debita da sobra do Matheus e entra nos recursos disponíveis da Scarlet. Conservação financeira de 100%.
+
+2. **Contas Próprias do Matheus (`fixos` e `outros`):**
+   - Contas com status `[PENDENTE]` (como `Caronas R$ 1.140,00`, `INSS Maria R$ 179,00`, etc.) são provisões e **não são debitadas antecipadamente** do dinheiro líquido em conta (`Líquido em Conta BB`).
+   - Elas permanecem somadas na sobra realizada atual (`sobra = ganhos - totalGastosPago`), enquanto o subtexto e o modal de auditoria informam a `Sobra Prevista Pós-Quitação` e o total pendente a pagar (`⏳ R$ X a pagar`).
+   - Ao alternar a conta para `[PAGO]`, ela passa a integrar `totalGastosPago` e reduz o saldo em conta em tempo real.
+
+3. **Caronas (Previsão do Mês x Gastos Diários):**
+   - O lançamento de Caronas (`R$ 1.140,00 [PENDENTE]`) passa a atuar como provisão sem drenar o saldo diário em conta.
+   - O usuário pode lançar cada viagem individualmente via botão `⚡ + Gasto Diário` (ex: R$ 60 no dia com conta "Conta BB (USP)"), debitando o caixa daquele dia conforme as viagens acontecem.
