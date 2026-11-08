@@ -1,214 +1,272 @@
-# MEMORY.md — Memória Persistente do Projeto Matrix Finance 360
+# Memória Persistente do Projeto — Férias Inteligente
 
-Este documento armazena o histórico de auditorias (`/autofix` / `/revisar`), regras de negócio consolidadas, decisões arquiteturais e correções de bugs do **Matrix Finance 360** (Orçamento Familiar Matheus & Scarlet).
-
----
-
-## [2026-11-08 14:00] - Área Dedicada para Gastos Próprios e Recorrentes da Scarlet (Psicóloga, Investimentos, Fixos) & Vínculo com Sobra Scarlet (v90)
-
-### Resumo Geral
-Atendendo à solicitação do usuário (*"Vamos abrir espaço/local para lançar outros gastos da scarlet. No caso quero colocar gastos que são recorrentes, como a psicóloga dela e investimentos dela que saem do salário dela. Permita a existência dessa área voltada para os gastos dela"*), foi implementada uma estrutura completa, dedicada e vinculada para gestão dos gastos próprios da Scarlet:
-1. **Coluna Exclusiva no Fluxo de Caixa (`👩‍⚕️ Gastos Scarlet`):**
-   - Criada uma 4ª coluna estilizada no padrão Matrix com bordas e botões em tema roxo (`--purple`), posicionada ao lado das demais colunas do Fluxo de Caixa.
-   - Possui termômetro de pagamentos próprio: **● Já Pago**, **● Falta Pagar** e **● Total**, com barra de progresso individual.
-   - Tabela dedicada listando todos os gastos da Scarlet (Psicóloga, Investimentos, Previdência, etc.), com badges de origem (`👩‍⚕️ Ganhos Scarlet`), categoria, botão interativo de alternância de status (**✅ PAGO / ⏳ PENDENTE**), valor e botões de editar e excluir.
-   - Botão de ação rápida: `+ Novo Gasto Scarlet (Psicóloga, Investimentos...)`.
-2. **Segregação Rigorosa e Antiduplicação nas Colunas de Matheus:**
-   - A tabela `🔒 Gastos Fixos` e a tabela `🛍️ Gastos Variáveis / Outros` agora exibem exclusivamente os compromissos de Matheus / Contas Compartilhadas da Casa (mantendo apenas a transferência para a Scarlet que Matheus paga).
-   - Os gastos próprios da Scarlet não são duplicados na tabela de contas do Matheus, ficando organizados em seu próprio espaço.
-3. **Modal de Lançamentos com Seletor Explicito de Titular:**
-   - Adicionado campo `<select id="modalItemTitular">` permitindo escolher entre **👨‍💼 Matheus (Conta USP / Compartilhado Casa)** e **👩‍⚕️ Scarlet (FisioFlow / Pessoal Scarlet)**.
-   - Adicionadas opções de categoria dedicadas: `Psicóloga & Terapias` e `Investimentos Scarlet`.
-   - Ao abrir via botões de Scarlet, o modal já abre pré-configurado com titularidade Scarlet e renda vinculada `Ganhos Scarlet (FisioFlow)`.
-4. **Card 4 (Sobra Scarlet) e Equação Visual Atualizados:**
-   - Equação visual do Card 4 expandida para: `Fisio + Outras + Transf. - Fatura - Gastos = Sobra`.
-   - Box de cálculo 2 renomeado para: `2. SOBRA PÓS-FATURA & GASTOS` (Recursos − Fatura − Gastos).
-   - Detalhamento do Card 4 inclui linha: `🧠 (-) Gastos Próprios Scarlet: - R$ X,XX` (ou indicação de valor a pagar caso pendente).
-   - Botão `+ Gasto` adicionado no cabeçalho do Card 4 para lançamento imediato.
-   - Fórmula: `Sobra Líquida Scarlet = Recursos Disponíveis (Fisio + Outras + Transf. Paga) - Fatura Nubank - Gastos Próprios Scarlet Pagos`.
-   - Se o gasto da Scarlet estiver pendente, não reduz o saldo realizado até ser marcado como pago.
-5. **Modal "Editar Saldos & Rendas" e Drilldown Executivo:**
-   - Seção `🧠 Gastos Próprios Scarlet` adicionada no modal de saldos com visualização dinâmica dos itens ativos e atalho para novo gasto.
-   - Drilldown da Scarlet (`MatrixApp.abrirDrilldown('scarlet')`) ativado no clique do Card 4, exibindo resumo executivo, tabela detalhada de gastos próprios e link para auditoria da fatura Nubank.
-6. **Simulador "E se?" (`scenario-simulator.js`):**
-   - A conta `scarlet` agora soma tanto a Fatura Nubank quanto `scarletGastosPropriosBase` (fixos + variáveis vinculados à Scarlet) em `scarletGastosBase`, assegurando projeções futuras precisas.
+Este arquivo registra o histórico permanente de auditorias, regras de negócio aprendidas, correções implementadas e diretrizes de arquitetura para orientação de sessões e modelos futuros.
 
 ---
 
-## [2026-11-08 02:00] - Revisão Anual de Dezembro com Divisor Real por Meses Lançados e Consolidado do Casal Matheus & Scarlet (v88)
+## [2026-11-04 15:55] - Revisão e Correção Automática (/revisar)
 
-### Resumo Geral
-Atendendo à solicitação do usuário, a análise e retrospectiva anual de Dezembro (`renderRevisaoAnualDezembro` e `exportarRelatorioDezembro`) foi totalmente aprimorada:
-1. **Divisor Real por Competências Lançadas:** A média mensal agora divide estritamente pela quantidade de meses lançados no ano em questão (`divisorMeses = Math.max(1, mesesComLancamento.length)`), em vez de dividir cegamente por 12. Para 2026, com lançamentos em Outubro, Novembro e Dezembro, o divisor é exatamente **3 meses** (eliminando a distorção onde a Parcela da Casa de R$ 4.160,78 aparecia com média errônea de R$ 346,73/mês, passando agora para os corretos R$ 1.386,93/mês).
-2. **Consolidado do Ano do Casal (Matheus & Scarlet):** Criada seção executiva completa com:
-   - 4 Cards Principais: Ganhos Totais Matheus (% da renda e média real), Ganhos Totais Scarlet (% da renda e média real), Total Despesas do Casal e Sobra Líquida Acumulada (% de poupança e média real).
-   - Tabela Mês a Mês Detalhada: Colunas para Mês, Ganhos Matheus (Salário USP + 13º + Rendas Extras), Ganhos Scarlet (FisioFlow regra M+1 + Outras Rendas), Renda Total Conjunta do Casal, Despesas do Casal (Fixos + Variáveis + Diários + Fatura), Sobra Líquida e % Poupança, acompanhado de rodapé com Total Acumulado e Média Mensal Real.
-   - Ranking Top 10 Maiores Despesas do Ano atualizado com a coluna `Média Mensal (${divisorMeses}m)` e subtítulo com os meses considerados.
-   - Exportação em PDF / Impressão (`exportarRelatorioDezembro`) atualizada com a nova tabela consolidada e as médias reais.
-3. **Comportamento Permanente em Todo Dezembro:** O gatilho dispara de forma dinâmica e automatizada em todo mês de Dezembro para qualquer ano selecionado, detectando automaticamente a quantidade de meses ativos.
+### 🔍 Problemas Identificados & Causa Raiz
 
----
+1. **Incongruência de Metadados em `js/dados.js` (`montarCalendarios`)**:
+   - *Falha*: A função `montarCalendarios()` reconstruía o objeto `calendarios[ano].entes[enteId]` com uma lista fixa de propriedades (`id`, `nome`, `esfera`, `pagamento`, `abonadas`, etc.), omitindo `regrasInicio` que foi adicionada em `data/entes.json`.
+   - *Causa Raiz*: Whitelist manual de propriedades em `js/dados.js` sem mapear `regrasInicio`. No motor (`js/motor.js`), a condição `enteObj && enteObj.regrasInicio` resultava em `undefined` no navegador (funcionava na USP somente pelo fallback `ehUsp === true`).
 
-## [2026-11-07 14:52] - Sincronização do Saldo Atual de VA & VR (Casa Maracaju 88), Regra Estrita M+1 do FisioFlow & Auditoria `/autofix` (v75)
+2. **Incongruência no Precache Offline do PWA (`sw.js`)**:
+   - *Falha*: `js/pwa.js` é importado no final de `index.html` para registrar o Service Worker, mas não estava listado no array `PRECACHE` do `sw.js`.
+   - *Causa Raiz*: Omissão do arquivo ao estruturar os assets do shell offline.
 
-### Resumo Geral
-Corrigida a exibição e sincronização do **Saldo Atual de VA e VR** no chip superior `🏠 CASA MARACAJU VA & VR` e no modal de detalhamento, eliminando o bloqueio que mantinha o VR fixo em `R$ 1.105,16` após gastos realizados ontem (`06/11`) e hoje (`07/11`) no app Casa Maracaju 88. Também foi realizada uma varredura completa (`/autofix`) em todos os módulos JS do Matrix Finance e do conector Google Sheets do Maracaju 88.
+3. **Incompatibilidade Multiplataforma no Script de Validação (`package.json`)**:
+   - *Falha*: O comando `"check": "agy-node --check js/*.js scripts/*.js"` falhava no Windows (`MODULE_NOT_FOUND`) porque cmd/powershell não expandem globs (`*.js`), e dependia do binário `agy-node` em vez do runner universal `node`.
+   - *Causa Raiz*: Suposição de expansão de glob pelo shell (comum em bash, inexistente em cmd.exe).
 
-### Regras de Negócio Consolidadas (Invioláveis)
-1. **Saldo Atual de VA & VR no Topo (`#topSatVaVal`, `#topSatVrVal`, `#topSatCasaVal`):**
-   - O chip superior `🏠 CASA MARACAJU VA & VR` exibe **sempre o saldo atual restante** (`saldoVaRestante` e `saldoVrRestante`), já descontando todas as compras e refeições do ciclo vigente (a partir do 4º dia útil, `06/11/2026`), sincronizado via ponte `localStorage` same-origin (`MARACAJU_STATE_v1`), nuvem (`maracajuUrl`) e lançamentos diários em Cartão VA/VR.
-   - Os cards de **Ganhos** (`Card 1` e `Linha do Tempo`) exibem o **crédito total do ciclo** (`vaTotal = R$ 2.059,84` e `vrTotal = R$ 1.105,16`), separando claramente *Crédito Recebido no Mês* de *Saldo Restante Atual no Cartão*.
-2. **Regra M+1 Estrita para Ganhos da Scarlet (FisioFlow):**
-   - Os atendimentos realizados pela Scarlet no mês `M` entram como receita disponível no orçamento familiar no mês `M+1`:
-     - **Setembro/2026 (`09/2026`):** `R$ 3.700,00` → Caixa de **Outubro/2026**.
-     - **Outubro/2026 (`10/2026`):** `R$ 1.140,00` → Caixa de **Novembro/2026**.
-     - **Novembro/2026 (`11/2026`):** `R$ 995,00` realizados (`R$ 4.295,00` possíveis, que **não** entram como realizados) → Caixa de **Dezembro/2026**.
-     - **Janeiro/2027 em diante:** `R$ 0,00` (proibido inventar ou projetar valores sem lançamentos reais no FisioFlow).
-3. **Transferências Internas do Casal (Repasse Matheus → Scarlet de R$ 1.600,00):**
-   - Deduzem da sobra individual do Matheus e somam nos recursos disponíveis da Scarlet para pagar a fatura Nubank, mas **jamais** são somadas nos Ganhos Conjuntos do Casal para não inflar o saldo final.
-4. **Remoção Definitiva de "Orçamento Geral":**
-   - Todas as despesas e cenários saem exclusivamente dos ganhos do Matheus (`salario_usp`), dos ganhos da Scarlet (`ganhos_scarlet`), dos cartões de benefício (`va_mercado`, `vr_almoco`) ou de `investimentos`.
+4. **Lacuna de Testes em `escolherAno` e `montarCalendarios`**:
+   - *Falha*: A função de virada de ano (`escolherAno`, regra de 1º de outubro) e a integridade de montagem de calendários não possuíam testes unitários automatizados.
 
-### Problemas Encontrados e Resolvidos (`/autofix`)
-- **`Matrix/js/app.js` (`renderKPIs`, `salvarSaldosModal`, `abrirDrilldown`):**
-  - **Problema 1:** `salvarSaldosModal` gravava `monthData.vaManual = 2059.84` e `monthData.vrManual = 1105.16` e sobrescrevia `state.satellites.maracaju.saldoVrRestante = 1105.16`. Em seguida, `renderKPIs` priorizava `monthData.vrManual` sobre `satMaracaju.saldoVrRestante`, travando o chip `CASA MARACAJU VA & VR` em `R$ 1.105,16`.
-  - **Solução:** `vaAtual` e `vrAtual` no chip `CASA MARACAJU VA & VR` agora leem estritamente `satMaracaju.saldoVaRestante` e `satMaracaju.saldoVrRestante`. Adicionados listeners `focus` e `storage` para atualização em tempo real ao alternar entre o app Maracaju 88 e o Matrix, além de painel de ajuste rápido e tabela de compras do ciclo vigente (`comprasCicloAtual`) no modal da Casa Maracaju 88.
-- **`Matrix/js/satellite-connectors.js` (`getLocalMaracajuRawState`, `syncMaracajuFromLocal`, `processMaracajuData`, `scrapeAll`):**
-  - **Problema 2:** O Matrix não lia a chave `MARACAJU_STATE_v1` do `localStorage` compartilhado no mesmo domínio (`matheusdochapeu-hub.github.io`) e tratava respostas de erro da nuvem (`{ status: "error" }`) como um estado vazio de `0` compras, resetando o saldo para `R$ 1.105,16`. Além disso, `processMaracajuData` somava itens da lista de compras (`payload.compras`) junto com `comprasRegistros`.
-  - **Solução:** Criada ponte síncrona `syncMaracajuFromLocal()` com mesclagem inteligente `mergeMaracajuPayloads()`, leitura de `settings.benefits` (`monthlyEndingBalances`), filtro estrito de `comprasRegistros` + diários VA/VR e auto-reparo automático (`auto-heal`) da célula `Backup_JSON!B2` da planilha do Maracaju 88.
-- **`Matrix/js/sync-engine.js` (`compactStateForCloud`, `fetchFromCloud`):**
-  - **Problema 3:** `compactStateForCloud` descartava `satellites.maracaju` e `fetchFromCloud` sobrescrevia o estado local na inicialização sem preservar `satellites.maracaju`.
-  - **Solução:** `compactStateForCloud` agora preserva o resumo leve de `satellites.maracaju` e `fetchFromCloud` preserva os gastos locais mais recentes e executa `syncMaracajuFromLocal()`.
-- **`Matrix/js/app.js` & `Matrix/js/scenario-simulator.js` (Duplicidade de Gastos no Crédito e Isolamento de VA/VR):**
-  - **Problema 4:** `saveQuickExpense` lançava gastos de cartão de crédito tanto em `outros` quanto em `diarios` do mês seguinte sem flag de exclusão, duplicando o valor no cálculo de gastos. Além disso, gastos diários com `conta: 'cartao_va'` ou `'cartao_vr'` reduziam a conta corrente do Matheus em `calcSobraMatheus`.
-  - **Solução:** Adicionada a flag `jaAlocadoVariavel: true` nos registros espelho de `diarios` e filtrados `cartao_va`, `va`, `cartao_vr` e `vr` das despesas em conta corrente (abatendo exclusivamente do saldo dos cartões VA/VR). Removida chave duplicada `onModalCategoriaChange` na exportação de `MatrixApp`.
-- **`maracaju88/js/sheets.js` & `maracaju88/apps_script.gs` (Limite de 50.000 Caracteres do Google Sheets):**
-  - **Problema 5:** A inclusão de fotos base64 (`data:image/...`) na aba Pets fez o JSON de backup do Maracaju 88 ultrapassar 50.000 caracteres na célula `Backup_JSON!B2`, gerando erro no Apps Script e deixando a célula vazia (`SyntaxError: Unexpected end of JSON input`).
-  - **Solução:** `backupToSheets` em `maracaju88/js/sheets.js` agora remove strings `data:image/` do payload da nuvem (mantendo-as no `localStorage`), inclui `settings.benefits` no backup e `apps_script.gs` suporta particionamento em múltiplas colunas (`readChunkedJsonRow`).
-
-### Validação e Testes
-- Sintaxe validada em todos os 10 módulos JS do `Matrix` (`node -c` / `new Function`).
-- Suíte de verificação `verify_v75.js` executada com sucesso validando o abatimento exato de compras de VR de ontem (`06/11`) e hoje (`07/11`) sobre os `R$ 1.105,16`.
-- Suíte de testes automatizados do `maracaju88` executada: **73/73 testes aprovados (100%)**.
+5. **Lista de Arquivos do Sincronizador GitHub Desatualizada (`scripts/upload-github.js`)**:
+   - *Falha*: `upload-github.js` não continha `js/pwa.js`, `MEMORY.md` nem novos utilitários.
 
 ---
 
-## [2026-11-07 20:40] - Sincronização Dinâmica em Tempo Real de VA/VR (Maracaju 88 v2.5.0 & Matrix v81)
+### 🛠️ Correções Implementadas
 
-### Resumo das Melhorias
-1. **Maracaju 88 (`v2.5.0`):**
-   - **Remoção de Fotos Base64 no Backup Cloud (`maracaju88/js/sheets.js`):** Higienização de fotos em todas as coleções (`pets.fotos`, `pets.exames[].fotos`, `comprasRegistros[].photos`, `compras[].photos`, `sonhos[].photos`, `carro[].photos`), garantindo que o payload de backup seja sempre `< 44.000` caracteres, prevenindo falhas silenciosas no limite de 50.000 caracteres de célula do Google Sheets.
-   - **Geração e Envio de `settings.benefitsSummary`:** Salva o balanço calculado (`vaBalance`, `vrBalance`, `vaSpent`, `vrSpent`) tanto no `localStorage` quanto no backup do Google Sheets.
-   - **Push Pós-Merge no `syncPullFromSheets` (`maracaju88/js/app.js`):** Sobe automaticamente as compras feitas no celular para a planilha ao abrir o app caso a nuvem ainda não as possua.
+1. **Propagação de `regrasInicio` em `js/dados.js`**:
+   - Adicionado `regrasInicio: entes[id].regrasInicio || null` na montagem de cada ente em `montarCalendarios()`.
+   - Exportadas as funções `montarCalendarios` e `escolherAno` tanto em `window` (quando em navegador) quanto em `module.exports` (quando em ambiente Node.js de teste).
 
-2. **Matrix Finance 360 (`v81`):**
-   - **Chip Superior de Satélite (`#topSatVaVal`, `#topSatVrVal`, `#topSatCasaVal`):** Exibe com fidelidade absoluta o saldo atual restante de VA e VR.
-   - **Interoperabilidade com `marketName` (`satellite-connectors.js`):** Reconhece compras do Maracaju 88 pelo campo oficial `marketName` e integra diretamente o `benefitsSummary`.
-   - **Fim dos Resets Destrutivos (`init()`):** Eliminada a redefinição arbitrária que zerava gastos de VA/VR para 2059.84 / 1105.16 no boot do Matrix.
-   - **Sincronização Bidirecional ao Editar Saldos / Receitas:** Ao alterar os valores de VA ou VR no modal de Saldos ou na tabela de Receitas, o saldo restante do satélite Maracaju é atualizado na hora e o badge reflete a alteração.
-   - **Auto-scraping ao Alternar Abas (`focus`):** Ao gastar no Maracaju 88 e voltar para a aba do Matrix, o Matrix atualiza automaticamente via Google Sheets em segundo plano.
-   - **Correção Visual de Espaçamento dos Símbolos:** Ajustado o espaçamento entre operadores `+`, `-`, `=` nos mini-cálculos para evitar sobreposição visual.
+2. **Atualização do Precache Offline (`sw.js`)**:
+   - Incluído `"js/pwa.js"` no array `PRECACHE`.
+   - Incrementado `CACHE_VERSION` para `"v6"` para garantir revalidação imediata do cache nos clientes.
 
----
+3. **Criação do Verificador de Sintaxe Universal (`scripts/check-syntax.js`)**:
+   - Criado script nativo em Node.js usando a API `vm.Script` para varrer recursivamente `js/`, `scripts/` e `test/`.
+   - Atualizado `package.json` para `"check": "node scripts/check-syntax.js"` e `"test": "node --test test/**/*.test.js"`.
+   - Atualizado `.github/workflows/ci.yml` para executar o script multiplataforma.
 
-## [2026-11-07 21:50] - Vínculo Estrito de Status [PAGO] x [PENDENTE], Sincronização Real de VA/VR (Maracaju 88) e Espaçamento de Fórmulas (v84)
+4. **Novos Testes Automatizados em `test/dados.test.js`**:
+   - Teste de `escolherAno`: valida que antes de 1º de outubro (ex.: setembro) o app não libera o ano seguinte, e a partir de 1º de outubro o ano seguinte é liberado.
+   - Teste de `montarCalendarios`: valida que `regrasInicio.proibirSexta` e `regrasInicio.proibirAntecedenciaFeriado` são devidamente propagados para `window.CALENDARIOS[ano].entes.usp`.
 
-### Resumo Geral
-Correção estrutural na vinculação entre status de pagamento (`pago: true` vs `pago: false`) e os cálculos de caixa executivos nos 4 cards de topo, consolidação do saldo real de benefícios alimentares da Casa Maracaju 88 após compras registradas (Padaria R$ 71,06 no VA; Burgoo R$ 197,45 e Padock Bar R$ 102,30 no VR), e refinamento tipográfico definitivo nas equações de 1 linha eliminando sobreposição do sinal `+`.
-
-### Alterações Implementadas
-1. **Transferência Matheus → Scarlet Vinculada a Status [PAGO]:**
-   - **Problema:** O Card 4 (Sobra Scarlet) somava automaticamente a transferência de `R$ 1.600,00` mesmo com a despesa marcada como `[PENDENTE]`, inflando os recursos disponíveis da Scarlet para `R$ 6.740,00` e a sobra para `+R$ 2.171,43` antes do repasse ter sido efetivamente pago.
-   - **Solução:** `calcSobraMatheus` agora calcula separadamente `transfTotal`, `transfPaga` (somente itens com `pago === true`) e `transfPendente`.
-   - Enquanto pendente, `scarletTransf = R$ 0,00`, recursos disponíveis = `R$ 5.140,00` e Sobra Scarlet = `+R$ 571,43`. O badge do Card 4 exibe `R$ 0,00 (⏳ R$ 1.600,00 pendente)`. Ao alternar para `[PAGO]`, os `R$ 1.600,00` são imediatamente incorporados aos recursos e a sobra salta para `+R$ 2.171,43`.
-
-2. **13º Salário USP e Estúdio / Renda Extra (Receitas Pendentes x Recebidas):**
-   - **Problema:** Na aba de Receitas, o `13º Salário USP` (`R$ 1.566,00 [PEND.]`) era classificado erroneamente como salário regular mas omitido pelo seletor de primeiro match, desaparecendo do Card 1. Por outro lado, `Estúdio / Renda Extra` (`R$ 600,00 [PEND.]`) somava-se ao dinheiro disponível em conta antes de ser recebido.
-   - **Solução:**
-     - Criada a função `isReceita13Salario(r)` dedicada para isolar o 13º salário.
-     - Inserida linha exclusiva no Card 1 (`#top13SalRow`) exibindo `R$ 0,00 (⏳ R$ 1.566,00 a receber)` enquanto pendente, e `+ R$ 1.566,00` quando pago.
-     - `outrosGanhosPago` soma estritamente receitas com `pago === true` (como `Empréstimo R$ 4.300,00 [PAGO]`). Itens a receber (como `Estúdio R$ 600,00 [PEND.]`) são exibidos como pendentes `(+⏳ R$ 600,00)`.
-     - O valor principal `1. SALÁRIO + RENDA EXTRA` reflete o dinheiro líquido real em conta no Banco do Brasil (`R$ 10.088,19`), acompanhado da legenda `• R$ 2.166,00 a receber`.
-
-3. **Saldos Reais de VA e VR da Casa Maracaju 88 (R$ 1.988,78 VA & R$ 805,41 VR):**
-   - **Problema:** O badge de topo e os dados iniciais do Matrix ainda exibiam o total inicial de `VA R$ 2.059,84` e `VR R$ 1.105,16` porque o restore do Matrix Google Sheets em segundo plano sobrescrevia o estado do satélite antes da conclusão do scraping da planilha da Casa Maracaju.
-   - **Solução:**
-     - `executarScrapingSatellites` foi encadeado para rodar após `fetchFromCloud` via `.finally()`, garantindo que os saldos mais recentes coletados da planilha do Maracaju 88 prevaleçam sempre sobre backups antigos.
-     - Inicialização calibrada com as compras reais registradas:
-       - **VA:** Crédito de `R$ 2.059,84` − `R$ 71,06` (Padaria e Mercearia Irmãos Araújo) = **`R$ 1.988,78`**.
-       - **VR:** Crédito de `R$ 1.105,16` − `R$ 299,75` (Burgoo `R$ 197,45` + Padock Bar `R$ 102,30`) = **`R$ 805,41`**.
-     - Atualizados os chips de topo (`#topSatVaVal`, `#topSatVrVal`), cache `js/db.js` e fallbacks de `js/app.js`.
-
-4. **Espaçamento e Alinhamento das Fórmulas dos 4 Cards (`css/matrix.css`):**
-   - **Problema:** Em telas menores e em resolução desktop compacta, os operadores `+`, `-` e `=` ficavam muito colados nos números, parecendo sobrepostos.
-   - **Solução:**
-     - Ajustado `.eq-op` para ter `padding: 0 4px`, `opacity: 0.9` e `margin-bottom: 2px`.
-     - Ajustado `.eq-val` com `font-size: 9px` (8.8px no mobile), `letter-spacing: -0.3px` e `tabular-nums`.
-     - Ajustado `.eq-part` com `flex: 1 1 auto; min-width: 0;` garantindo proporção e respiro visual em todos os 4 cards.
-
-5. **Versionamento e Service Worker:**
-   - Cache de PWA e parâmetros de assets atualizados para `v84` em `sw.js` e `index.html`.
+5. **Sincronização Abrangente (`scripts/upload-github.js`)**:
+   - Incluídos `js/pwa.js`, `scripts/check-syntax.js` e `MEMORY.md` no array `ARQUIVOS`.
 
 ---
 
-## [2026-11-07 22:15] - Despesas e Repasses Pendentes Não Debitam Antecipadamente e Sobram na Conta do Matheus (v85)
+### 🧪 Validação
 
-### Regra de Caixa Real Consolidada ("Sobra na Minha"):
-1. **Transferência Matheus → Scarlet:**
-   - Enquanto `pago !== true`:
-     - **Card da Scarlet:** Transferência = `R$ 0,00` (exibe aviso `⏳ R$ 1.600,00 pendente`).
-     - **Card do Matheus:** Como o Pix ainda não foi emitido, os `R$ 1.600,00` **continuam na conta bancária do Matheus** e **sobram no caixa dele** (`sobraMatheus`).
-   - Ao marcar `[PAGO]`:
-     - O valor de `R$ 1.600,00` debita da sobra do Matheus e entra nos recursos disponíveis da Scarlet. Conservação financeira de 100%.
-
-2. **Contas Próprias do Matheus (`fixos` e `outros`):**
-   - Contas com status `[PENDENTE]` (como `Caronas R$ 1.140,00`, `INSS Maria R$ 179,00`, etc.) são provisões e **não são debitadas antecipadamente** do dinheiro líquido em conta (`Líquido em Conta BB`).
-   - Elas permanecem somadas na sobra realizada atual (`sobra = ganhos - totalGastosPago`), enquanto o subtexto e o modal de auditoria informam a `Sobra Prevista Pós-Quitação` e o total pendente a pagar (`⏳ R$ X a pagar`).
-   - Ao alternar a conta para `[PAGO]`, ela passa a integrar `totalGastosPago` e reduz o saldo em conta em tempo real.
-
-3. **Caronas (Previsão do Mês x Gastos Diários):**
-   - O lançamento de Caronas (`R$ 1.140,00 [PENDENTE]`) passa a atuar como provisão sem drenar o saldo diário em conta.
-   - O usuário pode lançar cada viagem individualmente via botão `⚡ + Gasto Diário` (ex: R$ 60 no dia com conta "Conta BB (USP)"), debitando o caixa daquele dia conforme as viagens acontecem.
+- **Sintaxe**: 17 arquivos JS verificados via `scripts/check-syntax.js` (0 erros).
+- **Testes Unitários**: 23 testes executados com 100% de aprovação (0 falhas).
+  - App exporta iniciar, trocarAno e resetar
+  - App.trocarAno reseta estado completo e limpa DOM
+  - atualizarAnoUI e trocarAno refletem ano no DOM
+  - js/dados.js delega para App.trocarAno com fallback
+  - js/dados.js escolherAno: transição de ano respeita 1º de outubro
+  - js/dados.js montarCalendarios: preserva regrasInicio de entes.json
+  - pmrp 30 dias corridas: totalDescanso >= 30
+  - usp 15 dias abonadas: abonadas dentro das regras
+  - limeira abonadas _duplo: somente quando fracionado é false
+  - usp 5 dias: resultados válidos com diasFerias === 5
+  - 0 dias de férias com banco de horas: semFerias: true e diasEspeciais.length > 0
+  - usp ferias: nunca iniciam na sexta-feira nem nos 2 dias que antecedem feriados
+  - pmrp: permite inícios em sexta-feira quando aplicável
+  - Meeus Easter e feriados móveis 2027 e 2028
+  - Moveis.entradasParaJSON: estrutura correta
+  - Botão personalizado: HTML, listeners, comportamento e CSS
+  - opcoesRestantes: 0 dias + fluxo multi-período + prevenção de colisão
 
 ---
 
-## [2026-11-07 22:20] - Fixação dos Valores Iniciais de VA e VR no Banner do Card 1 (Ganhos Matheus) (v86)
+### 🧠 Regras & Decisões Aprendidas (Para Próximos Chats)
 
-### Alteração:
-- **Card 1 (Ganhos Matheus):**
-  - No banner de equação (`#topEqVaVal` e `#topEqVrVal`), os valores de VA e VR voltaram a exibir o **crédito inicial do mês sem descontos**:
-    - **VA:** `R$ 2.059,84` (depósito R$ 2.050,00 + sobra R$ 9,84)
-    - **VR:** `R$ 1.105,16` (17 dias úteis R$ 1.105,00 + sobra R$ 0,16)
-  - Isso mantém a harmonia da visão de **Ganhos e Poder de Compra Total** (`R$ 13.853,19`), alinhada com o detalhamento inferior do card.
-  - O **saldo atual restante pós-descontos** (`VA R$ 1.988,78` e `VR R$ 805,41`) permanece exibido exclusivamente onde deve estar: no chip superior `🏠 CASA MARACAJU VA & VR` e no modal de auditoria da Casa Maracaju 88.
+1. **Configuração Orientada a Dados (`data/entes.json`)**:
+   - Toda nova regra ou restrição legal de um órgão (ex.: `regrasInicio`, `abonadas`) deve ser declarada em `data/entes.json` e propagada em `js/dados.js:montarCalendarios()`.
+   - O motor em `js/motor.js` deve sempre ler do `enteObj` montado a partir de `CALENDARIOS[ano].entes[enteId]`, mantendo fallback conservador apenas se o metadado não estiver definido.
+
+2. **Regras Férias Web (USP / CLT art. 134, § 3º)**:
+   - Servidores da USP nunca podem iniciar férias na sexta-feira nem nos 2 dias que antecedem feriados ou pontos facultativos.
+   - Folgas de banco de horas / TRE puras (`diasFerias === 0`) são isentas dessa vedação de férias.
+
+3. **Transição de Ano (1º de Outubro)**:
+   - O ano Y só é liberado para exibição a partir de 1º/out do ano Y-1. Antes dessa data, mesmo que os dados do ano Y existam, o app prioriza o ano corrente para evitar exibição de projeções antes dos decretos oficiais.
+
+4. **Multiplataforma (Windows + Linux)**:
+   - Nunca utilizar wildcards (`*.js`) em chamadas CLI do `package.json` dependentes de shell. Use scripts Node dedicados (`scripts/check-syntax.js`).
+
+---
+
+## [2026-11-04 16:55] - Correção de Falha na CI e Desbloqueio do GitHub Pages
+
+### 🔍 Problemas Identificados & Causa Raiz
+
+1. **Falha na CI (Node 20)**:
+   - *Falha*: A execução dos testes automatizados falhava no ambiente Node 20 com o erro: `Could not find '.../test/**/*.test.js'`.
+   - *Causa Raiz*: No runner Ubuntu do GitHub Actions, o bash é executado sem `globstar` ativado, de forma que o padrão recursivo `**/*.test.js` não é expandido pelo shell. No Node 22 há resolução de globs embutida no CLI, mas no Node 20 a ausência de expansão causou a tentativa de carregar o arquivo com o literal `**`, quebrando a esteira com exit code 1.
+   - *Impacto*: O repositório exibia badge de falha vermelha (❌), e o deploy do GitHub Pages foi impedido de prosseguir.
+
+2. **Deploy Quebrado no GitHub Pages (`errored: Page build failed`)**:
+   - *Falha*: O status da API do GitHub Pages retornou `Pages status: errored (Page build failed.)`.
+   - *Causa Raiz*: Ausência do arquivo `.nojekyll` na raiz do repositório. Por padrão, o GitHub Pages aciona o parser do Jekyll para compilar o site. Na presença de arquivos markdown e diretórios especiais, o Jekyll falhou na compilação estática.
+   - *Impacto*: O site publicado em `https://matheusdochapeu-hub.github.io/ferias-inteligente/` permaneceu estagnado na versão antiga (`v4`), onde as férias da USP ainda iniciavam em sextas-feiras.
+
+3. **Spam de Commits Concorrentes no Sincronizador (`scripts/upload-github.js`)**:
+   - *Falha*: O script subia todos os 21 arquivos sequencialmente criando 21 commits separados via API REST, cancelando deploys do Pages e estourando o limite de concorrência.
+   - *Causa Raiz*: Ausência de verificação de hash Git local vs. remoto (`gitBlobSha`).
+
+### 🛠️ Correções Implementadas
+
+1. **Correção do Padrão de Testes na CI (`.github/workflows/ci.yml` & `package.json`)**:
+   - Substituído `node --test test/**/*.test.js` por `node --test test/*.test.js`. Como todos os testes do projeto estão situados diretamente na raiz da pasta `test/`, o glob simples é expandido perfeitamente tanto no Node 20 quanto no Node 22 e no Windows.
+
+2. **Criação de `.nojekyll` na Raiz**:
+   - Adicionado o arquivo `.nojekyll` para desativar o mecanismo Jekyll no GitHub Pages, garantindo deploy estático imediato e livre de falhas de build.
+
+3. **Deduplicação de Uploads via Hash Git (`scripts/upload-github.js`)**:
+   - Implementado cálculo de SHA-1 idêntico ao Git (`blob <size>\0<bytes>`). O script agora verifica se o hash local coincide com o remoto e pula arquivos inalterados, enviando apenas arquivos que de fato sofreram modificação.
+
+### 🧪 Validação
+
+- Testes nativos executados: 23 testes passando localmente (Node 20 e 24+).
+- Script de sintaxe: 17 arquivos validados sem nenhum erro de parsing.
+- Verificação exaustiva de sextas-feiras: 0 sugestões de início em sextas-feiras para a USP em qualquer cidade ou modo.
 
 
-### Versão 87 (v87) - Fatura Nubank no Simulador "E Se" e Ajuste de Espaçamento dos Operadores (+, -, =)
-- **Fatura Nubank da Scarlet na Aba "E Se" (Scenario Simulator):**
-  - Corrigida a coerção de tipos em `getFaturaNubankMes(ano, mes)` e `getFaturaNubankScarletCalculada(...)` (`String(ano)` e `String(mes)`), garantindo que meses numéricos ou strings reconheçam imediatamente as faturas reais do histórico e satélites (`Outubro R$ 3.418,03`, `Novembro R$ 4.568,57`, `Dezembro R$ 1.568,05`, `Janeiro R$ 1.628,89`).
-  - Prevenido o retorno prematuro de `0` quando o método da aplicação ainda não tiver carregado a chave exata, permitindo a transição limpa para os dados reais do satélite e da memória do mês.
-- **Espaçamento e Tipografia da Linha de Equação dos 4 Cards:**
-  - Ajustado o tamanho da fonte de `.eq-val` para `8.5px` (desktop) e `8.2px` (mobile), com `letter-spacing: -0.35px`.
-  - Reduzido o padding e adicionada margem de segurança no `.eq-op` (`font-size: 9px; padding: 0 1.5px; margin: 0 1px 2px 1px`), eliminando qualquer sobreposição ou colisão do `+`, `-` e `=` com os valores monetários.
-- **Controle de Versão e Cache PWA:**
-  - Cache renovado para `matrix-finance-v87` em `sw.js` e tags atualizadas em `index.html`.
+---
+
+## [2026-11-05 16:30] - Nova Identidade Visual e Ícones Modernos 3D (Lógica do App Maracaju)
+
+### 🎨 Motivação & Solução
+1. **Nova Identidade Visual 3D**:
+   - Seguindo a lógica do app Maracaju, o cabeçalho agora utiliza uma marca estruturada (`.brand-wrapper`) com o logotipo moderno do app (`.brand-logo`) ao lado do título institucional, substituindo o emoji cru anterior.
+   - Ícone concebido com metáfora 3D tátil de alto padrão (calendário moderno de mesa integrado a um cenário tropical ensolarado com mar turquesa, areia e guarda-sol listrado, em degradê azul real e oceano profundo).
+2. **Pacote Completo de Ícones PWA**:
+   - Gerados com interpolação de alta qualidade: `icon-512.png`, `icon-192.png`, `icon-maskable-512.png` (com safe margin para launchers circulares/adaptativos do Android), `apple-touch-icon.png` (180x180), `favicon.png` (64x64) e `favicon.ico` multi-resolução (16/32/48/64) na raiz.
+   - Criado script de automação `scripts/generate-icons.ps1` usando PowerShell e `System.Drawing`.
+3. **PWA & Cache**:
+   - `sw.js` atualizado para a versão de cache `v7`, incluindo os novos assets de ícone no precache offline.
+4. **Validação**:
+   - 16 arquivos JS validados pelo verificador de sintaxe (0 erros).
+   - 23 testes unitários nativos executados com 100% de aprovação.
 
 
-### Versão 88 (v88) - VA Fixo (R$ 2.050,00) e VR via Calendário Matrix (R$ 1.105,00)
-- **Crédito de VA Contratual (Fixo):**
-  - Fixado em **R$ 2.050,00** para todos os meses em `getBeneficiosCreditoMes(ano, mes)`, `seed-data.js` e inicialização do cache (`db.js` / `app.js`).
-- **Crédito de VR via Calendário do App Matrix:**
-  - Extraído dinamicamente do motor de calendário do próprio Matrix (`CalendarEngine.calculateCommuteAndVR`), calculando os dias úteis civis do mês vezes a diária de VR (R$ 65,00), totalizando **R$ 1.105,00** em Novembro de 2026 e variando conforme o expediente de cada mês.
-- **Preservação Integral do Saldo Real da Casa Maracaju 88:**
-  - O saldo real restante em cartões para compras e refeições (`VA R$ 1.988,78` e `VR R$ 805,41`) continua vindo exclusivamente do satélite Casa Maracaju 88, sem ser alterado pelos créditos contratuais.
-- **Reflexo nas Telas e Telas de Apoio:**
-  - Modal Receitas & Ganhos: `Vale Alimentação (VA) R$ 2.050,00` e `Vale Refeição (VR) R$ 1.105,00`.
-  - Card 1 Banner Superior: `VA R$ 2.050,00 + VR R$ 1.105,00`.
-  - Card 1 Discriminação: `(+) Vale Alimentação (VA): R$ 2.050,00` e `(+) Vale Refeição (VR): R$ 1.105,00`.
-  - Simulador de Cenários ("E Se"): Aba VA e VR alinhadas às regras sem desvios.
+---
+
+## [2026-11-06 11:30] - Botão de Instalação PWA e Guia Ilustrado
+
+### 📲 Motivação & Solução
+1. **Botão "Instalar aplicativo" no Cabeçalho**:
+   - Adicionado botão pill com degradê azul escuro/real (`#1565c0` / `#0d47a1`), ícone `📲` e microinteração de hover em `.header-actions`.
+   - Se o usuário já estiver acessando em modo standalone (PWA instalado), o botão é automaticamente ocultado para não ocupar espaço.
+2. **Suporte Nativo Android / Chromium e Guia iOS**:
+   - Em navegadores com suporte a `beforeinstallprompt` (Chrome Android, Edge, etc.), aciona diretamente a caixa de diálogo nativa de instalação com 1 toque.
+   - No iPhone/Safari ou navegadores sem prompt nativo, abre o modal acessível `#instalar-modal` com passo a passo ilustrado para iOS (Safari), Android e Computador.
+3. **PWA & Cache**:
+   - `sw.js` incrementado para `v8`.
+4. **Validação & Testes**:
+   - Criado `test/pwa.test.js` cobrindo presença no HTML, estilos CSS e listeners em `js/pwa.js`.
+   - 17 arquivos JS validados pelo verificador de sintaxe (0 erros).
+   - 26 testes unitários nativos executados com 100% de aprovação.
+
+- **Garantia de Desaparecimento Pós-Instalação**:
+  - Implementada media query CSS `@media all and (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) { #btn-instalar-app, .header-actions { display: none !important; } }`, eliminando qualquer piscada visual ao abrir o app instalado.
+  - Monitoramento contínuo em JavaScript (`ehStandalone()`, listener dinâmico de `matchMedia`, evento `appinstalled`, aceite no `beforeinstallprompt` e persistência em `localStorage`).
+  - Adicionado botão *"Já instalei o app"* no rodapé do modal de instruções para usuários de iPhone/Safari poderem ocultar o botão manualmente caso desejem.
+
+---
+
+## [2026-11-08 14:20] - Matrix Finance v91: Inclusão da Fatura Nubank da Scarlet no Fechamento Consolidado
+
+### 🔍 Motivação & Solução
+1. **Fatura Nubank da Scarlet como Dívida Consolidada**:
+   - No bloco **Fechamento Consolidado do Mês**, o widget exibia apenas Receitas, Gastos Fixos e Gastos Variáveis, gerando um Saldo Líquido artificialmente inflado que desconsiderava a fatura do cartão Nubank Black da Scarlet (ex.: R$ 4.568,57 em Nov/2026).
+   - Adicionada a 4ª stat-box roxa dedicada: `(-) Cartão Nubank` com valor da fatura, link direto para drilldown detalhado (`abrirDrilldown('fatura')`) e botão de alternância de status (`[✅ PAGO]` / `[⏳ PEND.]`).
+   - O `(=) Saldo Líquido Consolidado` foi reposicionado em largura total (`grid-column: 1 / -1`) com badge de status (`SUPERÁVIT` / `DÉFICIT`) e cálculo matemático consolidado:
+     $$\text{Saldo Líquido Consolidado} = \text{Receitas Pecuniárias} - \text{Fixos Externos} - \text{Variáveis Externos} - \text{Diários} - \text{Fatura Nubank} - \text{Gastos Scarlet}$$
+2. **Eliminação de Duplicidade de Repasses Internos**:
+   - Ao consolidar as despesas da família com a Fatura Nubank, transferências internas do Matheus para a Scarlet (ex.: `Scarlet (Fatura Nubank)` de R$ 1.600,00) não são contadas em duplicidade com a fatura integral do cartão.
+3. **Termômetro de Execução Unificado**:
+   - `Total Já Pago no Mês` e `Falta Pagar` agora incluem o status real da Fatura Nubank Black (se pendente, vai para Falta Pagar; se paga, vai para Já Pago).
+4. **Modal Editar Saldos**:
+   - Adicionado checkbox `Fatura já paga no mês` e método `toggleFaturaNubankPaga(ano, mes)` com sincronização imediata do fechamento.
+5. **PWA & Cache**:
+   - `sw.js` atualizado para a versão de cache `matrix-finance-v91`.
+
+---
+
+## [2026-11-08 14:35] - Matrix Finance v92: MEI nos Fixos do Matheus e Acessibilidade do Modal Editar
+
+### 🔍 Motivação & Solução
+1. **MEI Reatribuído aos Gastos Fixos do Matheus (Salário USP / Conta BB)**:
+   - A conta `MEI` (DAS MEI da Scarlet) é paga pelo salário do Matheus. Ela estava sendo capturada na coluna da Scarlet devido à categoria antiga `Fisio Scarlet`.
+   - Adicionada regra de ouro em `isGastoDaScarlet`: itens `n === 'mei'` ou `n.startsWith('mei ')` retornam estritamente `false`.
+   - Na higienização de inicialização e em `saveItemFromModal`, qualquer item MEI é normalizado para: `titular: 'matheus'`, `conta: 'salario_bb'`, `renda: 'salario_usp'` e categoria `'Contas'`.
+   - O MEI agora é descontado da conta corrente do Matheus e não subtrai recursos da Sobra Líquida da Scarlet.
+2. **Correção de Usabilidade & Toque no Modal de Edição (Mobile & Desktop)**:
+   - Causa raiz: no CSS mobile de `.data-table`, `.action-col .btn-icon` possuía `min-width: 16px !important; font-size: 11px !important;`, tornando o toque no lápis `✏️` extremamente impreciso em telas touch.
+   - Aumentada a área de toque dos botões de ação para `min-width: 30px; min-height: 30px; font-size: 15px;` com padding confortável e borda sutil.
+   - Adicionado evento de clique direto em toda a célula de descrição (`<td class="desc-col" onclick="...">`) em todas as tabelas (Fixos, Variáveis, Scarlet, Diários e Receitas), permitindo abrir o modal de edição tocando diretamente no nome/descrição da despesa.
+3. **PWA & Cache**:
+   - Incrementado `sw.js` para `matrix-finance-v92`.
+
+---
+
+## [2026-11-08 14:50] - Matrix Finance v93: Opção 1 — Provisão com Consumo Automático de Caronas
+
+### 🔍 Motivação & Solução
+1. **Regra de Negócio de Caronas USP**:
+   - O app calcula no Calendário a previsão de caronas baseada nos dias presenciais na USP no ciclo salarial (ex.: 19 dias úteis $\times$ R\$ 60 = R\$ 1.140,00).
+   - Ao longo do mês, o usuário realiza viagens reais e lança despesas individuais em `+ Gasto Diário` (ex.: R\$ 50, R\$ 60, R\$ 70).
+   - Sem o consumo automático, somar os Gastos Fixos (R\$ 1.140,00) com os Gastos Diários duplicaria o transporte no fluxo de caixa e distorceria a sobra do mês.
+2. **Implementação da Opção 1 (Provisão com Consumo Automático)**:
+   - Criada a função unificada `getCaronasProvisionSummary(yearStr, monthName, monthData)`:
+     - Detecta o valor da provisão orçamentária em `monthData.fixos` (`isCaronaItem(f)`).
+     - Soma dinamicamente todos os lançamentos diários de carona do mês em `monthData.diarios` (`isCaronaItem(d)`).
+     - Calcula o saldo residual pendente: $\text{saldoRestante} = \max(0, \text{provisao} - \text{consumido})$.
+     - Se o valor gasto em diários atingir ou ultrapassar a provisão, o saldo pendente nos fixos zera ($\text{saldoRestante} = 0$).
+3. **Consistência Matemática em Todo o Ecossistema**:
+   - `calcSobraMatheus`: a parcela pendente dos fixos para caronas passa a ser $\text{saldoRestante}$. O valor já pago nos diários é computado em `diarios`. Resultado: total previsto de caronas = $\text{consumido} + \text{saldoRestante} = \text{provisao}$, com zero duplicidade e sobra prevista exata.
+   - `renderKPIs`, `renderMonthlyHorizonCards`, `renderCashflowTrace`, `renderRevisaoAnualDezembro`: todos adotam o motor central sem divergências.
+4. **Experiência Visual & Interativa**:
+   - Na tabela de **Gastos Fixos**:
+     - Exibe badges contextuais: `🚗 Previsão USP (dias no ciclo)`, `⚡ Consumido: R$ X (Nx)` e `⏳ Saldo da Provisão: R$ Y`.
+     - Quando 100% consumida, a linha exibe `✔ 100% CONSUMIDO` com estilo pago verde.
+     - A coluna de valor exibe o saldo restante pendente em destaque com o valor total original em subtexto.
+     - Adicionado botão de ação rápida `⚡` para lançar carona do dia em 1 clique.
+   - No modal **+ Gasto Diário**:
+     - Adicionados botões de atalho rápido (chips): `[🚗 Carona USP (R$ 60)]`, `[🍽️ Almoço VR (R$ 25)]` e `[☕ Café USP (R$ 8)]`.
+     - Ao digitar ou selecionar carona, um aviso em verde confirma: *"🚗 Abate da Provisão de Caronas USP!"*.
+5. **PWA & Cache**:
+   - `sw.js` atualizado para `matrix-finance-v93`.
+
+---
+
+## [2026-11-08 15:40] - Roadmap & Proposta de Reformulação: Aba "E se?" (Simulador de Meses Futuros)
+
+### 💡 Diretrizes e Ideias Aprovadas para Implementação Futura
+Propostas estruturadas e validadas para modernização da aba de simulações e projeções financeiras:
+
+1. **Linha D'Água do Caixa & Stress Test (Detecção de "Mês de Aperto")**:
+   - Plotar a curva de **Saldo Acumulado de Caixa** ao longo dos meses futuros (2026-2027+), em vez de apenas avaliar meses isolados.
+   - Detecção proativa e alertas visuais de risco: identificar com antecedência meses de menor liquidez ou vulnerabilidade a imprevistos (ex.: despesas de início de ano como IPVA, IPTU e matrículas).
+
+2. **Comparador Lado a Lado (Cenário Base Realista vs. Cenário Simulado)**:
+   - Seletor rápido de comparação direta:
+     - *Cenário Base*: Projeção realista atual com base nos lançamentos e saldos vigentes.
+     - *Cenário "E Se"*: Projeção com as hipóteses testadas ativas.
+   - Painel resumo de impacto líquido consolidado (ex.: *"+ R$ 8.400 economizados no ano"* ou *"- R$ 350 na sobra mensal média"*).
+
+3. **Presets Rápidos de 1 Clique (Hipóteses Recorrentes do Casal)**:
+   - Botões pré-configurados para simulação instantânea de decisões frequentes:
+     - 🚗 **Regime USP**: Alternar entre 100% presencial, híbrido ou remoto (recalculando transporte e VR).
+     - 🩺 **Expansão FisioFlow**: Simular crescimento de 20%, 40% ou 60% nos atendimentos da Scarlet e capacidade de aporte pessoal.
+     - 🏠 **Amortização Extraordinária Caixa**: Simular aporte mensal fixo (ex.: R$ 1.000 ou R$ 1.500) e calcular prazo e juros poupados em tempo real.
+     - ✈️ **Projetos & Parcelamentos**: Lançar despesa em N vezes (ex.: viagem, reforma ou curso) e verificar em quais meses há folga orçamentária.
+
+4. **Curva de Patrimônio & Poupança Acumulada (12 e 24 Meses)**:
+   - Gráfico de visualização da evolução do patrimônio líquido conjunto (Reserva de Emergência + Renda+ + Tesouro + Ações/FIIs + Previdência) projetado até o final de 2027.
+
+5. **Organização por Três Alavancas de Decisão**:
+   - **Alavanca de Entrada**: Ganhos adicionais, aumentos, novos clientes.
+   - **Alavanca de Corte**: Renegociação de contas, cancelamentos de assinaturas, redução de variáveis.
+   - **Alavanca de Compromisso**: Aquisição de bens, financiamentos, parcelas no cartão de crédito.
 
 
-### Versão 89 (v89) - 2027 em diante nasce PENDENTE + Aba "E Se" alinhada aos lançamentos
-- **Padrão pendente (2027+):** `seed-data.js` (85 lançamentos de 2027 passam a `pago: false`), `ensureMonthReceitas` e `addTransaction` em `db.js` criam lançamentos de 2027 em diante como PENDENTES. Out/Nov/Dez de 2026 não foram alterados. Dados já salvos pelo usuário não são sobrescritos.
-- **Aba "E Se":** passa a ler os meses via `MatrixDB.getMonth` (mesma leitura do app, refletindo as edições do usuário), usa `getBeneficiosCreditoMes` (VA fixo 2.050 | VR do calendário Matrix) e a fatura Nubank lançada em 2027 tem prioridade sobre a estimativa padrão (R$ 1.628,89 só vale como fallback em Jan/2027).
-- Cache PWA: `matrix-finance-v89`.
