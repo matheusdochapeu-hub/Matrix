@@ -742,10 +742,21 @@
                 <span class="val" id="fechamentoTotalOutros">R$ 0,00</span>
                 <span class="sub" id="fechamentoOutrosSub">0 pagos • 0 pendentes</span>
               </div>
-              <div class="fechamento-stat-box cyan" style="cursor:pointer;" onclick="MatrixApp.openEditSaldosModal()" title="Clique para editar e calibrar saldos e rendas deste mês">
-                <span class="label">(=) Saldo Líquido ✏️</span>
-                <span class="val" id="fechamentoSaldoLiquido">R$ 0,00</span>
-                <span class="sub" id="fechamentoSaldoSub">Margem pós-despesas</span>
+              <div class="fechamento-stat-box purple" style="cursor:pointer;" onclick="MatrixApp.abrirDrilldown('fatura')" title="Dívida Cartão Nubank Black da Scarlet. Clique para ver detalhes da fatura.">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span class="label">(-) Cartão Nubank</span>
+                  <button type="button" id="fechamentoFaturaStatusBtn" class="status-btn-mini pendente" onclick="event.stopPropagation();MatrixApp.toggleFaturaNubankPaga()" title="Alternar status da fatura entre Pago e Pendente">⏳ PEND.</button>
+                </div>
+                <span class="val" id="fechamentoTotalFatura" style="color:var(--purple);">R$ 0,00</span>
+                <span class="sub" id="fechamentoFaturaSub">Cartão Nubank Black (Scarlet)</span>
+              </div>
+              <div class="fechamento-stat-box cyan" style="grid-column: 1 / -1; cursor:pointer;" onclick="MatrixApp.openEditSaldosModal()" title="Clique para editar e calibrar saldos e rendas deste mês">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span class="label">(=) Saldo Líquido Consolidado ✏️</span>
+                  <span id="fechamentoSaldoBadge" class="status-badge" style="font-size:9.5px;padding:1px 6px;">Margem</span>
+                </div>
+                <span class="val" id="fechamentoSaldoLiquido" style="font-size:16px;">R$ 0,00</span>
+                <span class="sub" id="fechamentoSaldoSub">Margem consolidada pós-despesas e fatura</span>
               </div>
             </div>
 
@@ -2412,10 +2423,14 @@
           <div>
             <label style="font-size:10.5px;color:var(--text-muted);">Valor da Fatura (R$):</label>
             <input type="number" step="0.01" id="saldosFaturaNubank" class="matrix-input" placeholder="4568.57" style="font-size:12.5px;font-weight:bold;color:var(--text-main);">
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+              <input type="checkbox" id="saldosFaturaPaga" style="cursor:pointer;">
+              <label for="saldosFaturaPaga" style="font-size:10.5px;color:var(--text-bright);cursor:pointer;">Fatura já paga no mês</label>
+            </div>
           </div>
           <div style="display:flex;flex-direction:column;justify-content:center;">
             <span style="font-size:10px;color:var(--text-muted);">
-              Valor sincronizado diretamente da planilha/app Faturas. Você pode alterar manualmente aqui se desejar.
+              Valor sincronizado diretamente da planilha/app Faturas. A fatura entra como dívida no Fechamento Consolidado.
             </span>
           </div>
         </div>

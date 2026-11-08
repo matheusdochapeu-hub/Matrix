@@ -3007,6 +3007,7 @@ const MatrixApp = (function () {
     } else if (tipo === 'fatura') {
       titleEl.innerHTML = `💳 Fatura Nubank Black & Auditoria de Economia (${periodLabel})`;
       const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+      const isFaturaPaga = !!(monthData.scarlet && monthData.scarlet.faturaPaga === true);
       const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
       const diferenca = Math.max(0, faturaNubank - ganhosScarlet);
 
@@ -3083,6 +3084,7 @@ const MatrixApp = (function () {
               <span class="live-pulse"></span> App Faturas Sincronizado em Tempo Real (${periodLabel})
             </span>
             <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button" class="status-btn ${isFaturaPaga ? 'pago' : 'pendente'}" style="font-size:10.5px;padding:3px 8px;" onclick="MatrixApp.toggleFaturaNubankPaga('${currentYear}','${currentMonth}'); MatrixApp.abrirDrilldown('fatura');" title="Alternar status de pagamento da fatura">${isFaturaPaga ? '✅ FATURA PAGA' : '⏳ FATURA PENDENTE'}</button>
               <button type="button" class="btn-matrix" style="font-size:10.5px;padding:2px 8px;" onclick="MatrixApp.closeModal('drilldownModalBackdrop'); MatrixApp.openEditSaldosModal('${currentYear}','${currentMonth}')">✏️ Editar Fatura / Saldos</button>
               <span class="lock-pill" title="Os dados desta fatura foram obtidos do aplicativo Faturas">
                 💳 Dados Reais Faturas
@@ -3976,8 +3978,34 @@ const MatrixApp = (function () {
     const pctScarlet = totalScarletGastos > 0 ? (pagosScarletGastos / totalScarletGastos) * 100 : 0;
     if (document.getElementById('scarletProgressBar')) document.getElementById('scarletProgressBar').style.width = pctScarlet.toFixed(1) + '%';
 
-    const totalGeralPago = pagosFixos + pagosOutros + pagosDiarios;
-    const totalGeralPendente = pendentesFixos + pendentesOutros + pendentesDiarios;
+    // Dívida Consolidada do Cartão Nubank Black da Scarlet
+    const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+    const isFaturaPaga = !!(monthData.scarlet && monthData.scarlet.faturaPaga === true);
+    const faturaPagaVal = isFaturaPaga ? faturaNubank : 0;
+    const faturaPendenteVal = isFaturaPaga ? 0 : faturaNubank;
+
+    // Detectar repasse interno do Matheus para a Scarlet (se existir nos fixos ou outros)
+    const transfFixos = fixosList.filter(f => isTransferenciaParaScarlet(f)).reduce((acc, f) => acc + (parseFloat(f.valor) || 0), 0);
+    const transfOutros = outrosList.filter(o => isTransferenciaParaScarlet(o)).reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
+    const totalTransfScarlet = transfFixos + transfOutros;
+    const transfFixosPaga = fixosList.filter(f => isTransferenciaParaScarlet(f) && f.pago).reduce((acc, f) => acc + (parseFloat(f.valor) || 0), 0);
+    const transfOutrosPaga = outrosList.filter(o => isTransferenciaParaScarlet(o) && o.pago).reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
+    const totalTransfPaga = transfFixosPaga + transfOutrosPaga;
+
+    // Despesas externas consolidadas: evita duplicar o repasse interno com a dívida da fatura Nubank
+    const fixosExternos = Math.max(0, totalFixos - transfFixos);
+    const outrosExternos = Math.max(0, totalOutros - transfOutros);
+    const fixosExternosPago = Math.max(0, pagosFixos - transfFixosPaga);
+    const outrosExternosPago = Math.max(0, pagosOutros - transfOutrosPaga);
+
+    let contasInicioVal = 0;
+    if (currentMonth === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano']) {
+      contasInicioVal = parseFloat(monthData.totais['Contas Inicio Ano']) || 0;
+    }
+
+    const totalDespesasConsolidadas = fixosExternos + outrosExternos + totalDiarios + faturaNubank + totalScarletGastos + contasInicioVal;
+    const totalDespesasPagasConsolidadas = fixosExternosPago + outrosExternosPago + pagosDiarios + faturaPagaVal + pagosScarletGastos + (currentMonth === 'Janeiro' ? contasInicioVal : 0);
+    const totalDespesasPendentesConsolidadas = Math.max(0, totalDespesasConsolidadas - totalDespesasPagasConsolidadas);
 
     // Atualizar Termômetro dos Fixos
     if (document.getElementById('fixosPagoLabel')) document.getElementById('fixosPagoLabel').textContent = formatBRL(pagosFixos);
@@ -3998,11 +4026,10 @@ const MatrixApp = (function () {
     const pctDiarios = totalDiarios > 0 ? (pagosDiarios / totalDiarios) * 100 : 0;
     if (document.getElementById('diariosProgressBar')) document.getElementById('diariosProgressBar').style.width = pctDiarios.toFixed(1) + '%';
 
-    // Atualizar Termômetro Geral do Mês
-    const totalGeralDespesas = totalFixos + totalOutros + totalDiarios;
-    if (document.getElementById('geralPagoTotal')) document.getElementById('geralPagoTotal').textContent = formatBRL(totalGeralPago);
-    if (document.getElementById('geralPendenteTotal')) document.getElementById('geralPendenteTotal').textContent = formatBRL(totalGeralPendente);
-    const pctGeral = totalGeralDespesas > 0 ? (totalGeralPago / totalGeralDespesas) * 100 : 0;
+    // Atualizar Termômetro Geral do Mês (Consolidado: Fixos + Variáveis + Diários + Fatura Nubank Scarlet + Gastos Scarlet)
+    if (document.getElementById('geralPagoTotal')) document.getElementById('geralPagoTotal').textContent = formatBRL(totalDespesasPagasConsolidadas);
+    if (document.getElementById('geralPendenteTotal')) document.getElementById('geralPendenteTotal').textContent = formatBRL(totalDespesasPendentesConsolidadas);
+    const pctGeral = totalDespesasConsolidadas > 0 ? (totalDespesasPagasConsolidadas / totalDespesasConsolidadas) * 100 : 0;
     if (document.getElementById('geralProgressBar')) document.getElementById('geralProgressBar').style.width = pctGeral.toFixed(1) + '%';
 
     // Render Fixos Table Body (Matheus / Casa)
@@ -4268,9 +4295,8 @@ const MatrixApp = (function () {
       }
     }
 
-    // Totais de Fixos, Variáveis e Diários abaixo de Receitas e Fechamento (Base Estrita em Pecúnia)
-    const totalDespesas = totalFixos + totalOutros + totalDiarios;
-    const saldoFinal = totalReceitasPecunia - totalDespesas;
+    // Totais de Fixos, Variáveis, Diários, Fatura Nubank e Gastos Scarlet no Fechamento Consolidado
+    const saldoFinal = totalReceitasPecunia - totalDespesasConsolidadas;
 
     const badgeMes = document.getElementById('fechamentoMesBadge');
     if (badgeMes) badgeMes.textContent = `${currentMonth} / ${currentYear}`;
@@ -4299,13 +4325,43 @@ const MatrixApp = (function () {
     if (outSubEl) {
       const pagCount = outrosList.filter(o => o.pago).length + diariosList.filter(d => d.pago).length;
       const pendCount = (outrosList.length + diariosList.length) - pagCount;
-      outSubEl.textContent = `${pagCount} pagos • ${pendCount} pendentes`;
+      if (totalTransfScarlet > 0) {
+        outSubEl.innerHTML = `${pagCount} pagos • ${pendCount} pendentes<br><span style="color:var(--text-dim);font-size:9.5px;">(inclui ${formatBRL(totalTransfScarlet)} repassado à fatura Nubank)</span>`;
+      } else {
+        outSubEl.textContent = `${pagCount} pagos • ${pendCount} pendentes`;
+      }
     }
 
+    // Fatura Cartão Nubank da Scarlet (Dívida Consolidada)
+    const totalFatEl = document.getElementById('fechamentoTotalFatura');
+    if (totalFatEl) totalFatEl.textContent = formatBRL(faturaNubank);
+    const fatSubEl = document.getElementById('fechamentoFaturaSub');
+    if (fatSubEl) {
+      fatSubEl.innerHTML = `Cartão Nubank Black • ${isFaturaPaga ? '<span style="color:var(--matrix-green);font-weight:700;">Paga</span>' : '<span style="color:var(--amber);font-weight:700;">Pendente</span>'}`;
+    }
+    const fatBtnEl = document.getElementById('fechamentoFaturaStatusBtn');
+    if (fatBtnEl) {
+      fatBtnEl.className = `status-btn-mini ${isFaturaPaga ? 'pago' : 'pendente'}`;
+      fatBtnEl.textContent = isFaturaPaga ? '✅ PAGO' : '⏳ PEND.';
+      fatBtnEl.title = `Clique para alternar Fatura Nubank entre ${isFaturaPaga ? 'Pendente' : 'Paga'}`;
+    }
+
+    // Saldo Líquido Consolidado
     const saldoLiqEl = document.getElementById('fechamentoSaldoLiquido');
     if (saldoLiqEl) {
       saldoLiqEl.textContent = formatBRL(saldoFinal);
       saldoLiqEl.style.color = saldoFinal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
+
+    const saldoSubEl = document.getElementById('fechamentoSaldoSub');
+    if (saldoSubEl) {
+      saldoSubEl.textContent = saldoFinal >= 0 ? 'Margem consolidada pós-despesas e fatura' : 'Déficit consolidado no mês';
+    }
+
+    const saldoBadgeEl = document.getElementById('fechamentoSaldoBadge');
+    if (saldoBadgeEl) {
+      saldoBadgeEl.className = `status-badge ${saldoFinal >= 0 ? 'pago' : 'pendente'}`;
+      saldoBadgeEl.textContent = saldoFinal >= 0 ? 'SUPERÁVIT' : 'DÉFICIT';
     }
 
     const saldoFinalEl = document.getElementById('fechamentoSaldoFinal');
@@ -8186,6 +8242,10 @@ function onModalCategoriaChange(catVal) {
     setVal('saldosValorEstudio', valExtra > 0 ? valExtra : '');
     setVal('saldosContaEstudio', contaExtra);
     setVal('saldosFaturaNubank', fatura);
+    const chkFaturaPaga = document.getElementById('saldosFaturaPaga');
+    if (chkFaturaPaga) {
+      chkFaturaPaga.checked = !!(monthData.scarlet && monthData.scarlet.faturaPaga === true);
+    }
     setVal('saldosAjusteConciliacao', ajuste !== 0 ? ajuste : '');
 
     const scarletGastosContainer = document.getElementById('saldosModalScarletGastosList');
@@ -8255,6 +8315,10 @@ function onModalCategoriaChange(catVal) {
     monthData.scarlet.descOutrasRendas = descOutrasScarlet;
     monthData.scarlet.faturaNubank = faturaNubank;
     monthData.scarlet.faturaNubankManual = faturaNubank;
+    const chkFaturaPaga = document.getElementById('saldosFaturaPaga');
+    if (chkFaturaPaga) {
+      monthData.scarlet.faturaPaga = chkFaturaPaga.checked;
+    }
     monthData.ajusteSaldo = ajuste;
 
     // Atualiza totais
@@ -8429,6 +8493,16 @@ function onModalCategoriaChange(catVal) {
     closeModal('saldosEditModalBackdrop');
     renderAll();
     alert('✅ Saldos e rendas de ' + saldosModalTargetMes + '/' + saldosModalTargetAno + ' atualizados com sucesso!');
+  }
+
+  function toggleFaturaNubankPaga(ano, mes) {
+    const targetAno = ano || currentYear;
+    const targetMes = mes || currentMonth;
+    const monthData = MatrixDB.getMonth(targetAno, targetMes);
+    if (!monthData.scarlet) monthData.scarlet = {};
+    monthData.scarlet.faturaPaga = !monthData.scarlet.faturaPaga;
+    MatrixDB.saveMonth(targetAno, targetMes, monthData);
+    renderAll();
   }
 
   function toggleScenarioActive(scenId, isActive) {
@@ -9880,6 +9954,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     toggleEmprestimoParcelas,
     openEditSaldosModal,
     salvarSaldosModal,
+    toggleFaturaNubankPaga,
     abrirModalEditarDia,
     abrirCalendarioParaCaronas,
     syncCaronasWithCalendar,

@@ -1582,6 +1582,42 @@ body {
 .fechamento-stat-box.amber .val { color: var(--amber); }
 .fechamento-stat-box.rose .val { color: var(--rose); }
 .fechamento-stat-box.cyan .val { color: var(--cyan); }
+.fechamento-stat-box.purple .val { color: var(--purple); }
+.fechamento-stat-box.purple { border-color: rgba(192, 132, 252, 0.35); }
+.fechamento-stat-box.purple:hover { border-color: var(--purple); background: rgba(192, 132, 252, 0.05); }
+
+.status-btn-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 8.5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+.status-btn-mini.pago {
+  background: rgba(0, 255, 102, 0.16);
+  color: var(--matrix-green);
+  border-color: var(--matrix-green-dim);
+}
+.status-btn-mini.pago:hover {
+  background: rgba(0, 255, 102, 0.28);
+}
+.status-btn-mini.pendente {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--amber);
+  border-color: rgba(251, 191, 36, 0.45);
+}
+.status-btn-mini.pendente:hover {
+  background: rgba(251, 191, 36, 0.28);
+  color: #fff;
+}
 
 .cashflow-trace-box {
   border-top: 1px solid var(--border-dim);
