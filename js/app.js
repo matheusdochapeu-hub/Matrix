@@ -808,6 +808,66 @@ const MatrixApp = (function () {
     return !!(hol && hol.liquido);
   }
 
+  // Identifica se um item é relacionado a Caronas USP (Previsão de transporte / Carona diária)
+  function isCaronaItem(it) {
+    if (!it) return false;
+    const n = (it.nome || '').toLowerCase().trim();
+    const c = (it.categoria || '').toLowerCase().trim();
+    if (n.includes('carona') || n.includes('caronas')) return true;
+    if (c.includes('transporte') && (n.includes('usp') || n.includes('são carlos') || n.includes('sao carlos'))) return true;
+    return false;
+  }
+
+  // Motor da Opção 1: Provisão com Consumo Automático de Caronas
+  // Calcula a previsão mensal nos fixos, o total já consumido via gastos diários,
+  // e o saldo residual pendente da provisão, garantindo ZERO duplicidade no fluxo de caixa.
+  function getCaronasProvisionSummary(yearStr, monthName, monthData = null) {
+    if (!monthData) monthData = MatrixDB.getMonth(yearStr, monthName);
+    if (!monthData) {
+      return {
+        provision: 0,
+        consumed: 0,
+        consumedPaid: 0,
+        remaining: 0,
+        isExceeded: false,
+        dailyCount: 0,
+        caronasDiarios: [],
+        fixoIsPago: false,
+        caronaFixo: null
+      };
+    }
+
+    const fixos = monthData.fixos || [];
+    const diarios = monthData.diarios || [];
+
+    const caronaFixo = fixos.find(f => f && isCaronaItem(f));
+    const provision = caronaFixo ? (parseFloat(caronaFixo.valor) || 0) : 0;
+    const fixoIsPago = !!(caronaFixo && caronaFixo.pago);
+
+    // Gastos diários de carona registrados neste mês
+    const caronasDiarios = diarios.filter(d => d && isCaronaItem(d));
+    const consumed = caronasDiarios.reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+    const consumedPaid = caronasDiarios.filter(d => d.pago).reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
+
+    // Saldo restante pendente da provisão
+    let remaining = 0;
+    if (!fixoIsPago) {
+      remaining = Math.max(0, provision - consumed);
+    }
+
+    return {
+      caronaFixo,
+      provision,
+      fixoIsPago,
+      consumed,
+      consumedPaid,
+      remaining,
+      isExceeded: consumed > provision && provision > 0,
+      dailyCount: caronasDiarios.length,
+      caronasDiarios
+    };
+  }
+
   // Identifica qualquer receita pertencente à Scarlet (seja FisioFlow ou Outras Rendas/Renda Extra da Scarlet)
   function isReceitaDaScarlet(r) {
     if (!r || isBeneficioNaoPecunia(r)) return false;
@@ -915,6 +975,8 @@ const MatrixApp = (function () {
     const ganhos = salMatheusPago + val13Pago + outrosGanhosPago;
     const ganhosPrevistos = salMatheusTotal + val13Total + outrosGanhosTotal;
 
+    const caronaSumm = getCaronasProvisionSummary(ano, mes, monthData);
+
     // Contas próprias pagas vs pendentes (exclui gastos da Scarlet e transferências para Scarlet)
     const somaPropriaPaga = (lista) => (lista || [])
       .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && !isConsignadoFolhaJaDescontado(it, ano, mes) && it.pago === true)
@@ -922,7 +984,14 @@ const MatrixApp = (function () {
 
     const somaPropriaPendente = (lista) => (lista || [])
       .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && !isConsignadoFolhaJaDescontado(it, ano, mes) && it.pago !== true)
-      .reduce((acc, it) => acc + num(it.valor), 0);
+      .reduce((acc, it) => {
+        if (isCaronaItem(it)) {
+          // Opção 1: Provisão com Consumo Automático
+          // Abate o que já foi consumido pelos lançamentos diários de carona
+          return acc + caronaSumm.remaining;
+        }
+        return acc + num(it.valor);
+      }, 0);
 
     const fixosPago = somaPropriaPaga(monthData.fixos);
     const fixosPendente = somaPropriaPendente(monthData.fixos);
@@ -1592,8 +1661,14 @@ const MatrixApp = (function () {
       // Ganhos Conjuntos Totais = soma de (Salario matheus + renda extra matheus + outras receitas matheus + ganhos Scarlet + outras Rendas Scarlet + VA + VR)
       const ganhosConjuntosTotais = rendaMatheusTotal + rendaScarletTotal + totalBeneficios;
 
-      // 4. Gastos Fixos, Variáveis, Diários e Fatura Nubank
-      const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      // 4. Gastos Fixos, Variáveis, Diários e Fatura Nubank (com Provisão de Caronas com Consumo Automático)
+      const caronaSummHorizon = getCaronasProvisionSummary(m.ano, m.mes, monthData);
+      const fixos = (monthData.fixos || []).reduce((acc, it) => {
+        if (isCaronaItem(it) && !it.pago) {
+          return acc + caronaSummHorizon.remaining;
+        }
+        return acc + (parseFloat(it.valor) || 0);
+      }, 0);
       const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const diarios = (monthData.diarios || [])
         .filter(d => {
@@ -1779,8 +1854,14 @@ const MatrixApp = (function () {
     }
     const ganhosPecunia = salMatheus + outrosGanhos + ganhosScarlet + outrasRendasScarletMes;
 
-    // Gastos Fixos
-    const fixos = (monthData.fixos || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    // Gastos Fixos (com Opção 1: Provisão de Caronas com Consumo Automático)
+    const caronaSummKPI = getCaronasProvisionSummary(currentYear, currentMonth, monthData);
+    const fixos = (monthData.fixos || []).reduce((acc, it) => {
+      if (isCaronaItem(it) && !it.pago) {
+        return acc + caronaSummKPI.remaining;
+      }
+      return acc + (parseFloat(it.valor) || 0);
+    }, 0);
     // Gastos Outros/Variáveis
     const outros = (monthData.outros || []).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     // Gastos Diários Imediatos (exclui espelhos de cartão de crédito e gastos em cartão VA/VR)
@@ -3793,8 +3874,13 @@ const MatrixApp = (function () {
     let destTransfScarlet = 0;
     let destOutrasContas = 0;
 
+    const caronaSummTrace = getCaronasProvisionSummary(currentYear, currentMonth, monthData);
+
     allExpenses.forEach(exp => {
-      const val = parseFloat(exp.valor) || 0;
+      let val = parseFloat(exp.valor) || 0;
+      if (fixosList.includes(exp) && isCaronaItem(exp) && !exp.pago) {
+        val = caronaSummTrace.remaining;
+      }
       const n = (exp.nome || '').toLowerCase();
       const cat = (exp.categoria || '').toLowerCase();
 
@@ -3901,12 +3987,6 @@ const MatrixApp = (function () {
     alert('🔒 Sincronizado do App Faturas (Somente Leitura no Matrix)\n\nOs lançamentos da Fatura Nubank Black e despesas de cartão são sincronizados em tempo real a partir do aplicativo Faturas.\n\nPara alterar valores, compras parceladas ou novas despesas de cartão, utilize o App Faturas. As modificações serão refletidas automaticamente aqui.');
   }
 
-  function isCaronaItem(item) {
-    if (!item) return false;
-    const n = (item.nome || '').toLowerCase();
-    return n.includes('carona');
-  }
-
   function syncCaronasWithCalendar(yearStr, monthName) {
     if (!yearStr || !monthName) return null;
     const monthIdx = MONTH_NAMES.indexOf(monthName) + 1;
@@ -3963,10 +4043,33 @@ const MatrixApp = (function () {
     const diariosList = monthData.diarios || [];
 
     // Gastos Fixos exclusivos de Matheus / Contas Compartilhadas (exclui gastos próprios da Scarlet, pois têm coluna própria)
+    const caronaSummary = getCaronasProvisionSummary(currentYear, currentMonth, monthData);
     const fixosListMatheus = fixosList.map((f, i) => ({ f, i })).filter(x => !isGastoDaScarlet(x.f) || isTransferenciaParaScarlet(x.f));
-    const totalFixos = fixosListMatheus.reduce((acc, x) => acc + (parseFloat(x.f.valor) || 0), 0);
-    const pagosFixos = fixosListMatheus.filter(x => x.f.pago).reduce((acc, x) => acc + (parseFloat(x.f.valor) || 0), 0);
-    const pendentesFixos = Math.max(0, totalFixos - pagosFixos);
+    
+    let totalFixos = 0;
+    let pagosFixos = 0;
+    let pendentesFixos = 0;
+
+    fixosListMatheus.forEach(x => {
+      const f = x.f;
+      const isCarona = isCaronaItem(f);
+      const val = parseFloat(f.valor) || 0;
+      if (isCarona) {
+        if (f.pago) {
+          pagosFixos += val;
+          totalFixos += val;
+        } else {
+          // Opção 1: Provisão com Consumo Automático
+          // O saldo pendente da provisão é abatido pelas caronas já lançadas nos diários
+          pendentesFixos += caronaSummary.remaining;
+          totalFixos += caronaSummary.remaining;
+        }
+      } else {
+        if (f.pago) pagosFixos += val;
+        else pendentesFixos += val;
+        totalFixos += val;
+      }
+    });
 
     // Gastos Variáveis exclusivos de Matheus (exclui gastos da Scarlet)
     const outrosListMatheus = outrosList.map((o, i) => ({ o, i })).filter(x => !isGastoDaScarlet(x.o));
@@ -4066,15 +4169,20 @@ const MatrixApp = (function () {
           const jaRetidoNoHolerite = isConsignadoFolhaJaDescontado(f, currentYear, currentMonth);
           const curCommute = isCarona ? CalendarEngine.calculateCommuteAndVR(parseInt(currentYear, 10), MONTH_NAMES.indexOf(currentMonth) + 1, MatrixDB.getState().calendarioCustom) : null;
           const cycleInfo = curCommute ? curCommute.salaryCycle : null;
+          const isProvisaoConsumida = isCarona && !f.pago && caronaSummary.consumed > 0 && caronaSummary.remaining === 0;
+
           return `
-          <tr class="${(f.pago || jaRetidoNoHolerite) ? 'paid' : ''}">
+          <tr class="${(f.pago || jaRetidoNoHolerite || isProvisaoConsumida) ? 'paid' : ''}">
             <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})" title="Toque para editar este lançamento">
               <strong>${f.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
                 ${(f.categoria || isScarletTransf) ? `<span class="cat-pill" ${isScarletTransf ? 'title="Transferência para pagar fatura Nubank da Scarlet"' : ''}>${isScarletTransf ? '💳 Cartão Nubank' : f.categoria}</span>` : ''}
                 ${isFatura ? `<span class="lock-pill" style="font-size:9px;padding:1px 5px;">🔒 Faturas Live</span>` : ''}
-                ${isCarona && cycleInfo ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.07);" title="Vinculado ao Calendário USP & Caronas (${cycleInfo.cycleWorkingDaysCount} dias no ciclo ${cycleInfo.cycleRangeLabel})">🚗 Calendário USP: ${cycleInfo.cycleWorkingDaysCount}d (${cycleInfo.cycleRangeLabel})</span>` : ''}
+                ${isCarona && cycleInfo ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.07);" title="Previsão USP: ${cycleInfo.cycleWorkingDaysCount} dias x R$ 60 no ciclo (${cycleInfo.cycleRangeLabel})">🚗 Previsão USP: ${formatBRL(caronaSummary.provision)} (${cycleInfo.cycleWorkingDaysCount}d)</span>` : ''}
+                ${isCarona && caronaSummary.consumed > 0 ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--cyan);border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);" title="Total já registrado em Gastos Diários neste mês: ${formatBRL(caronaSummary.consumed)} em ${caronaSummary.dailyCount} viagem(ns)">⚡ Consumido: ${formatBRL(caronaSummary.consumed)} (${caronaSummary.dailyCount}x)</span>` : ''}
+                ${isCarona && caronaSummary.consumed > 0 && caronaSummary.remaining > 0 ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--amber);border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.08);" title="Saldo da provisão que ainda resta gastar até o final do ciclo">⏳ Saldo Restante: ${formatBRL(caronaSummary.remaining)}</span>` : ''}
+                ${isProvisaoConsumida ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.08);" title="Provisão orçamentária de caronas 100% consumida pelos gastos diários">✔ 100% Consumido em Diários</span>` : ''}
                 ${jaRetidoNoHolerite ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--cyan);border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);" title="Esta parcela já foi descontada na folha de pagamento do holerite oficial deste mês. Não é deduzida novamente da conta corrente para evitar duplicidade.">📋 Retido no Holerite (Sem Duplicidade)</span>` : isConsignado ? `<span class="cat-pill" style="color:var(--amber);border-color:rgba(245,158,11,0.35);" title="Previsão de redução salarial nos meses futuros até a importação do holerite">🏛️ Consignado em Folha</span>` : ''}
               </div>
             </td>
@@ -4086,6 +4194,13 @@ const MatrixApp = (function () {
                         title="Desconto já retido na folha no holerite oficial da USP deste mês (duplicidade prevenida)">
                   ✔ RETIDO EM FOLHA
                 </button>
+              ` : isProvisaoConsumida ? `
+                <button type="button" 
+                        class="status-btn pago" 
+                        style="color:var(--matrix-green);border-color:rgba(0,255,102,0.4);font-size:10px;padding:3px 6px;"
+                        title="Provisão de caronas 100% consumida e paga pelos lançamentos em Gastos Diários">
+                  ✔ CONSUMIDO
+                </button>
               ` : `
                 <button type="button" 
                         class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
@@ -4095,10 +4210,22 @@ const MatrixApp = (function () {
                 </button>
               `}
             </td>
-            <td class="val-col">${formatBRL(f.valor)}</td>
+            <td class="val-col">
+              ${isCarona && caronaSummary.consumed > 0 ? `
+                <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;">
+                  <span style="font-weight:700;color:${caronaSummary.remaining > 0 ? 'var(--amber)' : 'var(--matrix-green)'};">
+                    ${formatBRL(caronaSummary.remaining)}
+                  </span>
+                  <span style="font-size:9.5px;color:var(--text-dim);" title="Previsão inicial: ${formatBRL(caronaSummary.provision)} | Consumido nos diários: ${formatBRL(caronaSummary.consumed)}">
+                    de ${formatBRL(caronaSummary.provision)}
+                  </span>
+                </div>
+              ` : `${formatBRL(f.valor)}`}
+            </td>
             <td class="action-col">
               ${isCarona ? `
                 <button class="btn-icon" style="font-size:13px;" title="Ver e gerenciar dias no Calendário USP & Caronas" onclick="MatrixApp.abrirCalendarioParaCaronas('${currentYear}', '${currentMonth}')">📅</button>
+                <button class="btn-icon" style="font-size:12px;color:var(--cyan);" title="Lançar Carona hoje nos Gastos Diários (+ R$ 60)" onclick="MatrixApp.lancarCaronaRapidaHoje()">⚡</button>
                 <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
                 <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
               ` : isFatura ? `
@@ -4463,6 +4590,16 @@ const MatrixApp = (function () {
       return;
     }
 
+    if (isCaronaItem({ nome: nomeVal })) {
+      const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase().includes('transporte'));
+      if (opt) catSelect.value = opt.value;
+      if (hintEl) {
+        hintEl.innerHTML = '🚗 <span style="color:var(--matrix-green);font-weight:bold;">Abate da Provisão de Caronas USP!</span>';
+        hintEl.style.display = 'inline-block';
+      }
+      return;
+    }
+
     const predicted = MatrixDB.predictCategory(nomeVal.trim());
     if (predicted) {
       // Verifica se a categoria prevista existe no select
@@ -4477,6 +4614,27 @@ const MatrixApp = (function () {
     } else {
       if (hintEl) hintEl.style.display = 'none';
     }
+  }
+
+  function preencherGastoRapido(nome, valor, categoria, conta) {
+    const nomeInput = document.getElementById('quickExpenseNome');
+    const valorInput = document.getElementById('quickExpenseValor');
+    const catSelect = document.getElementById('quickExpenseCategoria');
+    const contaSelect = document.getElementById('quickExpenseConta');
+    const pagoSim = document.getElementById('quickExpensePagoSim');
+
+    if (nomeInput) nomeInput.value = nome;
+    if (valorInput) valorInput.value = Number(valor).toFixed(2);
+    if (catSelect && categoria) catSelect.value = categoria;
+    if (contaSelect && conta) contaSelect.value = conta;
+    if (pagoSim) pagoSim.checked = true;
+
+    onQuickExpenseNomeInput(nome);
+  }
+
+  function lancarCaronaRapidaHoje() {
+    openQuickExpenseModal();
+    preencherGastoRapido('Carona USP', 60, 'Transporte', 'debito_inter');
   }
 
   function onQuickExpenseCategoriaChange(catVal) {
@@ -4907,10 +5065,14 @@ function onModalCategoriaChange(catVal) {
       // Renda Total Conjunta do Casal em Conta Corrente
       const rendaCasalMes = ganhoMatheusMes + ganhoScarletMes;
 
-      // Despesas do Casal: Fixos + Variáveis + Diários + Fatura
+      // Despesas do Casal: Fixos + Variáveis + Diários + Fatura (Opção 1: Provisão de Caronas)
+      const caronaSumm = getCaronasProvisionSummary(ano, mes, m);
       let fixosMes = 0;
       (m.fixos || []).forEach(f => {
-        const val = parseFloat(f.valor) || 0;
+        let val = parseFloat(f.valor) || 0;
+        if (isCaronaItem(f) && !f.pago) {
+          val = caronaSumm.remaining;
+        }
         fixosMes += val;
         const key = f.nome.trim();
         if (!expenseAggregation[key]) {
@@ -5298,9 +5460,13 @@ function onModalCategoriaChange(catVal) {
 
       const rendaCasalMes = ganhoMatheusMes + ganhoScarletMes;
 
+      const caronaSumm = getCaronasProvisionSummary(ano, mes, m);
       let fixosMes = 0;
       (m.fixos || []).forEach(f => {
-        const val = parseFloat(f.valor) || 0;
+        let val = parseFloat(f.valor) || 0;
+        if (isCaronaItem(f) && !f.pago) {
+          val = caronaSumm.remaining;
+        }
         fixosMes += val;
         const k = f.nome.trim();
         expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
@@ -9986,6 +10152,9 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     abrirCalendarioParaCaronas,
     syncCaronasWithCalendar,
     isCaronaItem,
+    getCaronasProvisionSummary,
+    preencherGastoRapido,
+    lancarCaronaRapidaHoje,
     salvarStatusDiaCalendario,
     switchTab,
     initSwipeNavigation,

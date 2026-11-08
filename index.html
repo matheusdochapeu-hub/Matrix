@@ -2227,7 +2227,12 @@
 
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;color:var(--text-muted);">Descrição do Gasto:</label>
-        <input type="text" id="quickExpenseNome" class="matrix-input" placeholder="Ex: Café na USP, Droga Raia, Padaria, Posto Shell...">
+        <input type="text" id="quickExpenseNome" class="matrix-input" placeholder="Ex: Carona USP, Droga Raia, Padaria, Posto Shell...">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+          <button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:rgba(0,255,102,0.4);color:var(--matrix-green);background:rgba(0,255,102,0.06);" onclick="MatrixApp.preencherGastoRapido('Carona USP', 60, 'Transporte', 'debito_inter')">🚗 Carona USP (R$ 60)</button>
+          <button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:rgba(6,182,212,0.4);color:var(--cyan);background:rgba(6,182,212,0.06);" onclick="MatrixApp.preencherGastoRapido('Almoço / Lanche', 25, 'Alimentação', 'cartao_vr')">🍽️ Almoço VR (R$ 25)</button>
+          <button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:rgba(192,132,252,0.4);color:var(--purple);background:rgba(192,132,252,0.06);" onclick="MatrixApp.preencherGastoRapido('Café USP', 8, 'Alimentação', 'debito_inter')">☕ Café USP (R$ 8)</button>
+        </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
