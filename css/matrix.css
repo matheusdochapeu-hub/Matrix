@@ -3323,11 +3323,11 @@ body {
 
   .data-table:not(.sim-data-table) th.action-col,
   .data-table:not(.sim-data-table) td.action-col {
-    width: 12% !important;
-    max-width: 12% !important;
+    width: 70px !important;
+    min-width: 70px !important;
     text-align: right !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
     white-space: nowrap !important;
   }
 
@@ -3404,11 +3404,33 @@ body {
 
   /* Botões de Ação (Editar e Excluir) */
   .data-table .action-col .btn-icon {
-    font-size: 11px !important;
-    padding: 3px 1px !important;
-    min-width: 16px !important;
-    margin: 0 !important;
+    font-size: 15px !important;
+    padding: 6px 7px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    margin: 0 1px !important;
     line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--radius-xs) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: var(--text-bright) !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+  }
+  .data-table .action-col .btn-icon:active {
+    background: rgba(0, 255, 102, 0.25) !important;
+    border-color: var(--matrix-green) !important;
+    transform: scale(0.92) !important;
+  }
+  .data-table td.desc-col {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .data-table td.desc-col:hover strong {
+    color: var(--matrix-green) !important;
   }
 
   /* 5. Painel Superior Unificado no Celular */

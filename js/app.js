@@ -294,6 +294,17 @@ const MatrixApp = (function () {
             const mData = state.anos[ano][mes];
             ['fixos', 'outros', 'diarios'].forEach(col => {
               (mData[col] || []).forEach(it => {
+                const n = (it.nome || '').toLowerCase().trim();
+                // Regra estrita: MEI é pago pelo salário do Matheus (despesa fixa do Matheus/Casa)
+                if (n === 'mei' || n.startsWith('mei ') || n.includes('das mei')) {
+                  if (it.titular !== 'matheus' || it.conta !== 'salario_bb' || it.renda !== 'salario_usp' || it.categoria === 'Fisio Scarlet') {
+                    it.titular = 'matheus';
+                    it.conta = 'salario_bb';
+                    it.renda = 'salario_usp';
+                    if (it.categoria === 'Fisio Scarlet') it.categoria = 'Contas';
+                    changedLegacy = true;
+                  }
+                }
                 if (it.renda === 'orcamento_geral' || it.renda === 'estudio_extra') {
                   it.renda = isGastoDaScarlet(it) ? 'ganhos_scarlet' : 'salario_usp';
                   changedLegacy = true;
@@ -758,6 +769,13 @@ const MatrixApp = (function () {
     const ren = (it.renda || '').toLowerCase().trim();
     const cta = (it.conta || '').toLowerCase().trim();
     const cat = (it.categoria || '').toLowerCase().trim();
+
+    // REGRA DE OURO: MEI é pago pelo salário do Matheus (gasto fixo da conta do Matheus)
+    if (n === 'mei' || n.startsWith('mei ') || n.includes('das mei')) return false;
+
+    // Se titular for Matheus explicitamente, não é gasto da Scarlet
+    if (tit === 'matheus') return false;
+
     if (tit === 'scarlet') return true;
     if (n === 'nubank scarlet') return true;
     if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet') return true;
@@ -4050,7 +4068,7 @@ const MatrixApp = (function () {
           const cycleInfo = curCommute ? curCommute.salaryCycle : null;
           return `
           <tr class="${(f.pago || jaRetidoNoHolerite) ? 'paid' : ''}">
-            <td class="desc-col">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})" title="Toque para editar este lançamento">
               <strong>${f.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
                 ${renderOrigemBadge(f.conta, f.renda, f.nome)}
@@ -4109,7 +4127,7 @@ const MatrixApp = (function () {
           const isScarletTransf = (o.nome || '').trim().toLowerCase() === 'scarlet';
           return `
           <tr class="${o.pago ? 'paid' : ''}">
-            <td class="desc-col">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})" title="Toque para editar este lançamento">
               <strong>${o.nome}</strong> ${isScarletTransf ? `<span style="font-size:10.5px;color:var(--cyan);font-weight:normal;" title="Transferência da conta USP para pagamento da fatura Nubank da Scarlet">(Fatura Nubank)</span>` : ''}
               <div class="item-meta-row">
                 ${renderOrigemBadge(o.conta, o.renda, o.nome)}
@@ -4155,7 +4173,7 @@ const MatrixApp = (function () {
           const t = itemObj.tipo;
           return `
           <tr class="${f.pago ? 'paid' : ''}">
-            <td class="desc-col">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', '${t}', ${i})" title="Toque para editar este lançamento da Scarlet">
               <strong style="color:var(--text-bright);">${f.nome}</strong>
               <div class="item-meta-row">
                 <span class="bank-pill" style="color:var(--purple);border-color:rgba(192,132,252,0.35);background:rgba(192,132,252,0.08);">👩‍⚕️ Ganhos Scarlet</span>
@@ -4197,7 +4215,7 @@ const MatrixApp = (function () {
           }
           return `
           <tr class="${d.pago ? 'paid' : ''}">
-            <td class="desc-col">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})" title="Toque para editar este gasto diário">
               <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px;">
                 <strong>${d.nome}</strong>
                 ${dtFmt ? `<small style="color:var(--text-dim);font-size:9.5px;">${dtFmt}</small>` : ''}
@@ -4263,7 +4281,7 @@ const MatrixApp = (function () {
           const naoPecunia = isBeneficioNaoPecunia(r);
           return `
           <tr class="${r.pago ? 'paid' : ''}" style="${naoPecunia ? 'background:rgba(251,191,36,0.035);' : ''}">
-            <td class="desc-col">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'receita', ${i})" title="Toque para editar esta receita">
               <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
                 <strong>${r.nome}</strong>
                 ${naoPecunia ? `<span class="cat-pill" style="background:rgba(251,191,36,0.15);color:var(--amber);border:1px solid rgba(251,191,36,0.4);font-size:8.5px;" title="Benefício de Alimentação: não é dinheiro em pecúnia para pagar contas bancárias">🛒 NÃO-PECÚNIA</span>` : ''}
@@ -8000,6 +8018,15 @@ function onModalCategoriaChange(catVal) {
     let titular = titularSelect ? titularSelect.value : (isGastoDaScarlet({ nome, categoria: cat, renda }) ? 'scarlet' : 'matheus');
     if (cat === 'Outras Rendas Scarlet' || renda === 'outras_rendas_scarlet' || cat === 'Fisio Scarlet' || renda === 'ganhos_scarlet' || cat === 'Investimentos Scarlet' || cat.includes('Psicóloga')) {
       titular = 'scarlet';
+    }
+
+    // Regra estrita: MEI é sempre pago pelo salário do Matheus
+    const nLower = nome.toLowerCase().trim();
+    if (nLower === 'mei' || nLower.startsWith('mei ') || nLower.includes('das mei')) {
+      titular = 'matheus';
+      if (conta.includes('scarlet')) conta = 'salario_bb';
+      if (renda.includes('scarlet')) renda = 'salario_usp';
+      if (cat === 'Fisio Scarlet') cat = 'Contas';
     }
 
     const payload = { nome, valor, categoria: cat, conta, renda, pago, titular };
