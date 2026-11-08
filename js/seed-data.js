@@ -994,49 +994,49 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 100,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Cesar",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_15",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1136,55 +1136,55 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Cesar",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_15",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_18",
             "nome": "Google One",
             "valor": 149.9,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1286,55 +1286,55 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Cesar",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_15",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_18",
             "nome": "Strava",
             "valor": 149.9,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1430,43 +1430,43 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1562,43 +1562,43 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1700,43 +1700,43 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1838,43 +1838,43 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -1976,43 +1976,43 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_13",
             "nome": "Nubank",
             "valor": 150,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -2114,37 +2114,37 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 100,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -2246,37 +2246,37 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -2378,37 +2378,37 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {
@@ -2511,37 +2511,37 @@ const MATRIX_SEED_DATA = {
             "id": "out_6",
             "nome": "Renda+ 2055",
             "valor": 103,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_7",
             "nome": "Tesouro Reserva",
             "valor": 260,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_8",
             "nome": "Santander",
             "valor": 50,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_9",
             "nome": "Cripto",
             "valor": 10,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_12",
             "nome": "Alberto",
             "valor": 250,
-            "pago": true
+            "pago": false
           },
           {
             "id": "out_14",
             "nome": "Edna",
             "valor": 600,
-            "pago": true
+            "pago": false
           }
         ],
         "totais": {

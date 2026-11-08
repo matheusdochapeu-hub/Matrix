@@ -659,7 +659,9 @@ const MatrixApp = (function () {
       if (sMes === 'Outubro') return 3418.03;
       if (sMes === 'Setembro') return 0;
     } else if (sAno === '2027') {
-      if (sMes === 'Janeiro') return 1628.89;
+      // Valor lançado pelo usuário em 2027 tem prioridade sobre a estimativa padrão
+      const stored2027 = monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' ? monthData.scarlet.faturaNubank : 0;
+      if (sMes === 'Janeiro' && !(stored2027 > 0)) return 1628.89;
     }
 
     // 4. Se houver valor numérico gravado no mês

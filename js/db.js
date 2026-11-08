@@ -535,6 +535,7 @@ const MatrixDB = (function () {
 
   function ensureMonthReceitas(month, ano, mes) {
     if (!month) return [];
+    const pagoPadrao = parseInt(ano, 10) < 2027; // De 2027 em diante, todo lançamento nasce PENDENTE
     if (month.receitas && month.receitas.length > 0) return month.receitas;
     if (!month.receitas) month.receitas = [];
 
@@ -547,7 +548,7 @@ const MatrixDB = (function () {
         nome: 'Salário Líquido USP (Banco do Brasil)',
         valor: salarioVal,
         categoria: 'Salário / Proventos',
-        pago: true
+        pago: pagoPadrao
       });
     }
 
@@ -559,7 +560,7 @@ const MatrixDB = (function () {
         valor: vrVal,
         categoria: 'Benefício (Não Pecúnia)',
         naoPecunia: true,
-        pago: true
+        pago: pagoPadrao
       });
     }
 
@@ -571,7 +572,7 @@ const MatrixDB = (function () {
         valor: vaVal,
         categoria: 'Benefício (Não Pecúnia)',
         naoPecunia: true,
-        pago: true
+        pago: pagoPadrao
       });
     }
 
@@ -593,7 +594,7 @@ const MatrixDB = (function () {
         nome: 'Renda Extra',
         valor: estudioVal,
         categoria: 'Renda Extra',
-        pago: true
+        pago: pagoPadrao
       });
     }
 
@@ -606,7 +607,7 @@ const MatrixDB = (function () {
         categoria: 'Outros Ganhos / Rescisão',
         conta: 'bradesco',
         renda: 'rescisao_mpsp',
-        pago: true
+        pago: pagoPadrao
       });
     }
 
@@ -675,7 +676,7 @@ const MatrixDB = (function () {
       metodo: item.metodo || 'debito',
       dataHora: item.dataHora || new Date().toISOString(),
       obs: item.obs || '',
-      pago: item.pago !== undefined ? !!item.pago : true
+      pago: item.pago !== undefined ? !!item.pago : (parseInt(ano, 10) < 2027)
     });
 
     saveState(s);

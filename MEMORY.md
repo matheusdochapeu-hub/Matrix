@@ -175,3 +175,9 @@ Correção estrutural na vinculação entre status de pagamento (`pago: true` vs
   - Card 1 Banner Superior: `VA R$ 2.050,00 + VR R$ 1.105,00`.
   - Card 1 Discriminação: `(+) Vale Alimentação (VA): R$ 2.050,00` e `(+) Vale Refeição (VR): R$ 1.105,00`.
   - Simulador de Cenários ("E Se"): Aba VA e VR alinhadas às regras sem desvios.
+
+
+### Versão 89 (v89) - 2027 em diante nasce PENDENTE + Aba "E Se" alinhada aos lançamentos
+- **Padrão pendente (2027+):** `seed-data.js` (85 lançamentos de 2027 passam a `pago: false`), `ensureMonthReceitas` e `addTransaction` em `db.js` criam lançamentos de 2027 em diante como PENDENTES. Out/Nov/Dez de 2026 não foram alterados. Dados já salvos pelo usuário não são sobrescritos.
+- **Aba "E Se":** passa a ler os meses via `MatrixDB.getMonth` (mesma leitura do app, refletindo as edições do usuário), usa `getBeneficiosCreditoMes` (VA fixo 2.050 | VR do calendário Matrix) e a fatura Nubank lançada em 2027 tem prioridade sobre a estimativa padrão (R$ 1.628,89 só vale como fallback em Jan/2027).
+- Cache PWA: `matrix-finance-v89`.

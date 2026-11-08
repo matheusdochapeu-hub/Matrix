@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matrix-finance-v88';
+const CACHE_NAME = 'matrix-finance-v89';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

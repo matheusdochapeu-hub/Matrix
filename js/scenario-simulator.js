@@ -213,7 +213,8 @@ const ScenarioSimulator = (function () {
       if (sMes === 'Outubro') return 3418.03;
       if (sMes === 'Setembro') return 0;
     } else if (sAno === '2027') {
-      if (sMes === 'Janeiro') return 1628.89;
+      const stored2027 = monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' ? monthData.scarlet.faturaNubank : 0;
+      if (sMes === 'Janeiro' && !(stored2027 > 0)) return 1628.89;
     }
     if (monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
       return monthData.scarlet.faturaNubank;
@@ -248,7 +249,16 @@ const ScenarioSimulator = (function () {
 
     timeline.forEach(m => {
       const yearStr = String(m.year);
-      const monthData = (state.anos[yearStr] && state.anos[yearStr][m.monthName]) || { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
+      // Usa a mesma leitura do app (MatrixDB.getMonth) para refletir exatamente os lançamentos editados pelo usuário
+      let monthData = null;
+      try {
+        if (typeof MatrixDB !== 'undefined' && MatrixDB.getMonth && state === MatrixDB.getState()) {
+          monthData = MatrixDB.getMonth(yearStr, m.monthName);
+        }
+      } catch (e) { monthData = null; }
+      if (!monthData) {
+        monthData = (state.anos[yearStr] && state.anos[yearStr][m.monthName]) || { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
+      }
 
       // ==========================================
       // 1. CONTA 👨 EU (MATHEUS • USP)
@@ -322,7 +332,10 @@ const ScenarioSimulator = (function () {
       const satMaracaju = (state.satellites && state.satellites.maracaju) || {};
       const isNov2026 = (yearStr === '2026' && m.monthName === 'Novembro');
       // Regra do Usuário: VA é fixo em R$ 2.050,00
-      const vaGanhos = 2050.00;
+      // Fonte única do app (VA fixo 2050 | VR do calendário Matrix), com fallback local
+      const benApp = (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getBeneficiosCreditoMes)
+        ? window.MatrixApp.getBeneficiosCreditoMes(yearStr, m.monthName) : null;
+      const vaGanhos = benApp ? benApp.va : 2050.00;
       const vaGastosDiarios = (monthData.diarios || [])
         .filter(d => {
           const cta = (d.conta || '').toLowerCase();
@@ -345,6 +358,7 @@ const ScenarioSimulator = (function () {
           }
         }
       } catch (e) {}
+      if (benApp) vrGanhos = benApp.vr;
       const vrGastosDiarios = (monthData.diarios || [])
         .filter(d => {
           const cta = (d.conta || '').toLowerCase();
