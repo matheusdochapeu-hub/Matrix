@@ -192,26 +192,28 @@ const ScenarioSimulator = (function () {
   }
 
   function getFaturaNubankScarletCalculada(ano, mesName, monthData, state) {
+    const sAno = String(ano || '');
+    const sMes = String(mesName || '');
     if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getFaturaNubankMes) {
-      const val = window.MatrixApp.getFaturaNubankMes(ano, mesName);
-      if (typeof val === 'number') return val;
+      const val = window.MatrixApp.getFaturaNubankMes(sAno, sMes);
+      if (typeof val === 'number' && val > 0) return val;
     }
     if (monthData && monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
       return parseFloat(monthData.scarlet.faturaNubankManual) || 0;
     }
-    const monthKey = `${ano}-${mesName}`;
+    const monthKey = `${sAno}-${sMes}`;
     const sat = state && state.satellites && state.satellites.faturas;
     if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
       const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
-      if (!isNaN(val)) return val;
+      if (!isNaN(val) && val > 0) return val;
     }
-    if (ano === '2026') {
-      if (mesName === 'Novembro') return 4568.57;
-      if (mesName === 'Dezembro') return 1568.05;
-      if (mesName === 'Outubro') return 3418.03;
-      if (mesName === 'Setembro') return 0;
-    } else if (ano === '2027') {
-      if (mesName === 'Janeiro') return 1628.89;
+    if (sAno === '2026') {
+      if (sMes === 'Novembro') return 4568.57;
+      if (sMes === 'Dezembro') return 1568.05;
+      if (sMes === 'Outubro') return 3418.03;
+      if (sMes === 'Setembro') return 0;
+    } else if (sAno === '2027') {
+      if (sMes === 'Janeiro') return 1628.89;
     }
     if (monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
       return monthData.scarlet.faturaNubank;
@@ -220,9 +222,11 @@ const ScenarioSimulator = (function () {
   }
 
   function getGanhosScarletCalculados(ano, mesName, monthData, state) {
+    const sAno = String(ano || '');
+    const sMes = String(mesName || '');
     if (typeof window !== 'undefined' && window.MatrixApp && window.MatrixApp.getGanhosScarletMes) {
-      const val = window.MatrixApp.getGanhosScarletMes(ano, mesName);
-      if (typeof val === 'number') return val;
+      const val = window.MatrixApp.getGanhosScarletMes(sAno, sMes);
+      if (typeof val === 'number' && val > 0) return val;
     }
     if (monthData && monthData.scarlet && monthData.scarlet.ganhosManual != null && monthData.scarlet.ganhosManual !== '') {
       const manual = parseFloat(monthData.scarlet.ganhosManual);

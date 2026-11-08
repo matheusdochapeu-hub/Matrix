@@ -633,9 +633,11 @@ const MatrixApp = (function () {
   // Regra de Integridade Absoluta: Não inventar dados onde não houver!
   // ==========================================
   function getFaturaNubankMes(ano, mes) {
+    const sAno = String(ano || '');
+    const sMes = String(mes || '');
     const state = MatrixDB.getState();
-    const monthKey = `${ano}-${mes}`;
-    const monthData = MatrixDB.getMonth(ano, mes);
+    const monthKey = `${sAno}-${sMes}`;
+    const monthData = MatrixDB.getMonth(sAno, sMes);
 
     // 1. Override manual explícito definido pelo usuário para este mês
     if (monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
@@ -646,17 +648,17 @@ const MatrixApp = (function () {
     const sat = (state.satellites && state.satellites.faturas);
     if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
       const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
-      if (!isNaN(val)) return val;
+      if (!isNaN(val) && val > 0) return val;
     }
 
     // 3. Meses conhecidos com dados reais comprovados do app Faturas (apenas 2026/2027)
-    if (ano === '2026') {
-      if (mes === 'Novembro') return 4568.57;
-      if (mes === 'Dezembro') return 1568.05;
-      if (mes === 'Outubro') return 3418.03;
-      if (mes === 'Setembro') return 0;
-    } else if (ano === '2027') {
-      if (mes === 'Janeiro') return 1628.89;
+    if (sAno === '2026') {
+      if (sMes === 'Novembro') return 4568.57;
+      if (sMes === 'Dezembro') return 1568.05;
+      if (sMes === 'Outubro') return 3418.03;
+      if (sMes === 'Setembro') return 0;
+    } else if (sAno === '2027') {
+      if (sMes === 'Janeiro') return 1628.89;
     }
 
     // 4. Se houver valor numérico gravado no mês

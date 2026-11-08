@@ -136,3 +136,14 @@ Correção estrutural na vinculação entre status de pagamento (`pago: true` vs
     - **VR:** `R$ 1.105,16` (17 dias úteis R$ 1.105,00 + sobra R$ 0,16)
   - Isso mantém a harmonia da visão de **Ganhos e Poder de Compra Total** (`R$ 13.853,19`), alinhada com o detalhamento inferior do card.
   - O **saldo atual restante pós-descontos** (`VA R$ 1.988,78` e `VR R$ 805,41`) permanece exibido exclusivamente onde deve estar: no chip superior `🏠 CASA MARACAJU VA & VR` e no modal de auditoria da Casa Maracaju 88.
+
+
+### Versão 87 (v87) - Fatura Nubank no Simulador "E Se" e Ajuste de Espaçamento dos Operadores (+, -, =)
+- **Fatura Nubank da Scarlet na Aba "E Se" (Scenario Simulator):**
+  - Corrigida a coerção de tipos em `getFaturaNubankMes(ano, mes)` e `getFaturaNubankScarletCalculada(...)` (`String(ano)` e `String(mes)`), garantindo que meses numéricos ou strings reconheçam imediatamente as faturas reais do histórico e satélites (`Outubro R$ 3.418,03`, `Novembro R$ 4.568,57`, `Dezembro R$ 1.568,05`, `Janeiro R$ 1.628,89`).
+  - Prevenido o retorno prematuro de `0` quando o método da aplicação ainda não tiver carregado a chave exata, permitindo a transição limpa para os dados reais do satélite e da memória do mês.
+- **Espaçamento e Tipografia da Linha de Equação dos 4 Cards:**
+  - Ajustado o tamanho da fonte de `.eq-val` para `8.5px` (desktop) e `8.2px` (mobile), com `letter-spacing: -0.35px`.
+  - Reduzido o padding e adicionada margem de segurança no `.eq-op` (`font-size: 9px; padding: 0 1.5px; margin: 0 1px 2px 1px`), eliminando qualquer sobreposição ou colisão do `+`, `-` e `=` com os valores monetários.
+- **Controle de Versão e Cache PWA:**
+  - Cache renovado para `matrix-finance-v87` em `sw.js` e tags atualizadas em `index.html`.
