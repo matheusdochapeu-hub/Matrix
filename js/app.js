@@ -7886,66 +7886,162 @@ function onModalCategoriaChange(catVal) {
     const tipoLabel = tipo === 'receita' ? 'a receita' : 'o lançamento';
     const itemDesc = item ? `"${item.nome}" (${formatBRL(item.valor)})` : 'este item';
     if (confirm(`Deseja realmente excluir ${tipoLabel} ${itemDesc} do mês de ${mes}/${ano}?`)) {
+      // Se este item estava vinculado a um investimento, estorna o saldo anterior na carteira
+      if (item && item.investLinkedId) {
+        const state = MatrixDB.getState();
+        const target = (state.investimentos || []).find(i => i.id === item.investLinkedId);
+        if (target) {
+          const val = parseFloat(item.investLinkedVal != null ? item.investLinkedVal : item.valor) || 0;
+          if (item.investLinkedOp === 'resgate') {
+            target.valorAtual = (parseFloat(target.valorAtual) || 0) + val;
+          } else {
+            target.valorAtual = Math.max(0, (parseFloat(target.valorAtual) || 0) - val);
+          }
+          MatrixDB.saveState(state);
+        }
+      }
       MatrixDB.removeTransactionByIndex(ano, mes, tipo, index);
       renderAll();
     }
   }
 
-  function populateModalInvestAtivos() {
+  function getSelectedInvestModo() {
+    if (document.getElementById('modalInvestModoExistente')?.checked) return 'existente';
+    if (document.getElementById('modalInvestModoNovo')?.checked) return 'novo';
+    return 'nenhum';
+  }
+
+  function onModalInvestModoChange(modo) {
+    const opRow = document.getElementById('modalInvestOpRow');
+    const existFields = document.getElementById('modalInvestExistenteFields');
+    const novoFields = document.getElementById('modalInvestNovoFields');
+
+    if (modo === 'existente') {
+      if (opRow) opRow.style.display = 'block';
+      if (existFields) existFields.style.display = 'block';
+      if (novoFields) novoFields.style.display = 'none';
+      populateModalInvestAtivos();
+    } else if (modo === 'novo') {
+      if (opRow) opRow.style.display = 'block';
+      if (existFields) existFields.style.display = 'none';
+      if (novoFields) novoFields.style.display = 'block';
+    } else {
+      if (opRow) opRow.style.display = 'none';
+      if (existFields) existFields.style.display = 'none';
+      if (novoFields) novoFields.style.display = 'none';
+    }
+    updateModalInvestPreview();
+  }
+
+  function toggleModalInvestSubFields(checked) {
+    const modo = checked ? 'existente' : 'nenhum';
+    const rEx = document.getElementById('modalInvestModoExistente');
+    const rNen = document.getElementById('modalInvestModoNenhum');
+    if (checked && rEx) rEx.checked = true;
+    else if (!checked && rNen) rNen.checked = true;
+    onModalInvestModoChange(modo);
+  }
+
+  function populateModalInvestAtivos(selectedId = null) {
     const state = MatrixDB.getState();
     const invs = state.investimentos || [];
     const select = document.getElementById('modalInvestAtivoSelect');
     if (!select) return;
 
-    const names = new Set();
-    names.add('Tesouro Renda+ 2055');
-    names.add('Tesouro Reserva');
-    names.add('Tesouro Selic');
-    names.add('CSNA3 (Cia Siderúrgica Nacional)');
-    names.add('MGLU3 (Magazine Luiza)');
-    names.add('Cripto Bitcoin');
-    names.add('CDB Inter 100% CDI');
+    if (invs.length === 0) {
+      select.innerHTML = '<option value="">Nenhum investimento cadastrado na carteira</option>';
+      updateModalInvestPreview();
+      return;
+    }
 
-    invs.forEach(i => {
-      if (i.ativo) names.add(i.ativo);
+    // Ordena os investimentos por titular e depois pelo nome do ativo
+    const sorted = [...invs].sort((a, b) => {
+      const titA = a.titular || 'Matheus';
+      const titB = b.titular || 'Matheus';
+      if (titA !== titB) return titA.localeCompare(titB);
+      return (a.ativo || '').localeCompare(b.ativo || '');
     });
 
-    select.innerHTML = Array.from(names).map(n => `<option value="${n}">${n}</option>`).join('');
+    select.innerHTML = sorted.map(inv => {
+      const tit = inv.titular === 'Scarlet' ? '🩺 Scarlet' : '👤 Matheus';
+      const corr = inv.corretora ? ` • ${inv.corretora}` : '';
+      const saldo = formatBRL(parseFloat(inv.valorAtual) || 0);
+      const isSel = (selectedId && inv.id === selectedId);
+      return `<option value="${inv.id}" ${isSel ? 'selected' : ''}>${inv.ativo}${corr} [${tit}] (Saldo Atual: ${saldo})</option>`;
+    }).join('');
+
+    if (selectedId) {
+      select.value = selectedId;
+    }
+
+    updateModalInvestPreview();
+  }
+
+  function updateModalInvestPreview() {
+    const previewBox = document.getElementById('modalInvestPreviewBox');
+    if (!previewBox) return;
+
+    const modo = getSelectedInvestModo();
+    if (modo !== 'existente') {
+      previewBox.innerHTML = '';
+      return;
+    }
+
+    const state = MatrixDB.getState();
+    const invs = state.investimentos || [];
+    const select = document.getElementById('modalInvestAtivoSelect');
+    const targetId = select ? select.value : '';
+    const asset = invs.find(i => i.id === targetId);
+
+    if (!asset) {
+      previewBox.innerHTML = '';
+      return;
+    }
+
+    const valorInput = parseFloat(document.getElementById('modalItemValor')?.value) || 0;
+    const isAporte = document.getElementById('modalInvestOpAporte')?.checked !== false;
+    const saldoAtual = parseFloat(asset.valorAtual) || 0;
+    const novoSaldo = isAporte ? (saldoAtual + valorInput) : Math.max(0, saldoAtual - valorInput);
+
+    previewBox.innerHTML = `
+      <div style="background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.25);padding:6px 10px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+        <span><strong>${asset.ativo}</strong> (${asset.corretora || 'Corretora'}) • <em>${asset.titular || 'Matheus'}</em></span>
+        <span>Saldo: <strong>${formatBRL(saldoAtual)}</strong> ➔ <strong style="color:${isAporte ? 'var(--matrix-green)' : 'var(--amber)'};">${isAporte ? '+' : '-'}${formatBRL(valorInput)} ➔ Novo: ${formatBRL(novoSaldo)}</strong></span>
+      </div>
+    `;
   }
 
   function onModalContaChange(val) {
-    const chk = document.getElementById('chkModalInvestLink');
-    const sub = document.getElementById('modalInvestSubFields');
-    const op = document.getElementById('modalInvestOperacao');
-    const at = document.getElementById('modalInvestAtivoSelect');
-
-    if (val === 'resgate_tesouro_reserva') {
-      if (chk) chk.checked = true;
-      if (sub) sub.style.display = 'block';
-      if (op) op.value = 'resgate';
-      if (at) at.value = 'Tesouro Reserva';
-    } else if (val === 'resgate_outro') {
-      if (chk) chk.checked = true;
-      if (sub) sub.style.display = 'block';
-      if (op) op.value = 'resgate';
+    if (val === 'resgate_tesouro_reserva' || val === 'resgate_outro') {
+      const rEx = document.getElementById('modalInvestModoExistente');
+      const opRes = document.getElementById('modalInvestOpResgate');
+      if (rEx) rEx.checked = true;
+      if (opRes) opRes.checked = true;
+      onModalInvestModoChange('existente');
+      if (val === 'resgate_tesouro_reserva') {
+        const state = MatrixDB.getState();
+        const res = (state.investimentos || []).find(i => (i.ativo || '').toLowerCase().includes('reserva'));
+        if (res) populateModalInvestAtivos(res.id);
+      }
     } else if (val === 'investimento_aporte') {
-      if (chk) chk.checked = true;
-      if (sub) sub.style.display = 'block';
-      if (op) op.value = 'aporte';
+      const rEx = document.getElementById('modalInvestModoExistente');
+      const opAp = document.getElementById('modalInvestOpAporte');
+      if (rEx) rEx.checked = true;
+      if (opAp) opAp.checked = true;
+      onModalInvestModoChange('existente');
     }
   }
 
   function onModalRendaChange(val) {
-    const chk = document.getElementById('chkModalInvestLink');
-    const sub = document.getElementById('modalInvestSubFields');
-    const op = document.getElementById('modalInvestOperacao');
-    const at = document.getElementById('modalInvestAtivoSelect');
-
     if (val === 'investimento_resgate') {
-      if (chk) chk.checked = true;
-      if (sub) sub.style.display = 'block';
-      if (op) op.value = 'resgate';
-      if (at) at.value = 'Tesouro Reserva';
+      const rEx = document.getElementById('modalInvestModoExistente');
+      const opRes = document.getElementById('modalInvestOpResgate');
+      if (rEx) rEx.checked = true;
+      if (opRes) opRes.checked = true;
+      onModalInvestModoChange('existente');
+      const state = MatrixDB.getState();
+      const res = (state.investimentos || []).find(i => (i.ativo || '').toLowerCase().includes('reserva'));
+      if (res) populateModalInvestAtivos(res.id);
     }
   }
 
@@ -7968,11 +8064,6 @@ function onModalCategoriaChange(catVal) {
     }
   }
 
-  function toggleModalInvestSubFields(checked) {
-    const sub = document.getElementById('modalInvestSubFields');
-    if (sub) sub.style.display = checked ? 'block' : 'none';
-  }
-
   function openNewItemModal(tipo, titular = 'matheus') {
     document.getElementById('modalItemTipo').value = tipo;
     document.getElementById('modalItemEditId').value = '';
@@ -7982,11 +8073,10 @@ function onModalCategoriaChange(catVal) {
     const titularSelect = document.getElementById('modalItemTitular');
     if (titularSelect) titularSelect.value = titular;
 
+    const rNen = document.getElementById('modalInvestModoNenhum');
+    if (rNen) rNen.checked = true;
+    onModalInvestModoChange('nenhum');
     populateModalInvestAtivos();
-
-    const chkInv = document.getElementById('chkModalInvestLink');
-    if (chkInv) chkInv.checked = false;
-    toggleModalInvestSubFields(false);
 
     if (document.getElementById('modalItemStatusPendente')) document.getElementById('modalItemStatusPendente').checked = true;
     if (document.getElementById('modalItemStatusPago')) document.getElementById('modalItemStatusPago').checked = false;
@@ -8055,8 +8145,6 @@ function onModalCategoriaChange(catVal) {
       return;
     }
 
-    populateModalInvestAtivos();
-
     document.getElementById('modalItemTipo').value = tipo;
     document.getElementById('modalItemEditId').value = `idx_${index}`;
     document.getElementById('modalItemNome').value = item.nome || '';
@@ -8111,27 +8199,24 @@ function onModalCategoriaChange(catVal) {
     if (document.getElementById('modalItemStatusPago')) document.getElementById('modalItemStatusPago').checked = isPago;
     if (document.getElementById('modalItemStatusPendente')) document.getElementById('modalItemStatusPendente').checked = !isPago;
 
-    // Detectar vínculo com investimentos
-    const n = (item.nome || '').toLowerCase();
-    const isInvest = (item.categoria === 'Aportes') ||
-      (item.conta === 'investimento_aporte' || item.conta === 'resgate_tesouro_reserva' || (item.conta && item.conta.includes('resgate'))) ||
-      n.includes('renda+') || n.includes('tesouro');
-
-    const chkInv = document.getElementById('chkModalInvestLink');
-    if (chkInv) {
-      chkInv.checked = isInvest;
-      toggleModalInvestSubFields(isInvest);
-      if (isInvest) {
-        const opSelect = document.getElementById('modalInvestOperacao');
-        if (opSelect) {
-          opSelect.value = (item.conta && item.conta.includes('resgate')) || n.includes('resgate') ? 'resgate' : 'aporte';
-        }
-        const atSelect = document.getElementById('modalInvestAtivoSelect');
-        if (atSelect) {
-          const match = Array.from(atSelect.options).find(opt => n.includes(opt.value.toLowerCase()));
-          if (match) atSelect.value = match.value;
-        }
+    // Vínculo explícito e transparente com investimentos
+    if (item.investLinkedId) {
+      const rEx = document.getElementById('modalInvestModoExistente');
+      if (rEx) rEx.checked = true;
+      if (item.investLinkedOp === 'resgate') {
+        const opRes = document.getElementById('modalInvestOpResgate');
+        if (opRes) opRes.checked = true;
+      } else {
+        const opAp = document.getElementById('modalInvestOpAporte');
+        if (opAp) opAp.checked = true;
       }
+      onModalInvestModoChange('existente');
+      populateModalInvestAtivos(item.investLinkedId);
+    } else {
+      const rNen = document.getElementById('modalInvestModoNenhum');
+      if (rNen) rNen.checked = true;
+      onModalInvestModoChange('nenhum');
+      populateModalInvestAtivos();
     }
 
     const titleEl = document.getElementById('modalItemTitle');
@@ -8164,7 +8249,6 @@ function onModalCategoriaChange(catVal) {
     else if (renda === 'investimento_resgate') conta = 'resgate_tesouro_reserva';
     else if (renda === 'estudio_extra') conta = 'pix_inter';
     else if (renda === 'outros_ganhos') conta = 'outros';
-    
     else conta = 'salario_bb';
 
     if (document.getElementById('modalItemConta')) {
@@ -8205,6 +8289,88 @@ function onModalCategoriaChange(catVal) {
       }
     }
 
+    // Recupera o item original caso seja edição
+    let itemOriginal = null;
+    const curMonthData = MatrixDB.getMonth(currentYear, currentMonth);
+    const curList = tipo === 'fixo' ? curMonthData?.fixos : (tipo === 'receita' ? curMonthData?.receitas : curMonthData?.outros);
+    if (editId && editId.startsWith('idx_')) {
+      const idx = parseInt(editId.replace('idx_', ''), 10);
+      itemOriginal = curList && curList[idx];
+    } else if (editId) {
+      itemOriginal = curList && curList.find(it => it.id === editId);
+    }
+
+    // ========================================================
+    // VÍNCULO TRANSPARENTE E SEGURO COM INVESTIMENTOS 360
+    // ========================================================
+    const investModo = getSelectedInvestModo(); // 'nenhum' | 'existente' | 'novo'
+    const investOp = (document.getElementById('modalInvestOpResgate')?.checked) ? 'resgate' : 'aporte';
+
+    const state = MatrixDB.getState();
+    if (!state.investimentos) state.investimentos = [];
+
+    // Se este item já possuía um vínculo anterior (edição), estorna o saldo anterior primeiro
+    if (itemOriginal && itemOriginal.investLinkedId) {
+      const prevAsset = state.investimentos.find(i => i.id === itemOriginal.investLinkedId);
+      if (prevAsset) {
+        const prevVal = parseFloat(itemOriginal.investLinkedVal != null ? itemOriginal.investLinkedVal : itemOriginal.valor) || 0;
+        if (itemOriginal.investLinkedOp === 'resgate') {
+          prevAsset.valorAtual = (parseFloat(prevAsset.valorAtual) || 0) + prevVal;
+        } else {
+          prevAsset.valorAtual = Math.max(0, (parseFloat(prevAsset.valorAtual) || 0) - prevVal);
+        }
+      }
+    }
+
+    if (investModo === 'existente' && valor > 0) {
+      const targetId = document.getElementById('modalInvestAtivoSelect')?.value;
+      const targetAsset = state.investimentos.find(i => i.id === targetId);
+      if (targetAsset) {
+        if (investOp === 'aporte') {
+          targetAsset.valorAtual = (parseFloat(targetAsset.valorAtual) || 0) + valor;
+          targetAsset.status = `Ativo (Aporte de ${formatBRL(valor)} em ${currentMonth}/${currentYear})`;
+        } else {
+          targetAsset.valorAtual = Math.max(0, (parseFloat(targetAsset.valorAtual) || 0) - valor);
+          targetAsset.status = targetAsset.valorAtual === 0 ? `Liquidado em ${currentMonth}/${currentYear}` : `Ativo (Resgate de ${formatBRL(valor)} em ${currentMonth}/${currentYear})`;
+        }
+        payload.investLinkedId = targetAsset.id;
+        payload.investLinkedOp = investOp;
+        payload.investLinkedVal = valor;
+      }
+    } else if (investModo === 'novo' && valor > 0) {
+      const novoNome = (document.getElementById('modalInvestNovoNome')?.value || '').trim();
+      if (!novoNome) {
+        alert('Por favor, informe o nome do novo investimento a ser criado na carteira.');
+        return;
+      }
+      const novoCorretora = document.getElementById('modalInvestNovoCorretora')?.value || 'XP Investimentos';
+      const novoCategoria = document.getElementById('modalInvestNovoCategoria')?.value || 'Renda Fixa / Tesouro';
+      const novoTitular = document.getElementById('modalInvestNovoTitular')?.value || 'Matheus';
+
+      const newId = 'inv_' + Date.now();
+      const initialVal = investOp === 'aporte' ? valor : 0;
+      const newAsset = {
+        id: newId,
+        ativo: novoNome,
+        corretora: novoCorretora,
+        categoria: novoCategoria,
+        titular: novoTitular,
+        valorAtual: initialVal,
+        status: `Ativo (Criado via lançamento em ${currentMonth}/${currentYear})`
+      };
+      state.investimentos.push(newAsset);
+
+      payload.investLinkedId = newId;
+      payload.investLinkedOp = investOp;
+      payload.investLinkedVal = valor;
+    } else {
+      payload.investLinkedId = null;
+      payload.investLinkedOp = null;
+      payload.investLinkedVal = 0;
+    }
+
+    MatrixDB.saveState(state);
+
     if (editId && editId.startsWith('idx_')) {
       const idx = parseInt(editId.replace('idx_', ''), 10);
       MatrixDB.updateTransactionByIndex(currentYear, currentMonth, tipo, idx, payload);
@@ -8241,70 +8407,6 @@ function onModalCategoriaChange(catVal) {
           }
         }
       }
-    }
-
-    // VÍNCULO BIDIRECIONAL COM INVESTIMENTOS 360 (Aportes & Resgates)
-    const isInvest = document.getElementById('chkModalInvestLink') ? document.getElementById('chkModalInvestLink').checked : false;
-    const n = nome.toLowerCase();
-    const isAutoInvest = isInvest || (cat === 'Aportes') || (conta === 'investimento_aporte') || (conta === 'resgate_tesouro_reserva') ||
-      n.includes('renda+ 2055') || n.includes('renda+2055') || n.includes('tesouro reserva');
-
-    if (isAutoInvest && valor > 0) {
-      const op = document.getElementById('modalInvestOperacao') ? document.getElementById('modalInvestOperacao').value :
-        (conta.includes('resgate') || n.includes('resgate') ? 'resgate' : 'aporte');
-      
-      let ativoNome = document.getElementById('modalInvestAtivoSelect') ? document.getElementById('modalInvestAtivoSelect').value : '';
-      if (!ativoNome) {
-        if (n.includes('2055')) ativoNome = 'Tesouro Renda+ 2055';
-        else if (n.includes('reserva')) ativoNome = 'Tesouro Reserva';
-        else ativoNome = nome;
-      }
-
-      const corretora = document.getElementById('modalInvestCorretoraSelect') ? document.getElementById('modalInvestCorretoraSelect').value : 'XP Investimentos';
-      const titular = document.getElementById('modalInvestTitularSelect') ? document.getElementById('modalInvestTitularSelect').value : 'Matheus';
-
-      const state = MatrixDB.getState();
-      if (!state.investimentos) state.investimentos = [];
-
-      let targetAsset = state.investimentos.find(inv =>
-        inv.ativo && inv.ativo.toLowerCase().trim() === ativoNome.toLowerCase().trim() &&
-        (!corretora || (inv.corretora || '').toLowerCase().includes(corretora.toLowerCase().slice(0, 4)))
-      );
-
-      if (!targetAsset) {
-        targetAsset = state.investimentos.find(inv =>
-          inv.ativo && (inv.ativo.toLowerCase().includes(ativoNome.toLowerCase()) || ativoNome.toLowerCase().includes(inv.ativo.toLowerCase()))
-        );
-      }
-
-      if (op === 'aporte') {
-        if (targetAsset) {
-          targetAsset.valorAtual = (parseFloat(targetAsset.valorAtual) || 0) + valor;
-          targetAsset.status = `Ativo (Aporte em ${currentMonth}/${currentYear})`;
-          if (corretora) targetAsset.corretora = corretora;
-        } else {
-          state.investimentos.push({
-            id: 'inv_' + Date.now(),
-            ativo: ativoNome,
-            corretora: corretora,
-            titular: titular,
-            categoria: 'Renda Fixa / Tesouro',
-            valorAtual: valor,
-            status: `Ativo (Criado via lançamento em ${currentMonth}/${currentYear})`
-          });
-        }
-      } else if (op === 'resgate') {
-        if (targetAsset) {
-          targetAsset.valorAtual = Math.max(0, (parseFloat(targetAsset.valorAtual) || 0) - valor);
-          if (targetAsset.valorAtual === 0) {
-            targetAsset.status = `Liquidado / Totalmente utilizado em ${currentMonth}/${currentYear}`;
-          } else {
-            targetAsset.status = `Ativo (Resgate parcial em ${currentMonth}/${currentYear})`;
-          }
-        }
-      }
-
-      MatrixDB.saveState(state);
     }
 
     // INTEGRAÇÃO DE EMPRÉSTIMO & AGENDAMENTO DE PARCELAS FUTURAS
@@ -10115,6 +10217,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     onModalRendaChange,
     onModalTitularChange,
     toggleModalInvestSubFields,
+    onModalInvestModoChange,
+    updateModalInvestPreview,
     isFaturasItem,
     alertFaturasReadOnly,
     openQuickExpenseModal,

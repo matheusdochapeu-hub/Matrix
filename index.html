@@ -1779,7 +1779,7 @@
 
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;color:var(--text-muted);">Valor em Reais (R$):</label>
-        <input type="number" step="0.01" id="modalItemValor" class="matrix-input" placeholder="0,00">
+        <input type="number" step="0.01" id="modalItemValor" class="matrix-input" placeholder="0,00" oninput="MatrixApp.updateModalInvestPreview()">
       </div>
 
       <div style="margin-bottom:16px;">
@@ -1846,41 +1846,91 @@
         </div>
       </div>
 
-      <!-- Vínculo Bidirecional com Investimentos 360 -->
-      <div id="modalInvestLinkBox" style="background:#050807;border:1px dashed var(--border-dim);padding:12px;border-radius:var(--radius-xs);margin-bottom:16px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;font-family:var(--font-mono);cursor:pointer;margin-bottom:8px;">
-          <input type="checkbox" id="chkModalInvestLink" onchange="MatrixApp.toggleModalInvestSubFields(this.checked)">
-          <strong style="color:var(--cyan);">🔗 Sincronizar com a Aba Investimentos 360</strong>
-        </label>
-        <div id="modalInvestSubFields" style="display:none;margin-top:8px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
-            <div>
-              <label style="font-size:10px;color:var(--text-muted);">Operação:</label>
-              <select id="modalInvestOperacao" class="matrix-select" style="font-size:11px;">
-                <option value="aporte">📈 Aporte (Aumenta o saldo do investimento)</option>
-                <option value="resgate">💸 Resgate (Reduz o investimento para pagar)</option>
-              </select>
-            </div>
-            <div>
-              <label style="font-size:10px;color:var(--text-muted);">Ativo Selecionado:</label>
-              <select id="modalInvestAtivoSelect" class="matrix-select" style="font-size:11px;"></select>
-            </div>
+      <!-- Vínculo com Carteira de Investimentos 360 -->
+      <div id="modalInvestLinkBox" style="background:#070d0a;border:1px solid rgba(6,182,212,0.3);padding:12px 14px;border-radius:var(--radius-xs);margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <strong style="color:var(--cyan);font-size:12px;display:flex;align-items:center;gap:6px;">
+            📈 Vínculo com Carteira de Investimentos
+          </strong>
+          <span style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono);">Aporte / Resgate</span>
+        </div>
+
+        <!-- Modo do Vínculo: Nenhum | Existente | Novo -->
+        <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--text-muted);">
+            <input type="radio" name="modalInvestModo" id="modalInvestModoNenhum" value="nenhum" checked onchange="MatrixApp.onModalInvestModoChange(this.value)">
+            <span>Não vincular (Apenas fluxo de caixa)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--matrix-green);font-weight:600;">
+            <input type="radio" name="modalInvestModo" id="modalInvestModoExistente" value="existente" onchange="MatrixApp.onModalInvestModoChange(this.value)">
+            <span>🔗 Vincular a Investimento Existente</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--amber);">
+            <input type="radio" name="modalInvestModo" id="modalInvestModoNovo" value="novo" onchange="MatrixApp.onModalInvestModoChange(this.value)">
+            <span>➕ Criar Novo Investimento</span>
+          </label>
+        </div>
+
+        <!-- Seção: Operação (Aporte ou Resgate) -->
+        <div id="modalInvestOpRow" style="display:none;margin-bottom:10px;background:rgba(0,0,0,0.3);padding:8px 10px;border-radius:var(--radius-xs);border:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:10.5px;color:var(--text-muted);font-weight:bold;">Tipo de Movimentação:</span>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;">
+              <input type="radio" name="modalInvestOperacaoRadio" id="modalInvestOpAporte" value="aporte" checked onchange="MatrixApp.updateModalInvestPreview()">
+              <span style="color:var(--matrix-green);font-weight:bold;">📈 Aporte (+ Saldo)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;">
+              <input type="radio" name="modalInvestOperacaoRadio" id="modalInvestOpResgate" value="resgate" onchange="MatrixApp.updateModalInvestPreview()">
+              <span style="color:var(--rose);font-weight:bold;">💸 Resgate (- Saldo)</span>
+            </label>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        </div>
+
+        <!-- Bloco 1: Selecionar Investimento Existente -->
+        <div id="modalInvestExistenteFields" style="display:none;margin-bottom:8px;">
+          <label style="font-size:10.5px;color:var(--matrix-green);font-weight:bold;display:block;margin-bottom:4px;">
+            Selecione o Investimento na sua Carteira:
+          </label>
+          <select id="modalInvestAtivoSelect" class="matrix-select" style="font-size:11px;font-family:var(--font-mono);width:100%;" onchange="MatrixApp.updateModalInvestPreview()"></select>
+          <div id="modalInvestPreviewBox" style="margin-top:6px;font-size:10.5px;color:var(--text-muted);line-height:1.4;"></div>
+        </div>
+
+        <!-- Bloco 2: Criar Novo Investimento -->
+        <div id="modalInvestNovoFields" style="display:none;background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.25);padding:10px;border-radius:var(--radius-xs);margin-bottom:8px;">
+          <div style="font-size:11px;color:var(--amber);font-weight:bold;margin-bottom:8px;">
+            ✨ Dados do Novo Investimento a ser criado na carteira:
+          </div>
+          <div style="margin-bottom:8px;">
+            <label style="font-size:10px;color:var(--text-muted);">Nome do Ativo / Aplicação:</label>
+            <input type="text" id="modalInvestNovoNome" class="matrix-input" placeholder="Ex: CDB Sofisa 110% CDI, Tesouro IPCA+ 2035, ETF IVVB11...">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
             <div>
               <label style="font-size:10px;color:var(--text-muted);">Corretora / Banco:</label>
-              <select id="modalInvestCorretoraSelect" class="matrix-select" style="font-size:11px;">
+              <select id="modalInvestNovoCorretora" class="matrix-select" style="font-size:11px;">
                 <option value="XP Investimentos">XP Investimentos</option>
                 <option value="Banco Inter">Banco Inter</option>
-                <option value="NuInvest / Nubank">NuInvest / Nubank</option>
-                <option value="Banco do Brasil">Banco do Brasil</option>
+                <option value="BB Investimentos">Banco do Brasil</option>
+                <option value="NuInvest / Nubank">Nubank / NuInvest</option>
                 <option value="Binance">Binance (Cripto)</option>
                 <option value="Outro">Outro</option>
               </select>
             </div>
             <div>
+              <label style="font-size:10px;color:var(--text-muted);">Categoria:</label>
+              <select id="modalInvestNovoCategoria" class="matrix-select" style="font-size:11px;">
+                <option value="Previdência / Aposentadoria">Previdência / Aposentadoria</option>
+                <option value="Renda Fixa / Tesouro">Renda Fixa / Tesouro</option>
+                <option value="Reserva de Emergência">Reserva de Emergência</option>
+                <option value="Ações">Ações</option>
+                <option value="FIIs">Fundos Imobiliários</option>
+                <option value="Criptomoedas">Criptomoedas</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+            <div>
               <label style="font-size:10px;color:var(--text-muted);">Titular:</label>
-              <select id="modalInvestTitularSelect" class="matrix-select" style="font-size:11px;">
+              <select id="modalInvestNovoTitular" class="matrix-select" style="font-size:11px;">
                 <option value="Matheus">Matheus</option>
                 <option value="Scarlet">Scarlet</option>
               </select>

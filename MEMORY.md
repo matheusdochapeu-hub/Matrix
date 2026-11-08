@@ -269,4 +269,28 @@ Propostas estruturadas e validadas para modernização da aba de simulações e 
    - **Alavanca de Corte**: Renegociação de contas, cancelamentos de assinaturas, redução de variáveis.
    - **Alavanca de Compromisso**: Aquisição de bens, financiamentos, parcelas no cartão de crédito.
 
+---
+
+## [2026-11-08 15:55] - Matrix Finance v94: Vínculo Explícito e Direto com Carteira de Investimentos
+
+### 🔍 Motivação & Solução
+1. **Fim dos Aportes Fantasmas e Investimentos Criados Sem Querer**:
+   - Anteriormente, o modal de despesas possuía uma lógica implícita (`isAutoInvest`) que tentava deduzir vínculos a partir de nomes como *"renda+"* ou da categoria *"Aportes"*. Isso gerava novos ativos duplicados com IDs `inv_...` e inflacionava saldos a cada edição da mesma despesa.
+   - `populateModalInvestAtivos` inseria nomes genéricos estáticos (como CSNA3, MGLU3, etc.), desvinculados do ID real do ativo na carteira do usuário.
+2. **Nova Interface de Vínculo com 3 Modos Explícitos**:
+   - `🔘 Não vincular (Apenas fluxo de caixa)`: Opção padrão. Nenhuma alteração é feita na carteira de investimentos.
+   - `🔘 🔗 Vincular a Investimento Existente`:
+     - Exibe lista suspensa alimentada diretamente pelos ativos reais cadastrados em `state.investimentos`.
+     - Cada opção detalha com clareza: `Nome do Ativo • Corretora [Titular] (Saldo Atual: R$ X.XXX,XX)`.
+     - Caixa de pré-visualização em tempo real: exibe o saldo antes e o novo saldo projetado após o aporte ou resgate (ex.: `R$ 466,07 ➔ Novo Saldo: R$ 666,07`).
+   - `🔘 ➕ Criar Novo Investimento`:
+     - Formulário explícito com campos dedicados: Nome do Ativo, Corretora/Banco, Categoria e Titular. Só é criado se o usuário preencher e salvar deliberadamente.
+3. **Mecanismo Antiduplicidade e Reversão Automática em Edição e Exclusão**:
+   - O item armazena metadados do vínculo: `investLinkedId`, `investLinkedOp` e `investLinkedVal`.
+   - Ao editar uma despesa com aporte, o sistema estorna previamente o valor antigo do investimento antes de aplicar o novo, evitando a multiplicação do saldo.
+   - Ao excluir um lançamento vinculado via `removeItemByIndex`, o valor aportado é subtraído automaticamente do saldo do investimento.
+4. **PWA & Cache**:
+   - `sw.js` atualizado para `matrix-finance-v94`.
+
+
 
