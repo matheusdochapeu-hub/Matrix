@@ -749,11 +749,22 @@ const MatrixApp = (function () {
     return n === 'scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
   }
 
-  // Cartão/fatura da própria Scarlet: nunca entra na sobra pessoal do Matheus.
+  // Despesas da própria Scarlet (Fatura Nubank, Psicóloga, Investimentos pessoais, etc.):
+  // Pagas com a renda dela (FisioFlow/Extras) e nunca entram na sobra pessoal do Matheus.
   function isGastoDaScarlet(it) {
+    if (!it) return false;
     const n = (it.nome || '').toLowerCase().trim();
-    const tit = (it.titular || '').toLowerCase();
-    return tit === 'scarlet' || n === 'nubank scarlet';
+    const tit = (it.titular || '').toLowerCase().trim();
+    const ren = (it.renda || '').toLowerCase().trim();
+    const cta = (it.conta || '').toLowerCase().trim();
+    const cat = (it.categoria || '').toLowerCase().trim();
+    if (tit === 'scarlet') return true;
+    if (n === 'nubank scarlet') return true;
+    if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet') return true;
+    if (cta.includes('scarlet')) return true;
+    if (cat === 'fisio scarlet' || cat === 'outras rendas scarlet' || cat === 'investimentos scarlet' || cat.includes('psicó')) return true;
+    if (n.includes('psicologa') || n.includes('psicóloga')) return true;
+    return false;
   }
 
     // Identifica se um item é parcela de empréstimo consignado em folha
@@ -2039,7 +2050,15 @@ const MatrixApp = (function () {
     const descOutrasScarlet = getDescOutrasRendasScarletMes(currentYear, currentMonth);
     const scarletSubtotal = scarletFisio + scarletOutras + scarletTransf;
     const scarletFatura = faturaNubank;
-    const scarletSobra = scarletSubtotal - scarletFatura;
+
+    // Gastos próprios da Scarlet (Psicóloga, Investimentos, etc. que saem da renda dela)
+    const scarletGastosItems = [...(monthData.fixos || []), ...(monthData.outros || [])]
+      .filter(it => isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && it.nome !== 'Nubank Scarlet');
+    const scarletGastosPropriosTotal = scarletGastosItems.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const scarletGastosPropriosPago = scarletGastosItems.filter(it => it.pago === true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const scarletGastosPropriosPendente = scarletGastosItems.filter(it => it.pago !== true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+
+    const scarletSobra = scarletSubtotal - scarletFatura - scarletGastosPropriosPago;
     const sobraCasalReal = sobraMatheus + scarletSobra;
 
     const eqCasalSobraMatheus = document.getElementById('topEqCasalSobraMatheus');
@@ -2105,6 +2124,9 @@ const MatrixApp = (function () {
     const eqScarletFaturaEl = document.getElementById('topEqScarletFatura');
     if (eqScarletFaturaEl) eqScarletFaturaEl.textContent = formatBRL(scarletFatura);
 
+    const eqScarletGastosEl = document.getElementById('topEqScarletGastos');
+    if (eqScarletGastosEl) eqScarletGastosEl.textContent = formatBRL(scarletGastosPropriosPago);
+
     const eqScarletSobraEl = document.getElementById('topEqScarletSobra');
     if (eqScarletSobraEl) {
       eqScarletSobraEl.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
@@ -2147,6 +2169,17 @@ const MatrixApp = (function () {
 
     const topScarletFaturaVal = document.getElementById('topScarletFaturaVal');
     if (topScarletFaturaVal) topScarletFaturaVal.textContent = `- ${formatBRL(scarletFatura)}`;
+
+    const topScarletGastosPropriosVal = document.getElementById('topScarletGastosPropriosVal');
+    if (topScarletGastosPropriosVal) {
+      if (scarletGastosPropriosPago > 0) {
+        topScarletGastosPropriosVal.textContent = `- ${formatBRL(scarletGastosPropriosPago)}`;
+      } else if (scarletGastosPropriosPendente > 0) {
+        topScarletGastosPropriosVal.innerHTML = `<span style="color:var(--rose);font-size:11px;">R$ 0,00 <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(scarletGastosPropriosPendente)} a pagar)</span></span>`;
+      } else {
+        topScarletGastosPropriosVal.textContent = '- R$ 0,00';
+      }
+    }
 
     const topScarletSobraFinalVal = document.getElementById('topScarletSobraFinalVal');
     if (topScarletSobraFinalVal) {
@@ -2869,6 +2902,104 @@ const MatrixApp = (function () {
           <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">
             <strong>Total Gastos Diários:</strong>
             <strong style="color:var(--cyan);">${formatBRL(totalDiarios)}</strong>
+          </div>
+        </div>
+      `;
+
+    } else if (tipo === 'scarlet') {
+      titleEl.innerHTML = `👩‍⚕️ Fluxo & Caixa Scarlet (${periodLabel})`;
+      const faturaNubank = getFaturaNubankMes(currentYear, currentMonth);
+      const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
+      const outrasRendasScarlet = getOutrasRendasScarletMes(currentYear, currentMonth);
+      const descOutrasScarlet = getDescOutrasRendasScarletMes(currentYear, currentMonth);
+      const calcM = calcSobraMatheus(currentYear, currentMonth);
+      const scarletTransf = calcM.transfPaga;
+      const scarletTransfPendente = calcM.transfPendente;
+      const scarletSubtotal = ganhosScarlet + outrasRendasScarlet + scarletTransf;
+
+      const scarletGastosItems = [...(monthData.fixos || []), ...(monthData.outros || [])]
+        .filter(it => isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && it.nome !== 'Nubank Scarlet');
+      const scarletGastosPropriosTotal = scarletGastosItems.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const scarletGastosPropriosPago = scarletGastosItems.filter(it => it.pago === true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const scarletSobra = scarletSubtotal - faturaNubank - scarletGastosPropriosPago;
+
+      html = `
+        <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.35);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <span style="color:var(--purple);display:flex;align-items:center;gap:6px;font-weight:bold;">
+              👩‍⚕️ Recursos, Fatura e Gastos da Scarlet (${periodLabel})
+            </span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button" class="btn-matrix purple" style="font-size:10.5px;padding:3px 8px;" onclick="MatrixApp.closeModal('drilldownModalBackdrop'); MatrixApp.openNewItemModal('fixo', 'scarlet')">+ Novo Gasto Scarlet</button>
+              <button type="button" class="btn-matrix" style="font-size:10.5px;padding:3px 8px;" onclick="MatrixApp.closeModal('drilldownModalBackdrop'); MatrixApp.openEditSaldosModal('${currentYear}','${currentMonth}','scarlet')">✏️ Editar Rendas</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
+            <div style="background:var(--bg-card);border:1px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Atendimentos Fisio</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosScarlet)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">FisioFlow M+1</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(192,132,252,0.3);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">${descOutrasScarlet || 'Outras Rendas'}</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--purple);margin-top:2px;">${formatBRL(outrasRendasScarlet)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Rendas extras</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(245,158,11,0.3);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">Transf. do Matheus</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--amber);margin-top:2px;">${formatBRL(scarletTransf)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${scarletTransfPendente > 0 ? `(⏳ ${formatBRL(scarletTransfPendente)} pendente)` : 'Recebido'}</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(244,63,94,0.3);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">(-) Fatura Nubank</div>
+              <div style="font-size:15px;font-weight:bold;color:var(--rose);margin-top:2px;">- ${formatBRL(faturaNubank)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Cartão Black</div>
+            </div>
+            <div style="background:var(--bg-card);border:1px solid rgba(192,132,252,0.4);padding:10px;border-radius:var(--radius-sm);">
+              <div style="font-size:11px;color:var(--text-muted);">(=) Sobra Líquida</div>
+              <div style="font-size:15px;font-weight:bold;color:${scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};margin-top:2px;">${formatBRL(scarletSobra)}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Saldo livre da Scarlet</div>
+            </div>
+          </div>
+
+          <!-- Tabela de Gastos Próprios da Scarlet -->
+          <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="color:var(--purple);font-size:12.5px;">🧠 Gastos Próprios da Scarlet (Psicóloga, Investimentos, etc.)</strong>
+              <span style="font-size:11px;color:var(--rose);">Total: ${formatBRL(scarletGastosPropriosTotal)}</span>
+            </div>
+            ${scarletGastosItems.length > 0 ? `
+              <table class="data-table" style="font-size:11.5px;margin:0;">
+                <thead>
+                  <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${scarletGastosItems.map(it => `
+                    <tr class="${it.pago ? 'paid' : ''}">
+                      <td><strong>${it.nome}</strong></td>
+                      <td><span class="cat-pill" style="color:var(--purple);border-color:rgba(192,132,252,0.3);">${it.categoria || 'Pessoal'}</span></td>
+                      <td><span class="status-badge ${it.pago ? 'pago' : 'pendente'}">${it.pago ? '✅ Pago' : '⏳ Pendente'}</span></td>
+                      <td style="text-align:right;color:var(--purple);font-weight:bold;">${formatBRL(it.valor)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : `
+              <div style="text-align:center;color:var(--text-muted);padding:12px;font-size:11px;">
+                Nenhum gasto próprio cadastrado ainda neste mês.
+              </div>
+            `}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:11px;color:var(--text-muted);">💡 O dinheiro sai diretamente da receita da Scarlet e não afeta as contas correntes do Matheus.</span>
+            <button type="button" class="btn-matrix secondary" style="font-size:11px;" onclick="MatrixApp.abrirDrilldown('fatura')">💳 Ver Detalhes da Fatura Nubank →</button>
           </div>
         </div>
       `;
@@ -3808,19 +3939,42 @@ const MatrixApp = (function () {
 
     // Cálculos de Totais, Pagos e Pendentes
     const fixosList = monthData.fixos || [];
-    const totalFixos = fixosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-    const pagosFixos = fixosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    const outrosList = monthData.outros || [];
+    const diariosList = monthData.diarios || [];
+
+    // Gastos Fixos exclusivos de Matheus / Contas Compartilhadas (exclui gastos próprios da Scarlet, pois têm coluna própria)
+    const fixosListMatheus = fixosList.map((f, i) => ({ f, i })).filter(x => !isGastoDaScarlet(x.f) || isTransferenciaParaScarlet(x.f));
+    const totalFixos = fixosListMatheus.reduce((acc, x) => acc + (parseFloat(x.f.valor) || 0), 0);
+    const pagosFixos = fixosListMatheus.filter(x => x.f.pago).reduce((acc, x) => acc + (parseFloat(x.f.valor) || 0), 0);
     const pendentesFixos = Math.max(0, totalFixos - pagosFixos);
 
-    const outrosList = monthData.outros || [];
-    const totalOutros = outrosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-    const pagosOutros = outrosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+    // Gastos Variáveis exclusivos de Matheus (exclui gastos da Scarlet)
+    const outrosListMatheus = outrosList.map((o, i) => ({ o, i })).filter(x => !isGastoDaScarlet(x.o));
+    const totalOutros = outrosListMatheus.reduce((acc, x) => acc + (parseFloat(x.o.valor) || 0), 0);
+    const pagosOutros = outrosListMatheus.filter(x => x.o.pago).reduce((acc, x) => acc + (parseFloat(x.o.valor) || 0), 0);
     const pendentesOutros = Math.max(0, totalOutros - pagosOutros);
 
-    const diariosList = monthData.diarios || [];
+    // Gastos Diários (Matheus)
     const totalDiarios = diariosList.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     const pagosDiarios = diariosList.filter(it => it.pago).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     const pendentesDiarios = Math.max(0, totalDiarios - pagosDiarios);
+
+    // Gastos Próprios Scarlet (Fixos e Recorrentes que saem da renda dela)
+    const scarletGastosMapped = [
+      ...fixosList.map((it, idx) => ({ it, originalIdx: idx, tipo: 'fixo' })),
+      ...outrosList.map((it, idx) => ({ it, originalIdx: idx, tipo: 'outro' }))
+    ].filter(x => isGastoDaScarlet(x.it) && !isTransferenciaParaScarlet(x.it) && x.it.nome !== 'Nubank Scarlet');
+
+    const totalScarletGastos = scarletGastosMapped.reduce((acc, x) => acc + (parseFloat(x.it.valor) || 0), 0);
+    const pagosScarletGastos = scarletGastosMapped.filter(x => x.it.pago).reduce((acc, x) => acc + (parseFloat(x.it.valor) || 0), 0);
+    const pendentesScarletGastos = Math.max(0, totalScarletGastos - pagosScarletGastos);
+
+    // Atualizar Termômetro dos Gastos da Scarlet
+    if (document.getElementById('scarletPagoLabel')) document.getElementById('scarletPagoLabel').textContent = formatBRL(pagosScarletGastos);
+    if (document.getElementById('scarletPendenteLabel')) document.getElementById('scarletPendenteLabel').textContent = formatBRL(pendentesScarletGastos);
+    if (document.getElementById('scarletTotalLabel')) document.getElementById('scarletTotalLabel').textContent = formatBRL(totalScarletGastos);
+    const pctScarlet = totalScarletGastos > 0 ? (pagosScarletGastos / totalScarletGastos) * 100 : 0;
+    if (document.getElementById('scarletProgressBar')) document.getElementById('scarletProgressBar').style.width = pctScarlet.toFixed(1) + '%';
 
     const totalGeralPago = pagosFixos + pagosOutros + pagosDiarios;
     const totalGeralPendente = pendentesFixos + pendentesOutros + pendentesDiarios;
@@ -3851,13 +4005,15 @@ const MatrixApp = (function () {
     const pctGeral = totalGeralDespesas > 0 ? (totalGeralPago / totalGeralDespesas) * 100 : 0;
     if (document.getElementById('geralProgressBar')) document.getElementById('geralProgressBar').style.width = pctGeral.toFixed(1) + '%';
 
-    // Render Fixos Table Body
+    // Render Fixos Table Body (Matheus / Casa)
     const fixosTbody = document.getElementById('fixosTableBody');
     if (fixosTbody) {
-      if (fixosList.length === 0) {
+      if (fixosListMatheus.length === 0) {
         fixosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto fixo cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        fixosTbody.innerHTML = fixosList.map((f, i) => {
+        fixosTbody.innerHTML = fixosListMatheus.map(itemObj => {
+          const f = itemObj.f;
+          const i = itemObj.i;
           const isFatura = isFaturasItem(f);
           const isScarletTransf = (f.nome || '').trim().toLowerCase() === 'scarlet';
           const isCarona = isCaronaItem(f);
@@ -3913,13 +4069,15 @@ const MatrixApp = (function () {
       }
     }
 
-    // Render Outros / Variáveis Table Body
+    // Render Outros / Variáveis Table Body (Matheus)
     const outrosTbody = document.getElementById('outrosTableBody');
     if (outrosTbody) {
-      if (outrosList.length === 0) {
+      if (outrosListMatheus.length === 0) {
         outrosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">Nenhum gasto variável cadastrado em ${currentMonth}.</td></tr>`;
       } else {
-        outrosTbody.innerHTML = outrosList.map((o, i) => {
+        outrosTbody.innerHTML = outrosListMatheus.map(itemObj => {
+          const o = itemObj.o;
+          const i = itemObj.i;
           const isFatura = isFaturasItem(o);
           const isScarletTransf = (o.nome || '').trim().toLowerCase() === 'scarlet';
           return `
@@ -3948,6 +4106,47 @@ const MatrixApp = (function () {
                 <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">✏️</button>
                 <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'outro', ${i})">🗑️</button>
               `}
+            </td>
+          </tr>
+        `;
+        }).join('');
+      }
+    }
+
+    // Render Tabela de Gastos Próprios da Scarlet (Coluna Dedicada da Scarlet)
+    const scarletTbody = document.getElementById('scarletGastosTableBody');
+    if (scarletTbody) {
+      if (scarletGastosMapped.length === 0) {
+        scarletTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:18px;">
+          Nenhum gasto próprio da Scarlet cadastrado em ${currentMonth}.<br>
+          <span style="font-size:11px;color:var(--purple);cursor:pointer;display:inline-block;margin-top:6px;" onclick="MatrixApp.openNewItemModal('fixo', 'scarlet')">+ Adicionar Psicóloga, Investimentos, etc.</span>
+        </td></tr>`;
+      } else {
+        scarletTbody.innerHTML = scarletGastosMapped.map(itemObj => {
+          const f = itemObj.it;
+          const i = itemObj.originalIdx;
+          const t = itemObj.tipo;
+          return `
+          <tr class="${f.pago ? 'paid' : ''}">
+            <td class="desc-col">
+              <strong style="color:var(--text-bright);">${f.nome}</strong>
+              <div class="item-meta-row">
+                <span class="bank-pill" style="color:var(--purple);border-color:rgba(192,132,252,0.35);background:rgba(192,132,252,0.08);">👩‍⚕️ Ganhos Scarlet</span>
+                ${f.categoria ? `<span class="cat-pill" style="color:var(--purple);border-color:rgba(192,132,252,0.3);">${f.categoria}</span>` : ''}
+              </div>
+            </td>
+            <td class="status-col">
+              <button type="button" 
+                      class="status-btn ${f.pago ? 'pago' : 'pendente'}" 
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', '${t}', ${i})"
+                      title="Clique para alternar entre Pago e Pendente">
+                ${f.pago ? '✅ PAGO' : '⏳ PENDENTE'}
+              </button>
+            </td>
+            <td class="val-col" style="color:var(--purple);font-weight:700;">${formatBRL(f.valor)}</td>
+            <td class="action-col">
+              <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', '${t}', ${i})">✏️</button>
+              <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', '${t}', ${i})">🗑️</button>
             </td>
           </tr>
         `;
@@ -7510,16 +7709,38 @@ function onModalCategoriaChange(catVal) {
     }
   }
 
+  function onModalTitularChange(val) {
+    const rendaSelect = document.getElementById('modalItemRenda');
+    const catSelect = document.getElementById('modalItemCategoria');
+    const nomeInput = document.getElementById('modalItemNome');
+    if (val === 'scarlet') {
+      if (rendaSelect) rendaSelect.value = 'ganhos_scarlet';
+      if (catSelect && (catSelect.value === 'Habitação' || catSelect.value === 'Salário' || catSelect.value === 'Outros')) {
+        catSelect.value = 'Psicóloga & Terapias';
+      }
+      if (nomeInput && !nomeInput.value) {
+        nomeInput.placeholder = 'Ex: Psicóloga da Scarlet, Aporte Renda+ 2055, Unimed...';
+      }
+    } else {
+      if (rendaSelect && (rendaSelect.value === 'ganhos_scarlet' || rendaSelect.value === 'outras_rendas_scarlet')) {
+        rendaSelect.value = 'salario_usp';
+      }
+    }
+  }
+
   function toggleModalInvestSubFields(checked) {
     const sub = document.getElementById('modalInvestSubFields');
     if (sub) sub.style.display = checked ? 'block' : 'none';
   }
 
-  function openNewItemModal(tipo) {
+  function openNewItemModal(tipo, titular = 'matheus') {
     document.getElementById('modalItemTipo').value = tipo;
     document.getElementById('modalItemEditId').value = '';
     document.getElementById('modalItemNome').value = '';
     document.getElementById('modalItemValor').value = '';
+
+    const titularSelect = document.getElementById('modalItemTitular');
+    if (titularSelect) titularSelect.value = titular;
 
     populateModalInvestAtivos();
 
@@ -7534,6 +7755,7 @@ function onModalCategoriaChange(catVal) {
     const nomeLabel = document.getElementById('modalItemNomeLabel');
     const nomeInput = document.getElementById('modalItemNome');
     const catSelect = document.getElementById('modalItemCategoria');
+    const rendaSelect = document.getElementById('modalItemRenda');
 
     const optEst = document.getElementById('catOptionEstudio');
     if (optEst) optEst.textContent = getNomeEstudio() === 'Renda Extra' ? 'Renda Extra' : getNomeEstudio();
@@ -7541,21 +7763,30 @@ function onModalCategoriaChange(catVal) {
     const empSec = document.getElementById('modalEmprestimoSection');
     if (empSec) empSec.style.display = 'none';
 
-    if (tipo === 'receita') {
+    if (titular === 'scarlet') {
+      if (titleEl) titleEl.textContent = '+ Novo Gasto Scarlet (Psicóloga, Investimentos...)';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição do Gasto da Scarlet:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Psicóloga da Scarlet, Aporte Renda+ 2055, Cursos...';
+      if (catSelect) catSelect.value = 'Psicóloga & Terapias';
+      if (rendaSelect) rendaSelect.value = 'ganhos_scarlet';
+    } else if (tipo === 'receita') {
       if (titleEl) titleEl.textContent = '+ Nova Receita';
       if (nomeLabel) nomeLabel.textContent = 'Descrição:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Salário, 13º Salário, Renda Extra, Empréstimo, Fisio Scarlet...';
       if (catSelect) catSelect.value = 'Salário';
+      if (rendaSelect) rendaSelect.value = 'salario_usp';
     } else if (tipo === 'fixo') {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Fixo';
       if (nomeLabel) nomeLabel.textContent = 'Descrição:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Parcela Caixa, Água, Luz, Internet...';
       if (catSelect) catSelect.value = 'Habitação';
+      if (rendaSelect) rendaSelect.value = 'salario_usp';
     } else {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Variável';
       if (nomeLabel) nomeLabel.textContent = 'Descrição:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Mercado, Farmácia, Lazer...';
       if (catSelect) catSelect.value = 'Outros';
+      if (rendaSelect) rendaSelect.value = 'salario_usp';
     }
 
     const miHint = document.getElementById('modalItemCatHint');
@@ -7590,6 +7821,11 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('modalItemEditId').value = `idx_${index}`;
     document.getElementById('modalItemNome').value = item.nome || '';
     document.getElementById('modalItemValor').value = item.valor != null ? item.valor : '';
+
+    const titularSelect = document.getElementById('modalItemTitular');
+    if (titularSelect) {
+      titularSelect.value = isGastoDaScarlet(item) ? 'scarlet' : 'matheus';
+    }
 
     const catSelect = document.getElementById('modalItemCategoria');
     if (catSelect) {
@@ -7704,9 +7940,20 @@ function onModalCategoriaChange(catVal) {
     // Grava e memoriza a classificação da categoria escolhida pelo usuário para este gasto
     MatrixDB.learnCategoryMapping(nome, cat);
 
-    const payload = { nome, valor, categoria: cat, conta, renda, pago };
-    if (cat === 'Outras Rendas Scarlet' || renda === 'outras_rendas_scarlet' || cat === 'Fisio Scarlet' || renda === 'ganhos_scarlet') {
-      payload.titular = 'scarlet';
+    const titularSelect = document.getElementById('modalItemTitular');
+    let titular = titularSelect ? titularSelect.value : (isGastoDaScarlet({ nome, categoria: cat, renda }) ? 'scarlet' : 'matheus');
+    if (cat === 'Outras Rendas Scarlet' || renda === 'outras_rendas_scarlet' || cat === 'Fisio Scarlet' || renda === 'ganhos_scarlet' || cat === 'Investimentos Scarlet' || cat.includes('Psicóloga')) {
+      titular = 'scarlet';
+    }
+
+    const payload = { nome, valor, categoria: cat, conta, renda, pago, titular };
+    if (titular === 'scarlet') {
+      if (tipo === 'receita') {
+        if (payload.renda !== 'outras_rendas_scarlet') payload.renda = 'ganhos_scarlet';
+      } else {
+        if (!payload.renda || payload.renda === 'salario_usp') payload.renda = 'ganhos_scarlet';
+        if (!payload.conta || payload.conta === 'salario_bb') payload.conta = 'scarlet_fisio';
+      }
     }
 
     if (editId && editId.startsWith('idx_')) {
@@ -7940,6 +8187,22 @@ function onModalCategoriaChange(catVal) {
     setVal('saldosContaEstudio', contaExtra);
     setVal('saldosFaturaNubank', fatura);
     setVal('saldosAjusteConciliacao', ajuste !== 0 ? ajuste : '');
+
+    const scarletGastosContainer = document.getElementById('saldosModalScarletGastosList');
+    if (scarletGastosContainer) {
+      const scarletItems = [...(monthData.fixos || []), ...(monthData.outros || [])]
+        .filter(it => isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && it.nome !== 'Nubank Scarlet');
+      if (scarletItems.length === 0) {
+        scarletGastosContainer.innerHTML = '<span style="color:var(--text-muted);font-style:italic;">Nenhum gasto próprio cadastrado neste mês.</span>';
+      } else {
+        scarletGastosContainer.innerHTML = scarletItems.map(it => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <span>${it.nome} <span style="font-size:9.5px;color:var(--text-muted);">(${it.pago ? '✅ Pago' : '⏳ Pendente'})</span></span>
+            <strong style="color:var(--purple);">${formatBRL(it.valor)}</strong>
+          </div>
+        `).join('');
+      }
+    }
 
     openModal('saldosEditModalBackdrop');
 
@@ -9583,6 +9846,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     excluirHolerite,
     onModalContaChange,
     onModalRendaChange,
+    onModalTitularChange,
     toggleModalInvestSubFields,
     isFaturasItem,
     alertFaturasReadOnly,

@@ -4,6 +4,37 @@ Este documento armazena o histórico de auditorias (`/autofix` / `/revisar`), re
 
 ---
 
+## [2026-11-08 14:00] - Área Dedicada para Gastos Próprios e Recorrentes da Scarlet (Psicóloga, Investimentos, Fixos) & Vínculo com Sobra Scarlet (v90)
+
+### Resumo Geral
+Atendendo à solicitação do usuário (*"Vamos abrir espaço/local para lançar outros gastos da scarlet. No caso quero colocar gastos que são recorrentes, como a psicóloga dela e investimentos dela que saem do salário dela. Permita a existência dessa área voltada para os gastos dela"*), foi implementada uma estrutura completa, dedicada e vinculada para gestão dos gastos próprios da Scarlet:
+1. **Coluna Exclusiva no Fluxo de Caixa (`👩‍⚕️ Gastos Scarlet`):**
+   - Criada uma 4ª coluna estilizada no padrão Matrix com bordas e botões em tema roxo (`--purple`), posicionada ao lado das demais colunas do Fluxo de Caixa.
+   - Possui termômetro de pagamentos próprio: **● Já Pago**, **● Falta Pagar** e **● Total**, com barra de progresso individual.
+   - Tabela dedicada listando todos os gastos da Scarlet (Psicóloga, Investimentos, Previdência, etc.), com badges de origem (`👩‍⚕️ Ganhos Scarlet`), categoria, botão interativo de alternância de status (**✅ PAGO / ⏳ PENDENTE**), valor e botões de editar e excluir.
+   - Botão de ação rápida: `+ Novo Gasto Scarlet (Psicóloga, Investimentos...)`.
+2. **Segregação Rigorosa e Antiduplicação nas Colunas de Matheus:**
+   - A tabela `🔒 Gastos Fixos` e a tabela `🛍️ Gastos Variáveis / Outros` agora exibem exclusivamente os compromissos de Matheus / Contas Compartilhadas da Casa (mantendo apenas a transferência para a Scarlet que Matheus paga).
+   - Os gastos próprios da Scarlet não são duplicados na tabela de contas do Matheus, ficando organizados em seu próprio espaço.
+3. **Modal de Lançamentos com Seletor Explicito de Titular:**
+   - Adicionado campo `<select id="modalItemTitular">` permitindo escolher entre **👨‍💼 Matheus (Conta USP / Compartilhado Casa)** e **👩‍⚕️ Scarlet (FisioFlow / Pessoal Scarlet)**.
+   - Adicionadas opções de categoria dedicadas: `Psicóloga & Terapias` e `Investimentos Scarlet`.
+   - Ao abrir via botões de Scarlet, o modal já abre pré-configurado com titularidade Scarlet e renda vinculada `Ganhos Scarlet (FisioFlow)`.
+4. **Card 4 (Sobra Scarlet) e Equação Visual Atualizados:**
+   - Equação visual do Card 4 expandida para: `Fisio + Outras + Transf. - Fatura - Gastos = Sobra`.
+   - Box de cálculo 2 renomeado para: `2. SOBRA PÓS-FATURA & GASTOS` (Recursos − Fatura − Gastos).
+   - Detalhamento do Card 4 inclui linha: `🧠 (-) Gastos Próprios Scarlet: - R$ X,XX` (ou indicação de valor a pagar caso pendente).
+   - Botão `+ Gasto` adicionado no cabeçalho do Card 4 para lançamento imediato.
+   - Fórmula: `Sobra Líquida Scarlet = Recursos Disponíveis (Fisio + Outras + Transf. Paga) - Fatura Nubank - Gastos Próprios Scarlet Pagos`.
+   - Se o gasto da Scarlet estiver pendente, não reduz o saldo realizado até ser marcado como pago.
+5. **Modal "Editar Saldos & Rendas" e Drilldown Executivo:**
+   - Seção `🧠 Gastos Próprios Scarlet` adicionada no modal de saldos com visualização dinâmica dos itens ativos e atalho para novo gasto.
+   - Drilldown da Scarlet (`MatrixApp.abrirDrilldown('scarlet')`) ativado no clique do Card 4, exibindo resumo executivo, tabela detalhada de gastos próprios e link para auditoria da fatura Nubank.
+6. **Simulador "E se?" (`scenario-simulator.js`):**
+   - A conta `scarlet` agora soma tanto a Fatura Nubank quanto `scarletGastosPropriosBase` (fixos + variáveis vinculados à Scarlet) em `scarletGastosBase`, assegurando projeções futuras precisas.
+
+---
+
 ## [2026-11-08 02:00] - Revisão Anual de Dezembro com Divisor Real por Meses Lançados e Consolidado do Casal Matheus & Scarlet (v88)
 
 ### Resumo Geral

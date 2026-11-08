@@ -180,8 +180,17 @@ const ScenarioSimulator = (function () {
   function isGastoDaScarlet(it) {
     if (!it) return false;
     const n = (it.nome || '').toLowerCase().trim();
-    const tit = (it.titular || '').toLowerCase();
-    return tit === 'scarlet' || n === 'nubank scarlet';
+    const tit = (it.titular || '').toLowerCase().trim();
+    const ren = (it.renda || '').toLowerCase().trim();
+    const cta = (it.conta || '').toLowerCase().trim();
+    const cat = (it.categoria || '').toLowerCase().trim();
+    if (tit === 'scarlet') return true;
+    if (n === 'nubank scarlet') return true;
+    if (ren === 'ganhos_scarlet' || ren === 'outras_rendas_scarlet') return true;
+    if (cta.includes('scarlet')) return true;
+    if (cat === 'fisio scarlet' || cat === 'outras rendas scarlet' || cat === 'investimentos scarlet' || cat.includes('psicó')) return true;
+    if (n.includes('psicologa') || n.includes('psicóloga')) return true;
+    return false;
   }
 
   function isTransferenciaParaScarlet(it) {
@@ -316,14 +325,14 @@ const ScenarioSimulator = (function () {
       const scarletGanhos = scarletGanhosProprios + transfParaScarlet;
 
       const faturaNubankMes = getFaturaNubankScarletCalculada(yearStr, m.monthName, monthData, state);
-      const scarletGastosItens = (monthData.outros || [])
-        .filter(isGastoDaScarlet)
+      const scarletGastosPropriosBase = [...(monthData.fixos || []), ...(monthData.outros || [])]
+        .filter(it => isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && it.nome !== 'Nubank Scarlet')
         .reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      const scarletFaturaNubank = faturaNubankMes > 0 ? faturaNubankMes : scarletGastosItens;
+      const scarletFaturaNubank = faturaNubankMes;
       const scarletDiarios = (monthData.diarios || [])
         .filter(d => !d.jaAlocadoVariavel && ((d.titular || '').toLowerCase() === 'scarlet' || (d.conta || '').toLowerCase() === 'credito_nubank_scarlet'))
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
-      const scarletGastosBase = scarletFaturaNubank + scarletDiarios;
+      const scarletGastosBase = scarletFaturaNubank + scarletGastosPropriosBase + scarletDiarios;
       const scarletSaldoBase = scarletGanhos - scarletGastosBase;
 
       // ==========================================

@@ -3818,3 +3818,27 @@ body {
   color: #c084fc;
   border: 1px solid rgba(192, 132, 252, 0.35);
 }
+
+/* Scarlet Dedicated Expenses Box & Elements */
+.matrix-box.scarlet-box {
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  box-shadow: 0 0 15px rgba(130, 10, 209, 0.08);
+}
+.matrix-box.scarlet-box:hover {
+  border-color: rgba(192, 132, 252, 0.55);
+}
+.progress-fill.purple {
+  background: linear-gradient(90deg, rgba(147, 51, 234, 0.7), var(--purple));
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
+}
+.btn-matrix.purple {
+  border-color: rgba(192, 132, 252, 0.45);
+  color: var(--purple);
+  background: rgba(147, 51, 234, 0.12);
+}
+.btn-matrix.purple:hover {
+  background: rgba(147, 51, 234, 0.25);
+  border-color: var(--purple);
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
+}
+

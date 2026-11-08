@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=89">
+  <link rel="stylesheet" href="css/matrix.css?v=90">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -381,16 +381,17 @@
         </div>
 
         <!-- COLUNA 4: FLUXO & SOBRA SCARLET (2 VISÕES DE CAIXA SCARLET) -->
-        <div class="unified-card purple" onclick="MatrixApp.abrirDrilldown('fatura')" title="Clique para ver a fatura Nubank e atendimentos da Scarlet">
+        <div class="unified-card purple" onclick="MatrixApp.abrirDrilldown('scarlet')" title="Clique para ver o fluxo completo, fatura e gastos próprios da Scarlet">
           <div class="unified-card-header">
             <span class="unified-card-title" style="color:var(--purple);">👩‍⚕️ Sobra Scarlet</span>
             <div class="unified-header-actions">
+              <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openNewItemModal('fixo', 'scarlet')" title="Lançar Gasto da Scarlet (Psicóloga, Investimentos...)">+ Gasto</span>
               <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(currentYear, currentMonth, 'scarlet')" title="Lançar / Editar Atendimentos e Outras Rendas da Scarlet">✏️ Rendas</span>
               <span class="unified-badge purple" id="topScarletStatusBadge">Fisio + Nubank</span>
             </div>
           </div>
 
-          <!-- Equação Visual Padronizada (Fisio + Outras + Transf. - Fatura) -->
+          <!-- Equação Visual Padronizada (Fisio + Outras + Transf. - Fatura - Gastos) -->
           <div class="unified-equation-banner purple-banner">
             <div class="eq-part">
               <span class="eq-label">Fisio</span>
@@ -411,6 +412,11 @@
               <span class="eq-label">Fatura</span>
               <strong class="eq-val" style="color:var(--rose);" id="topEqScarletFatura">R$ 0,00</strong>
             </div>
+            <span class="eq-op" style="color:var(--purple);">-</span>
+            <div class="eq-part">
+              <span class="eq-label" style="color:var(--rose);">Gastos</span>
+              <strong class="eq-val" style="color:var(--rose);" id="topEqScarletGastos">R$ 0,00</strong>
+            </div>
           </div>
 
           <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Subtotal Recursos | 2. Sobra Pós-Fatura Nubank -->
@@ -426,19 +432,19 @@
               </div>
             </div>
 
-            <div class="dual-gastos-box scarlet-calc2" title="Saldo líquido da Scarlet após quitar a Fatura Nubank Black">
+            <div class="dual-gastos-box scarlet-calc2" title="Saldo líquido da Scarlet após quitar a Fatura Nubank Black e Gastos Próprios">
               <div class="dual-gastos-header">
-                <span class="dual-gastos-title" style="color:var(--purple);">2. SOBRA PÓS-FATURA NUBANK</span>
-                <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Pós-Cartão</span>
+                <span class="dual-gastos-title" style="color:var(--purple);">2. SOBRA PÓS-FATURA & GASTOS</span>
+                <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Pós-Despesas</span>
               </div>
               <div class="dual-gastos-body">
                 <strong class="dual-gastos-val" style="color:var(--purple);" id="topSobraScarletVal">R$ 0,00</strong>
-                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topSobraScarletSub">Recursos − Fatura Nubank</span>
+                <span class="dual-gastos-sub" style="color:var(--text-muted);" id="topSobraScarletSub">Recursos − Fatura − Gastos</span>
               </div>
             </div>
           </div>
 
-          <!-- Detalhamento Padronizado (4 itens + linha de fechamento) -->
+          <!-- Detalhamento Padronizado (5 itens + linha de fechamento) -->
           <div class="unified-breakdown-list">
             <div class="unified-row">
               <span>🩺 (+) Atendimentos Scarlet Fisio:</span>
@@ -455,6 +461,10 @@
             <div class="unified-row">
               <span>💳 (-) Fatura Nubank Black:</span>
               <strong style="color:var(--rose);" id="topScarletFaturaVal">- R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topScarletGastosPropriosRow">
+              <span id="topScarletGastosPropriosLabel">🧠 (-) Gastos Próprios Scarlet:</span>
+              <strong style="color:var(--rose);" id="topScarletGastosPropriosVal">- R$ 0,00</strong>
             </div>
             <div class="unified-row summary-row">
               <strong style="color:var(--purple);">(=) Sobra Líquida Scarlet:</strong>
@@ -775,6 +785,44 @@
               • VA de R$ 2.050,00 exclusivo para alimentação domiciliar.<br>
               • Parcela Caixa debitada automaticamente.
             </div>
+          </div>
+        </div>
+
+        <!-- Coluna: Gastos Próprios Scarlet (Fixos & Recorrentes) -->
+        <div class="matrix-box scarlet-box">
+          <div class="box-header">
+            <h2><span style="color:var(--purple);">👩‍⚕️ Gastos Scarlet</span></h2>
+            <button class="btn-matrix purple" onclick="MatrixApp.openNewItemModal('fixo', 'scarlet')">+ Adicionar</button>
+          </div>
+
+          <!-- Termômetro de Pagamento: Gastos Scarlet -->
+          <div class="box-progress-summary">
+            <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--font-mono);margin-bottom:6px;">
+              <span><span style="color:var(--matrix-green);">● Já Pago:</span> <strong id="scarletPagoLabel">R$ 0,00</strong></span>
+              <span><span style="color:var(--amber);">● Falta Pagar:</span> <strong id="scarletPendenteLabel">R$ 0,00</strong></span>
+              <span><span style="color:var(--purple);">● Total:</span> <strong id="scarletTotalLabel">R$ 0,00</strong></span>
+            </div>
+            <div class="progress-track"><div id="scarletProgressBar" class="progress-fill purple" style="width:0%;"></div></div>
+          </div>
+
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="desc-col">Descrição</th>
+                  <th class="status-col">Status</th>
+                  <th class="val-col">Valor</th>
+                  <th class="action-col">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="scarletGastosTableBody"></tbody>
+            </table>
+          </div>
+
+          <button class="btn-matrix purple" style="width:100%;justify-content:center;margin-top:12px;" onclick="MatrixApp.openNewItemModal('fixo', 'scarlet')">+ Novo Gasto Scarlet (Psicóloga, Investimentos...)</button>
+
+          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed rgba(192,132,252,0.3);font-size:11px;color:var(--text-dim);font-family:var(--font-mono);line-height:1.5;">
+            💡 <strong>Espaço Exclusivo da Scarlet:</strong> Despesas pessoais recorrentes ou avulsas (como psicóloga e investimentos) que saem diretamente dos ganhos dela (FisioFlow/Extras), sem impactar as contas correntes do Matheus.
           </div>
         </div>
       </div>
@@ -1704,6 +1752,15 @@
       <input type="hidden" id="modalItemTipo" value="fixo">
       <input type="hidden" id="modalItemEditId" value="">
 
+      <!-- Titular / Responsável pelo Lançamento -->
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Titular / Responsável:</label>
+        <select id="modalItemTitular" class="matrix-select" onchange="MatrixApp.onModalTitularChange(this.value)">
+          <option value="matheus" selected>👨‍💼 Matheus (Conta USP / Compartilhado Casa)</option>
+          <option value="scarlet">👩‍⚕️ Scarlet (FisioFlow / Pessoal Scarlet)</option>
+        </select>
+      </div>
+
       <div style="margin-bottom:12px;">
         <label id="modalItemNomeLabel" style="font-size:11px;color:var(--text-muted);">Descrição do Lançamento:</label>
         <input type="text" id="modalItemNome" class="matrix-input" placeholder="Ex: Salário, Parcela da Casa, Unimed...">
@@ -1726,6 +1783,8 @@
           <option value="Supermercado">Supermercado</option>
           <option value="Transporte">Transporte</option>
           <option value="Saúde">Saúde</option>
+          <option value="Psicóloga & Terapias">Psicóloga & Terapias</option>
+          <option value="Investimentos Scarlet">Investimentos Scarlet</option>
           <option value="Farmácia & Saúde">Farmácia & Saúde</option>
           <option value="Contas">Contas</option>
           <option value="Lazer">Lazer</option>
@@ -2315,6 +2374,22 @@
         </div>
       </div>
 
+      <!-- BLOCO 2.1: GASTOS PRÓPRIOS RECORRENTES DA SCARLET -->
+      <div style="background:rgba(130,10,209,0.05);border:1px dashed rgba(192,132,252,0.35);padding:10px 12px;border-radius:var(--radius-xs);margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:11px;color:var(--purple);font-weight:bold;margin:0;">
+            🧠 Gastos Próprios Scarlet (Psicóloga, Investimentos...):
+          </label>
+          <button type="button" class="btn-matrix purple" style="font-size:9.5px;padding:2px 7px;" onclick="MatrixApp.closeModal('saldosEditModalBackdrop'); MatrixApp.openNewItemModal('fixo', 'scarlet')">+ Novo Gasto</button>
+        </div>
+        <div id="saldosModalScarletGastosList" style="font-size:11px;margin-bottom:6px;max-height:120px;overflow-y:auto;">
+          <!-- Lista dinâmica -->
+        </div>
+        <div style="font-size:9.5px;color:var(--text-dim);font-family:var(--font-mono);">
+          💡 Despesas que saem da renda dela. Deduzem diretamente da Sobra Líquida da Scarlet sem onerar Matheus.
+        </div>
+      </div>
+
       <!-- BLOCO 3: BENEFÍCIOS ALIMENTAÇÃO (VA & VR) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
@@ -2737,16 +2812,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=89"></script>
-  <script src="js/matrix-rain.js?v=89"></script>
-  <script src="js/db.js?v=89"></script>
-  <script src="js/calendar-engine.js?v=89"></script>
-  <script src="js/amortization-engine.js?v=89"></script>
-  <script src="js/scenario-simulator.js?v=89"></script>
-  <script src="js/pdf-reader.js?v=89"></script>
-  <script src="js/satellite-connectors.js?v=89"></script>
-  <script src="js/sync-engine.js?v=89"></script>
-  <script src="js/app.js?v=89"></script>
+  <script src="js/seed-data.js?v=90"></script>
+  <script src="js/matrix-rain.js?v=90"></script>
+  <script src="js/db.js?v=90"></script>
+  <script src="js/calendar-engine.js?v=90"></script>
+  <script src="js/amortization-engine.js?v=90"></script>
+  <script src="js/scenario-simulator.js?v=90"></script>
+  <script src="js/pdf-reader.js?v=90"></script>
+  <script src="js/satellite-connectors.js?v=90"></script>
+  <script src="js/sync-engine.js?v=90"></script>
+  <script src="js/app.js?v=90"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2758,7 +2833,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=89', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=90', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>
