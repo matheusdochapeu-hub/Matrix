@@ -1818,11 +1818,12 @@ const MatrixApp = (function () {
     const eqOutrosGanhosEl = document.getElementById('topEqOutrosGanhos');
     if (eqOutrosGanhosEl) eqOutrosGanhosEl.textContent = formatBRL(outrosGanhosPago + val13Pago);
 
+    // No banner de Ganhos Matheus, exibe os valores iniciais de VA e VR creditados no mês (sem os descontos/gastos correntes)
     const eqVaEl = document.getElementById('topEqVaVal');
-    if (eqVaEl) eqVaEl.textContent = formatBRL(vaAtual);
+    if (eqVaEl) eqVaEl.textContent = formatBRL(va);
 
     const eqVrEl = document.getElementById('topEqVrVal');
-    if (eqVrEl) eqVrEl.textContent = formatBRL(vrAtual);
+    if (eqVrEl) eqVrEl.textContent = formatBRL(vr);
 
     const eqTotalGanhosEl = document.getElementById('topEqTotalGanhos');
     if (eqTotalGanhosEl) eqTotalGanhosEl.textContent = formatBRL(rendaMatheusTotal);

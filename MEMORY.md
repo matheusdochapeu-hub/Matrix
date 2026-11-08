@@ -124,3 +124,15 @@ Correção estrutural na vinculação entre status de pagamento (`pago: true` vs
 3. **Caronas (Previsão do Mês x Gastos Diários):**
    - O lançamento de Caronas (`R$ 1.140,00 [PENDENTE]`) passa a atuar como provisão sem drenar o saldo diário em conta.
    - O usuário pode lançar cada viagem individualmente via botão `⚡ + Gasto Diário` (ex: R$ 60 no dia com conta "Conta BB (USP)"), debitando o caixa daquele dia conforme as viagens acontecem.
+
+---
+
+## [2026-11-07 22:20] - Fixação dos Valores Iniciais de VA e VR no Banner do Card 1 (Ganhos Matheus) (v86)
+
+### Alteração:
+- **Card 1 (Ganhos Matheus):**
+  - No banner de equação (`#topEqVaVal` e `#topEqVrVal`), os valores de VA e VR voltaram a exibir o **crédito inicial do mês sem descontos**:
+    - **VA:** `R$ 2.059,84` (depósito R$ 2.050,00 + sobra R$ 9,84)
+    - **VR:** `R$ 1.105,16` (17 dias úteis R$ 1.105,00 + sobra R$ 0,16)
+  - Isso mantém a harmonia da visão de **Ganhos e Poder de Compra Total** (`R$ 13.853,19`), alinhada com o detalhamento inferior do card.
+  - O **saldo atual restante pós-descontos** (`VA R$ 1.988,78` e `VR R$ 805,41`) permanece exibido exclusivamente onde deve estar: no chip superior `🏠 CASA MARACAJU VA & VR` e no modal de auditoria da Casa Maracaju 88.
