@@ -4,6 +4,20 @@ Este documento armazena o histórico de auditorias (`/autofix` / `/revisar`), re
 
 ---
 
+## [2026-11-08 02:00] - Revisão Anual de Dezembro com Divisor Real por Meses Lançados e Consolidado do Casal Matheus & Scarlet (v88)
+
+### Resumo Geral
+Atendendo à solicitação do usuário, a análise e retrospectiva anual de Dezembro (`renderRevisaoAnualDezembro` e `exportarRelatorioDezembro`) foi totalmente aprimorada:
+1. **Divisor Real por Competências Lançadas:** A média mensal agora divide estritamente pela quantidade de meses lançados no ano em questão (`divisorMeses = Math.max(1, mesesComLancamento.length)`), em vez de dividir cegamente por 12. Para 2026, com lançamentos em Outubro, Novembro e Dezembro, o divisor é exatamente **3 meses** (eliminando a distorção onde a Parcela da Casa de R$ 4.160,78 aparecia com média errônea de R$ 346,73/mês, passando agora para os corretos R$ 1.386,93/mês).
+2. **Consolidado do Ano do Casal (Matheus & Scarlet):** Criada seção executiva completa com:
+   - 4 Cards Principais: Ganhos Totais Matheus (% da renda e média real), Ganhos Totais Scarlet (% da renda e média real), Total Despesas do Casal e Sobra Líquida Acumulada (% de poupança e média real).
+   - Tabela Mês a Mês Detalhada: Colunas para Mês, Ganhos Matheus (Salário USP + 13º + Rendas Extras), Ganhos Scarlet (FisioFlow regra M+1 + Outras Rendas), Renda Total Conjunta do Casal, Despesas do Casal (Fixos + Variáveis + Diários + Fatura), Sobra Líquida e % Poupança, acompanhado de rodapé com Total Acumulado e Média Mensal Real.
+   - Ranking Top 10 Maiores Despesas do Ano atualizado com a coluna `Média Mensal (${divisorMeses}m)` e subtítulo com os meses considerados.
+   - Exportação em PDF / Impressão (`exportarRelatorioDezembro`) atualizada com a nova tabela consolidada e as médias reais.
+3. **Comportamento Permanente em Todo Dezembro:** O gatilho dispara de forma dinâmica e automatizada em todo mês de Dezembro para qualquer ano selecionado, detectando automaticamente a quantidade de meses ativos.
+
+---
+
 ## [2026-11-07 14:52] - Sincronização do Saldo Atual de VA & VR (Casa Maracaju 88), Regra Estrita M+1 do FisioFlow & Auditoria `/autofix` (v75)
 
 ### Resumo Geral

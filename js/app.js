@@ -4538,7 +4538,7 @@ function onModalCategoriaChange(catVal) {
   }
 
   // ==========================================
-  // 2.2 REVISÃO ANUAL DE DEZEMBRO & RANKING TOP 10
+  // 2.2 REVISÃO ANUAL DE DEZEMBRO & CONSOLIDADO DO CASAL (MATHEUS & SCARLET)
   // ==========================================
   function renderRevisaoAnualDezembro(ano) {
     const container = document.getElementById('revisaoAnualDezembroConteudo');
@@ -4549,21 +4549,69 @@ function onModalCategoriaChange(catVal) {
     const state = MatrixDB.getState();
     const yearData = (state.anos && state.anos[ano]) || {};
 
-    const expenseAggregation = {};
-    let totalAnoReceitas = 0;
-    let totalAnoGastos = 0;
-
+    // 1. Identificar estritamente os meses lançados no ano vigente (não dividir por 12 se houver menos meses lançados)
+    const mesesComLancamento = [];
     MONTH_NAMES.forEach(mes => {
       const m = yearData[mes];
       if (!m) return;
+      const recs = m.receitas || [];
+      const fix = m.fixos || [];
+      const out = m.outros || [];
+      const dia = m.diarios || [];
+      const temRec = recs.some(r => (parseFloat(r.valor) || 0) > 0);
+      const temFix = fix.some(f => (parseFloat(f.valor) || 0) > 0);
+      const temOut = out.some(o => (parseFloat(o.valor) || 0) > 0);
+      const temDia = dia.some(d => (parseFloat(d.valor) || 0) > 0);
+      const temFat = m.fatura && (parseFloat(m.fatura.valor) || 0) > 0;
+      const salMatheus = getSalarioLiquidoMes(ano, mes);
+      const salScarlet = getGanhosScarletMes(ano, mes);
+      if (temRec || temFix || temOut || temDia || temFat || salMatheus > 0 || salScarlet > 0) {
+        mesesComLancamento.push(mes);
+      }
+    });
 
+    const divisorMeses = Math.max(1, mesesComLancamento.length);
+    const labelPeriodo = (mesesComLancamento.length === 12)
+      ? 'Acumulado de Janeiro a Dezembro (12 meses)'
+      : (mesesComLancamento.length > 0
+          ? `Acumulado de ${mesesComLancamento[0]} a ${mesesComLancamento[mesesComLancamento.length - 1]} (${divisorMeses} ${divisorMeses === 1 ? 'mês considerado' : 'meses considerados'})`
+          : `Ano ${ano}`);
+
+    const expenseAggregation = {};
+    let totalAnoMatheus = 0;
+    let totalAnoScarlet = 0;
+    let totalAnoGastosCasal = 0;
+
+    // 2. Consolidado mês a mês do casal (Ganhos Matheus, Ganhos Scarlet, Renda do Casal, Despesas e Sobra)
+    const linhasConsolidado = mesesComLancamento.map(mes => {
+      const m = yearData[mes] || {};
+
+      // Ganhos Matheus: Salário Líquido USP + 13º + Rendas Extras do Matheus (exclui VA/VR e receitas da Scarlet)
+      const salMatheus = getSalarioLiquidoMes(ano, mes);
+      let decimoTerceiro = 0;
+      let extrasMatheus = 0;
       (m.receitas || []).forEach(r => {
-        totalAnoReceitas += (parseFloat(r.valor) || 0);
+        if (isReceita13Salario(r)) {
+          decimoTerceiro += (parseFloat(r.valor) || 0);
+        } else if (isReceitaExtraMatheus(r)) {
+          extrasMatheus += (parseFloat(r.valor) || 0);
+        }
       });
+      const ganhoMatheusMes = salMatheus + decimoTerceiro + extrasMatheus;
 
+      // Ganhos Scarlet: FisioFlow (regra M+1) + Outras Rendas da Scarlet
+      const fisioScarlet = getGanhosScarletMes(ano, mes);
+      const outrasScarlet = getOutrasRendasScarletMes(ano, mes);
+      const ganhoScarletMes = fisioScarlet + outrasScarlet;
+
+      // Renda Total Conjunta do Casal em Conta Corrente
+      const rendaCasalMes = ganhoMatheusMes + ganhoScarletMes;
+
+      // Despesas do Casal: Fixos + Variáveis + Diários + Fatura
+      let fixosMes = 0;
       (m.fixos || []).forEach(f => {
         const val = parseFloat(f.valor) || 0;
-        totalAnoGastos += val;
+        fixosMes += val;
         const key = f.nome.trim();
         if (!expenseAggregation[key]) {
           expenseAggregation[key] = {
@@ -4578,9 +4626,10 @@ function onModalCategoriaChange(catVal) {
         expenseAggregation[key].ocorrencias++;
       });
 
+      let outrosMes = 0;
       (m.outros || []).forEach(o => {
         const val = parseFloat(o.valor) || 0;
-        totalAnoGastos += val;
+        outrosMes += val;
         const key = o.nome.trim();
         if (!expenseAggregation[key]) {
           expenseAggregation[key] = {
@@ -4595,9 +4644,13 @@ function onModalCategoriaChange(catVal) {
         expenseAggregation[key].ocorrencias++;
       });
 
+      let diariosMes = 0;
       (m.diarios || []).forEach(d => {
         const val = parseFloat(d.valor) || 0;
-        totalAnoGastos += val;
+        const cta = (d.conta || '').toLowerCase();
+        if (cta !== 'cartao_va' && cta !== 'va' && cta !== 'cartao_vr' && cta !== 'vr') {
+          diariosMes += val;
+        }
         const key = d.nome.trim();
         if (!expenseAggregation[key]) {
           expenseAggregation[key] = {
@@ -4611,43 +4664,193 @@ function onModalCategoriaChange(catVal) {
         expenseAggregation[key].total += val;
         expenseAggregation[key].ocorrencias++;
       });
+
+      const faturaMes = getFaturaNubankMes(ano, mes);
+      const gastosMes = fixosMes + outrosMes + diariosMes + faturaMes;
+      const sobraMes = rendaCasalMes - gastosMes;
+      const poupancaPct = rendaCasalMes > 0 ? ((sobraMes / rendaCasalMes) * 100).toFixed(1) : '0';
+
+      totalAnoMatheus += ganhoMatheusMes;
+      totalAnoScarlet += ganhoScarletMes;
+      totalAnoGastosCasal += gastosMes;
+
+      return {
+        mes,
+        ganhoMatheusMes,
+        salMatheus,
+        decimoTerceiro,
+        extrasMatheus,
+        ganhoScarletMes,
+        fisioScarlet,
+        outrasScarlet,
+        rendaCasalMes,
+        gastosMes,
+        fixosMes,
+        outrosMes,
+        diariosMes,
+        faturaMes,
+        sobraMes,
+        poupancaPct
+      };
     });
 
-    const saldoAnualLivre = totalAnoReceitas - totalAnoGastos;
-    const taxaPoupanca = totalAnoReceitas > 0 ? ((saldoAnualLivre / totalAnoReceitas) * 100).toFixed(1) : '0';
+    const totalAnoRendaCasal = totalAnoMatheus + totalAnoScarlet;
+    const saldoAnualLivre = totalAnoRendaCasal - totalAnoGastosCasal;
+    const taxaPoupancaAnual = totalAnoRendaCasal > 0 ? ((saldoAnualLivre / totalAnoRendaCasal) * 100).toFixed(1) : '0';
+
+    const pctMatheus = totalAnoRendaCasal > 0 ? ((totalAnoMatheus / totalAnoRendaCasal) * 100).toFixed(1) : '0';
+    const pctScarlet = totalAnoRendaCasal > 0 ? ((totalAnoScarlet / totalAnoRendaCasal) * 100).toFixed(1) : '0';
+
+    const mediaMatheus = totalAnoMatheus / divisorMeses;
+    const mediaScarlet = totalAnoScarlet / divisorMeses;
+    const mediaRendaCasal = totalAnoRendaCasal / divisorMeses;
+    const mediaGastosCasal = totalAnoGastosCasal / divisorMeses;
+    const mediaSobraLivre = saldoAnualLivre / divisorMeses;
 
     const rankedExpenses = Object.values(expenseAggregation)
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
 
     container.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:10px;margin-bottom:16px;">
+      <!-- Alerta Informativo de Base de Cálculo Real (Meses Lançados) -->
+      <div style="background:rgba(0,255,65,0.06);border:1px solid rgba(0,255,65,0.25);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:11.5px;color:var(--text-main);line-height:1.5;">
+          ℹ️ <strong>Cálculo Real por Competências Lançadas:</strong> No ano de ${ano}, foram considerados apenas os <strong>${divisorMeses} ${divisorMeses === 1 ? 'mês lançado' : 'meses lançados'}</strong> (${mesesComLancamento.join(', ')}). A média mensal não é diluída artificialmente por 12 meses.
+        </span>
+        <span style="font-size:11px;font-weight:700;color:var(--matrix-green);background:rgba(0,0,0,0.5);padding:3px 10px;border-radius:6px;border:1px solid rgba(0,255,65,0.3);font-family:var(--font-mono);">
+          Base de Divisão: ÷ ${divisorMeses} ${divisorMeses === 1 ? 'mês' : 'meses'}
+        </span>
+      </div>
+
+      <!-- 4 Cards Executivos do Casal -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:10px;margin-bottom:16px;">
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-          <div style="font-size:11px;color:var(--text-muted);">Total Rendas do Casal (${ano})</div>
-          <div style="font-size:16px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(totalAnoReceitas)}</div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Salário USP + Scarlet + Benefícios</div>
+          <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;">
+            <span>👨‍💼 Ganhos Totais Matheus</span>
+            <span style="color:var(--cyan);font-weight:700;">${pctMatheus}%</span>
+          </div>
+          <div style="font-size:18px;font-weight:bold;color:var(--cyan);margin-top:2px;font-family:var(--font-mono);">${formatBRL(totalAnoMatheus)}</div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px;">
+            Média real: <strong style="color:var(--cyan);">${formatBRL(mediaMatheus)}/mês</strong> (${divisorMeses}m)
+          </div>
+          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">Salário USP + 13º + Rendas Extras</div>
         </div>
+
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-          <div style="font-size:11px;color:var(--text-muted);">Total Despesas do Ano (${ano})</div>
-          <div style="font-size:16px;font-weight:bold;color:var(--rose);margin-top:2px;">${formatBRL(totalAnoGastos)}</div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Fixos, variáveis, diários e fatura</div>
+          <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;">
+            <span>👩‍⚕️ Ganhos Totais Scarlet</span>
+            <span style="color:#e879f9;font-weight:700;">${pctScarlet}%</span>
+          </div>
+          <div style="font-size:18px;font-weight:bold;color:#e879f9;margin-top:2px;font-family:var(--font-mono);">${formatBRL(totalAnoScarlet)}</div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px;">
+            Média real: <strong style="color:#e879f9;">${formatBRL(mediaScarlet)}/mês</strong> (${divisorMeses}m)
+          </div>
+          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">FisioFlow (M+1) + Outras Rendas</div>
         </div>
+
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-          <div style="font-size:11px;color:var(--text-muted);">Saldo Anual Livre Acumulado</div>
-          <div style="font-size:16px;font-weight:bold;color:${saldoAnualLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};margin-top:2px;">${formatBRL(saldoAnualLivre)}</div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Taxa média de poupança: ${taxaPoupanca}%</div>
+          <div style="font-size:11px;color:var(--text-muted);">💸 Total Despesas do Casal (${ano})</div>
+          <div style="font-size:18px;font-weight:bold;color:var(--rose);margin-top:2px;font-family:var(--font-mono);">${formatBRL(totalAnoGastosCasal)}</div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px;">
+            Média real: <strong style="color:var(--rose);">${formatBRL(mediaGastosCasal)}/mês</strong> (${divisorMeses}m)
+          </div>
+          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">Fixos, variáveis, diários e fatura</div>
         </div>
+
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
-          <div style="font-size:11px;color:var(--text-muted);">Economia Potencial Mapeada</div>
-          <div style="font-size:16px;font-weight:bold;color:var(--amber);margin-top:2px;">~R$ 2.400,00/ano</div>
-          <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Otimização de assinaturas e cartões</div>
+          <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;">
+            <span>💰 Sobra Líquida Acumulada</span>
+            <span style="color:var(--amber);font-weight:700;">${taxaPoupancaAnual}% poupança</span>
+          </div>
+          <div style="font-size:18px;font-weight:bold;color:${saldoAnualLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};margin-top:2px;font-family:var(--font-mono);">${formatBRL(saldoAnualLivre)}</div>
+          <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px;">
+            Média real: <strong style="color:${mediaSobraLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(mediaSobraLivre)}/mês</strong>
+          </div>
+          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">Resultado líquido do casal no período</div>
         </div>
       </div>
 
+      <!-- Consolidado Anual Matheus & Scarlet (Mês a Mês) -->
       <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
-          <strong style="color:var(--matrix-green);font-size:13px;">🏆 Ranking Top 10 Maiores Despesas do Ano (${ano})</strong>
-          <span style="font-size:11px;color:var(--text-muted);">Acumulado de Janeiro a Dezembro</span>
+          <div>
+            <strong style="color:var(--matrix-green);font-size:13.5px;display:flex;align-items:center;gap:6px;">
+              <span>📊 Consolidado do Ano do Casal (Matheus & Scarlet) — ${ano}</span>
+            </strong>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+              Histórico mês a mês detalhado por fontes de receita, desembolsos do casal e taxa de poupança efetiva.
+            </div>
+          </div>
+          <span style="font-size:11px;background:rgba(0,255,65,0.08);color:var(--matrix-green);padding:2px 8px;border-radius:10px;font-weight:bold;border:1px solid rgba(0,255,65,0.25);">
+            ${labelPeriodo}
+          </span>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:110px;">Mês</th>
+                <th style="text-align:right;">👨‍💼 Ganhos Matheus</th>
+                <th style="text-align:right;">👩‍⚕️ Ganhos Scarlet</th>
+                <th style="text-align:right;background:rgba(255,255,255,0.02);">👥 Renda Casal</th>
+                <th style="text-align:right;">💸 Despesas Casal</th>
+                <th style="text-align:right;">💰 Sobra do Mês</th>
+                <th style="text-align:right;">📈 Poupança</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${linhasConsolidado.map(l => `
+                <tr>
+                  <td><strong>📅 ${l.mes}</strong></td>
+                  <td class="val-col" style="color:var(--cyan);font-weight:600;">
+                    ${formatBRL(l.ganhoMatheusMes)}
+                    ${l.decimoTerceiro > 0 ? `<span style="font-size:9px;color:var(--text-dim);display:block;">(incl. 13º ${formatBRL(l.decimoTerceiro)})</span>` : ''}
+                    ${l.extrasMatheus > 0 ? `<span style="font-size:9px;color:var(--text-dim);display:block;">(extra ${formatBRL(l.extrasMatheus)})</span>` : ''}
+                  </td>
+                  <td class="val-col" style="color:#e879f9;font-weight:600;">
+                    ${formatBRL(l.ganhoScarletMes)}
+                    <span style="font-size:9px;color:var(--text-dim);display:block;">FisioFlow: ${formatBRL(l.fisioScarlet)}</span>
+                  </td>
+                  <td class="val-col" style="color:var(--matrix-green);font-weight:700;background:rgba(255,255,255,0.02);">${formatBRL(l.rendaCasalMes)}</td>
+                  <td class="val-col" style="color:var(--rose);font-weight:600;">${formatBRL(l.gastosMes)}</td>
+                  <td class="val-col" style="color:${l.sobraMes >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};font-weight:700;">${formatBRL(l.sobraMes)}</td>
+                  <td class="val-col" style="color:var(--amber);font-weight:600;">${l.poupancaPct}%</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight:bold;background:rgba(255,255,255,0.05);border-top:2px solid var(--border-dim);">
+                <td>TOTAL ACUMULADO (${divisorMeses}m)</td>
+                <td class="val-col" style="color:var(--cyan);font-weight:800;">${formatBRL(totalAnoMatheus)}</td>
+                <td class="val-col" style="color:#e879f9;font-weight:800;">${formatBRL(totalAnoScarlet)}</td>
+                <td class="val-col" style="color:var(--matrix-green);font-weight:800;">${formatBRL(totalAnoRendaCasal)}</td>
+                <td class="val-col" style="color:var(--rose);font-weight:800;">${formatBRL(totalAnoGastosCasal)}</td>
+                <td class="val-col" style="color:${saldoAnualLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};font-weight:800;">${formatBRL(saldoAnualLivre)}</td>
+                <td class="val-col" style="color:var(--amber);font-weight:800;">${taxaPoupancaAnual}%</td>
+              </tr>
+              <tr style="font-weight:bold;background:rgba(0,255,65,0.04);border-top:1px dashed rgba(0,255,65,0.3);">
+                <td style="color:var(--matrix-green);">MÉDIA MENSAL REAL (${divisorMeses}m)</td>
+                <td class="val-col" style="color:var(--cyan);">${formatBRL(mediaMatheus)}/mês</td>
+                <td class="val-col" style="color:#e879f9;">${formatBRL(mediaScarlet)}/mês</td>
+                <td class="val-col" style="color:var(--matrix-green);">${formatBRL(mediaRendaCasal)}/mês</td>
+                <td class="val-col" style="color:var(--rose);">${formatBRL(mediaGastosCasal)}/mês</td>
+                <td class="val-col" style="color:${mediaSobraLivre >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${formatBRL(mediaSobraLivre)}/mês</td>
+                <td class="val-col" style="color:var(--amber);">${taxaPoupancaAnual}%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ranking Top 10 Maiores Despesas do Ano -->
+      <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+          <div>
+            <strong style="color:var(--matrix-green);font-size:13px;">🏆 Ranking Top 10 Maiores Despesas do Ano (${ano})</strong>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Média mensal calculada com base em ${divisorMeses} ${divisorMeses === 1 ? 'mês considerado' : 'meses considerados'}.</div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);">${labelPeriodo}</span>
         </div>
         <div style="overflow-x:auto;">
           <table class="data-table">
@@ -4656,15 +4859,15 @@ function onModalCategoriaChange(catVal) {
                 <th style="width:40px;">Rank</th>
                 <th>Despesa</th>
                 <th>Origem / Banco</th>
-                <th>Média Mensal</th>
+                <th>Média Mensal (${divisorMeses}m)</th>
                 <th style="text-align:right;">Total no Ano</th>
                 <th style="text-align:right;">% do Total</th>
               </tr>
             </thead>
             <tbody>
               ${rankedExpenses.map((exp, idx) => {
-                const pct = totalAnoGastos > 0 ? ((exp.total / totalAnoGastos) * 100).toFixed(1) : 0;
-                const media = exp.total / 12;
+                const pct = totalAnoGastosCasal > 0 ? ((exp.total / totalAnoGastosCasal) * 100).toFixed(1) : 0;
+                const media = exp.total / divisorMeses;
                 const medal = idx === 0 ? '🥇 1º' : (idx === 1 ? '🥈 2º' : (idx === 2 ? '🥉 3º' : `${idx + 1}º`));
                 return `
                   <tr>
@@ -4685,6 +4888,7 @@ function onModalCategoriaChange(catVal) {
         </div>
       </div>
 
+      <!-- Auditoria de Assinaturas e Dicas -->
       <div style="background:linear-gradient(180deg, rgba(234,179,8,0.06), rgba(5,8,7,0.7));border:1px solid var(--amber);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <strong style="color:var(--amber);font-size:13.5px;display:flex;align-items:center;gap:6px;">
@@ -4744,35 +4948,107 @@ function onModalCategoriaChange(catVal) {
     const state = MatrixDB.getState();
     const yearData = (state.anos && state.anos[ano]) || {};
 
-    let totalAnoReceitas = 0;
-    let totalAnoGastos = 0;
-    const expenseAggregation = {};
-
+    // 1. Identificar estritamente os meses lançados no ano vigente
+    const mesesComLancamento = [];
     MONTH_NAMES.forEach(mes => {
       const m = yearData[mes];
       if (!m) return;
-      (m.receitas || []).forEach(r => totalAnoReceitas += (parseFloat(r.valor) || 0));
+      const recs = m.receitas || [];
+      const fix = m.fixos || [];
+      const out = m.outros || [];
+      const dia = m.diarios || [];
+      const temRec = recs.some(r => (parseFloat(r.valor) || 0) > 0);
+      const temFix = fix.some(f => (parseFloat(f.valor) || 0) > 0);
+      const temOut = out.some(o => (parseFloat(o.valor) || 0) > 0);
+      const temDia = dia.some(d => (parseFloat(d.valor) || 0) > 0);
+      const temFat = m.fatura && (parseFloat(m.fatura.valor) || 0) > 0;
+      const salMatheus = getSalarioLiquidoMes(ano, mes);
+      const salScarlet = getGanhosScarletMes(ano, mes);
+      if (temRec || temFix || temOut || temDia || temFat || salMatheus > 0 || salScarlet > 0) {
+        mesesComLancamento.push(mes);
+      }
+    });
+
+    const divisorMeses = Math.max(1, mesesComLancamento.length);
+    const labelPeriodo = (mesesComLancamento.length === 12)
+      ? `Acumulado de Janeiro a Dezembro (12 meses)`
+      : (mesesComLancamento.length > 0
+          ? `Acumulado de ${mesesComLancamento[0]} a ${mesesComLancamento[mesesComLancamento.length - 1]} (${divisorMeses} ${divisorMeses === 1 ? 'mês considerado' : 'meses considerados'})`
+          : `Ano ${ano}`);
+
+    let totalAnoMatheus = 0;
+    let totalAnoScarlet = 0;
+    let totalAnoGastosCasal = 0;
+    const expenseAggregation = {};
+
+    const linhasConsolidado = mesesComLancamento.map(mes => {
+      const m = yearData[mes] || {};
+      const salMatheus = getSalarioLiquidoMes(ano, mes);
+      let decimoTerceiro = 0;
+      let extrasMatheus = 0;
+      (m.receitas || []).forEach(r => {
+        if (isReceita13Salario(r)) decimoTerceiro += (parseFloat(r.valor) || 0);
+        else if (isReceitaExtraMatheus(r)) extrasMatheus += (parseFloat(r.valor) || 0);
+      });
+      const ganhoMatheusMes = salMatheus + decimoTerceiro + extrasMatheus;
+
+      const fisioScarlet = getGanhosScarletMes(ano, mes);
+      const outrasScarlet = getOutrasRendasScarletMes(ano, mes);
+      const ganhoScarletMes = fisioScarlet + outrasScarlet;
+
+      const rendaCasalMes = ganhoMatheusMes + ganhoScarletMes;
+
+      let fixosMes = 0;
       (m.fixos || []).forEach(f => {
         const val = parseFloat(f.valor) || 0;
-        totalAnoGastos += val;
+        fixosMes += val;
         const k = f.nome.trim();
         expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
       });
+
+      let outrosMes = 0;
       (m.outros || []).forEach(o => {
         const val = parseFloat(o.valor) || 0;
-        totalAnoGastos += val;
+        outrosMes += val;
         const k = o.nome.trim();
         expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
       });
+
+      let diariosMes = 0;
       (m.diarios || []).forEach(d => {
         const val = parseFloat(d.valor) || 0;
-        totalAnoGastos += val;
+        const cta = (d.conta || '').toLowerCase();
+        if (cta !== 'cartao_va' && cta !== 'va' && cta !== 'cartao_vr' && cta !== 'vr') {
+          diariosMes += val;
+        }
         const k = d.nome.trim();
         expenseAggregation[k] = (expenseAggregation[k] || 0) + val;
       });
+
+      const faturaMes = getFaturaNubankMes(ano, mes);
+      const gastosMes = fixosMes + outrosMes + diariosMes + faturaMes;
+      const sobraMes = rendaCasalMes - gastosMes;
+      const poupancaPct = rendaCasalMes > 0 ? ((sobraMes / rendaCasalMes) * 100).toFixed(1) : '0';
+
+      totalAnoMatheus += ganhoMatheusMes;
+      totalAnoScarlet += ganhoScarletMes;
+      totalAnoGastosCasal += gastosMes;
+
+      return {
+        mes,
+        ganhoMatheusMes,
+        ganhoScarletMes,
+        rendaCasalMes,
+        gastosMes,
+        sobraMes,
+        poupancaPct
+      };
     });
 
-    const saldoAnualLivre = totalAnoReceitas - totalAnoGastos;
+    const totalAnoRendaCasal = totalAnoMatheus + totalAnoScarlet;
+    const saldoAnualLivre = totalAnoRendaCasal - totalAnoGastosCasal;
+    const taxaPoupancaAnual = totalAnoRendaCasal > 0 ? ((saldoAnualLivre / totalAnoRendaCasal) * 100).toFixed(1) : '0';
+
     const ranked = Object.entries(expenseAggregation)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
@@ -4787,15 +5063,17 @@ function onModalCategoriaChange(catVal) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Relatório Financeiro Executivo & Auditoria ${ano} - Matrix</title>
+        <title>Relatório Financeiro Executivo & Consolidado ${ano} - Matrix</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 35px; color: #111; line-height: 1.5; font-size: 13px; }
           .header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
           h1 { margin: 0; font-size: 20px; }
+          .alert-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 12px; color: #166534; }
           .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
           .kpi-box { border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: #fafafa; }
           .kpi-title { font-size: 10px; text-transform: uppercase; color: #666; font-weight: bold; }
           .kpi-val { font-size: 16px; font-weight: bold; margin-top: 4px; }
+          .kpi-sub { font-size: 10px; color: #777; margin-top: 2px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
           th, td { border-bottom: 1px solid #e5e5e5; padding: 8px 6px; text-align: left; }
           th { background: #f4f4f4; font-size: 11px; }
@@ -4812,33 +5090,89 @@ function onModalCategoriaChange(catVal) {
 
         <div class="header">
           <div>
-            <h1>📊 Relatório Financeiro Executivo & Retrospectiva ${ano}</h1>
+            <h1>📊 Relatório Financeiro Executivo & Consolidado ${ano}</h1>
             <div style="font-size:12px;color:#555;margin-top:4px;">Matheus & Scarlet • Gestão Integrada de Patrimônio</div>
           </div>
           <div style="text-align:right;font-size:11px;color:#666;">
-            Competência: 01/01/${ano} a 31/12/${ano}<br>
+            Competência: ${labelPeriodo}<br>
             Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
           </div>
         </div>
 
+        <div class="alert-box">
+          ℹ️ <strong>Base de Cálculo Real:</strong> Foram considerados estritamente os <strong>${divisorMeses} ${divisorMeses === 1 ? 'mês lançado' : 'meses lançados'}</strong> (${mesesComLancamento.join(', ')}). As médias mensais foram calculadas dividindo exatamente por <strong>${divisorMeses}</strong>, sem distorção artificial por 12 meses.
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-box">
-            <div class="kpi-title">Total Receitas</div>
-            <div class="kpi-val" style="color:#0284c7;">${formatBRL(totalAnoReceitas)}</div>
+            <div class="kpi-title">Ganhos Matheus</div>
+            <div class="kpi-val" style="color:#0284c7;">${formatBRL(totalAnoMatheus)}</div>
+            <div class="kpi-sub">Média real: ${formatBRL(totalAnoMatheus / divisorMeses)}/mês</div>
           </div>
           <div class="kpi-box">
-            <div class="kpi-title">Total Despesas</div>
-            <div class="kpi-val" style="color:#dc2626;">${formatBRL(totalAnoGastos)}</div>
+            <div class="kpi-title">Ganhos Scarlet</div>
+            <div class="kpi-val" style="color:#c026d3;">${formatBRL(totalAnoScarlet)}</div>
+            <div class="kpi-sub">Média real: ${formatBRL(totalAnoScarlet / divisorMeses)}/mês</div>
           </div>
           <div class="kpi-box">
-            <div class="kpi-title">Saldo Acumulado</div>
+            <div class="kpi-title">Total Despesas Casal</div>
+            <div class="kpi-val" style="color:#dc2626;">${formatBRL(totalAnoGastosCasal)}</div>
+            <div class="kpi-sub">Média real: ${formatBRL(totalAnoGastosCasal / divisorMeses)}/mês</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-title">Sobra Líquida Acumulada</div>
             <div class="kpi-val" style="color:#16a34a;">${formatBRL(saldoAnualLivre)}</div>
-          </div>
-          <div class="kpi-box">
-            <div class="kpi-title">Economia Mapeada</div>
-            <div class="kpi-val" style="color:#d97706;">~R$ 2.400,00/ano</div>
+            <div class="kpi-sub">Taxa poupança: ${taxaPoupancaAnual}%</div>
           </div>
         </div>
+
+        <h3>📊 Consolidado Mês a Mês do Casal (${ano})</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th style="text-align:right;">Ganhos Matheus</th>
+              <th style="text-align:right;">Ganhos Scarlet</th>
+              <th style="text-align:right;">Renda do Casal</th>
+              <th style="text-align:right;">Despesas Casal</th>
+              <th style="text-align:right;">Sobra Líquida</th>
+              <th style="text-align:right;">Poupança</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${linhasConsolidado.map(l => `
+              <tr>
+                <td><strong>${l.mes}</strong></td>
+                <td class="val">${formatBRL(l.ganhoMatheusMes)}</td>
+                <td class="val">${formatBRL(l.ganhoScarletMes)}</td>
+                <td class="val" style="font-weight:bold;">${formatBRL(l.rendaCasalMes)}</td>
+                <td class="val" style="color:#dc2626;">${formatBRL(l.gastosMes)}</td>
+                <td class="val" style="font-weight:bold;color:${l.sobraMes >= 0 ? '#16a34a' : '#dc2626'};">${formatBRL(l.sobraMes)}</td>
+                <td class="val">${l.poupancaPct}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:#f9f9f9;font-weight:bold;border-top:2px solid #ccc;">
+              <td>TOTAL ACUMULADO (${divisorMeses}m)</td>
+              <td class="val">${formatBRL(totalAnoMatheus)}</td>
+              <td class="val">${formatBRL(totalAnoScarlet)}</td>
+              <td class="val">${formatBRL(totalAnoRendaCasal)}</td>
+              <td class="val" style="color:#dc2626;">${formatBRL(totalAnoGastosCasal)}</td>
+              <td class="val" style="color:${saldoAnualLivre >= 0 ? '#16a34a' : '#dc2626'};">${formatBRL(saldoAnualLivre)}</td>
+              <td class="val">${taxaPoupancaAnual}%</td>
+            </tr>
+            <tr style="background:#f0fdf4;font-weight:bold;border-top:1px dashed #16a34a;">
+              <td style="color:#166534;">MÉDIA MENSAL REAL (${divisorMeses}m)</td>
+              <td class="val">${formatBRL(totalAnoMatheus / divisorMeses)}/mês</td>
+              <td class="val">${formatBRL(totalAnoScarlet / divisorMeses)}/mês</td>
+              <td class="val">${formatBRL(totalAnoRendaCasal / divisorMeses)}/mês</td>
+              <td class="val" style="color:#dc2626;">${formatBRL(totalAnoGastosCasal / divisorMeses)}/mês</td>
+              <td class="val" style="color:${saldoAnualLivre >= 0 ? '#16a34a' : '#dc2626'};">${formatBRL(saldoAnualLivre / divisorMeses)}/mês</td>
+              <td class="val">${taxaPoupancaAnual}%</td>
+            </tr>
+          </tfoot>
+        </table>
 
         <h3>🏆 Ranking Top 10 Maiores Despesas do Ano</h3>
         <table>
@@ -4846,7 +5180,7 @@ function onModalCategoriaChange(catVal) {
             <tr>
               <th style="width:40px;">Rank</th>
               <th>Despesa</th>
-              <th style="text-align:right;">Média Mensal</th>
+              <th style="text-align:right;">Média Mensal (${divisorMeses}m)</th>
               <th style="text-align:right;">Total no Ano</th>
               <th style="text-align:right;">% do Total</th>
             </tr>
@@ -4856,9 +5190,9 @@ function onModalCategoriaChange(catVal) {
               <tr>
                 <td>${i + 1}º</td>
                 <td><strong>${nome}</strong></td>
-                <td class="val">${formatBRL(val / 12)}</td>
+                <td class="val">${formatBRL(val / divisorMeses)}</td>
                 <td class="val" style="font-weight:bold;">${formatBRL(val)}</td>
-                <td class="val">${((val / (totalAnoGastos || 1)) * 100).toFixed(1)}%</td>
+                <td class="val">${((val / (totalAnoGastosCasal || 1)) * 100).toFixed(1)}%</td>
               </tr>
             `).join('')}
           </tbody>
