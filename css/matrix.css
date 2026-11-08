@@ -3323,8 +3323,8 @@ body {
 
   .data-table:not(.sim-data-table) th.action-col,
   .data-table:not(.sim-data-table) td.action-col {
-    width: 70px !important;
-    min-width: 70px !important;
+    width: 88px !important;
+    min-width: 88px !important;
     text-align: right !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
@@ -3404,21 +3404,28 @@ body {
 
   /* Botões de Ação (Editar e Excluir) */
   .data-table .action-col .btn-icon {
-    font-size: 15px !important;
-    padding: 6px 7px !important;
-    min-width: 30px !important;
-    min-height: 30px !important;
-    margin: 0 1px !important;
+    font-size: 16px !important;
+    padding: 6px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    margin: 0 2px !important;
     line-height: 1 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: var(--radius-xs) !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     color: var(--text-bright) !important;
     cursor: pointer !important;
     touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  .data-table .action-col .btn-icon.edit {
+    background: rgba(192, 132, 252, 0.14) !important;
+    border-color: rgba(192, 132, 252, 0.4) !important;
   }
   .data-table .action-col .btn-icon:active {
     background: rgba(0, 255, 102, 0.25) !important;
