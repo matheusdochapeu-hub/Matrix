@@ -63,3 +63,43 @@ Corrigida a exibição e sincronização do **Saldo Atual de VA e VR** no chip s
    - **Sincronização Bidirecional ao Editar Saldos / Receitas:** Ao alterar os valores de VA ou VR no modal de Saldos ou na tabela de Receitas, o saldo restante do satélite Maracaju é atualizado na hora e o badge reflete a alteração.
    - **Auto-scraping ao Alternar Abas (`focus`):** Ao gastar no Maracaju 88 e voltar para a aba do Matrix, o Matrix atualiza automaticamente via Google Sheets em segundo plano.
    - **Correção Visual de Espaçamento dos Símbolos:** Ajustado o espaçamento entre operadores `+`, `-`, `=` nos mini-cálculos para evitar sobreposição visual.
+
+---
+
+## [2026-11-07 21:50] - Vínculo Estrito de Status [PAGO] x [PENDENTE], Sincronização Real de VA/VR (Maracaju 88) e Espaçamento de Fórmulas (v84)
+
+### Resumo Geral
+Correção estrutural na vinculação entre status de pagamento (`pago: true` vs `pago: false`) e os cálculos de caixa executivos nos 4 cards de topo, consolidação do saldo real de benefícios alimentares da Casa Maracaju 88 após compras registradas (Padaria R$ 71,06 no VA; Burgoo R$ 197,45 e Padock Bar R$ 102,30 no VR), e refinamento tipográfico definitivo nas equações de 1 linha eliminando sobreposição do sinal `+`.
+
+### Alterações Implementadas
+1. **Transferência Matheus → Scarlet Vinculada a Status [PAGO]:**
+   - **Problema:** O Card 4 (Sobra Scarlet) somava automaticamente a transferência de `R$ 1.600,00` mesmo com a despesa marcada como `[PENDENTE]`, inflando os recursos disponíveis da Scarlet para `R$ 6.740,00` e a sobra para `+R$ 2.171,43` antes do repasse ter sido efetivamente pago.
+   - **Solução:** `calcSobraMatheus` agora calcula separadamente `transfTotal`, `transfPaga` (somente itens com `pago === true`) e `transfPendente`.
+   - Enquanto pendente, `scarletTransf = R$ 0,00`, recursos disponíveis = `R$ 5.140,00` e Sobra Scarlet = `+R$ 571,43`. O badge do Card 4 exibe `R$ 0,00 (⏳ R$ 1.600,00 pendente)`. Ao alternar para `[PAGO]`, os `R$ 1.600,00` são imediatamente incorporados aos recursos e a sobra salta para `+R$ 2.171,43`.
+
+2. **13º Salário USP e Estúdio / Renda Extra (Receitas Pendentes x Recebidas):**
+   - **Problema:** Na aba de Receitas, o `13º Salário USP` (`R$ 1.566,00 [PEND.]`) era classificado erroneamente como salário regular mas omitido pelo seletor de primeiro match, desaparecendo do Card 1. Por outro lado, `Estúdio / Renda Extra` (`R$ 600,00 [PEND.]`) somava-se ao dinheiro disponível em conta antes de ser recebido.
+   - **Solução:**
+     - Criada a função `isReceita13Salario(r)` dedicada para isolar o 13º salário.
+     - Inserida linha exclusiva no Card 1 (`#top13SalRow`) exibindo `R$ 0,00 (⏳ R$ 1.566,00 a receber)` enquanto pendente, e `+ R$ 1.566,00` quando pago.
+     - `outrosGanhosPago` soma estritamente receitas com `pago === true` (como `Empréstimo R$ 4.300,00 [PAGO]`). Itens a receber (como `Estúdio R$ 600,00 [PEND.]`) são exibidos como pendentes `(+⏳ R$ 600,00)`.
+     - O valor principal `1. SALÁRIO + RENDA EXTRA` reflete o dinheiro líquido real em conta no Banco do Brasil (`R$ 10.088,19`), acompanhado da legenda `• R$ 2.166,00 a receber`.
+
+3. **Saldos Reais de VA e VR da Casa Maracaju 88 (R$ 1.988,78 VA & R$ 805,41 VR):**
+   - **Problema:** O badge de topo e os dados iniciais do Matrix ainda exibiam o total inicial de `VA R$ 2.059,84` e `VR R$ 1.105,16` porque o restore do Matrix Google Sheets em segundo plano sobrescrevia o estado do satélite antes da conclusão do scraping da planilha da Casa Maracaju.
+   - **Solução:**
+     - `executarScrapingSatellites` foi encadeado para rodar após `fetchFromCloud` via `.finally()`, garantindo que os saldos mais recentes coletados da planilha do Maracaju 88 prevaleçam sempre sobre backups antigos.
+     - Inicialização calibrada com as compras reais registradas:
+       - **VA:** Crédito de `R$ 2.059,84` − `R$ 71,06` (Padaria e Mercearia Irmãos Araújo) = **`R$ 1.988,78`**.
+       - **VR:** Crédito de `R$ 1.105,16` − `R$ 299,75` (Burgoo `R$ 197,45` + Padock Bar `R$ 102,30`) = **`R$ 805,41`**.
+     - Atualizados os chips de topo (`#topSatVaVal`, `#topSatVrVal`), cache `js/db.js` e fallbacks de `js/app.js`.
+
+4. **Espaçamento e Alinhamento das Fórmulas dos 4 Cards (`css/matrix.css`):**
+   - **Problema:** Em telas menores e em resolução desktop compacta, os operadores `+`, `-` e `=` ficavam muito colados nos números, parecendo sobrepostos.
+   - **Solução:**
+     - Ajustado `.eq-op` para ter `padding: 0 4px`, `opacity: 0.9` e `margin-bottom: 2px`.
+     - Ajustado `.eq-val` com `font-size: 9px` (8.8px no mobile), `letter-spacing: -0.3px` e `tabular-nums`.
+     - Ajustado `.eq-part` com `flex: 1 1 auto; min-width: 0;` garantindo proporção e respiro visual em todos os 4 cards.
+
+5. **Versionamento e Service Worker:**
+   - Cache de PWA e parâmetros de assets atualizados para `v84` em `sw.js` e `index.html`.

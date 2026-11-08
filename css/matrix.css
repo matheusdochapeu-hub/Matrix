@@ -680,12 +680,12 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 2px 4px;
   min-height: 46px;
   background: rgba(0, 0, 0, 0.42);
   border: 1px solid rgba(234, 179, 8, 0.28);
   border-radius: var(--radius-xs);
-  padding: 6px 7px;
+  padding: 6px 8px;
   margin: 2px 0 8px 0;
   overflow: hidden;
 }
@@ -694,7 +694,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .eq-label {
@@ -710,8 +711,8 @@ body {
 }
 
 .eq-val {
-  font-size: 9.5px;
-  letter-spacing: -0.35px;
+  font-size: 9px;
+  letter-spacing: -0.3px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-main);
@@ -721,14 +722,15 @@ body {
 }
 
 .eq-op {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
   color: var(--amber);
-  padding: 0 2px;
+  padding: 0 4px;
   flex-shrink: 0;
   align-self: flex-end;
-  margin-bottom: 1px;
-  line-height: 1.2;
+  margin-bottom: 2px;
+  line-height: 1;
+  opacity: 0.9;
 }
 
 /* Caixas Duplas de Visões Padronizadas nos 4 Cards */
@@ -3471,8 +3473,8 @@ body {
   }
 
   .unified-equation-banner {
-    padding: 6px 7px !important;
-    gap: 4px !important;
+    padding: 6px 6px !important;
+    gap: 2px !important;
   }
 
   .eq-label {
@@ -3481,15 +3483,16 @@ body {
   }
 
   .eq-val {
-    font-size: 9.6px !important;
+    font-size: 8.8px !important;
     letter-spacing: -0.3px !important;
   }
 
   .eq-op {
-    font-size: 10.5px !important;
-    padding: 0 2px !important;
+    font-size: 9.5px !important;
+    padding: 0 3px !important;
     align-self: flex-end !important;
-    margin-bottom: 1px !important;
+    margin-bottom: 2px !important;
+    opacity: 0.9 !important;
   }
 
   /* 6. Botão Flutuante (FAB) no Celular */

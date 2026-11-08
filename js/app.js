@@ -212,21 +212,25 @@ const MatrixApp = (function () {
           vaMensal: 2050.00,
           vaRollover: 9.84,
           vaTotal: 2059.84,
-          gastoMercadoMesAtual: 0.00,
-          saldoVaRestante: 2059.84,
+          gastoMercadoMesAtual: 71.06,
+          saldoVaRestante: 1988.78,
           transbordouVa: 0,
           vrCreditadoNoMes: 1105.00,
           vrRollover: 0.16,
           vrTotal: 1105.16,
           vrDays: 17,
-          gastoVrMesAtual: 0.00,
-          saldoVrRestante: 1105.16,
+          gastoVrMesAtual: 299.75,
+          saldoVrRestante: 805.41,
           transbordouVr: 0,
           totalBeneficios: 3165.00,
-          totalDisponivel: 3165.00,
+          totalDisponivel: 2794.19,
           gastoMercadoCicloAnterior: 390.41,
           gastoVrCicloAnterior: 0.00,
-          comprasCicloAtual: [],
+          comprasCicloAtual: [
+            { id: 'nfe_1794097840696_r3nk', date: '2026-11-07', establishment: 'Padaria e Mercearia Irmãos Araújo', total: 71.06, paymentMethod: 'va', itemsCount: 4 },
+            { id: 'nfe_1794071702244_8wc4', date: '2026-11-07', establishment: 'Padock Bar', total: 102.3, paymentMethod: 'vr', itemsCount: 0 },
+            { id: 'nfe_1794011419923_j6m6', date: '2026-11-06', establishment: 'Burgoo', total: 197.45, paymentMethod: 'vr', itemsCount: 0 }
+          ],
           comprasCicloAnterior: [],
           reformasAndamento: 0,
           manutencoesCarro: 0
@@ -356,6 +360,13 @@ const MatrixApp = (function () {
     // As chamadas em nuvem rodam em segundo plano sem bloquear a interface
     setTimeout(() => {
       const cfg = SyncEngine.getConfig();
+      const runSatScrape = () => {
+        const satCfg = SatelliteConnectors.getSatelliteConfig();
+        if (satCfg.autoScrapeOnOpen) {
+          executarScrapingSatellites(true);
+        }
+      };
+
       if (cfg.cloudUrl) {
         SyncEngine.fetchFromCloud().then(res => {
           if (res.success && res.data) {
@@ -370,15 +381,12 @@ const MatrixApp = (function () {
               renderBackup();
             });
           }
+        }).catch(() => {}).finally(() => {
+          runSatScrape();
         });
       } else {
         SyncEngine.updateStatusUI('offline');
-      }
-
-      // Scraping dos satélites em segundo plano
-      const satCfg = SatelliteConnectors.getSatelliteConfig();
-      if (satCfg.autoScrapeOnOpen) {
-        executarScrapingSatellites(true);
+        runSatScrape();
       }
     }, 50);
 
@@ -761,17 +769,24 @@ const MatrixApp = (function () {
     return isReceitaDaScarlet(r) && !isReceitaFisioFlowBase(r);
   }
 
-  // Identifica se a receita é Salário/13º base do Matheus
-  function isReceitaSalarioMatheus(r) {
+  // Identifica se a receita é 13º Salário do Matheus
+  function isReceita13Salario(r) {
     if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r)) return false;
     const n = (r.nome || '').toLowerCase().trim();
+    return n.includes('13') || n.includes('décimo') || n.includes('decimo');
+  }
+
+  // Identifica se a receita é Salário base regular do Matheus
+  function isReceitaSalarioMatheus(r) {
+    if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r) || isReceita13Salario(r)) return false;
+    const n = (r.nome || '').toLowerCase().trim();
     const id = (r.id || '').toLowerCase().trim();
-    return id.startsWith('rec_sal') || n.includes('salário');
+    return id.startsWith('rec_sal') || n.includes('salário') || n.includes('salario');
   }
 
   // Identifica se a receita é Renda Extra / Outros Ganhos exclusivamente do Matheus (Estúdio, Empréstimo Matheus, etc.)
   function isReceitaExtraMatheus(r) {
-    if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r) || isReceitaSalarioMatheus(r)) return false;
+    if (!r || isBeneficioNaoPecunia(r) || isReceitaDaScarlet(r) || isReceitaSalarioMatheus(r) || isReceita13Salario(r)) return false;
     return true;
   }
 
@@ -782,15 +797,41 @@ const MatrixApp = (function () {
     const num = (v) => parseFloat(v) || 0;
     const receitas = monthData.receitas || [];
 
-    // Ganhos: salário líquido do Matheus + rendas extras exclusivamente dele (exclui VA/VR e exclui 100% das rendas da Scarlet).
-    const salMatheus = getSalarioLiquidoMes(ano, mes);
-    let outrosGanhosMatheus = 0;
-    receitas.forEach(r => {
-      if (isReceitaExtraMatheus(r)) {
-        outrosGanhosMatheus += num(r.valor);
-      }
+    // Ganhos pagos (realizados) do Matheus: Salário + 13º + Rendas Extras (exclui VA/VR e exclui 100% das rendas da Scarlet)
+    const recSalList = receitas.filter(r => isReceitaSalarioMatheus(r));
+    let salMatheusPago = 0;
+    let salMatheusTotal = 0;
+    if (recSalList.length > 0) {
+      recSalList.forEach(r => {
+        const v = num(r.valor);
+        salMatheusTotal += v;
+        if (r.pago === true) salMatheusPago += v;
+      });
+    } else {
+      const v = getSalarioLiquidoMes(ano, mes);
+      salMatheusTotal = v;
+      salMatheusPago = v;
+    }
+
+    let val13Pago = 0;
+    let val13Total = 0;
+    receitas.filter(r => isReceita13Salario(r)).forEach(r => {
+      const v = num(r.valor);
+      val13Total += v;
+      if (r.pago === true) val13Pago += v;
     });
-    const ganhos = salMatheus + outrosGanhosMatheus;
+
+    let outrosGanhosPago = 0;
+    let outrosGanhosTotal = 0;
+    receitas.filter(r => isReceitaExtraMatheus(r)).forEach(r => {
+      const v = num(r.valor);
+      outrosGanhosTotal += v;
+      if (r.pago === true) outrosGanhosPago += v;
+    });
+
+    // Apenas rendas já recebidas (pago: true) entram nos ganhos em conta!
+    const ganhos = salMatheusPago + val13Pago + outrosGanhosPago;
+    const ganhosPrevistos = salMatheusTotal + val13Total + outrosGanhosTotal;
 
     const somaPropria = (lista) => (lista || [])
       .filter(it => !isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && !isConsignadoFolhaJaDescontado(it, ano, mes))
@@ -810,13 +851,34 @@ const MatrixApp = (function () {
       .reduce((acc, d) => acc + num(d.valor), 0);
     const contasInicio = (mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano'])
       ? num(monthData.totais['Contas Inicio Ano']) : 0;
-    const transf = [...(monthData.fixos || []), ...(monthData.outros || [])]
-      .filter(isTransferenciaParaScarlet)
-      .reduce((acc, it) => acc + num(it.valor), 0);
+
+    const transfItems = [...(monthData.fixos || []), ...(monthData.outros || [])].filter(isTransferenciaParaScarlet);
+    const transfTotal = transfItems.reduce((acc, it) => acc + num(it.valor), 0);
+    const transfPaga = transfItems.filter(it => it.pago === true).reduce((acc, it) => acc + num(it.valor), 0);
+    const transfPendente = transfItems.filter(it => it.pago !== true).reduce((acc, it) => acc + num(it.valor), 0);
 
     const gastosProprios = fixos + outros + diarios + contasInicio;
-    const totalGastos = gastosProprios + transf;
-    return { ganhos, fixos, outros, diarios, contasInicio, gastosProprios, transf, totalGastos, sobra: ganhos - totalGastos };
+    const totalGastos = gastosProprios + transfTotal;
+    return {
+      ganhos,
+      ganhosPrevistos,
+      salMatheusPago,
+      salMatheusTotal,
+      val13Pago,
+      val13Total,
+      outrosGanhosPago,
+      outrosGanhosTotal,
+      fixos,
+      outros,
+      diarios,
+      contasInicio,
+      gastosProprios,
+      transf: transfTotal,
+      transfPaga,
+      transfPendente,
+      totalGastos,
+      sobra: ganhos - totalGastos
+    };
   }
 
   function getGanhosScarletMes(ano, mes) {
@@ -1454,7 +1516,7 @@ const MatrixApp = (function () {
 
       // 5. Sobra Real = Sobra Casal do card anterior
       const sobraMatheus = rendaMatheusTotal - totalGastosConta;
-      const transfScarlet = calcSobraMatheus(m.ano, m.mes).transf;
+      const transfScarlet = calcSobraMatheus(m.ano, m.mes).transfPaga;
       const subtotalScarlet = rendaScarletTotal + transfScarlet;
       const sobraScarlet = subtotalScarlet - faturaNubank;
       const sobraCasalReal = sobraMatheus + sobraScarlet;
@@ -1555,13 +1617,33 @@ const MatrixApp = (function () {
       SatelliteConnectors.syncMaracajuFromLocal(state);
     }
 
-    // 1. Salário Matheus (USP ou MPSP Líquido do Holerite)
-    const salMatheus = getSalarioLiquidoMes(currentYear, currentMonth);
+    // 1. Salário Matheus (USP Líquido do Holerite ou Receitas)
+    const recSalList = (monthData.receitas || []).filter(r => isReceitaSalarioMatheus(r));
+    let salMatheusTotal = 0;
+    let salMatheusPago = 0;
+    if (recSalList.length > 0) {
+      recSalList.forEach(r => {
+        const v = parseFloat(r.valor) || 0;
+        salMatheusTotal += v;
+        if (r.pago === true) salMatheusPago += v;
+      });
+    } else {
+      const v = getSalarioLiquidoMes(currentYear, currentMonth);
+      salMatheusTotal = v;
+      salMatheusPago = v;
+    }
+    const salMatheus = salMatheusPago > 0 ? salMatheusPago : salMatheusTotal;
+
+    // 1.1 13º Salário Matheus
+    const rec13List = (monthData.receitas || []).filter(r => isReceita13Salario(r));
+    const val13Total = rec13List.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+    const val13Pago = rec13List.filter(r => r.pago === true).reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+    const val13Pendente = rec13List.filter(r => r.pago !== true).reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
 
     // 2. Ganhos Scarlet (FisioFlow)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
 
-    // 3. Vale Alimentação - VA (Crédito do Mês na Casa Maracaju 88)
+    // 3. Vale Alimentação - VA & 4. Vale Refeição - VR
     let va = 2050.00;
     if (currentYear === '2026' && currentMonth === 'Novembro') {
       va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vaTotal != null)
@@ -1572,7 +1654,6 @@ const MatrixApp = (function () {
     }
     if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
 
-    // 4. Vale Refeição - VR (Crédito do Mês na Casa Maracaju 88 / Depósito USP)
     let vr = 1105.00;
     if (currentYear === '2026' && currentMonth === 'Novembro') {
       vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal != null)
@@ -1583,16 +1664,20 @@ const MatrixApp = (function () {
     }
     if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
 
-    // 5. Outros Ganhos em Pecúnia do Matheus (Estúdio/Renda Extra, Empréstimo Matheus, etc. — exclui estritamente rendas da Scarlet)
-    let outrosGanhos = 0;
+    // 5. Outros Ganhos em Pecúnia do Matheus (Estúdio, Empréstimo Matheus, etc. — exclui estritamente rendas da Scarlet e 13º)
+    let outrosGanhosPago = 0;
+    let outrosGanhosTotal = 0;
     let outrosLabel = '';
     (monthData.receitas || []).forEach(r => {
       if (isReceitaExtraMatheus(r)) {
         const val = parseFloat(r.valor) || 0;
-        outrosGanhos += val;
+        outrosGanhosTotal += val;
+        if (r.pago === true) outrosGanhosPago += val;
         if (val > 0 && !outrosLabel) outrosLabel = r.nome;
       }
     });
+    const outrosGanhosPendente = Math.max(0, outrosGanhosTotal - outrosGanhosPago);
+    const outrosGanhos = outrosGanhosPago; // Apenas o que está pago entra no saldo de recursos disponíveis em conta!
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
     // Composição rigorosa: Salário USP Matheus + Renda Extra Matheus + FisioFlow Scarlet + Outras Rendas Scarlet
@@ -1661,12 +1746,12 @@ const MatrixApp = (function () {
 
     // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR — SEMPRE mostra o SALDO ATUAL RESTANTE)
     const satMaracaju = (state.satellites && state.satellites.maracaju) || {
-      saldoVaRestante: 2059.84,
-      saldoVrRestante: 1105.16,
+      saldoVaRestante: 1988.78,
+      saldoVrRestante: 805.41,
       vaTotal: 2059.84,
       vrTotal: 1105.16,
-      gastoMercadoMesAtual: 0.00,
-      gastoVrMesAtual: 0.00
+      gastoMercadoMesAtual: 71.06,
+      gastoVrMesAtual: 299.75
     };
     const vaAtual = (currentYear === '2026' && currentMonth === 'Novembro')
       ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
@@ -1691,20 +1776,21 @@ const MatrixApp = (function () {
     }
 
     // 3. Card 1: Ganhos Totais (Dois Cálculos: Sem Benefícios e Com Benefícios)
-    const rendaMatheusTotal = salMatheus + outrosGanhos;
+    const rendaMatheusTotal = salMatheusPago + val13Pago + outrosGanhosPago;
     const ganhosComBeneficiosTotal = rendaMatheusTotal + beneficiosNaoPecunia;
+    const totalPendenteMatheus = (salMatheusTotal - salMatheusPago) + val13Pendente + outrosGanhosPendente;
 
     const eqSalMatheusEl = document.getElementById('topEqSalMatheus');
-    if (eqSalMatheusEl) eqSalMatheusEl.textContent = formatBRL(salMatheus);
+    if (eqSalMatheusEl) eqSalMatheusEl.textContent = formatBRL(salMatheusPago);
 
     const eqOutrosGanhosEl = document.getElementById('topEqOutrosGanhos');
-    if (eqOutrosGanhosEl) eqOutrosGanhosEl.textContent = formatBRL(outrosGanhos);
+    if (eqOutrosGanhosEl) eqOutrosGanhosEl.textContent = formatBRL(outrosGanhosPago + val13Pago);
 
     const eqVaEl = document.getElementById('topEqVaVal');
-    if (eqVaEl) eqVaEl.textContent = formatBRL(va);
+    if (eqVaEl) eqVaEl.textContent = formatBRL(vaAtual);
 
     const eqVrEl = document.getElementById('topEqVrVal');
-    if (eqVrEl) eqVrEl.textContent = formatBRL(vr);
+    if (eqVrEl) eqVrEl.textContent = formatBRL(vrAtual);
 
     const eqTotalGanhosEl = document.getElementById('topEqTotalGanhos');
     if (eqTotalGanhosEl) eqTotalGanhosEl.textContent = formatBRL(rendaMatheusTotal);
@@ -1719,20 +1805,41 @@ const MatrixApp = (function () {
 
     const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub') || document.getElementById('topRendaSub');
     if (rConjuntaSubEl) {
-      rConjuntaSubEl.textContent = `Líquido em Conta (BB)`;
+      rConjuntaSubEl.textContent = totalPendenteMatheus > 0
+        ? `Líquido em Conta (BB) • ${formatBRL(totalPendenteMatheus)} a receber`
+        : `Líquido em Conta (BB)`;
     }
 
     const salMatheusEl = document.getElementById('topSalMatheusVal');
-    if (salMatheusEl) salMatheusEl.textContent = formatBRL(salMatheus);
+    if (salMatheusEl) salMatheusEl.textContent = formatBRL(salMatheusPago);
 
-    const origemSalLabel = document.getElementById('topOrigemSalarioLabel');
-    if (origemSalLabel) {
-      origemSalLabel.textContent = 'USP';
+    // 13º Salário Row
+    const row13El = document.getElementById('top13SalRow');
+    const val13El = document.getElementById('top13SalVal');
+    if (row13El && val13El) {
+      if (val13Total > 0) {
+        row13El.style.display = 'flex';
+        if (val13Pago > 0) {
+          val13El.innerHTML = `<span style="color:var(--cyan);">+ ${formatBRL(val13Pago)}</span>`;
+        } else {
+          val13El.innerHTML = `<span style="color:var(--amber);font-size:11px;">R$ 0,00 <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(val13Pendente)} a receber)</span></span>`;
+        }
+      } else {
+        row13El.style.display = 'none';
+      }
     }
 
     const outrosEl = document.getElementById('topOutrosVal');
     if (outrosEl) {
-      outrosEl.textContent = outrosGanhos > 0 ? `+ ${formatBRL(outrosGanhos)}` : 'R$ 0,00';
+      if (outrosGanhosPago > 0 && outrosGanhosPendente > 0) {
+        outrosEl.innerHTML = `<span style="color:var(--matrix-green);">+ ${formatBRL(outrosGanhosPago)}</span> <span style="font-size:9.5px;color:var(--text-muted);">(⏳ +${formatBRL(outrosGanhosPendente)})</span>`;
+      } else if (outrosGanhosPago > 0) {
+        outrosEl.innerHTML = `<span style="color:var(--matrix-green);">+ ${formatBRL(outrosGanhosPago)}</span>`;
+      } else if (outrosGanhosPendente > 0) {
+        outrosEl.innerHTML = `<span style="color:var(--amber);font-size:11px;">R$ 0,00 <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(outrosGanhosPendente)} a receber)</span></span>`;
+      } else {
+        outrosEl.textContent = 'R$ 0,00';
+      }
     }
 
     const labelEstudio = document.getElementById('topLabelEstudio') || document.getElementById('topOutrosLabel');
@@ -1847,14 +1954,15 @@ const MatrixApp = (function () {
     }
 
     // PARTE 2 (EMBAIXO DISSO): SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS
-    const transfScarlet = calcSobraMatheus(currentYear, currentMonth).transf;
+    const transfInfo = calcSobraMatheus(currentYear, currentMonth);
+    const scarletTransf = transfInfo.transfPaga;
+    const scarletTransfPendente = transfInfo.transfPendente;
     const scarletFisio = ganhosScarlet;
     const scarletOutras = getOutrasRendasScarletMes(currentYear, currentMonth);
     const descOutrasScarlet = getDescOutrasRendasScarletMes(currentYear, currentMonth);
-    const scarletSubtotal = scarletFisio + scarletOutras + transfScarlet;
+    const scarletSubtotal = scarletFisio + scarletOutras + scarletTransf;
     const scarletFatura = faturaNubank;
     const scarletSobra = scarletSubtotal - scarletFatura;
-
     const sobraCasalReal = sobraMatheus + scarletSobra;
 
     const eqCasalSobraMatheus = document.getElementById('topEqCasalSobraMatheus');
@@ -1908,7 +2016,6 @@ const MatrixApp = (function () {
     // = Subtotal
     // - Fatura Nubank
     // = Sobra Scarlet
-    const scarletTransf = transfScarlet;
     const eqScarletFisioEl = document.getElementById('topEqScarletFisio');
     if (eqScarletFisioEl) eqScarletFisioEl.textContent = formatBRL(scarletFisio);
 
@@ -1948,7 +2055,15 @@ const MatrixApp = (function () {
     }
 
     const topScarletTransfVal = document.getElementById('topScarletTransfVal');
-    if (topScarletTransfVal) topScarletTransfVal.textContent = formatBRL(scarletTransf);
+    if (topScarletTransfVal) {
+      if (scarletTransf > 0) {
+        topScarletTransfVal.innerHTML = `<span style="color:var(--amber);">${formatBRL(scarletTransf)}</span>`;
+      } else if (scarletTransfPendente > 0) {
+        topScarletTransfVal.innerHTML = `<span style="color:var(--amber);font-size:11px;">R$ 0,00 <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(scarletTransfPendente)} pendente)</span></span>`;
+      } else {
+        topScarletTransfVal.textContent = 'R$ 0,00';
+      }
+    }
 
     const topScarletSubtotalVal = document.getElementById('topScarletSubtotalVal');
     if (topScarletSubtotalVal) topScarletSubtotalVal.textContent = formatBRL(scarletSubtotal);
@@ -2997,10 +3112,10 @@ const MatrixApp = (function () {
       }
       titleEl.innerHTML = `🏡 Casa Maracaju 88 • Benefícios VA e VR (${periodLabel})`;
       const sat = (state.satellites && state.satellites.maracaju) || {
-        saldoVaRestante: 2059.84,
-        saldoVrRestante: 1105.16,
-        gastoMercadoMesAtual: 0.00,
-        gastoVrMesAtual: 0.00,
+        saldoVaRestante: 1988.78,
+        saldoVrRestante: 805.41,
+        gastoMercadoMesAtual: 71.06,
+        gastoVrMesAtual: 299.75,
         vaMensal: 2050.00,
         vaRollover: 9.84,
         vaTotal: 2059.84,
