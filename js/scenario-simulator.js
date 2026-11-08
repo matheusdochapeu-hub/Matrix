@@ -321,7 +321,8 @@ const ScenarioSimulator = (function () {
       // ==========================================
       const satMaracaju = (state.satellites && state.satellites.maracaju) || {};
       const isNov2026 = (yearStr === '2026' && m.monthName === 'Novembro');
-      const vaGanhos = isNov2026 ? (satMaracaju.vaTotal || 2059.84) : ((state.perfil && state.perfil.vaMensal) || 2050.00);
+      // Regra do Usuário: VA é fixo em R$ 2.050,00
+      const vaGanhos = 2050.00;
       const vaGastosDiarios = (monthData.diarios || [])
         .filter(d => {
           const cta = (d.conta || '').toLowerCase();
@@ -329,12 +330,21 @@ const ScenarioSimulator = (function () {
         })
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
       const vaGastosBase = isNov2026 ? Math.max(vaGastosDiarios, satMaracaju.gastoMercadoMesAtual || 0) : vaGastosDiarios;
-      const vaSaldoBase = vaGanhos - vaGastosBase;
+      const vaSaldoBase = isNov2026 && satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : (vaGanhos - vaGastosBase);
 
       // ==========================================
       // 4. CONTA 🍽️ VALE REFEIÇÃO (VR USP)
       // ==========================================
-      const vrGanhos = isNov2026 ? (satMaracaju.vrTotal || 1105.16) : 1105.00;
+      // Regra do Usuário: VR vem do calendário do próprio app Matrix (CalendarEngine) e não da Casa Maracaju
+      let vrGanhos = 1105.00;
+      try {
+        if (typeof CalendarEngine !== 'undefined') {
+          const commute = CalendarEngine.calculateCommuteAndVR(parseInt(yearStr, 10), m.monthIndex, (state && state.calendarioCustom) || []);
+          if (commute && typeof commute.totalVR === 'number' && commute.totalVR > 0) {
+            vrGanhos = commute.totalVR;
+          }
+        }
+      } catch (e) {}
       const vrGastosDiarios = (monthData.diarios || [])
         .filter(d => {
           const cta = (d.conta || '').toLowerCase();
@@ -342,7 +352,7 @@ const ScenarioSimulator = (function () {
         })
         .reduce((acc, d) => acc + (parseFloat(d.valor) || 0), 0);
       const vrGastosBase = isNov2026 ? Math.max(vrGastosDiarios, satMaracaju.gastoVrMesAtual || 0) : vrGastosDiarios;
-      const vrSaldoBase = vrGanhos - vrGastosBase;
+      const vrSaldoBase = isNov2026 && satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : (vrGanhos - vrGastosBase);
 
       // ==========================================
       // 5. PROCESSAMENTO DE CENÁRIOS ATIVOS NO MÊS

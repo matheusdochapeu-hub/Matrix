@@ -252,11 +252,11 @@ const MatrixDB = (function () {
     if (memoryCache && memoryCache.anos) {
       let cacheMutated = false;
 
-      // 1. VR de Novembro de 2026: deve ser R$ 1.105,16 (sem colisão com VA) e não travar o saldo dinâmico
+      // 1. Benefícios de Novembro de 2026: VA fixo em 2.050,00 e VR pelo calendário em 1.105,00
       if (memoryCache.anos['2026'] && memoryCache.anos['2026']['Novembro']) {
         const nov = memoryCache.anos['2026']['Novembro'];
         if (!nov.totais) nov.totais = {};
-        if (nov.vrManual === 1105.16 || nov.vrManual === 1105 || nov.vrManual === 2059.84) {
+        if (nov.vrManual === 1105.16 || nov.vrManual === 1105 || nov.vrManual === 2059.84 || nov.vrManual === 2050) {
           delete nov.vrManual;
           cacheMutated = true;
         }
@@ -264,24 +264,24 @@ const MatrixDB = (function () {
           delete nov.vaManual;
           cacheMutated = true;
         }
-        if (nov.totais['VR'] !== 1105.16 && nov.vrManual == null) {
-          nov.totais['VR'] = 1105.16;
+        if (nov.totais['VR'] !== 1105.00 && nov.vrManual == null) {
+          nov.totais['VR'] = 1105.00;
           cacheMutated = true;
         }
-        if (nov.totais['VA'] !== 2059.84 && nov.vaManual == null) {
-          nov.totais['VA'] = 2059.84;
+        if (nov.totais['VA'] !== 2050.00 && nov.vaManual == null) {
+          nov.totais['VA'] = 2050.00;
           cacheMutated = true;
         }
         if (nov.receitas) {
           nov.receitas.forEach(r => {
             const n = (r.nome || '').toLowerCase();
-            if ((/\bvr\b/.test(n) || n.includes('refeição') || n.includes('refeicao')) && r.valor !== 1105.16 && nov.vrManual == null) {
-              r.valor = 1105.16;
+            if ((/\bvr\b/.test(n) || n.includes('refeição') || n.includes('refeicao')) && r.valor !== 1105.00 && nov.vrManual == null) {
+              r.valor = 1105.00;
               r.naoPecunia = true;
               cacheMutated = true;
             }
-            if ((/\bva\b/.test(n) || n.includes('alimentação') || n.includes('alimentacao')) && !(/\bvr\b/.test(n)) && r.valor !== 2059.84 && nov.vaManual == null) {
-              r.valor = 2059.84;
+            if ((/\bva\b/.test(n) || n.includes('alimentação') || n.includes('alimentacao')) && !(/\bvr\b/.test(n)) && r.valor !== 2050.00 && nov.vaManual == null) {
+              r.valor = 2050.00;
               r.naoPecunia = true;
               cacheMutated = true;
             }

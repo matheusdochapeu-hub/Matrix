@@ -161,3 +161,17 @@ Correção estrutural na vinculação entre status de pagamento (`pago: true` vs
   - Reduzido o padding e adicionada margem de segurança no `.eq-op` (`font-size: 9px; padding: 0 1.5px; margin: 0 1px 2px 1px`), eliminando qualquer sobreposição ou colisão do `+`, `-` e `=` com os valores monetários.
 - **Controle de Versão e Cache PWA:**
   - Cache renovado para `matrix-finance-v87` em `sw.js` e tags atualizadas em `index.html`.
+
+
+### Versão 88 (v88) - VA Fixo (R$ 2.050,00) e VR via Calendário Matrix (R$ 1.105,00)
+- **Crédito de VA Contratual (Fixo):**
+  - Fixado em **R$ 2.050,00** para todos os meses em `getBeneficiosCreditoMes(ano, mes)`, `seed-data.js` e inicialização do cache (`db.js` / `app.js`).
+- **Crédito de VR via Calendário do App Matrix:**
+  - Extraído dinamicamente do motor de calendário do próprio Matrix (`CalendarEngine.calculateCommuteAndVR`), calculando os dias úteis civis do mês vezes a diária de VR (R$ 65,00), totalizando **R$ 1.105,00** em Novembro de 2026 e variando conforme o expediente de cada mês.
+- **Preservação Integral do Saldo Real da Casa Maracaju 88:**
+  - O saldo real restante em cartões para compras e refeições (`VA R$ 1.988,78` e `VR R$ 805,41`) continua vindo exclusivamente do satélite Casa Maracaju 88, sem ser alterado pelos créditos contratuais.
+- **Reflexo nas Telas e Telas de Apoio:**
+  - Modal Receitas & Ganhos: `Vale Alimentação (VA) R$ 2.050,00` e `Vale Refeição (VR) R$ 1.105,00`.
+  - Card 1 Banner Superior: `VA R$ 2.050,00 + VR R$ 1.105,00`.
+  - Card 1 Discriminação: `(+) Vale Alimentação (VA): R$ 2.050,00` e `(+) Vale Refeição (VR): R$ 1.105,00`.
+  - Simulador de Cenários ("E Se"): Aba VA e VR alinhadas às regras sem desvios.

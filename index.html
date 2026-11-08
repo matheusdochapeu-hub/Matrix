@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=87">
+  <link rel="stylesheet" href="css/matrix.css?v=88">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -2319,11 +2319,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
           <label style="font-size:11px;color:var(--matrix-green);">🥗 Vale Alimentação (VA):</label>
-          <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2059.84">
+          <input type="number" step="0.01" id="saldosVa" class="matrix-input" placeholder="2050.00">
         </div>
         <div>
           <label style="font-size:11px;color:var(--cyan);">🍽️ Vale Refeição (VR):</label>
-          <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1105.16">
+          <input type="number" step="0.01" id="saldosVr" class="matrix-input" placeholder="1105.00">
         </div>
       </div>
 
@@ -2737,16 +2737,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=87"></script>
-  <script src="js/matrix-rain.js?v=87"></script>
-  <script src="js/db.js?v=87"></script>
-  <script src="js/calendar-engine.js?v=87"></script>
-  <script src="js/amortization-engine.js?v=87"></script>
-  <script src="js/scenario-simulator.js?v=87"></script>
-  <script src="js/pdf-reader.js?v=87"></script>
-  <script src="js/satellite-connectors.js?v=87"></script>
-  <script src="js/sync-engine.js?v=87"></script>
-  <script src="js/app.js?v=87"></script>
+  <script src="js/seed-data.js?v=88"></script>
+  <script src="js/matrix-rain.js?v=88"></script>
+  <script src="js/db.js?v=88"></script>
+  <script src="js/calendar-engine.js?v=88"></script>
+  <script src="js/amortization-engine.js?v=88"></script>
+  <script src="js/scenario-simulator.js?v=88"></script>
+  <script src="js/pdf-reader.js?v=88"></script>
+  <script src="js/satellite-connectors.js?v=88"></script>
+  <script src="js/sync-engine.js?v=88"></script>
+  <script src="js/app.js?v=88"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2758,7 +2758,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=87', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=88', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

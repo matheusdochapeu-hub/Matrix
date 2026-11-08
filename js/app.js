@@ -245,18 +245,18 @@ const MatrixApp = (function () {
       if (novData) {
         let changedNov = false;
         if (!novData.totais) novData.totais = {};
-        if (novData.vrManual == null && novData.totais['VR'] == null) {
-          novData.totais['VR'] = 1105.16;
+        if (novData.vrManual == null && novData.totais['VR'] !== 1105.00) {
+          novData.totais['VR'] = 1105.00;
           changedNov = true;
         }
-        if (novData.vaManual == null && novData.totais['VA'] == null) {
-          novData.totais['VA'] = 2059.84;
+        if (novData.vaManual == null && novData.totais['VA'] !== 2050.00) {
+          novData.totais['VA'] = 2050.00;
           changedNov = true;
         }
         if (novData.receitas) {
           let rVr = novData.receitas.find(r => isItemVR(r));
-          if (rVr && novData.vrManual == null && rVr.valor == null) {
-            rVr.valor = 1105.16;
+          if (rVr && novData.vrManual == null && rVr.valor !== 1105.00) {
+            rVr.valor = 1105.00;
             rVr.naoPecunia = true;
             rVr.categoria = 'Benefício (Não Pecúnia)';
             rVr.conta = 'cartao_vr';
@@ -264,8 +264,8 @@ const MatrixApp = (function () {
             changedNov = true;
           }
           let rVa = novData.receitas.find(r => isItemVA(r));
-          if (rVa && novData.vaManual == null && rVa.valor == null) {
-            rVa.valor = 2059.84;
+          if (rVa && novData.vaManual == null && rVa.valor !== 2050.00) {
+            rVa.valor = 2050.00;
             rVa.naoPecunia = true;
             rVa.categoria = 'Benefício (Não Pecúnia)';
             rVa.conta = 'cartao_va';
@@ -325,10 +325,8 @@ const MatrixApp = (function () {
                   r.categoria = 'Benefício (Não Pecúnia)';
                   r.conta = 'cartao_vr';
                   r.renda = 'vr_almoco';
-                  // Se o valor foi contaminado pelo valor do VA (2059.84)
-                  if (r.valor === 2059.84 || r.valor === '2059.84') {
-                    const vrReal = (ano === '2026' && mes === 'Novembro') ? 1105.16 : 1105.00;
-                    r.valor = vrReal;
+                  if (r.valor === 2059.84 || r.valor === '2059.84' || r.valor === 1105.16 || r.valor === '1105.16') {
+                    r.valor = 1105.00;
                     changedLegacy = true;
                   }
                 } else if (isItemVA(r)) {
@@ -336,7 +334,10 @@ const MatrixApp = (function () {
                   r.categoria = 'Benefício (Não Pecúnia)';
                   r.conta = 'cartao_va';
                   r.renda = 'va_mercado';
-                  if (r.valor == null) { r.valor = 2059.84; changedLegacy = true; }
+                  if (r.valor === 2059.84 || r.valor === '2059.84' || r.valor == null) {
+                    r.valor = 2050.00;
+                    changedLegacy = true;
+                  }
                 }
               });
             }
@@ -677,6 +678,54 @@ const MatrixApp = (function () {
 
     // 6. Sem dados existentes: NUNCA inventar dados (retornar 0)
     return 0;
+  }
+
+  // Benefícios Alimentação (VA & VR) - Créditos Contratuais do Mês:
+  // Regra Estrita do Usuário:
+  // 1. VA é FIXO em R$ 2.050,00 (benefício mensal USP).
+  // 2. VR vem do calendário oficial do próprio app Matrix (CalendarEngine), calculando dias úteis civis do mês * R$ 65,00.
+  // 3. O saldo restante para compras/refeições continua vindo do app Casa Maracaju e não é afetado por essa alteração.
+  function getBeneficiosCreditoMes(ano, mes) {
+    const sAno = String(ano || currentYear || '2026');
+    const sMes = String(mes || currentMonth || 'Novembro');
+    const monthData = MatrixDB.getMonth(sAno, sMes) || {};
+
+    // 1. VA Fixo em 2050.00
+    let va = 2050.00;
+    if (monthData.vaManual != null && monthData.vaManual !== '') {
+      const vMan = parseFloat(monthData.vaManual);
+      if (!isNaN(vMan) && vMan > 0) va = vMan;
+    }
+
+    // 2. VR vindo do calendário do próprio app Matrix
+    let vr = 1105.00;
+    try {
+      const mIdx = MONTH_NAMES.indexOf(sMes) + 1;
+      const anoNum = parseInt(sAno, 10);
+      if (anoNum > 0 && mIdx > 0 && typeof CalendarEngine !== 'undefined') {
+        const state = MatrixDB.getState();
+        const commute = CalendarEngine.calculateCommuteAndVR(anoNum, mIdx, state.calendarioCustom);
+        if (commute && typeof commute.totalVR === 'number' && commute.totalVR > 0) {
+          vr = commute.totalVR;
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao obter VR via CalendarEngine:', e);
+    }
+    if (monthData.totais && monthData.totais['VR'] != null) {
+      const vTot = parseFloat(monthData.totais['VR']);
+      if (!isNaN(vTot) && vTot > 0) vr = vTot;
+    }
+    if (monthData.vrManual != null && monthData.vrManual !== '') {
+      const vMan = parseFloat(monthData.vrManual);
+      if (!isNaN(vMan) && vMan > 0) vr = vMan;
+    }
+
+    return {
+      va,
+      vr,
+      total: Math.round((va + vr) * 100) / 100
+    };
   }
 
   // Salário líquido do Matheus no mês: holerite > receita "salário" do mês > valor padrão.
@@ -1503,27 +1552,11 @@ const MatrixApp = (function () {
       const labelExtraScarlet = getDescOutrasRendasScarletMes(m.ano, m.mes);
       const rendaScarletTotal = salScarlet + outrasRendasScarlet;
 
-      // 3. Benefícios Alimentação (VA + VR — Crédito do Mês para Ganhos Conjuntos)
-      let va = 2050.00;
-      if (m.ano === '2026' && m.mes === 'Novembro') {
-        va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vaTotal != null)
-          ? state.satellites.maracaju.vaTotal
-          : 2059.84;
-      } else if (monthData.totais && monthData.totais['VA'] != null) {
-        va = parseFloat(monthData.totais['VA']) || va;
-      }
-      if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
-
-      let vr = 1105.00;
-      if (m.ano === '2026' && m.mes === 'Novembro') {
-        vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal != null)
-          ? state.satellites.maracaju.vrTotal
-          : 1105.16;
-      } else if (monthData.totais && monthData.totais['VR'] != null) {
-        vr = parseFloat(monthData.totais['VR']) || vr;
-      }
-      if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
-      const totalBeneficios = va + vr;
+      // 3. Benefícios Alimentação (VA Fixo 2050.00 | VR Calendário Matrix)
+      const ben = getBeneficiosCreditoMes(m.ano, m.mes);
+      const va = ben.va;
+      const vr = ben.vr;
+      const totalBeneficios = ben.total;
 
       // Ganhos Conjuntos Totais = soma de (Salario matheus + renda extra matheus + outras receitas matheus + ganhos Scarlet + outras Rendas Scarlet + VA + VR)
       const ganhosConjuntosTotais = rendaMatheusTotal + rendaScarletTotal + totalBeneficios;
@@ -1677,26 +1710,10 @@ const MatrixApp = (function () {
     // 2. Ganhos Scarlet (FisioFlow)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
 
-    // 3. Vale Alimentação - VA & 4. Vale Refeição - VR
-    let va = 2050.00;
-    if (currentYear === '2026' && currentMonth === 'Novembro') {
-      va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vaTotal != null)
-        ? state.satellites.maracaju.vaTotal
-        : 2059.84;
-    } else if (monthData.totais && monthData.totais['VA'] != null) {
-      va = parseFloat(monthData.totais['VA']) || va;
-    }
-    if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
-
-    let vr = 1105.00;
-    if (currentYear === '2026' && currentMonth === 'Novembro') {
-      vr = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal != null)
-        ? state.satellites.maracaju.vrTotal
-        : 1105.16;
-    } else if (monthData.totais && monthData.totais['VR'] != null) {
-      vr = parseFloat(monthData.totais['VR']) || vr;
-    }
-    if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
+    // 3. Vale Alimentação - VA (Fixo 2050.00) & 4. Vale Refeição - VR (Calendário Matrix)
+    const ben = getBeneficiosCreditoMes(currentYear, currentMonth);
+    const va = ben.va;
+    const vr = ben.vr;
 
     // 5. Outros Ganhos em Pecúnia do Matheus (Estúdio, Empréstimo Matheus, etc. — exclui estritamente rendas da Scarlet e 13º)
     let outrosGanhosPago = 0;
@@ -3649,8 +3666,8 @@ const MatrixApp = (function () {
     const saldoConta = totalEntradasConta - totalSaidasConta;
 
     // 3. Benefícios
-    let vaTotal = 2059.84;
-    let vrTotal = 1105.16;
+    let vaTotal = 2050.00;
+    let vrTotal = 1105.00;
     (monthData.receitas || []).forEach(r => {
       const n = (r.nome || '').toLowerCase();
       const val = parseFloat(r.valor) || 0;
@@ -3983,6 +4000,14 @@ const MatrixApp = (function () {
     }
 
     // Render Receitas / Ganhos Table Body & Termômetro
+    const benAtual = getBeneficiosCreditoMes(currentYear, currentMonth);
+    (monthData.receitas || []).forEach(r => {
+      if (isItemVR(r) && !r.manual) {
+        r.valor = benAtual.vr;
+      } else if (isItemVA(r) && !r.manual) {
+        r.valor = benAtual.va;
+      }
+    });
     const receitasList = monthData.receitas || [];
 
     // Separação Estrita de Pecúnia (Dinheiro Líquido em Conta) e Benefícios Não-Pecúnia (VA/VR Alimentação)
@@ -7870,22 +7895,10 @@ function onModalCategoriaChange(catVal) {
     const outrasRendasScarlet = getOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
     const descOutrasScarlet = getDescOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
 
-    // 3. VA & VR — extração oficial do crédito do mês na Casa Maracaju 88
-    const satMaracaju = state.satellites && state.satellites.maracaju;
-    let va = 2050.00;
-    let vr = 1105.00;
-
-    if (saldosModalTargetAno === '2026' && saldosModalTargetMes === 'Novembro') {
-      va = (satMaracaju && satMaracaju.vaTotal != null) ? satMaracaju.vaTotal : 2059.84;
-      vr = (satMaracaju && satMaracaju.vrTotal != null) ? satMaracaju.vrTotal : 1105.16;
-    } else {
-      if (monthData.totais) {
-        if (monthData.totais['VA'] != null) va = parseFloat(monthData.totais['VA']) || va;
-        if (monthData.totais['VR'] != null) vr = parseFloat(monthData.totais['VR']) || vr;
-      }
-    }
-    if (monthData.vaManual != null) va = parseFloat(monthData.vaManual) || va;
-    if (monthData.vrManual != null) vr = parseFloat(monthData.vrManual) || vr;
+    // 3. VA (Fixo 2050.00) & VR (Calendário Matrix)
+    const ben = getBeneficiosCreditoMes(saldosModalTargetAno, saldosModalTargetMes);
+    let va = ben.va;
+    let vr = ben.vr;
 
     // 4. Ganho Extra / Estúdio (exclusivamente do Matheus, sem somar Empréstimos nem rendas da Scarlet)
     const nomeEst = getNomeEstudio();
@@ -7956,8 +7969,8 @@ function onModalCategoriaChange(catVal) {
     const ganhosScarlet = parseVal('saldosGanhosScarlet', 0);
     const outrasRendasScarlet = parseVal('saldosOutrasRendasScarlet', 0);
     const descOutrasScarlet = (document.getElementById('saldosDescOutrasRendasScarlet')?.value || '').trim() || 'Outras Rendas Scarlet';
-    const va = parseVal('saldosVa', 2059.84);
-    const vr = parseVal('saldosVr', 1105.16);
+    const va = parseVal('saldosVa', 2050.00);
+    const vr = parseVal('saldosVr', 1105.00);
     const novoNomeEst = (document.getElementById('saldosNomeEstudio')?.value || '').trim() || 'Renda Extra';
     const valorExtra = parseVal('saldosValorEstudio', 0);
     const contaExtra = document.getElementById('saldosContaEstudio')?.value || 'salario_bb';
@@ -9585,6 +9598,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarNomeEstudio,
     promptAlterarNomeEstudio,
     getFaturaNubankMes,
+    getBeneficiosCreditoMes,
     getGanhosScarletMes,
     getOutrasRendasScarletMes,
     getDescOutrasRendasScarletMes,
