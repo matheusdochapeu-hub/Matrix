@@ -8609,7 +8609,7 @@ function onModalCategoriaChange(catVal) {
     monthData.scarlet.descOutrasRendas = descOutrasScarlet;
     monthData.scarlet.faturaNubank = faturaNubank;
     monthData.scarlet.faturaNubankManual = faturaNubank;
-    const sMonthKey = ${saldosModalTargetAno}-${saldosModalTargetMes};
+    const sMonthKey = saldosModalTargetAno + '-' + saldosModalTargetMes;
     if (!state.satellites) state.satellites = {};
     if (!state.satellites.faturas) state.satellites.faturas = {};
     if (!state.satellites.faturas.faturasPorMes) state.satellites.faturas.faturasPorMes = {};
