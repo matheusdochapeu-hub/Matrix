@@ -361,6 +361,22 @@ const MatrixApp = (function () {
     } catch (e) {
       console.warn('Erro ao higienizar orcamento_geral e VR:', e);
     }
+        // Auto-upgrade do valor legado da Fatura Nubank de Novembro/2026 caso ainda esteja no valor estÃ¡tico prÃ©vio
+    try {
+      const curState = MatrixDB.getState();
+      if (curState && curState.anos && curState.anos['2026'] && curState.anos['2026']['Novembro']) {
+        const novData = curState.anos['2026']['Novembro'];
+        if (novData.scarlet && (novData.scarlet.faturaNubank === 4568.57 || !novData.scarlet.faturaNubank) && !novData.scarlet.faturaNubankManual) {
+          novData.scarlet.faturaNubank = 4883.05;
+          if (curState.satellites && curState.satellites.faturas && curState.satellites.faturas.faturasPorMes && curState.satellites.faturas.faturasPorMes['2026-Novembro']) {
+            if (curState.satellites.faturas.faturasPorMes['2026-Novembro'].total === 4568.57) {
+              curState.satellites.faturas.faturasPorMes['2026-Novembro'].total = 4883.05;
+            }
+          }
+          MatrixDB.saveState(curState, 'upgrade_fatura_legada', { skipCloudSync: true });
+        }
+      }
+    } catch (e) {}
     populateYearSelector();
     setupEventListeners();
     updateInstallButtonVisibility();
@@ -384,6 +400,14 @@ const MatrixApp = (function () {
           if (res.success && res.data) {
             if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
               SatelliteConnectors.syncMaracajuFromLocal();
+            }
+                        const cState = MatrixDB.getState();
+            if (cState && cState.anos && cState.anos['2026'] && cState.anos['2026']['Novembro']) {
+              const novD = cState.anos['2026']['Novembro'];
+              if (novD.scarlet && novD.scarlet.faturaNubank === 4568.57 && !novD.scarlet.faturaNubankManual) {
+                novD.scarlet.faturaNubank = 4883.05;
+                MatrixDB.saveState(cState, 'cloud_restore_fatura_upgrade', { skipCloudSync: true });
+              }
             }
             populateYearSelector();
             renderAll();
