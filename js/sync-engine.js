@@ -410,7 +410,7 @@ const SyncEngine = (function () {
     };
   }
 
-  async function fetchFromCloud() {
+  async function fetchFromCloud(options = {}) {
     const cfg = getConfig();
     if (!cfg.cloudUrl) {
       updateStatusUI('offline');
@@ -459,9 +459,13 @@ const SyncEngine = (function () {
       const localTs = (currentLocalState && currentLocalState.atualizadoEm) ? Date.parse(currentLocalState.atualizadoEm) : 0;
       const cloudTs = rawPayload.atualizadoEm ? Date.parse(rawPayload.atualizadoEm) : 0;
 
-      // Se houver alterações locais pendentes de envio OU se o estado local for mais recente que o da nuvem,
-      // NUNCA sobrescreve as edições locais com dados antigos da nuvem: envia o estado local atualizado para a nuvem!
-      if (dirtySince || (localTs > 0 && cloudTs > 0 && localTs > cloudTs + 2000)) {
+      // Fidelização Soberana do Google Sheets:
+      // A planilha é soberana para que em qualquer local ou dispositivo que acessar puxe os últimos dados inseridos.
+      // Se cloudTs >= localTs ou se for carregamento inicial ou force=true, a planilha prevalece.
+      const isForceOrInitial = (options && options.force) || !dirtySince;
+      const cloudIsNewerOrEqual = (cloudTs > 0 && cloudTs >= localTs);
+
+      if (!isForceOrInitial && !cloudIsNewerOrEqual && dirtySince && localTs > cloudTs + 2000) {
         syncToCloud();
         return {
           success: true,
@@ -470,6 +474,7 @@ const SyncEngine = (function () {
           timestamp: currentLocalState.atualizadoEm
         };
       }
+      localStorage.removeItem(DIRTY_LOCAL_KEY);
 
       const localMaracajuSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.maracaju;
       const localFaturasSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.faturas;

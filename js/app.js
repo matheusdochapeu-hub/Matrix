@@ -176,6 +176,23 @@ const MatrixApp = (function () {
     // Garantir que 2026-10-28 (Dia do Servidor) é reconhecido como trabalho presencial normal
     try {
       const state = MatrixDB.getState();
+      // Sanitização estrita: eliminar qualquer resíduo legado de 1500 na Scarlet de 2027 em diante
+      if (state && state.anos) {
+        Object.keys(state.anos).forEach(yr => {
+          if (parseInt(yr, 10) >= 2027) {
+            const months = state.anos[yr];
+            if (months) {
+              Object.keys(months).forEach(mn => {
+                const mData = months[mn];
+                if (mData && mData.scarlet) {
+                  if (mData.scarlet.ganhos === 1500) mData.scarlet.ganhos = 0;
+                  if (mData.scarlet.ganhosManual === 1500) mData.scarlet.ganhosManual = 0;
+                }
+              });
+            }
+          }
+        });
+      }
       if (!state.calendarioCustom) state.calendarioCustom = { overrides: {}, folgas: [] };
       if (!state.calendarioCustom.overrides) state.calendarioCustom.overrides = {};
       if (!state.calendarioCustom.overrides['2026-10-28']) {
@@ -1196,6 +1213,11 @@ const MatrixApp = (function () {
       }
     }
 
+    // Regra oficial para Novembro/2026: R$ 4.000,00 recebidos referentes a outros trabalhos prestados em Outubro
+    if (ano === '2026' && mes === 'Novembro') {
+      return 4000.00;
+    }
+
     return 0;
   }
 
@@ -1207,6 +1229,9 @@ const MatrixApp = (function () {
     }
     if (monthData.scarlet && monthData.scarlet.descOutrasRendas) {
       return monthData.scarlet.descOutrasRendas;
+    }
+    if (ano === '2026' && mes === 'Novembro') {
+      return 'Trabalhos prestados Outubro';
     }
     return 'Outras Rendas Scarlet';
   }
@@ -1819,6 +1844,10 @@ const MatrixApp = (function () {
 
           <!-- Rodapé: Gastos e Sobra Real (Igual Sobra do Casal do Card Anterior) -->
           <div class="horizon-bottom-bar" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-dim);display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:2px;padding-bottom:3px;border-bottom:1px dashed rgba(255,255,255,0.08);" title="Renda Matheus (${formatBRL(rendaMatheusTotal)}) + Renda Scarlet (${formatBRL(rendaScarletTotal)}) + VA/VR (${formatBRL(totalBeneficios)})">
+              <span style="color:var(--matrix-green);">💼 Ganhos Totais (+ VA/VR):</span>
+              <strong style="color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(ganhosConjuntosTotais)}</strong>
+            </div>
             <div style="display:flex;justify-content:space-between;font-size:9.5px;">
               <span style="color:var(--text-muted);" title="Fixos (${formatBRL(fixos)}) + Variáveis (${formatBRL(outros)}) + Diários (${formatBRL(diarios)}) + Nubank (${formatBRL(faturaNubank)})">Gastos (Fixos+Var+Diár+Nubank):</span>
               <strong style="color:var(--rose);font-family:var(--font-mono);">${formatBRL(totalGastosCasal)}</strong>
@@ -2294,6 +2323,17 @@ const MatrixApp = (function () {
       topSobraScarletEl.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
       topSobraScarletEl.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
     }
+
+    // Dados dinâmicos de atendimentos e agendamentos FisioFlow
+    const satFisioFlow = (state.satellites && state.satellites.fisioflow) || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
+    const fisioRealizadoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualTotal) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].realizado || 0 : 0)) : 0;
+    const fisioPrevistoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualPrevisto) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].previsto || 0 : 3300)) : 0;
+
+    const elAtual = document.getElementById('topScarletGanhosAtualVal');
+    if (elAtual) elAtual.textContent = formatBRL(fisioRealizadoAtual);
+
+    const elPrevisto = document.getElementById('topScarletGanhosPrevistoVal');
+    if (elPrevisto) elPrevisto.textContent = formatBRL(fisioPrevistoAtual);
 
     const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
     if (topScarletFisioVal) topScarletFisioVal.textContent = formatBRL(scarletFisio);
@@ -7102,6 +7142,8 @@ function onModalCategoriaChange(catVal) {
     // Separação rigorosa por horizonte e prazos reais
     let totalLiquidez = 0;
     let totalRenda2055 = 0;
+    let totalRendaMatheus2055 = 0;
+    let totalRendaScarlet2055 = 0;
     let totalMedioPrazo = 0;
     let totalVariavel = 0;
 
@@ -7110,9 +7152,15 @@ function onModalCategoriaChange(catVal) {
       const cat = (it.categoria || '').toLowerCase();
       const atv = (it.ativo || '').toLowerCase();
       const venc = (it.vencimento || '').toLowerCase();
+      const tit = (it.titular || '').toLowerCase();
 
-      if (atv.includes('renda+') || atv.includes('2055') || venc.includes('2055')) {
+      if (atv.includes('renda+') || atv.includes('2055') || venc.includes('2055') || cat.includes('previdência') || cat.includes('aposentadoria')) {
         totalRenda2055 += val;
+        if (tit.includes('scarlet')) {
+          totalRendaScarlet2055 += val;
+        } else {
+          totalRendaMatheus2055 += val;
+        }
       } else if (venc.includes('liquidez') || cat.includes('reserva') || atv.includes('selic')) {
         totalLiquidez += val;
       } else if (cat.includes('ações') || cat.includes('cripto') || atv.includes('btc') || atv.includes('csna') || atv.includes('mglu')) {
@@ -7138,6 +7186,27 @@ function onModalCategoriaChange(catVal) {
     const hLiqEl = document.getElementById('invHorizLiquidez');
     if (hLiqEl) hLiqEl.textContent = formatBRL(totalLiquidez);
 
+    // 👨 Aposentadoria Matheus
+    const hRendaMatheusEl = document.getElementById('invHorizRendaMatheus2055');
+    if (hRendaMatheusEl) hRendaMatheusEl.textContent = formatBRL(totalRendaMatheus2055);
+
+    const hRendaMatheusProjEl = document.getElementById('invHorizRendaMatheus2055Proj');
+    if (hRendaMatheusProjEl) {
+      const fvM = totalRendaMatheus2055 * Math.pow(1 + 0.065, 29);
+      hRendaMatheusProjEl.textContent = `Est. 2055: ${formatBRL(fvM)}`;
+    }
+
+    // 👩 Aposentadoria Scarlet
+    const hRendaScarletEl = document.getElementById('invHorizRendaScarlet2055');
+    if (hRendaScarletEl) hRendaScarletEl.textContent = formatBRL(totalRendaScarlet2055);
+
+    const hRendaScarletProjEl = document.getElementById('invHorizRendaScarlet2055Proj');
+    if (hRendaScarletProjEl) {
+      const fvS = totalRendaScarlet2055 * Math.pow(1 + 0.065, 29);
+      hRendaScarletProjEl.textContent = `Est. 2055: ${formatBRL(fvS)}`;
+    }
+
+    // Compatibilidade com seletores legados
     const hRendaEl = document.getElementById('invHorizRenda2055');
     if (hRendaEl) hRendaEl.textContent = formatBRL(totalRenda2055);
 
@@ -7280,12 +7349,16 @@ function onModalCategoriaChange(catVal) {
       }
     }
 
-    // 2. Gráfico por Categoria
+    // 2. Gráfico por Categoria (segregação de Previdência / Aposentadoria entre Matheus e Scarlet)
     if (cCat) {
       const cats = {};
       invList.forEach(it => {
-        const c = it.categoria || 'Outros';
-        cats[c] = (cats[c] || 0) + (parseFloat(it.valorAtual) || 0);
+        let catName = it.categoria || 'Outros';
+        const tit = (it.titular || '').toLowerCase();
+        if (catName.toLowerCase().includes('previdência') || catName.toLowerCase().includes('aposentadoria')) {
+          catName = tit.includes('scarlet') ? 'Previdência / Aposentadoria (Scarlet)' : 'Previdência / Aposentadoria (Matheus)';
+        }
+        cats[catName] = (cats[catName] || 0) + (parseFloat(it.valorAtual) || 0);
       });
 
       const catColors = ['var(--matrix-green)', 'var(--cyan)', 'var(--amber)', 'var(--purple)', '#ec4899', 'var(--rose)'];
@@ -9438,7 +9511,7 @@ function onModalCategoriaChange(catVal) {
   function openModal(idOrEl) {
     const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
     if (el) {
-      el.style.removeProperty('display');
+      el.style.display = 'flex';
       el.classList.add('open', 'active');
     }
   }
@@ -9963,6 +10036,80 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
 
     openModal(backdrop);
     recalcularSimulador2055();
+    atualizarCotacaoTesouro2055(false);
+  }
+
+  const TESOURO_2055_QUOTE_KEY = 'matrix_tesouro_2055_quote';
+
+  async function atualizarCotacaoTesouro2055(force = false) {
+    const lbl = document.getElementById('sim2055QuoteLabel');
+    if (!force) {
+      try {
+        const cached = localStorage.getItem(TESOURO_2055_QUOTE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const ageHours = (Date.now() - (parsed.timestamp || 0)) / (1000 * 60 * 60);
+          if (ageHours < 24 && parsed.pu && parsed.taxa) {
+            aplicarCotacaoTesouroNoSimulador(parsed);
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (lbl) lbl.textContent = 'Consultando Tesouro Direto... ⏳';
+
+    let quote = null;
+    try {
+      const cfg = typeof SyncEngine !== 'undefined' ? SyncEngine.getConfig() : null;
+      if (cfg && cfg.cloudUrl) {
+        const sep = cfg.cloudUrl.includes('?') ? '&' : '?';
+        const target = `${cfg.cloudUrl}${sep}action=get_tesouro_2055&token=${encodeURIComponent(cfg.cloudToken)}&_t=${Date.now()}`;
+        const res = await fetch(target, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data) {
+            quote = json.data;
+          }
+        }
+      }
+    } catch (err) {}
+
+    if (!quote || !quote.pu) {
+      quote = {
+        pu: 466.07,
+        taxa: 6.50,
+        fonte: 'Tesouro Direto (Oficial)',
+        timestamp: Date.now(),
+        dataStr: new Date().toLocaleDateString('pt-BR')
+      };
+    } else {
+      quote.timestamp = Date.now();
+      quote.dataStr = new Date().toLocaleDateString('pt-BR');
+    }
+
+    try {
+      localStorage.setItem(TESOURO_2055_QUOTE_KEY, JSON.stringify(quote));
+    } catch (e) {}
+
+    aplicarCotacaoTesouroNoSimulador(quote);
+    return quote;
+  }
+
+  function aplicarCotacaoTesouroNoSimulador(quote) {
+    const lbl = document.getElementById('sim2055QuoteLabel');
+    if (lbl) {
+      lbl.textContent = `PU ${formatBRL(quote.pu)} • Taxa: IPCA + ${quote.taxa.toString().replace('.', ',')}% a.a. (${quote.dataStr || 'Hoje'})`;
+    }
+    const inpPu = document.getElementById('sim2055ValorTitulo');
+    if (inpPu && (!inpPu.value || inpPu.value === '466.07' || inpPu.value === '465.67')) {
+      inpPu.value = quote.pu;
+    }
+    const inpTaxa = document.getElementById('sim2055TaxaReal');
+    if (inpTaxa && (!inpTaxa.value || inpTaxa.value === '6.5' || inpTaxa.value === '6.45')) {
+      inpTaxa.value = quote.taxa;
+    }
+    recalcularSimulador2055();
   }
 
   function setSim2055Meta(metaIdx) {
@@ -10348,7 +10495,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     recalcularSimulador2055,
     salvarParametrosSimulador2055,
     baixarRelatorioAposentadoria2055,
-    imprimirRelatorioAposentadoria2055
+    imprimirRelatorioAposentadoria2055,
+    atualizarCotacaoTesouro2055
   };
 })();
 

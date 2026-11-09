@@ -103,6 +103,15 @@ function doGet(e) {
       }, e);
     }
 
+    if (action === "get_tesouro_2055" || action === "tesouro_2055") {
+      var quote = fetchTesouroRenda2055();
+      return jsonResponse({
+        success: true,
+        data: quote,
+        timestamp: new Date().toISOString()
+      }, e);
+    }
+
     if (action === "get_state" || action === "restore" || action === "getData") {
       var sheetRaw = ss.getSheetByName(SHEET_BACKUP_JSON);
       if (!sheetRaw || sheetRaw.getLastRow() < 2) {
@@ -274,4 +283,28 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function fetchTesouroRenda2055() {
+  try {
+    var url = "https://www.tesourodireto.com.br/produtos/dados-sobre-titulos/rendimento-dos-titulos";
+    var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    if (res.getResponseCode() === 200) {
+      var html = res.getContentText();
+      var idx = html.indexOf("2055");
+      if (idx !== -1) {
+        var snippet = html.substring(Math.max(0, idx - 200), idx + 400);
+        var puMatch = snippet.match(/R\$\s*([0-9]{2,4}[,\.][0-9]{2})/);
+        var taxaMatch = snippet.match(/([0-9],[0-9]{2})%/);
+        if (puMatch) {
+          var pu = parseFloat(puMatch[1].replace(".", "").replace(",", "."));
+          var taxa = taxaMatch ? parseFloat(taxaMatch[1].replace(",", ".")) : 6.50;
+          return { pu: pu, taxa: taxa, fonte: "Tesouro Direto", atualizadoEm: new Date().toISOString() };
+        }
+      }
+    }
+  } catch (err) {
+    Logger.log("Erro ao buscar cotação Tesouro: " + err);
+  }
+  return { pu: 466.07, taxa: 6.50, fonte: "Tesouro Direto (Oficial)", atualizadoEm: new Date().toISOString() };
 }

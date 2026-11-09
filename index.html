@@ -423,7 +423,7 @@
           <div class="dual-gastos-container">
             <div class="dual-gastos-box scarlet-calc1" title="Soma dos Atendimentos FisioFlow (M+1), Outras Rendas e Transferência recebida do Matheus">
               <div class="dual-gastos-header">
-                <span class="dual-gastos-title" style="color:var(--cyan);">1. RECURSOS DISPONÍVEIS SCARLET</span>
+                <span class="dual-gastos-title" style="color:var(--cyan);">1. GANHO REAL / RECURSOS</span>
                 <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(0,0,0,0.4);border:1px solid rgba(6,182,212,0.3);">Fisio + Repasse</span>
               </div>
               <div class="dual-gastos-body">
@@ -434,7 +434,7 @@
 
             <div class="dual-gastos-box scarlet-calc2" title="Saldo líquido da Scarlet após quitar a Fatura Nubank Black e Gastos Próprios">
               <div class="dual-gastos-header">
-                <span class="dual-gastos-title" style="color:var(--purple);">2. SOBRA PÓS-FATURA & GASTOS</span>
+                <span class="dual-gastos-title" style="color:var(--purple);">2. O QUE SOBRA PRA ELA</span>
                 <span class="dual-gastos-badge" style="color:var(--purple);background:rgba(192,132,252,0.15);border:1px solid rgba(192,132,252,0.35);">Pós-Despesas</span>
               </div>
               <div class="dual-gastos-body">
@@ -446,8 +446,16 @@
 
           <!-- Detalhamento Padronizado (5 itens + linha de fechamento) -->
           <div class="unified-breakdown-list">
+            <div class="unified-row" id="topScarletGanhosAtualRow" style="font-size:10px;opacity:0.85;">
+              <span>🩺 (+) Ganho Atual (Fisio Realizado):</span>
+              <strong style="color:var(--cyan);" id="topScarletGanhosAtualVal">R$ 0,00</strong>
+            </div>
+            <div class="unified-row" id="topScarletGanhosPrevistoRow" style="font-size:10px;opacity:0.85;">
+              <span>📅 (+) Ganho Previsto (Fisio Agendado):</span>
+              <strong style="color:var(--cyan);" id="topScarletGanhosPrevistoVal">R$ 0,00</strong>
+            </div>
             <div class="unified-row">
-              <span>🩺 (+) Atendimentos Scarlet Fisio:</span>
+              <span>🩺 (=) Ganho Fisio do Mês (M+1):</span>
               <strong style="color:var(--cyan);" id="topScarletGanhosFisioVal">R$ 0,00</strong>
             </div>
             <div class="unified-row" id="topScarletOutrasRendasRow">
@@ -1486,10 +1494,17 @@
               <div id="invHorizLiquidez" style="font-size:13.5px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">R$ 0,00</div>
               <div style="font-size:9px;color:var(--text-dim);margin-top:2px;">Reservas Matheus & Scarlet</div>
             </div>
-            <div style="background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.15);padding:8px 10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">APOSENTADORIA (2055)</div>
-              <div id="invHorizRenda2055" style="font-size:13.5px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
-              <div id="invHorizRenda2055Proj" style="font-size:9px;color:var(--cyan);margin-top:2px;">Tesouro Renda+ (IPCA+6,5%)</div>
+            <div style="background:rgba(56,189,248,0.04);border:1px solid rgba(56,189,248,0.25);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:var(--cyan);font-family:var(--font-mono);font-weight:700;">👨 APOSENTADORIA MATHEUS (2055)</div>
+              <div id="invHorizRendaMatheus2055" style="font-size:13.5px;font-weight:700;color:var(--cyan);font-family:var(--font-mono);">R$ 0,00</div>
+              <div id="invHorizRendaMatheus2055Proj" style="font-size:9px;color:var(--cyan);margin-top:2px;">Tesouro Renda+ (XP & Inter)</div>
+              <span id="invHorizRenda2055" style="display:none;"></span>
+              <span id="invHorizRenda2055Proj" style="display:none;"></span>
+            </div>
+            <div style="background:rgba(236,72,153,0.04);border:1px solid rgba(236,72,153,0.25);padding:8px 10px;border-radius:4px;">
+              <div style="font-size:9.5px;color:#f472b6;font-family:var(--font-mono);font-weight:700;">👩 APOSENTADORIA SCARLET</div>
+              <div id="invHorizRendaScarlet2055" style="font-size:13.5px;font-weight:700;color:#f472b6;font-family:var(--font-mono);">R$ 0,00</div>
+              <div id="invHorizRendaScarlet2055Proj" style="font-size:9px;color:#f472b6;margin-top:2px;">Tesouro Renda+ / Previdência</div>
             </div>
             <div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);padding:8px 10px;border-radius:4px;">
               <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">MÉDIO PRAZO (2027-2028)</div>
@@ -2659,7 +2674,7 @@
 
 
   <!-- MODAL: SIMULADOR INTERATIVO & ADENDO APOSENTADORIA 2055 -->
-  <div id="simulador2055ModalBackdrop" class="matrix-modal-backdrop" onclick="if(event.target===this)MatrixApp.fecharSimuladorAposentadoria2055()">
+  <div id="simulador2055ModalBackdrop" class="modal-backdrop" onclick="if(event.target===this)MatrixApp.fecharSimuladorAposentadoria2055()">
     <div class="matrix-modal" style="max-width: 680px; width:95%; max-height:90vh; overflow-y:auto; box-sizing:border-box;">
       <div class="modal-header" style="position:sticky;top:0;background:var(--bg-card);z-index:2;padding-bottom:10px;border-bottom:1px solid var(--border-dim);display:flex;justify-content:space-between;align-items:center;">
         <div>
@@ -2703,8 +2718,12 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px;margin-bottom:14px;">
           <!-- PARÂMETROS DO TÍTULO RENDA+ 2055 -->
           <div style="background:rgba(0,255,102,0.02);border:1px solid rgba(0,255,102,0.2);padding:12px 14px;border-radius:var(--radius-sm);min-width:0;">
-            <div style="font-size:11.5px;font-weight:700;color:var(--matrix-green);margin-bottom:10px;font-family:var(--font-mono);">
-              📈 Tesouro Renda+ 2055:
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:11.5px;font-weight:700;color:var(--matrix-green);font-family:var(--font-mono);">📈 Tesouro Renda+ 2055:</span>
+              <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 7px;" onclick="MatrixApp.atualizarCotacaoTesouro2055(true)" title="Consultar cotação oficial do Tesouro Direto">🔄 Atualizar Cotação</button>
+            </div>
+            <div id="sim2055QuoteStatusBadge" style="font-size:9.5px;color:var(--cyan);margin-bottom:8px;font-family:var(--font-mono);background:rgba(6,182,212,0.08);padding:4px 8px;border-radius:4px;border:1px solid rgba(6,182,212,0.25);">
+              📡 Cotação Tesouro Direto: <strong id="sim2055QuoteLabel">PU R$ 466,07 • Taxa: IPCA + 6,50%</strong>
             </div>
             
             <div style="margin-bottom:10px;">

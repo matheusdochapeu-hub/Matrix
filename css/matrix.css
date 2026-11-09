@@ -1795,7 +1795,8 @@ body {
 }
 
 /* Modals */
-.matrix-modal-backdrop {
+.matrix-modal-backdrop,
+.modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -1809,9 +1810,13 @@ body {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  box-sizing: border-box;
 }
 
-.matrix-modal-backdrop.open {
+.matrix-modal-backdrop.open,
+.modal-backdrop.open,
+.matrix-modal-backdrop.active,
+.modal-backdrop.active {
   display: flex !important;
   animation: fadeInFast 0.18s ease-out;
 }
