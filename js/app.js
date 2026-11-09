@@ -8224,7 +8224,13 @@ function onModalCategoriaChange(catVal) {
     const empSec = document.getElementById('modalEmprestimoSection');
     if (empSec) empSec.style.display = 'none';
 
-    if (titular === 'scarlet') {
+    if (titular === 'scarlet' && tipo === 'receita') {
+      if (titleEl) titleEl.textContent = '+ Nova Renda / Receita da Scarlet';
+      if (nomeLabel) nomeLabel.textContent = 'Descrição da Renda da Scarlet:';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Atendimentos FisioFlow, Consultoria, Aulas, Trabalhos prestados...';
+      if (catSelect) catSelect.value = 'Outras Rendas Scarlet';
+      if (rendaSelect) rendaSelect.value = 'outras_rendas_scarlet';
+    } else if (titular === 'scarlet') {
       if (titleEl) titleEl.textContent = '+ Novo Gasto Scarlet (Psicóloga, Investimentos...)';
       if (nomeLabel) nomeLabel.textContent = 'Descrição do Gasto da Scarlet:';
       if (nomeInput) nomeInput.placeholder = 'Ex: Psicóloga da Scarlet, Aporte Renda+ 2055, Cursos...';
@@ -8609,8 +8615,13 @@ function onModalCategoriaChange(catVal) {
   let saldosModalTargetMes = null;
 
   function openEditSaldosModal(anoParam = null, mesParam = null, focusSection = null) {
-    saldosModalTargetAno = anoParam || currentYear;
-    saldosModalTargetMes = mesParam || currentMonth;
+    if (typeof anoParam === 'string' && (anoParam === 'scarlet' || anoParam === 'matheus' || anoParam === 'beneficios')) {
+      focusSection = anoParam;
+      anoParam = null;
+      mesParam = null;
+    }
+    saldosModalTargetAno = (anoParam && String(anoParam).length === 4) ? String(anoParam) : currentYear;
+    saldosModalTargetMes = (mesParam && MONTH_NAMES.includes(mesParam)) ? mesParam : currentMonth;
 
     const state = MatrixDB.getState();
     const monthData = MatrixDB.getMonth(saldosModalTargetAno, saldosModalTargetMes);
@@ -8694,8 +8705,9 @@ function onModalCategoriaChange(catVal) {
 
     if (focusSection === 'scarlet') {
       setTimeout(() => {
-        const inp = document.getElementById('saldosOutrasRendasScarlet');
+        const inp = document.getElementById('saldosOutrasRendasScarlet') || document.getElementById('saldosGanhosScarlet');
         if (inp) {
+          inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
           inp.focus();
           inp.select();
         }
