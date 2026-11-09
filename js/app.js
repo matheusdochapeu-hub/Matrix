@@ -829,9 +829,27 @@ const MatrixApp = (function () {
 
   // Transferência enviada pelo Matheus para a Scarlet (item "Scarlet" ou descrição "Transferência ... Scarlet").
   function isTransferenciaParaScarlet(it) {
+    if (!it) return false;
+    if (it.transferenciaScarlet === true) return true;
     const n = (it.nome || '').toLowerCase().trim();
     const desc = (it.descricao || '').toLowerCase();
-    return n === 'scarlet' || (desc.includes('transferência') && desc.includes('scarlet'));
+    const obs = (it.obs || '').toLowerCase();
+    const cat = (it.categoria || '').toLowerCase();
+
+    if (cat.includes('transferência scarlet') || cat.includes('transferencia scarlet') || cat.includes('repasse scarlet')) return true;
+    if (n === 'scarlet') return true;
+    if (n.includes('transferência') && n.includes('scarlet')) return true;
+    if (n.includes('transferencia') && n.includes('scarlet')) return true;
+    if (n.includes('transf') && n.includes('scarlet')) return true;
+    if (n.includes('pix') && n.includes('scarlet')) return true;
+    if (n.includes('repasse') && n.includes('scarlet')) return true;
+    if (desc.includes('transferência') && desc.includes('scarlet')) return true;
+    if (desc.includes('transferencia') && desc.includes('scarlet')) return true;
+    if (obs.includes('transferência') && obs.includes('scarlet')) return true;
+    if (obs.includes('transferencia') && obs.includes('scarlet')) return true;
+    if (obs.includes('transf') && obs.includes('scarlet')) return true;
+    if (obs.includes('pix') && obs.includes('scarlet')) return true;
+    return false;
   }
 
   // Despesas da própria Scarlet (Fatura Nubank, Psicóloga, Investimentos pessoais, etc.):
@@ -1082,13 +1100,18 @@ const MatrixApp = (function () {
         const cta = (d.conta || '').toLowerCase();
         if (tit === 'scarlet' || cta === 'credito_nubank_scarlet') return false;
         if (cta === 'cartao_va' || cta === 'va' || cta === 'cartao_vr' || cta === 'vr') return false;
+        if (isTransferenciaParaScarlet(d)) return false; // Deduzida separadamente como repasse para Scarlet
         return true;
       })
       .reduce((acc, d) => acc + num(d.valor), 0);
     const contasInicio = (mes === 'Janeiro' && monthData.totais && monthData.totais['Contas Inicio Ano'])
       ? num(monthData.totais['Contas Inicio Ano']) : 0;
 
-    const transfItems = [...(monthData.fixos || []), ...(monthData.outros || [])].filter(isTransferenciaParaScarlet);
+    const transfItems = [
+      ...(monthData.fixos || []),
+      ...(monthData.outros || []),
+      ...(monthData.diarios || []).filter(d => !d.jaAlocadoVariavel)
+    ].filter(isTransferenciaParaScarlet);
     const transfTotal = transfItems.reduce((acc, it) => acc + num(it.valor), 0);
     const transfPaga = transfItems.filter(it => it.pago === true).reduce((acc, it) => acc + num(it.valor), 0);
     const transfPendente = transfItems.filter(it => it.pago !== true).reduce((acc, it) => acc + num(it.valor), 0);
@@ -1231,7 +1254,7 @@ const MatrixApp = (function () {
       return monthData.scarlet.descOutrasRendas;
     }
     if (ano === '2026' && mes === 'Novembro') {
-      return 'Trabalhos prestados Outubro';
+      return 'Receitas da irmã';
     }
     return 'Outras Rendas Scarlet';
   }
@@ -4697,6 +4720,16 @@ const MatrixApp = (function () {
       return;
     }
 
+    if (isTransferenciaParaScarlet({ nome: nomeVal })) {
+      const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase().includes('transferência scarlet') || o.value.toLowerCase().includes('transferencia scarlet'));
+      if (opt) catSelect.value = opt.value;
+      if (hintEl) {
+        hintEl.innerHTML = '🤝 <span style="color:var(--amber);font-weight:bold;">Repasse / Transf. para Scarlet!</span>';
+        hintEl.style.display = 'inline-block';
+      }
+      return;
+    }
+
     const predicted = MatrixDB.predictCategory(nomeVal.trim());
     if (predicted) {
       // Verifica se a categoria prevista existe no select
@@ -5050,6 +5083,7 @@ function onModalCategoriaChange(catVal) {
     // Grava e memoriza a classificação da categoria escolhida pelo usuário para este gasto
     MatrixDB.learnCategoryMapping(nome, categoria);
 
+    const isTransf = categoria === 'Transferência Scarlet' || isTransferenciaParaScarlet({ nome, categoria, obs });
     const payload = {
       nome,
       valor,
@@ -5057,7 +5091,8 @@ function onModalCategoriaChange(catVal) {
       categoria,
       conta,
       pago,
-      obs
+      obs,
+      transferenciaScarlet: isTransf
     };
 
     if (idxVal !== '') {
@@ -8672,7 +8707,7 @@ function onModalCategoriaChange(catVal) {
     setVal('saldosSalMatheus', salMatheus);
     setVal('saldosGanhosScarlet', ganhosScarlet);
     setVal('saldosOutrasRendasScarlet', outrasRendasScarlet > 0 ? outrasRendasScarlet : '');
-    setVal('saldosDescOutrasRendasScarlet', descOutrasScarlet || 'Outras Rendas Scarlet');
+    setVal('saldosDescOutrasRendasScarlet', descOutrasScarlet || (saldosModalTargetAno === '2026' && saldosModalTargetMes === 'Novembro' ? 'Receitas da irmã' : 'Outras Rendas Scarlet'));
     setVal('saldosVa', va);
     setVal('saldosVr', vr);
     setVal('saldosNomeEstudio', (nomeEst && nomeEst !== 'Estúdio') ? nomeEst : 'Renda Extra');

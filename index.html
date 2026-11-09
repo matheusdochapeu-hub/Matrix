@@ -385,6 +385,7 @@
           <div class="unified-card-header">
             <span class="unified-card-title" style="color:var(--purple);">👩‍⚕️ Sobra Scarlet</span>
             <div class="unified-header-actions">
+              <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openNewItemModal('receita', 'scarlet')" title="Lançar Nova Renda / Receita da Scarlet (Receitas da irmã, Consultoria, Extras...)">+ Renda</span>
               <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openNewItemModal('fixo', 'scarlet')" title="Lançar Gasto da Scarlet (Psicóloga, Investimentos...)">+ Gasto</span>
               <span class="unified-edit-btn purple-btn" onclick="event.stopPropagation(); MatrixApp.openEditSaldosModal(null, null, 'scarlet')" title="Lançar / Editar Atendimentos e Outras Rendas da Scarlet">✏️ Rendas</span>
               <span class="unified-badge purple" id="topScarletStatusBadge">Fisio + Nubank</span>
@@ -2324,6 +2325,7 @@
           <option value="Lazer">Lazer</option>
           <option value="Compras">Compras</option>
           <option value="Assinaturas">Assinaturas</option>
+          <option value="Transferência Scarlet">🤝 Transferência para Scarlet</option>
           <option value="Outros">Outros</option>
         </select>
       </div>
