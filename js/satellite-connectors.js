@@ -160,15 +160,15 @@ const SatelliteConnectors = (function () {
       '2026-08': { realizado: 4670, aReceber: 0, previsto: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
       '2026-09': { realizado: 3700, aReceber: 0, previsto: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
       '2026-10': { realizado: 950, aReceber: 190, previsto: 0, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
-      '2026-11': { realizado: 0, aReceber: 995, previsto: 3300, sessoes: 11, total: 995, ganhoPossivel: 4295 }
+      '2026-11': { realizado: 0, aReceber: 995, previsto: 3810, sessoes: 11, total: 995, ganhoPossivel: 4805 }
     },
     totalHistoricoRecebido: 10505.00,
     mesAtualTotal: 995.00,
-    mesAtualPrevisto: 3300.00,
-    ganhoPossivelMes: 4295.00,
-    capacidadeMensalRecorrente: 4400.00,
-    projecaoMensalRecorrente: 4400.00,
-    pacientesAtivos: 7,
+    mesAtualPrevisto: 3810.00,
+    ganhoPossivelMes: 4805.00,
+    capacidadeMensalRecorrente: 5080.00,
+    projecaoMensalRecorrente: 5080.00,
+    pacientesAtivos: 8,
     totalAtendimentosRegistrados: 115
   };
 

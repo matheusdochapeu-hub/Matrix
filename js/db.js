@@ -202,6 +202,20 @@ const MatrixDB = (function () {
       }
     }
 
+    // Sincronização e calibração de dados dinâmicos do FisioFlow (Novembro/2026: Previsto R$ 3.810,00)
+    if (memoryCache && memoryCache.satellites && memoryCache.satellites.fisioflow) {
+      const ff = memoryCache.satellites.fisioflow;
+      if (ff.mesAtualPrevisto === 3300 || (ff.ganhosPorMes && ff.ganhosPorMes['2026-11'] && ff.ganhosPorMes['2026-11'].previsto === 3300)) {
+        ff.mesAtualPrevisto = 3810.00;
+        ff.ganhoPossivelMes = (ff.mesAtualTotal || 995.00) + 3810.00;
+        if (ff.ganhosPorMes && ff.ganhosPorMes['2026-11']) {
+          ff.ganhosPorMes['2026-11'].previsto = 3810;
+          ff.ganhosPorMes['2026-11'].ganhoPossivel = (ff.ganhosPorMes['2026-11'].total || 995) + 3810;
+        }
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (_) {}
+      }
+    }
+
     // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};

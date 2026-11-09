@@ -2350,7 +2350,7 @@ const MatrixApp = (function () {
     // Dados dinâmicos de atendimentos e agendamentos FisioFlow
     const satFisioFlow = (state.satellites && state.satellites.fisioflow) || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
     const fisioRealizadoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualTotal) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].realizado || 0 : 0)) : 0;
-    const fisioPrevistoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualPrevisto) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].previsto || 0 : 3300)) : 0;
+    const fisioPrevistoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualPrevisto) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].previsto || 0 : 3810)) : 3810;
 
     const elAtual = document.getElementById('topScarletGanhosAtualVal');
     if (elAtual) elAtual.textContent = formatBRL(fisioRealizadoAtual);
@@ -3455,12 +3455,12 @@ const MatrixApp = (function () {
       const capacidadeBase = sat.capacidadeMensalRecorrente || sat.projecaoMensalRecorrente || 4400.00;
       const ganhoPossivel = sat.ganhoPossivelMes || capacidadeBase;
       const totalHistorico = sat.totalHistoricoRecebido || 10505.00;
-      const pacAtivos = sat.pacientesAtivos || 7;
+      const pacAtivos = sat.pacientesAtivos || 8;
       const ganhosMap = (sat.ganhosPorMes && Object.keys(sat.ganhosPorMes).length > 0) ? sat.ganhosPorMes : {
         '2026-08': { realizado: 4670, aReceber: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
         '2026-09': { realizado: 3700, aReceber: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
         '2026-10': { realizado: 950, aReceber: 190, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
-        '2026-11': { realizado: 0, aReceber: 995, previsto: 3300, sessoes: 11, total: 995, ganhoPossivel: 4295 }
+        '2026-11': { realizado: 0, aReceber: 995, previsto: 3810, sessoes: 11, total: 995, ganhoPossivel: 4805 }
       };
 
       html = `
@@ -3549,7 +3549,7 @@ const MatrixApp = (function () {
           </div>
 
           <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">
-            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, enquanto o faturamento em andamento de Novembro (com ganho possível de até R$ 4.295 e capacidade de R$ 4.400/mês com 7 pacientes ativos) financiará Dezembro.
+            💡 <em>Regra de Fluxo de Caixa:</em> Os atendimentos gerados pela Scarlet no mês M são recebidos e utilizados no orçamento familiar no mês M+1. Assim, o faturamento de Outubro (R$ 1.140) financia Novembro, enquanto o faturamento em andamento de Novembro (com ganho possível de até ${formatBRL(ganhoPossivel)} e capacidade de ${formatBRL(capacidadeBase)}/mês com ${pacAtivos} pacientes ativos) financiará Dezembro.
           </div>
         </div>
       `;

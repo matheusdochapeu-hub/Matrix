@@ -447,17 +447,17 @@
 
           <!-- Detalhamento Padronizado (5 itens + linha de fechamento) -->
           <div class="unified-breakdown-list">
-            <div class="unified-row" id="topScarletGanhosAtualRow" style="font-size:10px;opacity:0.85;">
-              <span>🩺 (+) Ganho Atual (Fisio Realizado):</span>
-              <strong style="color:var(--cyan);" id="topScarletGanhosAtualVal">R$ 0,00</strong>
+            <div class="unified-row" id="topScarletGanhosAtualRow" style="font-size:10px;opacity:0.85;" title="Sessões já realizadas em Novembro. Cairão no caixa de Dezembro (Regra M+1).">
+              <span>🩺 Realizado no Mês (11 sessões):</span>
+              <strong style="color:var(--cyan);" id="topScarletGanhosAtualVal">R$ 995,00</strong>
             </div>
-            <div class="unified-row" id="topScarletGanhosPrevistoRow" style="font-size:10px;opacity:0.85;">
-              <span>📅 (+) Ganho Previsto (Fisio Agendado):</span>
-              <strong style="color:var(--cyan);" id="topScarletGanhosPrevistoVal">R$ 0,00</strong>
+            <div class="unified-row" id="topScarletGanhosPrevistoRow" style="font-size:10px;opacity:0.85;" title="Sessões agendadas na agenda do FisioFlow. Aguarda realização e confirmação — NÃO entra no caixa atual!">
+              <span>🗓️ Previsto na Agenda (FisioFlow):</span>
+              <strong style="color:var(--cyan);" id="topScarletGanhosPrevistoVal">R$ 3.810,00</strong>
             </div>
-            <div class="unified-row">
-              <span>🩺 (=) Ganho Fisio do Mês (M+1):</span>
-              <strong style="color:var(--cyan);" id="topScarletGanhosFisioVal">R$ 0,00</strong>
+            <div class="unified-row" title="Valor efetivamente faturado no mês anterior (Outubro) e creditado no caixa de Novembro (Regra M+1).">
+              <span>🩺 (+) Caixa Fisio do Mês (M+1 • Out):</span>
+              <strong style="color:var(--cyan);" id="topScarletGanhosFisioVal">R$ 1.140,00</strong>
             </div>
             <div class="unified-row" id="topScarletOutrasRendasRow">
               <span id="topScarletOutrasRendasLabel">🎁 (+) Outras Rendas Scarlet:</span>
@@ -2441,7 +2441,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
           <div>
             <label style="font-size:10.5px;color:var(--text-muted);">Atendimentos Fisio (R$):</label>
-            <input type="number" step="0.01" id="saldosGanhosScarlet" class="matrix-input" placeholder="4295.00" style="font-size:12px;color:var(--cyan);font-weight:600;">
+            <input type="number" step="0.01" id="saldosGanhosScarlet" class="matrix-input" placeholder="4805.00" style="font-size:12px;color:var(--cyan);font-weight:600;">
           </div>
           <div>
             <label style="font-size:10.5px;color:var(--text-muted);">Outras Rendas Scarlet (R$):</label>
