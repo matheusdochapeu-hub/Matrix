@@ -131,6 +131,62 @@ function doGet(e) {
       }).join("");
       var parsed = jsonStr ? JSON.parse(jsonStr) : null;
 
+      // Integração Soberana com a aba Lançamentos:
+      // Se o usuário adicionou ou editou linhas diretamente na aba Lançamentos da planilha,
+      // essas alterações são incorporadas dinamicamente ao estado retornado.
+      if (parsed && parsed.anos && ss.getSheetByName(SHEET_LANCAMENTOS)) {
+        try {
+          var sheetLanc = ss.getSheetByName(SHEET_LANCAMENTOS);
+          var lr = sheetLanc.getLastRow();
+          if (lr >= 2) {
+            var lc = Math.max(9, sheetLanc.getLastColumn());
+            var lancRows = sheetLanc.getRange(2, 1, lr - 1, lc).getValues();
+            lancRows.forEach(function (r) {
+              var rId = String(r[0] || "");
+              var rAno = String(r[1] || "");
+              var rMes = String(r[2] || "");
+              var rTipo = String(r[3] || "").toLowerCase();
+              var rNome = String(r[4] || "").trim();
+              var rValor = parseFloat(r[5]) || 0;
+              var rPago = String(r[6] || "").toUpperCase() === "SIM";
+              var rCat = String(r[7] || "").trim();
+
+              if (!rAno || !rMes || !rNome) return;
+              if (!parsed.anos[rAno]) parsed.anos[rAno] = {};
+              if (!parsed.anos[rAno][rMes]) parsed.anos[rAno][rMes] = { fixos: [], outros: [], receitas: [], diarios: [], totais: {} };
+
+              var listKey = "outros";
+              if (rTipo.indexOf("rec") >= 0) listKey = "receitas";
+              else if (rTipo.indexOf("fix") >= 0) listKey = "fixos";
+              else if (rTipo.indexOf("di") >= 0) listKey = "diarios";
+
+              if (!Array.isArray(parsed.anos[rAno][rMes][listKey])) {
+                parsed.anos[rAno][rMes][listKey] = [];
+              }
+              var targetList = parsed.anos[rAno][rMes][listKey];
+              var existing = targetList.find(function (it) {
+                return (rId && it.id === rId) || (it.nome && it.nome.trim().toLowerCase() === rNome.toLowerCase());
+              });
+              if (existing) {
+                existing.valor = rValor;
+                existing.pago = rPago;
+                if (rCat) existing.categoria = rCat;
+              } else {
+                targetList.push({
+                  id: rId || (listKey.slice(0, 3) + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000)),
+                  nome: rNome,
+                  valor: rValor,
+                  categoria: rCat || (listKey === "diarios" ? "Alimentação & Lanches" : "Outros"),
+                  pago: rPago
+                });
+              }
+            });
+          }
+        } catch (mergeErr) {
+          // Em caso de formatação atípica na planilha, preserva parsed original do Backup_JSON
+        }
+      }
+
       return jsonResponse({
         success: true,
         title: ss.getName(),

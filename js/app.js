@@ -9415,10 +9415,9 @@ function onModalCategoriaChange(catVal) {
     reader.readAsText(file);
   }
 
-  function setupModalListeners() {
-    let isHandlingPopstate = false;
-    let modalHistoryCount = 0;
+  let isHandlingPopstate = false;
 
+  function setupModalListeners() {
     // Empilha um estado guarda inicial para evitar que o botão Voltar feche o app acidentalmente
     if (typeof window !== 'undefined' && window.history && typeof window.history.pushState === 'function') {
       try {
@@ -9427,56 +9426,23 @@ function onModalCategoriaChange(catVal) {
       } catch (e) {}
     }
 
-    // Observa abertura e fechamento de todos os modais (.matrix-modal-backdrop)
-    if (typeof MutationObserver !== 'undefined') {
-      const backdrops = document.querySelectorAll('.matrix-modal-backdrop');
-      backdrops.forEach(backdrop => {
-        backdrop._wasOpen = backdrop.classList.contains('open');
-        const observer = new MutationObserver(() => {
-          const isOpen = backdrop.classList.contains('open');
-          if (isOpen === backdrop._wasOpen) return;
-          backdrop._wasOpen = isOpen;
-          if (!isOpen) backdrop.style.removeProperty('display');
-
-          if (isOpen) {
-            backdrop.style.removeProperty('display');
-            if (!isHandlingPopstate && window.history && typeof window.history.pushState === 'function') {
-              modalHistoryCount++;
-              try {
-                window.history.pushState({ matrixModalId: backdrop.id, depth: modalHistoryCount }, '', window.location.href);
-              } catch (e) {}
-            }
-          } else {
-            if (!isHandlingPopstate && modalHistoryCount > 0 && window.history && typeof window.history.back === 'function') {
-              modalHistoryCount--;
-              isHandlingPopstate = true;
-              try {
-                window.history.back();
-              } catch (e) {
-                isHandlingPopstate = false;
-              }
-              setTimeout(() => { isHandlingPopstate = false; }, 100);
-            }
-          }
-        });
-        observer.observe(backdrop, { attributes: true, attributeFilter: ['class'] });
-      });
-    }
-
     // Intercepta o botão Voltar do celular (Android/iOS) e do navegador para fechar apenas o modal aberto
     window.addEventListener('popstate', () => {
       if (isHandlingPopstate) {
         isHandlingPopstate = false;
         return;
       }
+      // Se o usuário estiver ativamente digitando ou selecionando em um campo de entrada,
+      // a dispensa do teclado virtual mobile nunca deve fechar o modal
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+        return;
+      }
       const openModals = Array.from(document.querySelectorAll('.matrix-modal-backdrop.open'));
       if (openModals.length > 0) {
-        isHandlingPopstate = true;
         const topModal = openModals[openModals.length - 1];
-        topModal._wasOpen = false;
-        closeModal(topModal);
-        if (modalHistoryCount > 0) modalHistoryCount--;
-        setTimeout(() => { isHandlingPopstate = false; }, 60);
+        topModal._inHistory = false;
+        closeModal(topModal, true);
         return;
       }
     });
@@ -9487,11 +9453,12 @@ function onModalCategoriaChange(catVal) {
         const openModals = Array.from(document.querySelectorAll('.matrix-modal-backdrop.open'));
         if (openModals.length > 0) {
           const topModal = openModals[openModals.length - 1];
-          topModal.classList.remove('open');
+          closeModal(topModal);
         }
       }
     });
 
+    // Botões explícitos [✕] de fechamento
     document.querySelectorAll('.close-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const backdrop = e.target.closest('.matrix-modal-backdrop');
@@ -9501,9 +9468,29 @@ function onModalCategoriaChange(catVal) {
       });
     });
 
+    // Proteção rigorosa contra fechamentos acidentais ao clicar ou editar dentro de qualquer modal:
+    // 1. Clicks e eventos de ponteiro dentro da caixa de diálogo (.matrix-modal) NUNCA vazam para o backdrop
+    document.querySelectorAll('.matrix-modal').forEach(m => {
+      m.addEventListener('click', (e) => e.stopPropagation());
+      m.addEventListener('mousedown', (e) => e.stopPropagation());
+      m.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    });
+
+    // 2. Rastreamento do elemento de origem do ponteiro (mousedown / touchstart)
+    let pointerDownTarget = null;
+    window.addEventListener('mousedown', (e) => { pointerDownTarget = e.target; }, true);
+    window.addEventListener('touchstart', (e) => { pointerDownTarget = e.target; }, { passive: true, capture: true });
+
+    // 3. O backdrop só fecha se pointerdown E click tiverem ocorrido diretamente no fundo escuro
+    // E houver passado pelo menos 400ms desde a abertura do modal (evita cliques residuais/sintéticos do toque mobile)
     window.addEventListener('click', (e) => {
-      if (e.target.classList.contains('matrix-modal-backdrop')) {
-        closeModal(e.target);
+      if (e.target && e.target.classList && e.target.classList.contains('matrix-modal-backdrop')) {
+        if (pointerDownTarget === e.target) {
+          const openedAt = e.target._openedAt || 0;
+          if (Date.now() - openedAt > 400) {
+            closeModal(e.target);
+          }
+        }
       }
     });
   }
@@ -9511,16 +9498,35 @@ function onModalCategoriaChange(catVal) {
   function openModal(idOrEl) {
     const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
     if (el) {
+      el._openedAt = Date.now();
       el.style.display = 'flex';
       el.classList.add('open', 'active');
+      if (!el._inHistory && window.history && typeof window.history.pushState === 'function') {
+        try {
+          window.history.pushState({ matrixModalId: el.id }, '', window.location.href);
+          el._inHistory = true;
+        } catch (_) {}
+      }
     }
   }
 
-  function closeModal(idOrEl) {
+  function closeModal(idOrEl, fromPopstate = false) {
     const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
     if (el) {
       el.classList.remove('open', 'active');
       el.style.removeProperty('display');
+      if (el._inHistory) {
+        el._inHistory = false;
+        if (!fromPopstate && window.history && typeof window.history.back === 'function') {
+          isHandlingPopstate = true;
+          try {
+            window.history.back();
+          } catch (_) {
+            isHandlingPopstate = false;
+          }
+          setTimeout(() => { isHandlingPopstate = false; }, 180);
+        }
+      }
     }
   }
 

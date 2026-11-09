@@ -34,6 +34,7 @@ const MatrixDB = (function () {
         memoryCache = JSON.parse(JSON.stringify(MATRIX_SEED_DATA));
       }
     }
+    recoverDiariosFromLocalBackups(memoryCache);
     return memoryCache;
   }
 
@@ -453,6 +454,68 @@ const MatrixDB = (function () {
 
   const BACKUP_LAST_KEY = 'matrix_backup_auto_last';
   const BACKUP_HISTORY_KEY = 'matrix_backup_history_v1';
+
+  function recoverDiariosFromLocalBackups(state) {
+    if (!state || !state.anos || typeof localStorage === 'undefined') return false;
+    let recoveredAny = false;
+    const candidateSnapshots = [];
+    try {
+      const lastRaw = localStorage.getItem(BACKUP_LAST_KEY);
+      if (lastRaw) {
+        const lastParsed = JSON.parse(lastRaw);
+        if (lastParsed && lastParsed.state && lastParsed.state.anos) candidateSnapshots.push(lastParsed.state);
+      }
+    } catch (_) {}
+    try {
+      const histRaw = localStorage.getItem(BACKUP_HISTORY_KEY);
+      if (histRaw) {
+        const histParsed = JSON.parse(histRaw);
+        if (Array.isArray(histParsed)) {
+          histParsed.forEach(snap => {
+            if (snap && snap.state && snap.state.anos) candidateSnapshots.push(snap.state);
+          });
+        }
+      }
+    } catch (_) {}
+    if (candidateSnapshots.length === 0) return false;
+
+    Object.keys(state.anos).forEach(ano => {
+      const anoObj = state.anos[ano];
+      if (!anoObj || typeof anoObj !== 'object') return;
+      Object.keys(anoObj).forEach(mes => {
+        const curMonth = anoObj[mes];
+        if (!curMonth || typeof curMonth !== 'object') return;
+        if (!Array.isArray(curMonth.diarios)) curMonth.diarios = [];
+
+        candidateSnapshots.forEach(cState => {
+          if (!cState.anos || !cState.anos[ano] || !cState.anos[ano][mes]) return;
+          const snapMonth = cState.anos[ano][mes];
+          if (!snapMonth || !Array.isArray(snapMonth.diarios) || snapMonth.diarios.length === 0) return;
+
+          snapMonth.diarios.forEach(snapItem => {
+            if (!snapItem || typeof snapItem !== 'object') return;
+            const exists = curMonth.diarios.some(curItem => {
+              if (curItem.id && snapItem.id && curItem.id === snapItem.id) return true;
+              const sameName = (curItem.nome || '').trim().toLowerCase() === (snapItem.nome || '').trim().toLowerCase();
+              const sameVal = Math.abs((parseFloat(curItem.valor) || 0) - (parseFloat(snapItem.valor) || 0)) < 0.01;
+              const sameDate = curItem.dataHora && snapItem.dataHora && curItem.dataHora === snapItem.dataHora;
+              return sameName && sameVal && sameDate;
+            });
+            if (!exists) {
+              curMonth.diarios.push(JSON.parse(JSON.stringify(snapItem)));
+              recoveredAny = true;
+            }
+          });
+        });
+      });
+    });
+
+    if (recoveredAny) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+    }
+    return recoveredAny;
+  }
+
 
   function saveState(state, reason = 'alteracao_sistema', options = {}) {
     state.atualizadoEm = new Date().toISOString();

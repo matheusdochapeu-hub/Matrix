@@ -1234,9 +1234,12 @@ const SatelliteConnectors = (function () {
       } catch (e) {}
     }
 
-    state.satellites.lastScraped = new Date().toISOString();
-    MatrixDB.saveState(state, 'satellite_scrape', { skipCloudSync: true });
-    localStorage.setItem(STORAGE_KEYS.lastScraped, state.satellites.lastScraped);
+    const freshState = MatrixDB.getState();
+    if (!freshState.satellites) freshState.satellites = {};
+    Object.assign(freshState.satellites, state.satellites);
+    freshState.satellites.lastScraped = new Date().toISOString();
+    MatrixDB.saveState(freshState, 'satellite_scrape', { skipCloudSync: true });
+    localStorage.setItem(STORAGE_KEYS.lastScraped, freshState.satellites.lastScraped);
 
     return statusResults;
   }

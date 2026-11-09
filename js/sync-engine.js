@@ -492,10 +492,64 @@ const SyncEngine = (function () {
           payloadData.satellites.maracaju = localMaracajuSat;
         }
       }
+      // MERGE INTELIGENTE E NÃO-DESTRUTIVO DE DIÁRIOS E LANÇAMENTOS LOCAIS:
+      let hadLocalDiariosMerged = false;
+      if (currentLocalState && currentLocalState.anos && payloadData && payloadData.anos) {
+        Object.keys(currentLocalState.anos).forEach(ano => {
+          if (!payloadData.anos[ano]) payloadData.anos[ano] = {};
+          Object.keys(currentLocalState.anos[ano]).forEach(mes => {
+            const localMonth = currentLocalState.anos[ano][mes];
+            if (!payloadData.anos[ano][mes]) {
+              payloadData.anos[ano][mes] = JSON.parse(JSON.stringify(localMonth));
+              hadLocalDiariosMerged = true;
+              return;
+            }
+            const cloudMonth = payloadData.anos[ano][mes];
+            if (!Array.isArray(cloudMonth.diarios)) cloudMonth.diarios = [];
+
+            // 1. Preservar rigorosamente todos os gastos diários locais
+            if (localMonth && Array.isArray(localMonth.diarios) && localMonth.diarios.length > 0) {
+              localMonth.diarios.forEach(locD => {
+                if (!locD || typeof locD !== 'object') return;
+                const existsInCloud = cloudMonth.diarios.some(cldD => {
+                  if (cldD.id && locD.id && cldD.id === locD.id) return true;
+                  const sameName = (cldD.nome || '').trim().toLowerCase() === (locD.nome || '').trim().toLowerCase();
+                  const sameVal = Math.abs((parseFloat(cldD.valor) || 0) - (parseFloat(locD.valor) || 0)) < 0.01;
+                  const sameDate = cldD.dataHora && locD.dataHora && cldD.dataHora === locD.dataHora;
+                  return sameName && sameVal && sameDate;
+                });
+                if (!existsInCloud) {
+                  cloudMonth.diarios.push(JSON.parse(JSON.stringify(locD)));
+                  hadLocalDiariosMerged = true;
+                }
+              });
+            }
+
+            // 2. Preservar outros lançamentos manuais locais (outros, fixos, receitas) se ausentes na nuvem
+            ['fixos', 'outros', 'receitas'].forEach(tipo => {
+              if (localMonth && Array.isArray(localMonth[tipo])) {
+                if (!Array.isArray(cloudMonth[tipo])) cloudMonth[tipo] = [];
+                localMonth[tipo].forEach(locIt => {
+                  if (!locIt || !locIt.id) return;
+                  const inCloud = cloudMonth[tipo].some(cIt => cIt.id === locIt.id);
+                  if (!inCloud) {
+                    cloudMonth[tipo].push(JSON.parse(JSON.stringify(locIt)));
+                    hadLocalDiariosMerged = true;
+                  }
+                });
+              }
+            });
+          });
+        });
+      }
+
       if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
         SatelliteConnectors.syncMaracajuFromLocal(payloadData);
       }
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
+      if (hadLocalDiariosMerged) {
+        queueSync();
+      }
       const ts = json.timestamp || new Date().toISOString();
       localStorage.setItem(STORAGE_KEYS.lastSync, ts);
       updateStatusUI('synced', 'Sincronizado com ' + (json.title || 'Matrix Finance 360'));
