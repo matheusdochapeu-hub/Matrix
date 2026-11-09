@@ -3410,23 +3410,23 @@ const MatrixApp = (function () {
               </div>
 
               <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #ec4899;border-radius:3px;">
-                <span style="color:var(--cyan);font-weight:bold;">2. Auditoria de Assinaturas & Isenção Ultravioleta</span>
+                <span style="color:var(--cyan);font-weight:bold;">2. Zero Tarifas Bancárias & Isenção Permanente</span>
                 <div style="color:var(--text-muted);margin-top:2px;">
-                  Gasto de R$ 420,00 em assinaturas recorrentes + R$ 89,00 da mensalidade Ultravioleta. Desativando serviços duplicados poupa-se R$ 150,00. Mantendo R$ 50k em investimentos ou média de gastos da fatura, a mensalidade de R$ 89,00 fica 100% gratuita. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 239,00/mês</span>.
+                  Tanto Matheus (Nubank / BB Ourocard) quanto Scarlet operam sem tarifas nem anuidades. Manter isenção total perpétua e evitar juros de rotativo ou parcelamento de fatura. <span style="color:var(--matrix-green);font-weight:bold;">Economia em tarifas: 100% blindado</span>.
                 </div>
               </div>
 
               <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #8b5cf6;border-radius:3px;">
-                <span style="color:#a78bfa;font-weight:bold;">3. Desconto por Antecipação de Parcelas (Nubank Black)</span>
+                <span style="color:#a78bfa;font-weight:bold;">3. Desconto por Antecipação de Parcelas (Nubank)</span>
                 <div style="color:var(--text-muted);margin-top:2px;">
-                  Saldo comprometido futuro de ${formatBRL(faturasFuturas)}. O Nubank oferece desconto imediato ao antecipar parcelas sem juros. Aproveitar a folga do fechamento mensal para amortizar compras parceladas gera ganho financeiro direto. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 60,00 a R$ 90,00</span> por lote.
+                  Saldo comprometido futuro de ${formatBRL(faturasFuturas)}. O Nubank concede desconto automático ao adiantar compras parceladas sem juros quando houver folga no caixa. <span style="color:var(--matrix-green);font-weight:bold;">Economia financeira direta</span> por antecipação.
                 </div>
               </div>
 
               <div style="padding:8px;background:rgba(0,0,0,0.4);border-left:3px solid #10b981;border-radius:3px;">
-                <span style="color:var(--matrix-green);font-weight:bold;">4. Deslocamento USP x VR / Combustível</span>
+                <span style="color:var(--matrix-green);font-weight:bold;">4. Logística de Caronas USP (R$ 60/dia)</span>
                 <div style="color:var(--text-muted);margin-top:2px;">
-                  R$ 380,00 em transportes. Com o regime híbrido de 2 dias presenciais na USP, otimize abastecimento via cashback e concilie caronas no departamento. <span style="color:var(--matrix-green);font-weight:bold;">Economia: ~R$ 120,00/mês</span>.
+                  Custo de R$ 60,00 por dia presencial (R$ 1.140,00 em 19 dias úteis em Novembro). Otimizar dias remotos e recessos no Calendário USP poupa R$ 60 líquidos por dia. <span style="color:var(--matrix-green);font-weight:bold;">Economia em recessos: ~R$ 420 a R$ 600</span>.
                 </div>
               </div>
             </div>
@@ -5482,54 +5482,54 @@ function onModalCategoriaChange(catVal) {
         </div>
       </div>
 
-      <!-- Auditoria de Assinaturas e Dicas -->
+      <!-- Diagnóstico Estratégico Realista: Alavancas de Economia Matheus & Scarlet -->
       <div style="background:linear-gradient(180deg, rgba(234,179,8,0.06), rgba(5,8,7,0.7));border:1px solid var(--amber);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <strong style="color:var(--amber);font-size:13.5px;display:flex;align-items:center;gap:6px;">
-            <span>💡 Auditoria Automatizada de Assinaturas & Recomendações de Redução</span>
+            <span>💡 Diagnóstico Estratégico de Otimização & Alavancas Reais de Economia</span>
           </strong>
           <span style="font-size:11px;background:rgba(234,179,8,0.2);color:var(--amber);padding:2px 8px;border-radius:10px;font-weight:bold;">
-            Economia Anual Estimada: ~R$ 1.950,00 a R$ 2.500,00/ano
+            Potencial de Liberação de Fluxo: ~R$ 7.200 a R$ 15.000+/ano
           </span>
         </div>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+          <!-- Card 1: Logística de Caronas USP -->
           <div style="background:rgba(0,0,0,0.5);border-left:3px solid #f59e0b;padding:10px 12px;border-radius:var(--radius-xs);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <strong style="color:var(--text-main);font-size:12.5px;">🎬 Globoplay / Streamings</strong>
-              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia: ~R$ 300,00/ano</span>
+              <strong style="color:var(--text-main);font-size:12.5px;">🚗 Logística de Caronas USP (São Carlos)</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia: ~R$ 420 a R$ 1.200/ano</span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
-              • <strong>Situação Atual:</strong> Assinatura mensal avulsa (~R$ 54,90/mês = R$ 658,80/ano).<br>
-              • <strong>Oportunidade:</strong> Migração para o plano anual da Globoplay (~R$ 29,90/mês = R$ 358,80/ano parcelado) ou combo com provedor de telecom/canais.<br>
-              • <strong>Ação Prática:</strong> Ajustar no app da Globoplay antes da renovação de Janeiro.
+              • <strong>Situação Real:</strong> Custo presencial de R$ 60,00/dia entre Ribeirão Preto e São Carlos (total de R$ 1.140,00 em 19 dias úteis em Novembro). É o 2º maior gasto fixo do Matheus.<br>
+              • <strong>Oportunidade:</strong> Cada dia presencial evitado (folga abonada, compensação, banco de horas ou recessos) poupa R$ 60,00 líquidos. Em meses com férias/recesso (ex: Dezembro a R$ 720,00), a folga gerada é de R$ 420 a R$ 600.<br>
+              • <strong>Ação Prática:</strong> Manter o Calendário USP atualizado no Matrix para antecipar os recessos e canalizar a sobra líquida de transporte para os aportes no Tesouro Renda+ 2055.
             </div>
           </div>
 
+          <!-- Card 2: Quitação de Empréstimos Familiares -->
           <div style="background:rgba(0,0,0,0.5);border-left:3px solid #10b981;padding:10px 12px;border-radius:var(--radius-xs);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <strong style="color:var(--text-main);font-size:12.5px;">🐾 Petlove & Cuidados Pet</strong>
-              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia: ~R$ 240 a R$ 360/ano</span>
+              <strong style="color:var(--text-main);font-size:12.5px;">🤝 Quitação de Empréstimos Familiares</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Liberação: R$ 900,00/mês (R$ 10.800/ano)</span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
-              • <strong>Situação Atual:</strong> Compras avulsas de ração, antipulgas e pet care via fatura de crédito.<br>
-              • <strong>Oportunidade:</strong> Ativar a <strong>Assinatura Recorrente Petlove (Clube)</strong>: 10% de desconto permanente + frete grátis + cashback no cartão.<br>
-              • <strong>Ação Prática:</strong> Configurar a frequência bimestral para os produtos de consumo contínuo.
+              • <strong>Situação Real:</strong> O fluxo mensal do casal desembolsa R$ 900,00/mês em parcelas familiares e pessoais (Edna R$ 500, Alberto R$ 250, Cesar R$ 150).<br>
+              • <strong>Oportunidade:</strong> À medida que esses compromissos forem sendo quitados, liberam-se até R$ 900,00 líquidos mensais livres na conta corrente.<br>
+              • <strong>Ação Prática:</strong> Tratar a conclusão dessas parcelas como aporte automático na Reserva Imediata (100% CDI) e Renda+ 2055, acelerando a blindagem patrimonial.
             </div>
           </div>
 
+          <!-- Card 3: Financiamento Caixa & Fatura Scarlet / FisioFlow -->
           <div style="background:rgba(0,0,0,0.5);border-left:3px solid #8b5cf6;padding:10px 12px;border-radius:var(--radius-xs);grid-column:1/-1;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <strong style="color:var(--text-main);font-size:12.5px;">💳 Nubank Ultravioleta vs Melhores Cartões do Mercado</strong>
-              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia em Tarifas: até R$ 1.068,00/ano</span>
+              <strong style="color:var(--text-main);font-size:12.5px;">🏛️ Financiamento Caixa & Consolidação FisioFlow</strong>
+              <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia em Juros: Dezenas de milhares de R$</span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
-              • <strong>Análise da Mensalidade (R$ 89,00/mês = R$ 1.068,00/ano):</strong> O Nubank Black concede isenção total gastando R$ 5.000/mês ou com R$ 50k investidos na NuInvest. O cashback de 1,25% crescendo a 200% do CDI é imbatível se a isenção for cumprida.<br>
-              • <strong>Comparativo com Alternativas Superiores caso não atinja os R$ 5.000:</strong><br>
-                &nbsp;&nbsp;▸ <strong>XP Visa Infinite:</strong> Zero anuidade perpétua a partir de apenas R$ 5.000 investidos na XP, Investback de 1% e até 4 acessos anuais a salas VIP DragonPass.<br>
-                &nbsp;&nbsp;▸ <strong>Inter Mastercard Black:</strong> Zero anuidade assinando o Duo Gourmet (~R$ 450/ano economizando centenas em refeições) ou R$ 250k investidos, 1% cashback na conta e salas VIP LoungeKey ilimitadas.<br>
-                &nbsp;&nbsp;▸ <strong>C6 Carbon Black:</strong> Gera 2,5 pontos por dólar no programa Átomos com isenção gradual.<br>
-              • <strong>Veredito Automatizado Matrix:</strong> Mantenha o Ultravioleta se as compras do casal atingirem a isenção. Se houver cobrança dos R$ 89,00, a migração para o XP Visa Infinite economiza <strong>R$ 1.068,00 líquidos/ano</strong> com os mesmos privilégios Black.
+              • <strong>Amortização Exclusiva de Prazo (Financiamento Caixa):</strong> Saldo devedor de R$ 157.884,49 em 271 prestações (Price, 8,99% a.a., parcela de R$ 1.395,88). Cada aporte extraordinário com foco exclusivo em prazo extingue parcelas do final da dívida com abatimento exponencial de juros futuros. O FGTS mensal USP (R$ 501,12) acumula ~R$ 12.000 a cada 24 meses para abatimento obrigatório por prazo.<br>
+              • <strong>Auto-suficiência da Fatura Scarlet (Nubank Black):</strong> Com a capacidade contratada de R$ 4.400/mês (7 pacientes ativos no FisioFlow), a consolidação dos atendimentos particulares dispensa repasses externos do Matheus, gerando excedente para a Previdência da Scarlet (Renda+ 2055).<br>
+              • <strong>Blindagem com Benefícios (VA R$ 2.050 + VR R$ 1.105):</strong> Direcionar 100% dos gastos de supermercado e almoço para os cartões de benefício (Casa Maracaju 88), mantendo custo zero de alimentação em conta corrente.
             </div>
           </div>
         </div>
@@ -5796,18 +5796,18 @@ function onModalCategoriaChange(catVal) {
           </tbody>
         </table>
 
-        <h3>💡 Diagnóstico de Otimização & Assinaturas</h3>
+        <h3>💡 Diagnóstico Estratégico de Otimização & Alavancas Reais de Economia</h3>
         <div class="tip-box">
-          <strong>1. Globoplay / Streamings (Economia: R$ 300,00/ano)</strong><br>
-          Migração para o plano anual ou combo com provedor de telecom reduz o valor de R$ 54,90 para R$ 29,90/mês.
+          <strong>1. Logística de Caronas USP (Economia: ~R$ 420 a R$ 1.200/ano)</strong><br>
+          Custo de R$ 60,00/dia presencial (R$ 1.140 em 19 dias). Otimizar recessos, compensações e dias remotos no calendário USP poupa R$ 60 líquidos por dia.
         </div>
         <div class="tip-box">
-          <strong>2. Petlove Recorrente (Economia: ~R$ 300,00/ano)</strong><br>
-          Ativação da assinatura do Clube Petlove garante 10% de desconto em todas as compras recorrentes de ração e medicamentos.
+          <strong>2. Quitação de Empréstimos Familiares (Liberação: R$ 900,00/mês • R$ 10.800/ano)</strong><br>
+          O término dos empréstimos (Edna R$ 500, Alberto R$ 250, Cesar R$ 150) liberará R$ 900/mês de fluxo livre para canalizar à Reserva Imediata e Renda+ 2055.
         </div>
         <div class="tip-box">
-          <strong>3. Nubank Ultravioleta vs XP Visa Infinite (Economia: até R$ 1.068,00/ano)</strong><br>
-          Garantir média de gastos >= R$ 5.000 ou R$ 50k investidos para isenção total dos R$ 89/mês. Caso a fatura seja menor, adotar o XP Visa Infinite com zero anuidade.
+          <strong>3. Amortização Exclusiva de Prazo (Caixa) & FisioFlow</strong><br>
+          Foco estrito em redução de prazo no financiamento da Caixa (eliminando juros futuros com FGTS USP bienal) e expansão da capacidade do FisioFlow (R$ 4.400/mês) para auto-suficiência da fatura Scarlet.
         </div>
       </body>
       </html>
