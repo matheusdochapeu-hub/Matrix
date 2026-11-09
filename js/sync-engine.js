@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MATRIX FINANCE - SYNC & EXTERNAL CONNECTORS ENGINE (v70)
  * Sincronização em nuvem resiliente com Google Sheets (Planilha Matrix Finance 360)
  * com compactação estrita garantida (< 35.000 caracteres para jamais atingir o
@@ -111,8 +111,8 @@ const SyncEngine = (function () {
       simulacoesAtivas: Array.isArray(rawState.simulacoesAtivas) ? JSON.parse(JSON.stringify(rawState.simulacoesAtivas)) : [],
       simulacoesAmortizacao: [],
       calendarioCustom: rawState.calendarioCustom ? JSON.parse(JSON.stringify(rawState.calendarioCustom)) : { overrides: {}, folgas: [] },
-      satellites: (rawState.satellites && rawState.satellites.maracaju) ? {
-        maracaju: {
+      satellites: rawState.satellites ? {
+        maracaju: rawState.satellites.maracaju ? {
           origem: rawState.satellites.maracaju.origem || 'Maracaju 88',
           atualizadoEm: rawState.satellites.maracaju.atualizadoEm,
           cicloVigente: rawState.satellites.maracaju.cicloVigente || '2026-11',
@@ -131,7 +131,17 @@ const SyncEngine = (function () {
           totalDisponivel: rawState.satellites.maracaju.totalDisponivel != null ? rawState.satellites.maracaju.totalDisponivel : 3165,
           gastoMercadoCicloAnterior: rawState.satellites.maracaju.gastoMercadoCicloAnterior || 390.41,
           comprasCicloAtual: Array.isArray(rawState.satellites.maracaju.comprasCicloAtual) ? rawState.satellites.maracaju.comprasCicloAtual.slice(0, 30) : []
-        }
+        } : undefined,
+        faturas: rawState.satellites.faturas ? {
+          origem: rawState.satellites.faturas.origem,
+          atualizadoEm: rawState.satellites.faturas.atualizadoEm,
+          faturasPorMes: rawState.satellites.faturas.faturasPorMes,
+          faturaAtualReal: rawState.satellites.faturas.faturaAtualReal,
+          faturasFuturasCompromissadas: rawState.satellites.faturas.faturasFuturasCompromissadas,
+          limiteMetaMensal: rawState.satellites.faturas.limiteMetaMensal,
+          categoriasTotais: rawState.satellites.faturas.categoriasTotais
+        } : undefined,
+        fisioflow: rawState.satellites.fisioflow ? JSON.parse(JSON.stringify(rawState.satellites.fisioflow)) : undefined
       } : undefined,
       anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
     };
@@ -472,10 +482,14 @@ const SyncEngine = (function () {
       }
 
       const localMaracajuSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.maracaju;
+      const localFaturasSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.faturas;
       const payloadData = expandStateFromCloud(rawPayload);
       if (!payloadData.satellites) payloadData.satellites = {};
       if (!payloadData.satellites.maracaju && localMaracajuSat) {
         payloadData.satellites.maracaju = localMaracajuSat;
+      }
+      if (!payloadData.satellites.faturas && localFaturasSat) {
+        payloadData.satellites.faturas = localFaturasSat;
       } else if (payloadData.satellites.maracaju && localMaracajuSat) {
         // Se o estado local já tiver gastos maiores/mais recentes no ciclo vigente, preserva
         const cSat = payloadData.satellites.maracaju;
@@ -705,6 +719,7 @@ const SyncEngine = (function () {
     updateStatusUI,
     compactStateForCloud,
     expandStateFromCloud,
+    jsonpRequest,
     DEFAULT_SPREADSHEET_ID,
     DEFAULT_SPREADSHEET_URL
   };

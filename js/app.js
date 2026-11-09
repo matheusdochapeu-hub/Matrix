@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MATRIX FINANCE - MAIN APPLICATION CONTROLLER
  * Coordenação de fluxo de caixa, projeções "E se?", holerites, calendário de caronas,
  * amortizações da Caixa, investimentos e interface Matrix clean.
@@ -663,21 +663,20 @@ const MatrixApp = (function () {
       if (!isNaN(val) && val > 0) return val;
     }
 
-    // 3. Meses conhecidos com dados reais comprovados do app Faturas (apenas 2026/2027)
-    if (sAno === '2026') {
-      if (sMes === 'Novembro') return 4568.57;
-      if (sMes === 'Dezembro') return 1568.05;
-      if (sMes === 'Outubro') return 3418.03;
-      if (sMes === 'Setembro') return 0;
-    } else if (sAno === '2027') {
-      // Valor lançado pelo usuário em 2027 tem prioridade sobre a estimativa padrão
-      const stored2027 = monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' ? monthData.scarlet.faturaNubank : 0;
-      if (sMes === 'Janeiro' && !(stored2027 > 0)) return 1628.89;
-    }
-
-    // 4. Se houver valor numérico gravado no mês
+    // 3. Se houver valor numÃ©rico gravado no mÃªs (banco de dados ou ediÃ§Ã£o manual)
     if (monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
       return monthData.scarlet.faturaNubank;
+    }
+
+    // 4. Fallback histÃ³rico de meses conhecidos (apenas se nÃ£o houver dado em satÃ©lite nem no mÃªs)
+    if (sAno === '2026') {
+      if (sMes === 'Outubro') return 3418.03;
+      if (sMes === 'Setembro') return 0;
+      if (sMes === 'Novembro') return 4883.05;
+      if (sMes === 'Dezembro') return 1568.05;
+    } else if (sAno === '2027') {
+      const stored2027 = monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' ? monthData.scarlet.faturaNubank : 0;
+      if (sMes === 'Janeiro' && !(stored2027 > 0)) return 1628.89;
     }
 
     // 5. Transferência explícita para Fatura Nubank da Scarlet nas despesas do mês
@@ -8610,6 +8609,17 @@ function onModalCategoriaChange(catVal) {
     monthData.scarlet.descOutrasRendas = descOutrasScarlet;
     monthData.scarlet.faturaNubank = faturaNubank;
     monthData.scarlet.faturaNubankManual = faturaNubank;
+    const sMonthKey = ${saldosModalTargetAno}-${saldosModalTargetMes};
+    if (!state.satellites) state.satellites = {};
+    if (!state.satellites.faturas) state.satellites.faturas = {};
+    if (!state.satellites.faturas.faturasPorMes) state.satellites.faturas.faturasPorMes = {};
+    if (!state.satellites.faturas.faturasPorMes[sMonthKey]) state.satellites.faturas.faturasPorMes[sMonthKey] = {};
+    state.satellites.faturas.faturasPorMes[sMonthKey].total = faturaNubank;
+    state.satellites.faturas.faturasPorMes[sMonthKey].valorReal = faturaNubank;
+    if (saldosModalTargetAno === currentYear && saldosModalTargetMes === currentMonth) {
+      state.satellites.faturas.faturaAtualReal = faturaNubank;
+      state.satellites.faturas.faturaAtualValor = faturaNubank;
+    }
     const chkFaturaPaga = document.getElementById('saldosFaturaPaga');
     if (chkFaturaPaga) {
       monthData.scarlet.faturaPaga = chkFaturaPaga.checked;

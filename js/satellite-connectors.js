@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE (v1.3.0)
  * Coleta com alta precisão e sem distorções dos 3 apps satélites:
  * 1. FisioFlow: Ganhos passados, mês atual e projeções futuras (Scarlet).
@@ -495,7 +495,7 @@ const SatelliteConnectors = (function () {
       };
     }
 
-    const faturaAtualReal = faturasPorMes['2026-Novembro'] ? faturasPorMes['2026-Novembro'].total : 4568.57;
+    const faturaAtualReal = faturasPorMes['2026-Novembro'] ? faturasPorMes['2026-Novembro'].total : 4883.05;
     const faturasFuturasCompromissadas = faturasPorMes['2026-Dezembro'] ? faturasPorMes['2026-Dezembro'].total : 1568.05;
 
     return {
@@ -979,6 +979,81 @@ const SatelliteConnectors = (function () {
   }
 
   // ========================================================
+  // HELPER UNIVERSAL DE FETCH PARA GOOGLE APPS SCRIPT
+  // Tenta fetch nativo com timeout; se falhar por CORS/rede, usa JSONP
+  // ========================================================
+  async function fetchGasDataWithJsonpFallback(url, params = {}) {
+    if (!url) return null;
+    const fetchOpts = {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      redirect: 'follow',
+      cache: 'no-store'
+    };
+    const sep = url.includes('?') ? '&' : '?';
+    const query = Object.keys(params)
+      .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+      .concat(['_t=' + Date.now()])
+      .join('&');
+    const fullUrl = url + sep + query;
+
+    // 1. Tenta fetch nativo (rÃ¡pido se CORS permitir)
+    try {
+      const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 6000) : null;
+      const res = await fetch(fullUrl, controller ? Object.assign({}, fetchOpts, { signal: controller.signal }) : fetchOpts);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.status !== 'error') return json.data || json;
+      }
+    } catch (e) {
+      // Falha CORS ou rede: continua para o fallback JSONP
+    }
+
+    // 2. Fallback JSONP via SyncEngine ou script tag direto
+    if (typeof SyncEngine !== 'undefined' && typeof SyncEngine.jsonpRequest === 'function') {
+      try {
+        const data = await SyncEngine.jsonpRequest(url, params, 9000);
+        if (data && data.status !== 'error') return data.data || data;
+      } catch (e) {}
+    } else {
+      try {
+        const data = await new Promise((resolve, reject) => {
+          if (typeof document === 'undefined') return reject(new Error('Sem DOM'));
+          const cbName = '_sat_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+          const script = document.createElement('script');
+          const timer = setTimeout(() => {
+            cleanup();
+            reject(new Error('Timeout JSONP'));
+          }, 9000);
+          function cleanup() {
+            clearTimeout(timer);
+            try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+            if (script && script.parentNode) script.parentNode.removeChild(script);
+          }
+          window[cbName] = function (res) {
+            cleanup();
+            resolve(res);
+          };
+          const q = Object.keys(params)
+            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+            .concat(['callback=' + cbName, '_t=' + Date.now()])
+            .join('&');
+          script.id = cbName;
+          script.src = url + sep + q;
+          script.onerror = function () { cleanup(); reject(new Error('Script error')); };
+          document.head.appendChild(script);
+        });
+        if (data && data.status !== 'error') return data.data || data;
+      } catch (e) {}
+    }
+
+    return null;
+  }
+
+  // ========================================================
   // MOTOR CENTRAL DE SCRAPING DOS 3 APPS
   // ========================================================
   async function scrapeAll() {
@@ -998,14 +1073,12 @@ const SatelliteConnectors = (function () {
     // 1. FisioFlow
     if (cfg.fisioUrl) {
       try {
-        const sep = cfg.fisioUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.fisioUrl}${sep}action=getData&token=${encodeURIComponent(cfg.fisioToken || '')}&_t=${Date.now()}`, fetchOpts);
-        if (res.ok) {
-          const json = await res.json();
-          if (json && json.status !== 'error') {
-            state.satellites.fisioflow = processFisioData(json);
-            statusResults.fisio = { success: true };
-          }
+        const fisioData = await fetchGasDataWithJsonpFallback(cfg.fisioUrl, { action: 'getData', token: cfg.fisioToken || '' });
+        if (fisioData) {
+          state.satellites.fisioflow = processFisioData(fisioData);
+          statusResults.fisio = { success: true };
+        } else if (!state.satellites.fisioflow) {
+          state.satellites.fisioflow = getBaselineFisioData();
         }
       } catch (e) {
         if (!state.satellites.fisioflow) {
@@ -1016,20 +1089,13 @@ const SatelliteConnectors = (function () {
     }
 
     // 2. Faturas (Nubank Mastercard Black)
-    // Tenta primeiro via fetch remoto, se falhar ou se estiver no mesmo domínio, tenta localStorage
+    // Tenta via fetch com fallback JSONP (Google Apps Script) e fallback localStorage
     let faturasRaw = null;
     if (cfg.faturasUrl) {
       try {
-        const sep = cfg.faturasUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${cfg.faturasUrl}${sep}action=restore&token=${encodeURIComponent(cfg.faturasToken || '')}&_t=${Date.now()}`, fetchOpts);
-        if (res.ok) {
-          const json = await res.json();
-          if (json && json.status !== 'error') {
-            faturasRaw = json.data || json;
-          }
-        }
+        faturasRaw = await fetchGasDataWithJsonpFallback(cfg.faturasUrl, { action: 'restore', token: cfg.faturasToken || '' });
       } catch (e) {
-        // Fallback local caso fetch falhe
+        // Fallback local caso requisiÃ§Ã£o remota falhe
       }
     }
 
@@ -1048,8 +1114,26 @@ const SatelliteConnectors = (function () {
       } catch (e) {}
     }
 
-    state.satellites.faturas = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
+    const fatProcessed = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
+    state.satellites.faturas = fatProcessed;
     statusResults.faturas = { success: true };
+
+    // Sincroniza o valor calculado da fatura diretamente nos meses do Matrix
+    if (fatProcessed && fatProcessed.faturasPorMes && state.anos) {
+      Object.keys(fatProcessed.faturasPorMes).forEach(mKey => {
+        const parts = mKey.split('-');
+        if (parts.length === 2) {
+          const ano = parts[0];
+          const mes = parts[1];
+          const mesFat = fatProcessed.faturasPorMes[mKey];
+          if (mesFat && typeof mesFat.total === 'number' && state.anos[ano] && state.anos[ano][mes]) {
+            const mData = state.anos[ano][mes];
+            if (!mData.scarlet) mData.scarlet = {};
+            mData.scarlet.faturaNubank = mesFat.total;
+          }
+        }
+      });
+    }
 
     // 3. Maracaju 88 (Confronto Duplo: VA e VR + Ponte Local MARACAJU_STATE_v1)
     const localMaracajuRaw = getLocalMaracajuRawState();

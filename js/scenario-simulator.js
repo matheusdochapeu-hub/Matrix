@@ -1,4 +1,4 @@
-/**
+﻿/**
  * MATRIX FINANCE - "WHAT-IF" SCENARIO SIMULATOR (PROJEÇÕES FUTURAS)
  * Laboratório de projeções financeiras: teste despesas hipotéticas (ex: seguro de vida da Scarlet R$ 100~150,
  * parcelas de cartão, investimentos futuros) segregando rigorosamente as contas bancárias e fontes de renda:
@@ -216,17 +216,17 @@ const ScenarioSimulator = (function () {
       const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
       if (!isNaN(val) && val > 0) return val;
     }
+    if (monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
+      return monthData.scarlet.faturaNubank;
+    }
     if (sAno === '2026') {
-      if (sMes === 'Novembro') return 4568.57;
-      if (sMes === 'Dezembro') return 1568.05;
       if (sMes === 'Outubro') return 3418.03;
       if (sMes === 'Setembro') return 0;
+      if (sMes === 'Novembro') return 4883.05;
+      if (sMes === 'Dezembro') return 1568.05;
     } else if (sAno === '2027') {
       const stored2027 = monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' ? monthData.scarlet.faturaNubank : 0;
       if (sMes === 'Janeiro' && !(stored2027 > 0)) return 1628.89;
-    }
-    if (monthData && monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
-      return monthData.scarlet.faturaNubank;
     }
     return 0;
   }
