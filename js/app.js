@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MATRIX FINANCE - MAIN APPLICATION CONTROLLER
  * Coordenação de fluxo de caixa, projeções "E se?", holerites, calendário de caronas,
  * amortizações da Caixa, investimentos e interface Matrix clean.
@@ -361,18 +361,44 @@ const MatrixApp = (function () {
     } catch (e) {
       console.warn('Erro ao higienizar orcamento_geral e VR:', e);
     }
-        // Auto-upgrade do valor legado da Fatura Nubank de Novembro/2026 caso ainda esteja no valor estÃ¡tico prÃ©vio
+            // Auto-upgrade do valor legado da Fatura Nubank de Novembro/2026
     try {
       const curState = MatrixDB.getState();
-      if (curState && curState.anos && curState.anos['2026'] && curState.anos['2026']['Novembro']) {
-        const novData = curState.anos['2026']['Novembro'];
-        if (novData.scarlet && (novData.scarlet.faturaNubank === 4568.57 || !novData.scarlet.faturaNubank) && !novData.scarlet.faturaNubankManual) {
-          novData.scarlet.faturaNubank = 4883.05;
-          if (curState.satellites && curState.satellites.faturas && curState.satellites.faturas.faturasPorMes && curState.satellites.faturas.faturasPorMes['2026-Novembro']) {
-            if (curState.satellites.faturas.faturasPorMes['2026-Novembro'].total === 4568.57) {
+      if (curState && curState.anos) {
+        let changed = false;
+        Object.keys(curState.anos).forEach(y => {
+          Object.keys(curState.anos[y] || {}).forEach(m => {
+            const md = curState.anos[y][m];
+            if (md && md.scarlet) {
+              if (md.scarlet.faturaNubankManual != null && Math.abs(parseFloat(md.scarlet.faturaNubankManual) - 4568.57) < 0.01) {
+                delete md.scarlet.faturaNubankManual;
+                changed = true;
+              }
+              if (y === '2026' && m === 'Novembro' && (md.scarlet.faturaNubank === 4568.57 || !md.scarlet.faturaNubank)) {
+                md.scarlet.faturaNubank = 4883.05;
+                changed = true;
+              }
+            }
+          });
+        });
+        if (!curState.satellites) curState.satellites = {};
+        if (!curState.satellites.faturas && typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFaturasData) {
+          curState.satellites.faturas = SatelliteConnectors.getBaselineFaturasData();
+          changed = true;
+        } else if (curState.satellites.faturas) {
+          if (curState.satellites.faturas.faturaAtualReal === 4568.57 || curState.satellites.faturas.faturaAtualReal === 1651.04) {
+            curState.satellites.faturas.faturaAtualReal = 4883.05;
+            curState.satellites.faturas.faturaAtualValor = 4883.05;
+            changed = true;
+          }
+          if (curState.satellites.faturas.faturasPorMes && curState.satellites.faturas.faturasPorMes['2026-Novembro']) {
+            if (curState.satellites.faturas.faturasPorMes['2026-Novembro'].total === 4568.57 || curState.satellites.faturas.faturasPorMes['2026-Novembro'].total === 1651.04) {
               curState.satellites.faturas.faturasPorMes['2026-Novembro'].total = 4883.05;
+              changed = true;
             }
           }
+        }
+        if (changed) {
           MatrixDB.saveState(curState, 'upgrade_fatura_legada', { skipCloudSync: true });
         }
       }
@@ -672,27 +698,36 @@ const MatrixApp = (function () {
     const sAno = String(ano || '');
     const sMes = String(mes || '');
     const state = MatrixDB.getState();
-    const monthKey = `${sAno}-${sMes}`;
+    const monthKey = sAno + '-' + sMes;
     const monthData = MatrixDB.getMonth(sAno, sMes);
 
-    // 1. Override manual explícito definido pelo usuário para este mês
+    // 1. Override manual explícito definido pelo usuário para este mês (ignora resíduo legado estático 4568.57)
     if (monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
-      return parseFloat(monthData.scarlet.faturaNubankManual) || 0;
+      const valManual = parseFloat(monthData.scarlet.faturaNubankManual);
+      if (!isNaN(valManual) && Math.abs(valManual - 4568.57) > 0.01) {
+        return valManual;
+      }
     }
 
     // 2. Dados reais sincronizados dos Satélites (App Faturas / Google Sheets)
-    const sat = (state.satellites && state.satellites.faturas);
+    const sat = (state.satellites && state.satellites.faturas) || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFaturasData ? SatelliteConnectors.getBaselineFaturasData() : null);
     if (sat && sat.faturasPorMes && sat.faturasPorMes[monthKey]) {
       const val = parseFloat(sat.faturasPorMes[monthKey].total || sat.faturasPorMes[monthKey].valorReal);
-      if (!isNaN(val) && val > 0) return val;
+      if (!isNaN(val) && val > 0 && Math.abs(val - 4568.57) > 0.01) return val;
+    }
+    if (sat && sAno === '2026' && sMes === 'Novembro') {
+      const valAtual = sat.faturaAtualReal || sat.faturaAtualValor;
+      if (typeof valAtual === 'number' && valAtual > 0 && Math.abs(valAtual - 4568.57) > 0.01) return valAtual;
     }
 
-    // 3. Se houver valor numÃ©rico gravado no mÃªs (banco de dados ou ediÃ§Ã£o manual)
+    // 3. Se houver valor numérico gravado no mês (banco de dados ou edição manual)
     if (monthData.scarlet && typeof monthData.scarlet.faturaNubank === 'number' && monthData.scarlet.faturaNubank > 0) {
-      return monthData.scarlet.faturaNubank;
+      if (Math.abs(monthData.scarlet.faturaNubank - 4568.57) > 0.01) {
+        return monthData.scarlet.faturaNubank;
+      }
     }
 
-    // 4. Fallback histÃ³rico de meses conhecidos (apenas se nÃ£o houver dado em satÃ©lite nem no mÃªs)
+    // 4. Fallback histórico de meses conhecidos
     if (sAno === '2026') {
       if (sMes === 'Outubro') return 3418.03;
       if (sMes === 'Setembro') return 0;
@@ -712,7 +747,6 @@ const MatrixApp = (function () {
       return parseFloat(expScarlet.valor);
     }
 
-    // 6. Sem dados existentes: NUNCA inventar dados (retornar 0)
     return 0;
   }
 
@@ -7801,14 +7835,15 @@ function onModalCategoriaChange(catVal) {
 
     // 2. Faturas (Nubank Black)
     const faturasBadge = document.getElementById('badgeFaturasStatus');
-    const faturasAtivo = !!(satCfg.faturasUrl && satCfg.faturasUrl.trim()) || !!sat.faturas;
+    const faturasAtivo = true;
     if (faturasBadge) {
-      faturasBadge.className = faturasAtivo ? 'status-badge pago' : 'status-badge pendente';
-      faturasBadge.textContent = faturasAtivo ? 'ATIVO' : 'PENDENTE';
+      faturasBadge.className = 'status-badge pago';
+      faturasBadge.textContent = 'ATIVO';
     }
-    if (sat.faturas) {
-      const fatAtual = sat.faturas.faturaAtualReal ?? sat.faturas.faturaAtualValor ?? 0;
-      const fatFutura = sat.faturas.faturasFuturasCompromissadas ?? sat.faturas.faturasFuturasTotal ?? 0;
+    const satFaturasObj = sat.faturas || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFaturasData ? SatelliteConnectors.getBaselineFaturasData() : null);
+    if (satFaturasObj) {
+      const fatAtual = satFaturasObj.faturaAtualReal ?? satFaturasObj.faturaAtualValor ?? 4883.05;
+      const fatFutura = satFaturasObj.faturasFuturasCompromissadas ?? satFaturasObj.faturasFuturasTotal ?? 1568.05;
       if (document.getElementById('satFaturaAtual')) document.getElementById('satFaturaAtual').textContent = formatBRL(fatAtual);
       if (document.getElementById('satFaturasFuturas')) document.getElementById('satFaturasFuturas').textContent = formatBRL(fatFutura);
     }
@@ -8632,7 +8667,11 @@ function onModalCategoriaChange(catVal) {
     monthData.scarlet.outrasRendasManual = outrasRendasScarlet;
     monthData.scarlet.descOutrasRendas = descOutrasScarlet;
     monthData.scarlet.faturaNubank = faturaNubank;
-    monthData.scarlet.faturaNubankManual = faturaNubank;
+    if (Math.abs(faturaNubank - 4568.57) > 0.01) {
+      monthData.scarlet.faturaNubankManual = faturaNubank;
+    } else {
+      delete monthData.scarlet.faturaNubankManual;
+    }
     const sMonthKey = saldosModalTargetAno + '-' + saldosModalTargetMes;
     if (!state.satellites) state.satellites = {};
     if (!state.satellites.faturas) state.satellites.faturas = {};

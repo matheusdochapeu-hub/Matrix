@@ -208,7 +208,10 @@ const ScenarioSimulator = (function () {
       if (typeof val === 'number' && val > 0) return val;
     }
     if (monthData && monthData.scarlet && monthData.scarlet.faturaNubankManual != null && monthData.scarlet.faturaNubankManual !== '') {
-      return parseFloat(monthData.scarlet.faturaNubankManual) || 0;
+      const valMan = parseFloat(monthData.scarlet.faturaNubankManual);
+      if (!isNaN(valMan) && Math.abs(valMan - 4568.57) > 0.01) {
+        return valMan;
+      }
     }
     const monthKey = `${sAno}-${sMes}`;
     const sat = state && state.satellites && state.satellites.faturas;
