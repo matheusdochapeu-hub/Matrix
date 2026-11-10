@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matrix-finance-v117';
+const CACHE_NAME = 'matrix-finance-v118';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS_TO_CACHE = [
   './icons/matrix-icon-192.png',
   './icons/matrix-icon-512.png',
   './icons/matrix-icon.png',
+  './icons/matrix-icon-maskable-512.png',
   './js/seed-data.js',
   './js/matrix-rain.js',
   './js/db.js',

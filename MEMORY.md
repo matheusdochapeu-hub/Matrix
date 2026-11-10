@@ -311,6 +311,33 @@ chegava da planilha como **string** (`"2059.84"`), o reset acontecia sempre.
 - Caso 2 — estado legado sem saldos: seed aplicado (`1.988,78` / `805,41`), como esperado.
 - `check-syntax` 11/11, suíte **15/15**, `sw.js` e `?v=` em **v117**.
 
+---
+
+## [2026-11-10 16:40] - Matrix Finance v118: Novos Ícones do PWA (maskable) e Consistência do Manifest
+
+### 🔍 Contexto
+O `git status` apareceu com ícones novos (`matrix-icon-192/512/1024/svg/jpg` regenerados) e o
+`manifest.json` alterado, mais um arquivo **não rastreado** `icons/matrix-icon-maskable-512.png`.
+As alterações não vieram desta sessão — foram verificadas antes de publicar: todos os arquivos são
+imagens válidas (192×192, 512×512, 1024×1024 RGBA) e o maskable tem a arte dentro da *safe zone*
+(recorte circular do Android).
+
+### 🛠️ O que foi feito
+- `icons/matrix-icon-maskable-512.png` **adicionado ao `ASSETS_TO_CACHE`** do `sw.js` (antes ficaria
+  fora do cache offline e só existiria se o manifest fosse commitado sozinho — 404 na instalação).
+- `manifest.json` mantido com a separação `purpose: "any"` (full-bleed) × `purpose: "maskable"`
+  (arte com margem), que é o padrão correto do Android.
+- Versões subidas para **v118** (`?v=` em todos os assets e `CACHE_NAME`).
+- Novo teste `Manifest: todos os ícones existem e há um maskable` na suíte — impede exatamente o
+  cenário de manifest apontando para arquivo não versionado. Suíte agora com **16 testes**.
+
+### ⚠️ Observações
+- `icons/matrix-icon.svg` tem **~2,1 MB** porque é um raster embutido em base64 (`<image href="data:...">`);
+  ele é usado como favicon (`<link rel="icon" type="image/svg+xml">`) e está no precache. Vale otimizar
+  (reencodar o bitmap ou remover o favicon SVG) para não baixar/cachear 2 MB à toa.
+- `icons/matrix-icon.jpg` não é referenciado por nenhum arquivo (295 KB) e `oracle-cookie.jpg` só aparece
+  no precache — candidatos a limpeza.
+
 
 
 

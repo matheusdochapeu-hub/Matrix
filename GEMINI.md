@@ -73,7 +73,8 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 
 ## 4. Identidade Visual e PWA
 - **Logo Oficial**: Imagem da Oráculo do filme *Matrix* oferecendo biscoitos (`./icons/oracle-cookie.jpg`), acompanhada da estética verde neon clássica (`--green: #00ff66`).
-- **Service Worker (`sw.js`)**: Sempre incrementar `CACHE_NAME` (atualmente `matrix-finance-v53`) ao publicar alterações em arquivos JS/CSS/HTML para forçar atualização imediata nos dispositivos móveis e desktop.
+- **Service Worker (`sw.js`)**: Sempre incrementar `CACHE_NAME` (atualmente `matrix-finance-v118`) ao publicar alterações em arquivos JS/CSS/HTML para forçar atualização imediata nos dispositivos móveis e desktop.
+- **Ícones (v118)**: o manifest separa `purpose: "any"` (ícones full-bleed: `matrix-icon-192.png`, `matrix-icon-512.png`, `matrix-icon.png`, `matrix-icon.svg`) do `purpose: "maskable"` (`icons/matrix-icon-maskable-512.png`, com a arte dentro da safe zone porque o Android recorta o ícone). Todo ícone listado no manifest precisa existir no repositório e o maskable precisa estar no `ASSETS_TO_CACHE` — há teste automatizado para isso (`Manifest: todos os ícones existem e há um maskable`).
 
 ---
 

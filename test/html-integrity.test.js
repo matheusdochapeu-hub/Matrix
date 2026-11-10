@@ -113,3 +113,22 @@ test('HTML: nenhum arquivo de js/ ficou órfão (existe no disco mas não é car
     `Estes módulos existem mas não são carregados pelo index.html: ${naoCarregados.join(', ')}`
   );
 });
+
+test('Manifest: todos os ícones existem e há um maskable', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8'));
+
+  assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 4, 'manifest.json deve listar os ícones do PWA.');
+
+  for (const icon of manifest.icons) {
+    assert.ok(icon.src, 'Todo ícone do manifest precisa de "src".');
+    assert.ok(
+      fs.existsSync(path.join(rootDir, icon.src)),
+      `O ícone "${icon.src}" está no manifest mas não existe no repositório (quebraria a instalação do PWA).`
+    );
+    assert.ok(icon.purpose, `O ícone "${icon.src}" precisa declarar "purpose".`);
+  }
+
+  const maskable = manifest.icons.filter((i) => String(i.purpose).includes('maskable'));
+  assert.ok(maskable.length >= 1, 'O manifest precisa de ao menos um ícone com purpose "maskable" (Android recorta o ícone).');
+});
+

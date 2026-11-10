@@ -31,7 +31,7 @@ Abrir `index.html` direto por `file://` quebra o Service Worker e o fetch do App
 
 ```powershell
 npm run check      # sintaxe de todos os js/ + sw.js + apps_script.gs
-npm test           # 15 testes: sintaxe, integridade do HTML, Service Worker
+npm test           # 16 testes: sintaxe, integridade do HTML, manifest e Service Worker
 npm run verify     # os dois acima em sequência (é o que a CI roda)
 ```
 O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
