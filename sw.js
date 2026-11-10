@@ -1,16 +1,15 @@
-const CACHE_NAME = 'matrix-finance-v118';
+const CACHE_NAME = 'matrix-finance-v119';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './apps_script.gs',
   './css/matrix.css',
-  './icons/oracle-cookie.jpg',
   './icons/matrix-icon.svg',
+  './icons/matrix-icon-512.jpg',
+  './icons/matrix-icon-1024.jpg',
+  './icons/matrix-icon-maskable-512.jpg',
   './icons/matrix-icon-192.png',
-  './icons/matrix-icon-512.png',
-  './icons/matrix-icon.png',
-  './icons/matrix-icon-maskable-512.png',
   './js/seed-data.js',
   './js/matrix-rain.js',
   './js/db.js',

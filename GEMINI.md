@@ -72,9 +72,14 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 ---
 
 ## 4. Identidade Visual e PWA
-- **Logo Oficial**: Imagem da Oráculo do filme *Matrix* oferecendo biscoitos (`./icons/oracle-cookie.jpg`), acompanhada da estética verde neon clássica (`--green: #00ff66`).
-- **Service Worker (`sw.js`)**: Sempre incrementar `CACHE_NAME` (atualmente `matrix-finance-v118`) ao publicar alterações em arquivos JS/CSS/HTML para forçar atualização imediata nos dispositivos móveis e desktop.
-- **Ícones (v118)**: o manifest separa `purpose: "any"` (ícones full-bleed: `matrix-icon-192.png`, `matrix-icon-512.png`, `matrix-icon.png`, `matrix-icon.svg`) do `purpose: "maskable"` (`icons/matrix-icon-maskable-512.png`, com a arte dentro da safe zone porque o Android recorta o ícone). Todo ícone listado no manifest precisa existir no repositório e o maskable precisa estar no `ASSETS_TO_CACHE` — há teste automatizado para isso (`Manifest: todos os ícones existem e há um maskable`).
+- **Logo Oficial**: Imagem da Oráculo do filme *Matrix* oferecendo biscoitos (`./icons/matrix-icon-192.png`, usada no cabeçalho e como `apple-touch-icon`), acompanhada da estética verde neon clássica (`--green: #00ff66`).
+- **Service Worker (`sw.js`)**: Sempre incrementar `CACHE_NAME` (atualmente `matrix-finance-v119`) ao publicar alterações em arquivos JS/CSS/HTML para forçar atualização imediata nos dispositivos móveis e desktop.
+- **Ícones (v119 — enxutos, ~595 KB no total)**:
+  - `matrix-icon-192.png` (192, `any`, PNG — também é o `apple-touch-icon`);
+  - `matrix-icon-512.jpg` (512, `any`), `matrix-icon-1024.jpg` (1024, `any`) e `matrix-icon-maskable-512.jpg` (512, `maskable`, arte dentro da *safe zone* porque o Android recorta);
+  - `matrix-icon.svg` (favicon): invólucro SVG com um JPEG 512 embutido (~112 KB; antes eram 2,1 MB de PNG em base64).
+  - A arte é fotográfica, então **JPEG** é obrigatório para não inflar o download; o PNG só se justifica no 192 e para transparência real.
+  - Todo ícone do manifest precisa existir e o maskable precisa estar no `ASSETS_TO_CACHE` (teste `Manifest: todos os ícones existem e há um maskable`).
 
 ---
 

@@ -338,6 +338,32 @@ imagens válidas (192×192, 512×512, 1024×1024 RGBA) e o maskable tem a arte d
 - `icons/matrix-icon.jpg` não é referenciado por nenhum arquivo (295 KB) e `oracle-cookie.jpg` só aparece
   no precache — candidatos a limpeza.
 
+---
+
+## [2026-11-10 17:05] - Matrix Finance v119: Ícones Enxutos (de ~3,7 MB para 595 KB)
+
+### 🔍 Motivação
+O pacote de ícones havia crescido para **~3,7 MB** (fora o `oracle-cookie.jpg`, +772 KB): a arte é
+fotográfica, mas estava salva em PNG RGBA (1.584 KB no 1024, 483 KB no 512, 443 KB no maskable) e o
+`matrix-icon.svg` era um invólucro com **2,1 MB** de PNG em base64 — usado como favicon e precacheado.
+
+### 🛠️ O que foi feito
+- Ícones fotográficos convertidos para **JPEG** (achatados sobre `#050807`, sem perda visível):
+  - `matrix-icon-512.jpg` — 89 KB (era 483 KB);
+  - `matrix-icon-1024.jpg` — 226 KB (era 1.584 KB);
+  - `matrix-icon-maskable-512.jpg` — 88 KB (era 443 KB);
+  - `matrix-icon-192.png` mantido em PNG (81 KB, é o `apple-touch-icon`).
+- `matrix-icon.svg` reescrito: invólucro SVG com **JPEG 512 embutido — 112 KB** (era 2.112 KB).
+- **Removidos** (órfãos): `oracle-cookie.jpg` (772 KB, só estava no precache),
+  `matrix-icon.jpg` (295 KB, sem referência na UI), `matrix-icon.png` e `matrix-icon-512.png`.
+  O logo do cabeçalho continua em `matrix-icon-192.png`.
+- `manifest.json` e `ASSETS_TO_CACHE` atualizados para os novos nomes/tipos; versões para **v119**.
+
+### 🧪 Validação
+- `icons/` total: **595 KB** (antes ~3,7 MB) — economia de ~84%.
+- `check-syntax` 11/11; suíte **16/16** (incluindo manifest + assets do SW existindo no disco).
+- Páginas no ar conferidas: todos os ícones retornam 200 com os novos tamanhos.
+
 
 
 
