@@ -1724,6 +1724,7 @@ const MatrixApp = (function () {
     if (typeof renderInvestments === 'function') renderInvestments();
     if (typeof renderSimulator === 'function') renderSimulator();
     if (typeof renderHoleritesHistorico === 'function') renderHoleritesHistorico();
+    try { renderQuickExpenseButtons(currentYear, currentMonth); } catch (_) {}
   }
 
   // ==========================================
@@ -4802,6 +4803,17 @@ const MatrixApp = (function () {
       return;
     }
 
+    const nvl = nomeVal.toLowerCase();
+    if (nvl.includes('mega') || nvl.includes('sena') || nvl.includes('loteria') || nvl.includes('aposta')) {
+      const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase().includes('lazer'));
+      if (opt) catSelect.value = opt.value;
+      if (hintEl) {
+        hintEl.innerHTML = '🍀 <span style="color:var(--cyan);font-weight:bold;">Aposta / Lazer memorizado!</span>';
+        hintEl.style.display = 'inline-block';
+      }
+      return;
+    }
+
     if (isTransferenciaParaScarlet({ nome: nomeVal })) {
       const opt = Array.from(catSelect.options).find(o => o.value.toLowerCase().includes('transferência scarlet') || o.value.toLowerCase().includes('transferencia scarlet'));
       if (opt) catSelect.value = opt.value;
@@ -4847,14 +4859,26 @@ const MatrixApp = (function () {
       rawName = rawName.replace(/\s*\((Crédito Nubank|Crédito BB|Débito Inter|Pix Inter|Crédito Banco do Brasil)\)/gi, '').trim();
       if (!rawName) return;
 
+      const nl = rawName.toLowerCase();
       const isCarona = isCaronaItem({ nome: rawName, categoria: it.categoria });
-      const normKey = isCarona ? 'carona_usp' : rawName.toLowerCase();
+      const isMega = nl.includes('mega') || nl.includes('sena') || nl.includes('lotérica') || nl.includes('loterica');
+
+      let normKey = nl;
+      let displayName = rawName;
+      if (isCarona) {
+        normKey = 'carona_usp';
+        displayName = 'Carona USP';
+      } else if (isMega) {
+        normKey = 'mega_sena';
+        displayName = 'Mega Sena';
+      }
 
       if (!freqMap[normKey]) {
         freqMap[normKey] = {
           key: normKey,
           isCarona,
-          nome: isCarona ? 'Carona USP' : rawName,
+          isMegaSena: isMega,
+          nome: displayName,
           count: 0,
           valores: [],
           contas: {},
@@ -4897,13 +4921,24 @@ const MatrixApp = (function () {
       });
     }
 
-    // 3. Garante 'Carona USP' fixa com R$ 30 e Pix Inter como opção primária incondicional
+    // 3. Consulta memória de categorias aprendidas
+    try {
+      const catMem = MatrixDB.getCategoryMemory ? MatrixDB.getCategoryMemory() : {};
+      if (catMem && typeof catMem === 'object') {
+        Object.entries(catMem).forEach(([desc, cat]) => {
+          if (!desc) return;
+          processItem({ nome: desc, categoria: cat, valor: 5, conta: 'debito_inter' }, 1);
+        });
+      }
+    } catch (_) {}
+
+    // 4. Garante 'Carona USP' fixa com R$ 30 e Pix Inter como Staple #1 incondicional
     if (!freqMap['carona_usp']) {
       freqMap['carona_usp'] = {
         key: 'carona_usp',
         isCarona: true,
         nome: 'Carona USP',
-        count: 9999,
+        count: 99999,
         valores: [30],
         contas: { pix_inter: 10 },
         categorias: { Transporte: 10 }
@@ -4911,9 +4946,30 @@ const MatrixApp = (function () {
     } else {
       freqMap['carona_usp'].isCarona = true;
       freqMap['carona_usp'].nome = 'Carona USP';
+      freqMap['carona_usp'].count = 99999;
       freqMap['carona_usp'].valores = [30];
       freqMap['carona_usp'].contas['pix_inter'] = (freqMap['carona_usp'].contas['pix_inter'] || 0) + 10;
       freqMap['carona_usp'].categorias['Transporte'] = 10;
+    }
+
+    // 5. Garante 'Mega Sena' com ícone 🍀 e R$ 5 Débito Inter como Staple #2 incondicional
+    if (!freqMap['mega_sena']) {
+      freqMap['mega_sena'] = {
+        key: 'mega_sena',
+        isMegaSena: true,
+        nome: 'Mega Sena',
+        count: 88888,
+        valores: [5],
+        contas: { debito_inter: 10 },
+        categorias: { Lazer: 10 }
+      };
+    } else {
+      freqMap['mega_sena'].isMegaSena = true;
+      freqMap['mega_sena'].nome = 'Mega Sena';
+      freqMap['mega_sena'].count = 88888;
+      if (!freqMap['mega_sena'].valores.length) freqMap['mega_sena'].valores.push(5);
+      if (!Object.keys(freqMap['mega_sena'].contas).length) freqMap['mega_sena'].contas['debito_inter'] = 10;
+      if (!Object.keys(freqMap['mega_sena'].categorias).length) freqMap['mega_sena'].categorias['Lazer'] = 10;
     }
 
     const items = Object.values(freqMap).map(e => {
@@ -4924,6 +4980,37 @@ const MatrixApp = (function () {
           categoria: 'Transporte',
           conta: 'pix_inter',
           icone: '🚗',
+          count: e.count
+        };
+      }
+
+      if (e.isMegaSena) {
+        let valMega = 5;
+        if (e.valores.length > 0) {
+          const valCounts = {};
+          let maxVCount = 0;
+          e.valores.forEach(v => {
+            valCounts[v] = (valCounts[v] || 0) + 1;
+            if (valCounts[v] > maxVCount) {
+              maxVCount = valCounts[v];
+              valMega = v;
+            }
+          });
+        }
+        let contaMega = 'debito_inter';
+        let maxCCount = 0;
+        Object.entries(e.contas).forEach(([cName, cCnt]) => {
+          if (cCnt > maxCCount) {
+            maxCCount = cCnt;
+            contaMega = cName;
+          }
+        });
+        return {
+          nome: 'Mega Sena',
+          valor: valMega,
+          categoria: 'Lazer',
+          conta: contaMega,
+          icone: '🍀',
           count: e.count
         };
       }
@@ -4941,7 +5028,7 @@ const MatrixApp = (function () {
         });
       }
 
-      let contaFinal = 'pix_inter';
+      let contaFinal = 'debito_inter';
       let maxCCount = 0;
       Object.entries(e.contas).forEach(([cName, cCnt]) => {
         if (cCnt > maxCCount) {
@@ -4983,6 +5070,8 @@ const MatrixApp = (function () {
     items.sort((a, b) => {
       if (a.nome === 'Carona USP') return -1;
       if (b.nome === 'Carona USP') return 1;
+      if (a.nome === 'Mega Sena') return -1;
+      if (b.nome === 'Mega Sena') return 1;
       return b.count - a.count;
     });
 
@@ -5244,8 +5333,8 @@ function onModalCategoriaChange(catVal) {
     if (nomeInput) nomeInput.value = '';
     if (valorInput) valorInput.value = '';
     if (dataHoraInput) dataHoraInput.value = localIso;
-    if (catSelect) catSelect.value = 'Alimentação & Lanches';
-    if (contaSelect) contaSelect.value = 'debito_nubank';
+    if (catSelect) catSelect.value = 'Alimentação';
+    if (contaSelect) contaSelect.value = 'debito_inter';
     if (pagoSim) pagoSim.checked = true;
     if (obsInput) obsInput.value = '';
 
