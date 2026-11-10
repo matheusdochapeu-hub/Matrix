@@ -4849,18 +4849,20 @@ const MatrixApp = (function () {
       }
     }
 
-    // 1. Prioriza com peso 3 os gastos do mês corrente
+    // 1. Prioriza com peso 3 os gastos do mês corrente (diários e variáveis lançados)
     const monthData = (state.anos && state.anos[sAno] && state.anos[sAno][sMes]) || MatrixDB.getMonth(sAno, sMes) || {};
     (monthData.diarios || []).forEach(it => processItem(it, 3));
+    (monthData.outros || []).forEach(it => processItem(it, 3));
 
-    // 2. Analisa meses anteriores no histórico recente com peso 1 para preencher opções
+    // 2. Analisa histórico recente com peso 1 (diários e variáveis)
     if (state.anos) {
       Object.entries(state.anos).forEach(([aKey, meses]) => {
         if (!meses) return;
         Object.entries(meses).forEach(([mKey, md]) => {
           if (aKey === sAno && mKey === sMes) return;
-          if (md && Array.isArray(md.diarios)) {
-            md.diarios.forEach(it => processItem(it, 1));
+          if (md) {
+            if (Array.isArray(md.diarios)) md.diarios.forEach(it => processItem(it, 1));
+            if (Array.isArray(md.outros)) md.outros.forEach(it => processItem(it, 1));
           }
         });
       });
@@ -4932,6 +4934,7 @@ const MatrixApp = (function () {
       const nl = e.nome.toLowerCase();
       const cl = catFinal.toLowerCase();
       if (nl.includes('carona') || cl.includes('transporte') || nl.includes('uber') || nl.includes('combustivel')) icone = '🚗';
+      else if (nl.includes('mega') || nl.includes('sena') || nl.includes('loteria') || nl.includes('aposta') || nl.includes('jogo')) icone = '🍀';
       else if (cl.includes('supermercado') || nl.includes('mercado') || nl.includes('padaria') || nl.includes('compra')) icone = '🛒';
       else if (cl.includes('farmácia') || cl.includes('saúde') || nl.includes('droga') || nl.includes('farmacia')) icone = '💊';
       else if (cl.includes('alimentação') || nl.includes('lanche') || nl.includes('restaurante') || nl.includes('almoço')) icone = '🍽️';
@@ -5317,7 +5320,8 @@ function onModalCategoriaChange(catVal) {
 
       MatrixDB.saveState(s);
       closeModal('quickExpenseModalBackdrop');
-      renderAll();
+    renderAll();
+    try { renderQuickExpenseButtons(currentYear, currentMonth); } catch (_) {}
       alert(`✅ Gasto de ${formatBRL(valor)} ("${nome}") lançado no Crédito!\nAlocado para o mês seguinte (${targetMonthName}/${targetYear}) nos Gastos Variáveis relativos ao ${targetNomeItem}.`);
       return;
     }
@@ -5354,6 +5358,7 @@ function onModalCategoriaChange(catVal) {
 
     closeModal('quickExpenseModalBackdrop');
     renderAll();
+    try { renderQuickExpenseButtons(currentYear, currentMonth); } catch (_) {}
   }
 
   function editQuickExpenseByIndex(ano, mes, index) {
