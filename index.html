@@ -2294,7 +2294,14 @@
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;color:var(--text-muted);">Descrição do Gasto:</label>
         <input type="text" id="quickExpenseNome" class="matrix-input" placeholder="Ex: Carona USP, Droga Raia, Padaria, Posto Shell...">
-        <div id="quickExpenseQuickButtons" style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:4px;">
+          <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-family:var(--font-mono);">⚡ Atalhos Frequentes:</span>
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 7px;border-color:rgba(0,255,102,0.4);color:var(--matrix-green);background:rgba(0,255,102,0.06);" onclick="MatrixApp.salvarAtualComoBotaoRapido()" title="Salvar os dados preenchidos no formulário como um novo botão de atalho permanente">⭐ Fixar como Botão</button>
+            <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 7px;border-color:rgba(192,132,252,0.4);color:var(--purple);background:rgba(192,132,252,0.06);" onclick="MatrixApp.abrirGerenciadorBotoesRapidos()" title="Editar, reordenar ou excluir seus botões de atalho rápido">⚙️ Editar Botões</button>
+          </div>
+        </div>
+        <div id="quickExpenseQuickButtons" style="display:flex;gap:6px;flex-wrap:wrap;min-height:28px;">
           <button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:rgba(0,255,102,0.4);color:var(--matrix-green);background:rgba(0,255,102,0.06);" onclick="MatrixApp.preencherGastoRapido('Carona USP', 30, 'Transporte', 'pix_inter')">🚗 Carona USP (R$ 30)</button>
           <button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:rgba(6,182,212,0.4);color:var(--cyan);background:rgba(6,182,212,0.06);" onclick="MatrixApp.preencherGastoRapido('Mega Sena', 5, 'Lazer', 'debito_inter')">🍀 Mega Sena (R$ 5)</button>
         </div>
@@ -2384,6 +2391,107 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL: GERENCIAR BOTÕES DE LANÇAMENTO RÁPIDO -->
+  <div id="quickButtonsModalBackdrop" class="matrix-modal-backdrop">
+    <div class="matrix-modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;">⚙️ Gerenciar Botões Rápidos</h3>
+        <button class="close-btn" onclick="MatrixApp.closeModal('quickButtonsModalBackdrop')">&times;</button>
+      </div>
+
+      <p style="font-size:11.5px;color:var(--text-muted);margin:0 0 12px 0;line-height:1.4;">
+        Personalize os botões de atalho rápido do modal de gastos diários. Edite valores, categorias, contas e ícones, adicione novos botões ou reordene como preferir.
+      </p>
+
+      <!-- Lista de Botões Atuais -->
+      <div style="font-size:10.5px;font-weight:700;color:var(--text-main);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px;">
+        Botões Ativos na Barra:
+      </div>
+      <div id="quickButtonsManagerList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:14px;padding-right:2px;">
+        <!-- Preenchido via renderGerenciadorBotoesRapidos() -->
+      </div>
+
+      <!-- Formulário de Adicionar / Editar Botão -->
+      <div style="background:#050807;border:1px solid var(--border-dim);border-radius:var(--radius-xs);padding:12px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span id="qbFormTitle">➕ Adicionar Novo Botão de Atalho</span>
+          <button type="button" id="qbCancelEditBtn" class="btn-matrix" style="display:none;font-size:9.5px;padding:2px 6px;" onclick="MatrixApp.cancelarEdicaoBotaoRapido()">Cancelar Edição</button>
+        </div>
+        <input type="hidden" id="qbEditIndex" value="">
+
+        <div style="display:grid;grid-template-columns:55px 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:10px;color:var(--text-muted);">Ícone:</label>
+            <input type="text" id="qbIcone" class="matrix-input" style="text-align:center;font-size:15px;padding:4px;" value="⚡" maxlength="4">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text-muted);">Nome do Gasto:</label>
+            <input type="text" id="qbNome" class="matrix-input" placeholder="Ex: Padaria, Droga Raia, CSNA3, Shell...">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="font-size:10px;color:var(--text-muted);">Valor Padrão (R$):</label>
+            <input type="number" step="0.01" id="qbValor" class="matrix-input" placeholder="0,00">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text-muted);">Categoria:</label>
+            <select id="qbCategoria" class="matrix-select">
+              <option value="Alimentação">Alimentação</option>
+              <option value="Supermercado">Supermercado</option>
+              <option value="Transporte">Transporte</option>
+              <option value="Farmácia & Saúde">Farmácia & Saúde</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Compras">Compras</option>
+              <option value="Assinaturas">Assinaturas</option>
+              <option value="Transferência Scarlet">🤝 Transferência Scarlet</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:10px;color:var(--text-muted);">De onde sai o dinheiro:</label>
+          <select id="qbConta" class="matrix-select">
+            <option value="pix_inter">⚡ Pix Inter (Mês Vigente)</option>
+            <option value="debito_inter" selected>🟢 Débito Inter (Mês Vigente)</option>
+            <option value="credito_nubank">🟣 Crédito Nubank (→ Fatura Mês Seguinte)</option>
+            <option value="credito_bb">🟡 Crédito BB (→ Fatura Mês Seguinte)</option>
+            <option value="debito_bb">🟡 Débito BB (Mês Vigente)</option>
+            <option value="pix_bb">🟡 Pix BB (Mês Vigente)</option>
+            <option value="cartao_va">🟢 Cartão VA (Supermercado)</option>
+            <option value="cartao_vr">🍽️ Cartão VR (Almoço / Refeição)</option>
+            <option value="dinheiro_vivo">💵 Dinheiro Vivo</option>
+          </select>
+        </div>
+
+        <!-- Atalhos rápidos de emojis para escolha fácil -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;align-items:center;">
+          <span style="font-size:9.5px;color:var(--text-dim);">Sugestões de Ícone:</span>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🚗'">🚗</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🍀'">🍀</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🥖'">🥖</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🛒'">🛒</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='💊'">💊</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🍽️'">🍽️</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='☕'">☕</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='⛽'">⛽</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='🍿'">🍿</button>
+          <button type="button" class="btn-matrix" style="font-size:11px;padding:2px 5px;" onclick="document.getElementById('qbIcone').value='⚡'">⚡</button>
+        </div>
+
+        <button type="button" class="btn-matrix primary" style="width:100%;font-size:11px;padding:6px;" onclick="MatrixApp.salvarBotaoRapidoDoManager()">💾 Gravar Botão de Atalho</button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <button type="button" class="btn-matrix" style="font-size:10px;color:var(--text-muted);border-color:var(--border-dim);" onclick="MatrixApp.restaurarBotoesRapidosPadrao()">↺ Restaurar Padrões</button>
+        <button type="button" class="btn-matrix" onclick="MatrixApp.closeModal('quickButtonsModalBackdrop')">Concluir</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- MODAL: EDITAR SALDOS, RENDAS E FATURA DO MÊS -->
   <div id="saldosEditModalBackdrop" class="matrix-modal-backdrop">

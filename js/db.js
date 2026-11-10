@@ -1016,6 +1016,32 @@ const MatrixDB = (function () {
   }
 
 
+  const CUSTOM_QUICK_BUTTONS_KEY = 'matrix_custom_quick_buttons';
+  const DEFAULT_QUICK_BUTTONS = [
+    { id: 'btn_carona', nome: 'Carona USP', valor: 30, categoria: 'Transporte', conta: 'pix_inter', icone: '🚗' },
+    { id: 'btn_megasena', nome: 'Mega Sena', valor: 5, categoria: 'Lazer', conta: 'debito_inter', icone: '🍀' }
+  ];
+
+  function getCustomQuickButtons() {
+    try {
+      const raw = localStorage.getItem(CUSTOM_QUICK_BUTTONS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return JSON.parse(JSON.stringify(DEFAULT_QUICK_BUTTONS));
+  }
+
+  function saveCustomQuickButtons(buttons) {
+    try {
+      localStorage.setItem(CUSTOM_QUICK_BUTTONS_KEY, JSON.stringify(buttons));
+      const s = getState();
+      if (s) s.customQuickButtons = buttons;
+    } catch (_) {}
+    return buttons;
+  }
+
   return {
     init,
     getState,
@@ -1037,7 +1063,10 @@ const MatrixDB = (function () {
     createYear,
     exportBackupJSON,
     importBackupJSON,
-    resetToDefault
+    resetToDefault,
+    getCustomQuickButtons,
+    saveCustomQuickButtons,
+    DEFAULT_QUICK_BUTTONS
   };
 })();
 

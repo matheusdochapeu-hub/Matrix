@@ -4854,239 +4854,27 @@ const MatrixApp = (function () {
   // ==========================================
   // SUGESTÕES DINÂMICAS DE GASTOS DIÁRIOS RÁPIDOS (TOP 3)
   // ==========================================
+    // ==========================================
+  // SUGESTÕES & GESTÃO DINÂMICA DE BOTÕES RÁPIDOS
+  // ==========================================
   function getTopQuickExpenses(ano, mes) {
-    const sAno = String(ano || currentYear || '2026');
-    const sMes = String(mes || currentMonth || 'Novembro');
-    const state = MatrixDB.getState();
-
-    const freqMap = {};
-
-    function processItem(it, weight = 1) {
-      if (!it || !it.nome) return;
-      let rawName = String(it.nome || '').trim();
-      if (!rawName || isSummaryOrTotalItem(rawName)) return;
-
-      // Remove marcadores de faturas de cartão/roteamento
-      rawName = rawName.replace(/\s*\((Crédito Nubank|Crédito BB|Débito Inter|Pix Inter|Crédito Banco do Brasil)\)/gi, '').trim();
-      if (!rawName) return;
-
-      const nl = rawName.toLowerCase();
-      const isCarona = isCaronaItem({ nome: rawName, categoria: it.categoria });
-      const isMega = nl.includes('mega') || nl.includes('sena') || nl.includes('lotérica') || nl.includes('loterica');
-
-      let normKey = nl;
-      let displayName = rawName;
-      if (isCarona) {
-        normKey = 'carona_usp';
-        displayName = 'Carona USP';
-      } else if (isMega) {
-        normKey = 'mega_sena';
-        displayName = 'Mega Sena';
-      }
-
-      if (!freqMap[normKey]) {
-        freqMap[normKey] = {
-          key: normKey,
-          isCarona,
-          isMegaSena: isMega,
-          nome: displayName,
-          count: 0,
-          valores: [],
-          contas: {},
-          categorias: {}
-        };
-      }
-
-      const entry = freqMap[normKey];
-      entry.count += weight;
-
-      const val = parseFloat(it.valor);
-      if (!isNaN(val) && val > 0) {
-        entry.valores.push(val);
-      }
-
-      if (it.conta) {
-        entry.contas[it.conta] = (entry.contas[it.conta] || 0) + 1;
-      }
-      if (it.categoria) {
-        entry.categorias[it.categoria] = (entry.categorias[it.categoria] || 0) + 1;
+    if (typeof MatrixDB !== 'undefined' && MatrixDB.getCustomQuickButtons) {
+      const customBtns = MatrixDB.getCustomQuickButtons();
+      if (Array.isArray(customBtns) && customBtns.length > 0) {
+        return customBtns.map(btn => ({
+          id: btn.id || ('btn_' + Math.random().toString(36).substr(2, 6)),
+          nome: btn.nome,
+          valor: parseFloat(btn.valor) || 0,
+          categoria: btn.categoria || 'Outros',
+          conta: btn.conta || 'debito_inter',
+          icone: btn.icone || '⚡'
+        }));
       }
     }
-
-    // 1. Prioriza com peso 3 os gastos do mês corrente (diários e variáveis lançados)
-    const monthData = (state.anos && state.anos[sAno] && state.anos[sAno][sMes]) || MatrixDB.getMonth(sAno, sMes) || {};
-    (monthData.diarios || []).forEach(it => processItem(it, 3));
-    (monthData.outros || []).forEach(it => processItem(it, 3));
-
-    // 2. Analisa histórico recente com peso 1 (diários e variáveis)
-    if (state.anos) {
-      Object.entries(state.anos).forEach(([aKey, meses]) => {
-        if (!meses) return;
-        Object.entries(meses).forEach(([mKey, md]) => {
-          if (aKey === sAno && mKey === sMes) return;
-          if (md) {
-            if (Array.isArray(md.diarios)) md.diarios.forEach(it => processItem(it, 1));
-            if (Array.isArray(md.outros)) md.outros.forEach(it => processItem(it, 1));
-          }
-        });
-      });
-    }
-
-    // 3. Consulta memória de categorias aprendidas
-    try {
-      const catMem = MatrixDB.getCategoryMemory ? MatrixDB.getCategoryMemory() : {};
-      if (catMem && typeof catMem === 'object') {
-        Object.entries(catMem).forEach(([desc, cat]) => {
-          if (!desc) return;
-          processItem({ nome: desc, categoria: cat, valor: 5, conta: 'debito_inter' }, 1);
-        });
-      }
-    } catch (_) {}
-
-    // 4. Garante 'Carona USP' fixa com R$ 30 e Pix Inter como Staple #1 incondicional
-    if (!freqMap['carona_usp']) {
-      freqMap['carona_usp'] = {
-        key: 'carona_usp',
-        isCarona: true,
-        nome: 'Carona USP',
-        count: 99999,
-        valores: [30],
-        contas: { pix_inter: 10 },
-        categorias: { Transporte: 10 }
-      };
-    } else {
-      freqMap['carona_usp'].isCarona = true;
-      freqMap['carona_usp'].nome = 'Carona USP';
-      freqMap['carona_usp'].count = 99999;
-      freqMap['carona_usp'].valores = [30];
-      freqMap['carona_usp'].contas['pix_inter'] = (freqMap['carona_usp'].contas['pix_inter'] || 0) + 10;
-      freqMap['carona_usp'].categorias['Transporte'] = 10;
-    }
-
-    // 5. Garante 'Mega Sena' com ícone 🍀 e R$ 5 Débito Inter como Staple #2 incondicional
-    if (!freqMap['mega_sena']) {
-      freqMap['mega_sena'] = {
-        key: 'mega_sena',
-        isMegaSena: true,
-        nome: 'Mega Sena',
-        count: 88888,
-        valores: [5],
-        contas: { debito_inter: 10 },
-        categorias: { Lazer: 10 }
-      };
-    } else {
-      freqMap['mega_sena'].isMegaSena = true;
-      freqMap['mega_sena'].nome = 'Mega Sena';
-      freqMap['mega_sena'].count = 88888;
-      if (!freqMap['mega_sena'].valores.length) freqMap['mega_sena'].valores.push(5);
-      if (!Object.keys(freqMap['mega_sena'].contas).length) freqMap['mega_sena'].contas['debito_inter'] = 10;
-      if (!Object.keys(freqMap['mega_sena'].categorias).length) freqMap['mega_sena'].categorias['Lazer'] = 10;
-    }
-
-    const items = Object.values(freqMap).map(e => {
-      if (e.isCarona) {
-        return {
-          nome: 'Carona USP',
-          valor: 30,
-          categoria: 'Transporte',
-          conta: 'pix_inter',
-          icone: '🚗',
-          count: e.count
-        };
-      }
-
-      if (e.isMegaSena) {
-        let valMega = 5;
-        if (e.valores.length > 0) {
-          const valCounts = {};
-          let maxVCount = 0;
-          e.valores.forEach(v => {
-            valCounts[v] = (valCounts[v] || 0) + 1;
-            if (valCounts[v] > maxVCount) {
-              maxVCount = valCounts[v];
-              valMega = v;
-            }
-          });
-        }
-        let contaMega = 'debito_inter';
-        let maxCCount = 0;
-        Object.entries(e.contas).forEach(([cName, cCnt]) => {
-          if (cCnt > maxCCount) {
-            maxCCount = cCnt;
-            contaMega = cName;
-          }
-        });
-        return {
-          nome: 'Mega Sena',
-          valor: valMega,
-          categoria: 'Lazer',
-          conta: contaMega,
-          icone: '🍀',
-          count: e.count
-        };
-      }
-
-      let valorFinal = 0;
-      if (e.valores.length > 0) {
-        const valCounts = {};
-        let maxVCount = 0;
-        e.valores.forEach(v => {
-          valCounts[v] = (valCounts[v] || 0) + 1;
-          if (valCounts[v] > maxVCount) {
-            maxVCount = valCounts[v];
-            valorFinal = v;
-          }
-        });
-      }
-
-      let contaFinal = 'debito_inter';
-      let maxCCount = 0;
-      Object.entries(e.contas).forEach(([cName, cCnt]) => {
-        if (cCnt > maxCCount) {
-          maxCCount = cCnt;
-          contaFinal = cName;
-        }
-      });
-
-      let catFinal = 'Outros';
-      let maxCatCount = 0;
-      Object.entries(e.categorias).forEach(([catName, catCnt]) => {
-        if (catCnt > maxCatCount) {
-          maxCatCount = catCnt;
-          catFinal = catName;
-        }
-      });
-
-      let icone = '⚡';
-      const nl = e.nome.toLowerCase();
-      const cl = catFinal.toLowerCase();
-      if (nl.includes('carona') || cl.includes('transporte') || nl.includes('uber') || nl.includes('combustivel')) icone = '🚗';
-      else if (nl.includes('mega') || nl.includes('sena') || nl.includes('loteria') || nl.includes('aposta') || nl.includes('jogo')) icone = '🍀';
-      else if (cl.includes('supermercado') || nl.includes('mercado') || nl.includes('padaria') || nl.includes('compra')) icone = '🛒';
-      else if (cl.includes('farmácia') || cl.includes('saúde') || nl.includes('droga') || nl.includes('farmacia')) icone = '💊';
-      else if (cl.includes('alimentação') || nl.includes('lanche') || nl.includes('restaurante') || nl.includes('almoço')) icone = '🍽️';
-      else if (cl.includes('lazer') || nl.includes('cinema')) icone = '🍿';
-      else if (cl.includes('transferência') || nl.includes('scarlet')) icone = '🤝';
-
-      return {
-        nome: e.nome,
-        valor: valorFinal,
-        categoria: catFinal,
-        conta: contaFinal,
-        icone,
-        count: e.count
-      };
-    });
-
-    items.sort((a, b) => {
-      if (a.nome === 'Carona USP') return -1;
-      if (b.nome === 'Carona USP') return 1;
-      if (a.nome === 'Mega Sena') return -1;
-      if (b.nome === 'Mega Sena') return 1;
-      return b.count - a.count;
-    });
-
-    return items.slice(0, 3);
+    return [
+      { id: 'btn_carona', nome: 'Carona USP', valor: 30, categoria: 'Transporte', conta: 'pix_inter', icone: '🚗' },
+      { id: 'btn_megasena', nome: 'Mega Sena', valor: 5, categoria: 'Lazer', conta: 'debito_inter', icone: '🍀' }
+    ];
   }
 
   function renderQuickExpenseButtons(ano, mes) {
@@ -5102,7 +4890,10 @@ const MatrixApp = (function () {
     const themeColors = [
       { border: 'rgba(0,255,102,0.4)', color: 'var(--matrix-green)', bg: 'rgba(0,255,102,0.06)' },
       { border: 'rgba(6,182,212,0.4)', color: 'var(--cyan)', bg: 'rgba(6,182,212,0.06)' },
-      { border: 'rgba(192,132,252,0.4)', color: 'var(--purple)', bg: 'rgba(192,132,252,0.06)' }
+      { border: 'rgba(192,132,252,0.4)', color: 'var(--purple)', bg: 'rgba(192,132,252,0.06)' },
+      { border: 'rgba(234,179,8,0.4)', color: 'var(--amber)', bg: 'rgba(234,179,8,0.06)' },
+      { border: 'rgba(244,63,94,0.4)', color: '#f43f5e', bg: 'rgba(244,63,94,0.06)' },
+      { border: 'rgba(59,130,246,0.4)', color: '#60a5fa', bg: 'rgba(59,130,246,0.06)' }
     ];
 
     container.innerHTML = topItems.map((it, idx) => {
@@ -10784,6 +10575,267 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     printWindow.document.close();
   }
 
+
+  // ==========================================
+  // GERENCIADOR DE BOTÕES DE ATALHO RÁPIDO
+  // ==========================================
+  function inferIconForExpense(nome, categoria) {
+    let icone = '⚡';
+    const nl = (nome || '').toLowerCase();
+    const cl = (categoria || '').toLowerCase();
+    if (nl.includes('carona') || cl.includes('transporte') || nl.includes('uber') || nl.includes('gasolina') || nl.includes('posto') || nl.includes('combustivel')) icone = '🚗';
+    else if (nl.includes('mega') || nl.includes('sena') || nl.includes('loteria') || nl.includes('aposta') || nl.includes('jogo')) icone = '🍀';
+    else if (cl.includes('supermercado') || nl.includes('mercado') || nl.includes('compra')) icone = '🛒';
+    else if (nl.includes('padaria') || nl.includes('pão') || nl.includes('pao')) icone = '🥖';
+    else if (cl.includes('farmácia') || cl.includes('saúde') || nl.includes('droga') || nl.includes('farmacia') || nl.includes('remedio')) icone = '💊';
+    else if (cl.includes('alimentação') || nl.includes('lanche') || nl.includes('restaurante') || nl.includes('almoço')) icone = '🍽️';
+    else if (nl.includes('café') || nl.includes('cafe')) icone = '☕';
+    else if (cl.includes('lazer') || nl.includes('cinema')) icone = '🍿';
+    else if (cl.includes('transferência') || nl.includes('scarlet')) icone = '🤝';
+    return icone;
+  }
+
+  function salvarAtualComoBotaoRapido() {
+    const nomeInput = document.getElementById('quickExpenseNome');
+    const valorInput = document.getElementById('quickExpenseValor');
+    const catSelect = document.getElementById('quickExpenseCategoria');
+    const contaSelect = document.getElementById('quickExpenseConta');
+
+    const nome = (nomeInput ? nomeInput.value : '').trim();
+    if (!nome || nome.length < 2) {
+      alert('Por favor, informe a descrição do gasto para fixá-lo como botão frequente.');
+      if (nomeInput) nomeInput.focus();
+      return;
+    }
+
+    const valor = parseFloat(valorInput ? valorInput.value : '0') || 0;
+    const categoria = catSelect ? catSelect.value : 'Outros';
+    const conta = contaSelect ? contaSelect.value : 'debito_inter';
+    const icone = inferIconForExpense(nome, categoria);
+
+    const list = MatrixDB.getCustomQuickButtons();
+    const existingIdx = list.findIndex(b => (b.nome || '').trim().toLowerCase() === nome.toLowerCase());
+
+    const item = {
+      id: existingIdx >= 0 ? list[existingIdx].id : ('btn_' + Date.now()),
+      nome,
+      valor,
+      categoria,
+      conta,
+      icone
+    };
+
+    if (existingIdx >= 0) {
+      list[existingIdx] = item;
+    } else {
+      list.push(item);
+    }
+
+    MatrixDB.saveCustomQuickButtons(list);
+    renderQuickExpenseButtons(currentYear, currentMonth);
+
+    const valStr = valor > 0 ? ` (R$ ${valor % 1 === 0 ? valor : valor.toFixed(2)})` : '';
+    alert(`⭐ Botão "${icone} ${nome}${valStr}" adicionado com sucesso aos seus atalhos!`);
+  }
+
+  function abrirGerenciadorBotoesRapidos() {
+    cancelarEdicaoBotaoRapido();
+    renderGerenciadorBotoesRapidos();
+    openModal('quickButtonsModalBackdrop');
+  }
+
+  function renderGerenciadorBotoesRapidos() {
+    const listEl = document.getElementById('quickButtonsManagerList');
+    if (!listEl) return;
+
+    const list = MatrixDB.getCustomQuickButtons();
+    if (!list || list.length === 0) {
+      listEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted);padding:8px;text-align:center;">Nenhum botão cadastrado. Clique em Restaurar Padrões ou adicione um novo abaixo.</div>';
+      return;
+    }
+
+    const contaLabels = {
+      pix_inter: 'Pix Inter',
+      debito_inter: 'Débito Inter',
+      credito_nubank: 'Crédito Nubank',
+      credito_bb: 'Crédito BB',
+      debito_bb: 'Débito BB',
+      pix_bb: 'Pix BB',
+      cartao_va: 'Cartão VA',
+      cartao_vr: 'Cartão VR',
+      dinheiro_vivo: 'Dinheiro'
+    };
+
+    listEl.innerHTML = list.map((it, idx) => {
+      const valStr = it.valor > 0 ? `R$ ${it.valor % 1 === 0 ? it.valor : it.valor.toFixed(2)}` : 'Livre';
+      const contaLbl = contaLabels[it.conta] || it.conta || 'Conta';
+      const isFirst = idx === 0;
+      const isLast = idx === list.length - 1;
+
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(20,30,25,0.7);border:1px solid var(--border-dim);border-radius:var(--radius-xs);padding:6px 10px;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+            <span style="font-size:18px;line-height:1;">${it.icone || '⚡'}</span>
+            <div style="min-width:0;">
+              <div style="font-size:11.5px;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${it.nome} <span style="font-weight:normal;color:var(--matrix-green);font-family:var(--font-mono);">(${valStr})</span>
+              </div>
+              <div style="font-size:9.5px;color:var(--text-muted);display:flex;gap:6px;">
+                <span>🏷️ ${it.categoria}</span>
+                <span>•</span>
+                <span>💳 ${contaLbl}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:3px;align-items:center;flex-shrink:0;">
+            <button type="button" class="btn-matrix" style="padding:2px 5px;font-size:10px;${isFirst ? 'opacity:0.3;pointer-events:none;' : ''}" onclick="MatrixApp.moverBotaoRapido(${idx}, -1)" title="Mover para cima">▲</button>
+            <button type="button" class="btn-matrix" style="padding:2px 5px;font-size:10px;${isLast ? 'opacity:0.3;pointer-events:none;' : ''}" onclick="MatrixApp.moverBotaoRapido(${idx}, 1)" title="Mover para baixo">▼</button>
+            <button type="button" class="btn-matrix" style="padding:2px 7px;font-size:10px;color:var(--cyan);border-color:rgba(6,182,212,0.4);" onclick="MatrixApp.editarBotaoRapido(${idx})" title="Editar botão">✏️</button>
+            <button type="button" class="btn-matrix" style="padding:2px 7px;font-size:10px;color:#f87171;border-color:rgba(239,68,68,0.4);" onclick="MatrixApp.excluirBotaoRapido(${idx})" title="Excluir botão">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function editarBotaoRapido(index) {
+    const list = MatrixDB.getCustomQuickButtons();
+    const item = list[index];
+    if (!item) return;
+
+    const editIdxEl = document.getElementById('qbEditIndex');
+    const nomeEl = document.getElementById('qbNome');
+    const valorEl = document.getElementById('qbValor');
+    const catEl = document.getElementById('qbCategoria');
+    const contaEl = document.getElementById('qbConta');
+    const iconeEl = document.getElementById('qbIcone');
+    const titleEl = document.getElementById('qbFormTitle');
+    const cancelBtn = document.getElementById('qbCancelEditBtn');
+
+    if (editIdxEl) editIdxEl.value = String(index);
+    if (nomeEl) nomeEl.value = item.nome || '';
+    if (valorEl) valorEl.value = item.valor != null ? item.valor : '';
+    if (catEl && item.categoria) catEl.value = item.categoria;
+    if (contaEl && item.conta) contaEl.value = item.conta;
+    if (iconeEl) iconeEl.value = item.icone || '⚡';
+    if (titleEl) titleEl.innerHTML = `✏️ Editando: <span style="color:var(--matrix-green);">${item.nome}</span>`;
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+  }
+
+  function cancelarEdicaoBotaoRapido() {
+    const editIdxEl = document.getElementById('qbEditIndex');
+    const nomeEl = document.getElementById('qbNome');
+    const valorEl = document.getElementById('qbValor');
+    const catEl = document.getElementById('qbCategoria');
+    const contaEl = document.getElementById('qbConta');
+    const iconeEl = document.getElementById('qbIcone');
+    const titleEl = document.getElementById('qbFormTitle');
+    const cancelBtn = document.getElementById('qbCancelEditBtn');
+
+    if (editIdxEl) editIdxEl.value = '';
+    if (nomeEl) nomeEl.value = '';
+    if (valorEl) valorEl.value = '';
+    if (catEl) catEl.value = 'Alimentação';
+    if (contaEl) contaEl.value = 'debito_inter';
+    if (iconeEl) iconeEl.value = '⚡';
+    if (titleEl) titleEl.textContent = '➕ Adicionar Novo Botão de Atalho';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+
+  function salvarBotaoRapidoDoManager() {
+    const editIdxEl = document.getElementById('qbEditIndex');
+    const nomeEl = document.getElementById('qbNome');
+    const valorEl = document.getElementById('qbValor');
+    const catEl = document.getElementById('qbCategoria');
+    const contaEl = document.getElementById('qbConta');
+    const iconeEl = document.getElementById('qbIcone');
+
+    const nome = (nomeEl ? nomeEl.value : '').trim();
+    if (!nome) {
+      alert('Informe o nome do gasto.');
+      if (nomeEl) nomeEl.focus();
+      return;
+    }
+
+    const valor = parseFloat(valorEl ? valorEl.value : '0') || 0;
+    const categoria = catEl ? catEl.value : 'Outros';
+    const conta = contaEl ? contaEl.value : 'debito_inter';
+    let icone = (iconeEl ? iconeEl.value : '').trim() || inferIconForExpense(nome, categoria);
+
+    const list = MatrixDB.getCustomQuickButtons();
+    const idxVal = editIdxEl ? editIdxEl.value : '';
+
+    if (idxVal !== '' && !isNaN(parseInt(idxVal, 10))) {
+      const idx = parseInt(idxVal, 10);
+      if (list[idx]) {
+        list[idx] = {
+          ...list[idx],
+          nome,
+          valor,
+          categoria,
+          conta,
+          icone
+        };
+      }
+    } else {
+      list.push({
+        id: 'btn_' + Date.now(),
+        nome,
+        valor,
+        categoria,
+        conta,
+        icone
+      });
+    }
+
+    MatrixDB.saveCustomQuickButtons(list);
+    renderGerenciadorBotoesRapidos();
+    renderQuickExpenseButtons(currentYear, currentMonth);
+    cancelarEdicaoBotaoRapido();
+  }
+
+  function excluirBotaoRapido(index) {
+    const list = MatrixDB.getCustomQuickButtons();
+    const item = list[index];
+    if (!item) return;
+
+    if (!confirm(`Deseja excluir o botão de atalho "${item.nome}"?`)) return;
+
+    list.splice(index, 1);
+    MatrixDB.saveCustomQuickButtons(list);
+    renderGerenciadorBotoesRapidos();
+    renderQuickExpenseButtons(currentYear, currentMonth);
+    cancelarEdicaoBotaoRapido();
+  }
+
+  function moverBotaoRapido(index, delta) {
+    const list = MatrixDB.getCustomQuickButtons();
+    const targetIdx = index + delta;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+
+    MatrixDB.saveCustomQuickButtons(list);
+    renderGerenciadorBotoesRapidos();
+    renderQuickExpenseButtons(currentYear, currentMonth);
+  }
+
+  function restaurarBotoesRapidosPadrao() {
+    if (!confirm('Deseja restaurar os botões de atalho padrão (Carona USP e Mega Sena)?')) return;
+
+    const defs = MatrixDB.DEFAULT_QUICK_BUTTONS || [
+      { id: 'btn_carona', nome: 'Carona USP', valor: 30, categoria: 'Transporte', conta: 'pix_inter', icone: '🚗' },
+      { id: 'btn_megasena', nome: 'Mega Sena', valor: 5, categoria: 'Lazer', conta: 'debito_inter', icone: '🍀' }
+    ];
+
+    MatrixDB.saveCustomQuickButtons(defs);
+    renderGerenciadorBotoesRapidos();
+    renderQuickExpenseButtons(currentYear, currentMonth);
+    cancelarEdicaoBotaoRapido();
+  }
+
   return {
     init,
     changeMonth,
@@ -10928,7 +10980,16 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarParametrosSimulador2055,
     baixarRelatorioAposentadoria2055,
     imprimirRelatorioAposentadoria2055,
-    atualizarCotacaoTesouro2055
+    atualizarCotacaoTesouro2055,
+    salvarAtualComoBotaoRapido,
+    abrirGerenciadorBotoesRapidos,
+    renderGerenciadorBotoesRapidos,
+    editarBotaoRapido,
+    cancelarEdicaoBotaoRapido,
+    salvarBotaoRapidoDoManager,
+    excluirBotaoRapido,
+    moverBotaoRapido,
+    restaurarBotoesRapidosPadrao
   };
 })();
 
