@@ -1,0 +1,15 @@
+{
+  "name": "matrix-finance-360",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MATRIX Finance 360 — central de gestão e inteligência financeira (PWA + Google Apps Script)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "check": "node scripts/check-syntax.js",
+    "verify": "npm run check && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
