@@ -20,6 +20,12 @@ const MatrixApp = (function () {
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
   ];
 
+  // v114: "mês vigente" deixou de ser o literal 2026/Novembro — compara com a data real.
+  function isMesVigenteReal(ano, mesNome) {
+    const agora = new Date();
+    return String(ano) === String(agora.getFullYear()) && mesNome === MONTH_NAMES[agora.getMonth()];
+  }
+
   function formatBRL(val) {
     const num = parseFloat(val) || 0;
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -2074,10 +2080,10 @@ const MatrixApp = (function () {
       gastoMercadoMesAtual: 71.06,
       gastoVrMesAtual: 299.75
     };
-    const vaAtual = (currentYear === '2026' && currentMonth === 'Novembro')
+    const vaAtual = isMesVigenteReal(currentYear, currentMonth)
       ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
       : va;
-    const vrAtual = (currentYear === '2026' && currentMonth === 'Novembro')
+    const vrAtual = isMesVigenteReal(currentYear, currentMonth)
       ? (satMaracaju.saldoVrRestante != null ? satMaracaju.saldoVrRestante : Math.max(0, (satMaracaju.vrTotal || 1105.16) - (satMaracaju.gastoVrMesAtual || 0)))
       : vr;
 
@@ -2570,7 +2576,7 @@ const MatrixApp = (function () {
 
       let va = 2050.00;
       let vr = 1105.00;
-      if (currentYear === '2026' && currentMonth === 'Novembro') {
+      if (isMesVigenteReal(currentYear, currentMonth)) {
         va = (state.satellites && state.satellites.maracaju && state.satellites.maracaju.saldoVaRestante != null)
           ? state.satellites.maracaju.saldoVaRestante
           : 2059.84;
@@ -6723,7 +6729,25 @@ function onModalCategoriaChange(catVal) {
     if (vrEl) vrEl.textContent = formatBRL(commute.totalVR);
 
     const vrSub = document.getElementById('calVRSub');
-    if (vrSub) vrSub.textContent = `${commute.vrWorkingDaysCount} dias x R$ 65`;
+    if (vrSub) {
+      // v114: este KPI é CONSUMO estimado (dias presenciais x R$ 65), não o crédito contratual.
+      // Mostrar o crédito ao lado evita a leitura errada de que o VR do mês seria R$ 1.170,00.
+      const satVr = state.satellites && state.satellites.maracaju && state.satellites.maracaju.vrTotal;
+      let mdVr = NaN;
+      try {
+        const mdCal = MatrixDB.getMonth(calSelectedYear, calSelectedMonth);
+        if (mdCal && mdCal.totais) mdVr = parseFloat(mdCal.totais['VR']);
+      } catch (e) {}
+      const vrContrato = satVr || (isFinite(mdVr) ? mdVr : null) || 1105.16;
+      vrSub.textContent = `${commute.vrWorkingDaysCount} dias x R$ 65 • crédito ${formatBRL(vrContrato)}`;
+      if (vrEl) {
+        const estourou = commute.totalVR > vrContrato + 0.01;
+        vrEl.style.color = estourou ? 'var(--amber)' : '';
+        vrEl.title = estourou
+          ? 'O consumo estimado (dias presenciais x R$ 65) passa do crédito contratual de VR.'
+          : 'Consumo estimado de VR x crédito contratual.';
+      }
+    }
 
     // Caronas: Baseado nos dias úteis entre salários (4º dia útil de M a 3º dia útil de M+1)
     const diasCaronaEl = document.getElementById('calDiasCarona');

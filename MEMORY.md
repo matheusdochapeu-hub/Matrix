@@ -153,7 +153,7 @@ Propostas estruturadas e validadas para modernização da aba de simulações e 
 - Chromium headless (CDP): 0 exceções/erros de console; 12 modais abrindo e fechando; 7 abas sem overflow (desktop e mobile); Service Worker registrado; fluxo completo dos botões rápidos (fixar, editar, reordenar, excluir, restaurar) e lançamento de gasto diário persistindo após reload.
 
 ### ⚠️ Pendências Identificadas (não alteradas nesta versão)
-1. **Segredo em repositório público**: `js/satellite-connectors.js` expõe `maracajuToken: 'Maracaju88CasalSegredo2026!'` (linhas ~27, ~390 e ~1223) e a URL do Apps Script do Casa Maracaju. Precisa de rotação do token no Apps Script e configuração via `localStorage` (`matrix_maracaju_*`).
+1. **Segredo em repositório público**: `js/satellite-connectors.js` expunha o token do Casa Maracaju em três pontos (default dos endpoints, fallback do POST de backup e baseline de faturas), junto da URL do Apps Script do Casa Maracaju. **Resolvido na v114**: os três pontos foram removidos e o token passou a vir só de `localStorage` (`matrix_maracaju_token`). Ainda é necessário **rotacionar o token** no Apps Script, pois o valor antigo permanece no histórico do Git.
 2. **Acoplamento temporal a Nov/2026**: comparações `'2026-11'` em `sync-engine.js` (preservação do consumo local do Casa Maracaju) e em `app.js` deixam de valer quando o mês virar.
 3. **Botões rápidos não sincronizam**: ficam apenas no `localStorage` do dispositivo (decisão consciente, mas vale registrar).
 
@@ -186,6 +186,44 @@ medindo truncamento de texto, alvos de toque, fontes mínimas, overflow horizont
 - `node --test "test/*.test.js"`: **15/15**; `check-syntax`: 11/11.
 - Chromium headless: **0 erros/ exceções de console**, `horizontalOverflow = 0` e **`clipped = 0`** nas três viewports (1440, 390 e 360).
 - `sw.js` e `?v=` em **v113**.
+
+---
+
+## [2026-11-10 15:40] - Matrix Finance v114: Fim do Token no Código, Regras por Data Real e KPI de VR do Calendário
+
+### 🔍 Motivação
+Tratar as três pendências abertas na revisão da v112: segredo exposto no repositório público,
+regras presas ao literal `2026-11` e o KPI `#calVRTotal` que exibia `R$ 1.170,00` como se
+fosse o VR do mês.
+
+### 🛠️ Correções
+1. **Token do Casa Maracaju fora do código**:
+   - Removido dos **três** pontos: `DEFAULT_ENDPOINTS.maracajuToken` (default), o fallback do
+     `POST action:'backup'` e o `profile.gasToken` do `BASELINE_FATURAS_RAW`.
+   - O token agora vem apenas de `localStorage` (`matrix_maracaju_token`, campo `cfgMaracajuToken`
+     em **Backup & Conexões**). Sem token, o conector não tenta o GET/POST e registra
+     `statusResults.maracaju.error = 'Token do Casa Maracaju não configurado (Backup & Conexões).'`
+   - **Ação externa pendente:** rotacionar o token no Apps Script do Casa Maracaju (o valor
+     antigo continua no histórico do Git).
+2. **Regras de mês vigente sem literal**:
+   - `app.js`: novo `isMesVigenteReal(ano, mes)` (compara com `new Date()`), usado no chip de
+     VA/VR do topo e no drilldown de folga de caixa (antes `currentYear === '2026' && currentMonth === 'Novembro'`);
+   - `satellite-connectors.js`: `getDiariosMesVigente(state)` substitui a busca fixa em
+     `anos['2026']['Novembro']` (usada em `syncMaracajuFromLocal` e no `scrapeAll`);
+   - `sync-engine.js`: a preservação do consumo local do Casa Maracaju compara
+     `localMaracajuSat.cicloVigente` com o do snapshot, em vez de exigir `'2026-11'`.
+3. **KPI `#calVRTotal` sem ambiguidade**:
+   - O card passou a se chamar **“VR Consumido (R$ 65/dia)”** e o subtítulo mostra
+     `18 dias x R$ 65 • crédito R$ 1.105,16` (crédito contratual vindo de `satellites.maracaju.vrTotal`
+     ou `totais['VR']`).
+   - Quando o consumo estimado passa do crédito, o valor fica em âmbar com `title` explicando —
+     sem nunca sobrescrever o VR contratual.
+
+### 🧪 Validação
+- `check-syntax` 11/11 e suíte **15/15**.
+- Chromium headless: calendário renderiza “VR Consumido … 18 dias x R$ 65 • crédito R$ 1.105,16”,
+  chip do Casa Maracaju continua exibindo saldo restante, sem erros de console e sem overflow.
+- `sw.js` e `?v=` em **v114**.
 
 
 

@@ -392,4 +392,29 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **Checklist de validação visual**: o app deve ser conferido em **1440×900, 768×1024, 390×844 e 360×740** com `document.documentElement.scrollWidth === window.innerWidth` e nenhum rótulo truncado.
 - Service Worker atualizado para `matrix-finance-v113`.
 
+---
+
+## 28. Segredos, Datas Reais e KPI de VR do Calendário (v114)
+
+- **Token do Casa Maracaju nunca no código**:
+  - O token é lido de `localStorage` (`matrix_maracaju_token`) e editado em **Backup & Conexões**
+    (`#cfgMaracajuToken`). `DEFAULT_ENDPOINTS.maracajuToken` é `''`.
+  - Sem token o conector **não** dispara GET/POST: devolve
+    `{ success: false, error: 'Token do Casa Maracaju não configurado (Backup & Conexões).' }`
+    e o restante do scraping segue normalmente.
+  - **Rotação obrigatória**: o token antigo esteve versionado em repositório público e continua
+    no histórico do Git. Trocar o valor no Apps Script do Casa Maracaju e salvar o novo token
+    apenas nos dispositivos.
+- **Nada de `'2026-11'` como regra**: usa-se `isMesVigenteReal(ano, mes)` (`app.js`) e
+  `getDiariosMesVigente(state)` (`satellite-connectors.js`); no sync a comparação é
+  `cicloVigente` local × `cicloVigente` do snapshot. Literais de 2026 que restarem devem ser
+  **dados** (seed/fallback), nunca condição de comportamento.
+- **KPI de VR no Calendário (`#calVRTotal`)**:
+  - Título: **“VR Consumido (R$ 65/dia)”**. Valor = dias presenciais × R$ 65 (**consumo estimado**,
+    não crédito).
+  - Subtítulo: `N dias x R$ 65 • crédito R$ 1.105,16` (crédito de `satellites.maracaju.vrTotal`).
+  - Se o consumo passar do crédito, o número fica em âmbar (`var(--amber)`) e ganha `title`
+    explicativo. **Nunca** grava em `totais['VR']` — a regra contratual de VR segue inviolável.
+- Service Worker atualizado para `matrix-finance-v114`.
+
 

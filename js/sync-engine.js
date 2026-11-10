@@ -488,7 +488,10 @@ const SyncEngine = (function () {
       } else if (payloadData.satellites.maracaju && localMaracajuSat) {
         // Se o estado local já tiver gastos maiores/mais recentes no ciclo vigente, preserva
         const cSat = payloadData.satellites.maracaju;
-        if (localMaracajuSat.cicloVigente === '2026-11' && ((localMaracajuSat.gastoVrMesAtual || 0) > (cSat.gastoVrMesAtual || 0) || (localMaracajuSat.gastoMercadoMesAtual || 0) > (cSat.gastoMercadoMesAtual || 0))) {
+        // v114: compara o ciclo vigente do local com o do snapshot (antes era fixo em '2026-11'
+        // e a proteção deixava de valer assim que o mês virasse).
+        const mesmoCicloMaracaju = !cSat.cicloVigente || localMaracajuSat.cicloVigente === cSat.cicloVigente;
+        if (mesmoCicloMaracaju && ((localMaracajuSat.gastoVrMesAtual || 0) > (cSat.gastoVrMesAtual || 0) || (localMaracajuSat.gastoMercadoMesAtual || 0) > (cSat.gastoMercadoMesAtual || 0))) {
           payloadData.satellites.maracaju = localMaracajuSat;
         }
       }

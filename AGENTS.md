@@ -82,18 +82,22 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
   `index.html` (bloco dentro do modal + cópia órfã no fim do `<body>` com valores fixos
   `R$ 1.053.372` / `2.259,5 títulos`, que nunca era atualizada). O bloco órfão foi
   removido e o teste de IDs duplicados voltou a ser estrito.
-- **Acoplamento temporal:** `js/sync-engine.js` e `js/app.js` ainda tratam
-  `'2026-11'`/`'2026'` como constantes em várias regras (ex.: preservação do consumo
-  local do Casa Maracaju no sync). Ao virar o mês/ano, revisar essas comparações.
+- **Acoplamento temporal (parcialmente resolvido na v114):** as *regras* que dependiam de
+  `'2026-11'` (saldo do Casa Maracaju no topo, drilldown de folga de caixa, preservação do
+  consumo local no sync e diários de VA/VR no scraping) passaram a usar a data real
+  (`isMesVigenteReal` / comparação de `cicloVigente`). Ainda há literais `'2026'`/`'2026-11'`
+  **de dados** (seed de meses, fallbacks de demonstração da Scarlet/FisioFlow) — esses são
+  históricos e devem ser substituídos por dados reais, não por cálculo dinâmico.
 - **Persistência de botões rápidos é só local:** `MatrixDB.saveCustomQuickButtons`
   grava em `localStorage` (`matrix_custom_quick_buttons`) e não entra no estado
   sincronizado com o Google Sheets — cada dispositivo tem seus próprios atalhos.
-- **⚠️ Segredo exposto no repositório público:** `js/satellite-connectors.js` contém
-  `maracajuToken: 'Maracaju88CasalSegredo2026!'` (linhas ~27, ~390 e ~1223) junto da
-  URL do Apps Script do Casa Maracaju. Como o GitHub Pages é público, qualquer pessoa
-  consegue ler/gravar os dados de VA/VR. **Ação do dono do projeto:** rotacionar o
-  token no Apps Script e passar a configurá-lo por `localStorage`
-  (`matrix_maracaju_*`) em vez de deixá-lo no código.
+- **Token do Casa Maracaju (resolvido no código na v114):** o token estava fixo em
+  `js/satellite-connectors.js` (default dos endpoints, fallback do POST de backup e no
+  baseline de faturas) num repositório público. Na v114 os três pontos foram removidos:
+  o token agora vem apenas de `localStorage` (`matrix_maracaju_token`, editável em
+  **Backup & Conexões**) e o conector avisa quando ele não está configurado.
+  **Ainda é necessário rotacionar o token no Apps Script do Casa Maracaju**, porque o
+  valor antigo continua no histórico do Git — tirar do código não o torna secreto.
 
 ## Vizinhança (ecossistema)
 
