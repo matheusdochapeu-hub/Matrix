@@ -339,3 +339,20 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **Eliminação de Saltos Verticais via `scrollIntoView` na Troca de Abas**:
   - A linha `btn.scrollIntoView(...)` em `switchTab` foi substituída por rolagem horizontal contida exclusivamente no container `.matrix-tabs` (`tabsBar.scrollTo({ left, behavior: 'smooth' })`), eliminando de vez qualquer salto da janela para baixo.
   - Service Worker atualizado para `matrix-finance-v110`.
+
+
+---
+
+## 25. Gestão Completa de Botões de Atalho Rápido & Fixação Instantânea
+- **Botão `⭐ Fixar como Botão` no Modal de Gasto Diário**:
+  - Permite ao usuário, ao preencher qualquer gasto diário (nome, valor, categoria, conta), clicar em `⭐ Fixar como Botão` para gravá-lo imediatamente como atalho frequente permanente na barra superior do modal.
+  - Reconhece ou infere automaticamente o melhor emoji para o gasto (`🚗`, `🍀`, `🥖`, `🛒`, `💊`, `🍽️`, `☕`, `⛽`, `🍿`, `⚡`).
+- **Modal Exclusivo `⚙️ Gerenciar Botões Rápidos` (`#quickButtonsModalBackdrop`)**:
+  - Acessível diretamente pelo botão `⚙️ Editar Botões` ao lado dos atalhos.
+  - **Edição Completa**: Permite editar nome, valor padrão, categoria, conta de débito/crédito e ícone/emoji de qualquer botão existente.
+  - **Reordenação e Exclusão**: Botões para mover para cima (`▲`), mover para baixo (`▼`) e excluir (`🗑️`).
+  - **Criação de Novos Botões**: Formulário dedicado com seletor rápido de emojis.
+  - **Restauração**: Opção `↺ Restaurar Padrões` para reverter aos staples base (Carona USP e Mega Sena).
+- **Persistência Local e no DB**:
+  - Gravado no `localStorage` sob a chave `matrix_custom_quick_buttons` e sincronizado com `MatrixDB.getCustomQuickButtons()` e `MatrixDB.saveCustomQuickButtons()`.
+  - Service Worker atualizado para `matrix-finance-v111`.
