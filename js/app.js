@@ -261,6 +261,7 @@ const MatrixApp = (function () {
       if (maracajuNaoInicializado) {
         state.satellites.maracaju = {
           origem: 'Maracaju 88',
+          semente: true,
           atualizadoEm: new Date().toISOString(),
           cicloVigente: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })(),
           creditDate: null,
@@ -2076,6 +2077,7 @@ const MatrixApp = (function () {
 
     // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR — SEMPRE mostra o SALDO ATUAL RESTANTE)
     const satMaracaju = (state.satellites && state.satellites.maracaju) || {
+      semente: true,
       saldoVaRestante: 1988.78,
       saldoVrRestante: 805.41,
       vaTotal: 2059.84,
@@ -2083,6 +2085,9 @@ const MatrixApp = (function () {
       gastoMercadoMesAtual: 71.06,
       gastoVrMesAtual: 299.75
     };
+    // v120: enquanto só existir o estado-semente (antes do primeiro puxão do Casa Maracaju),
+    // nunca exibir os números de exemplo como se fossem reais.
+    const maracajuPendente = !!(satMaracaju.semente && !satMaracaju.manualOverride);
     const vaAtual = isMesVigenteReal(currentYear, currentMonth)
       ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
       : va;
@@ -2094,14 +2099,20 @@ const MatrixApp = (function () {
     const satVaEl = document.getElementById('topSatVaVal');
     const satVrEl = document.getElementById('topSatVrVal');
     if (satVaEl && satVrEl) {
-      smoothSetText(satVaEl, `VA ${formatBRL(vaAtual)}`);
-      smoothSetText(satVrEl, `VR ${formatBRL(vrAtual)}`);
+      smoothSetText(satVaEl, maracajuPendente ? 'VA —' : `VA ${formatBRL(vaAtual)}`);
+      smoothSetText(satVrEl, maracajuPendente ? 'VR —' : `VR ${formatBRL(vrAtual)}`);
     } else if (satCasaEl) {
-      satCasaEl.innerHTML = `<span style="color:var(--matrix-green);">VA ${formatBRL(vaAtual)}</span> <span style="color:var(--cyan);margin-left:4px;">VR ${formatBRL(vrAtual)}</span>`;
+      satCasaEl.innerHTML = maracajuPendente
+        ? '<span style="color:var(--matrix-green);">VA —</span> <span style="color:var(--cyan);margin-left:4px;">VR —</span>'
+        : `<span style="color:var(--matrix-green);">VA ${formatBRL(vaAtual)}</span> <span style="color:var(--cyan);margin-left:4px;">VR ${formatBRL(vrAtual)}</span>`;
     }
 
     const satCasaChip = (satCasaEl || satVaEl) ? (satCasaEl || satVaEl).closest('.sat-chip') : null;
-    if (satCasaChip) {
+    if (satCasaChip && maracajuPendente) {
+      satCasaChip.setAttribute('title', 'Sincronizando saldos com o app Casa Maracaju…');
+      satCasaChip.style.opacity = '0.75';
+    } else if (satCasaChip) {
+      satCasaChip.style.opacity = '';
       satCasaChip.setAttribute('title', `Casa Maracaju: Saldo VA ${formatBRL(vaAtual)} (Gasto Mercado: ${formatBRL(satMaracaju.gastoMercadoMesAtual || 0)}) • Saldo VR ${formatBRL(vrAtual)} (Gasto Refeições: ${formatBRL(satMaracaju.gastoVrMesAtual || 0)})`);
     }
 
@@ -3700,6 +3711,16 @@ const MatrixApp = (function () {
 
       const gastoAnterior = sat.gastoMercadoCicloAnterior || 390.41;
       const comprasAtuais = Array.isArray(sat.comprasCicloAtual) ? sat.comprasCicloAtual : [];
+      // v120: enquanto o primeiro puxão do Casa Maracaju não chega, não exibir números de exemplo.
+      const maracajuPendenteDrill = !!(sat.semente && !sat.manualOverride);
+      const vaSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vaSaldo);
+      const vrSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vrSaldo);
+      const totalSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vaSaldo + vrSaldo);
+      const vaSaldoInput = maracajuPendenteDrill ? '' : vaSaldo.toFixed(2);
+      const vrSaldoInput = maracajuPendenteDrill ? '' : vrSaldo.toFixed(2);
+      const avisoPendente = maracajuPendenteDrill
+        ? '<div style="background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.35);color:var(--amber);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:11.5px;">⏳ Aguardando o primeiro puxão do app Casa Maracaju — os saldos aparecem aqui assim que a sincronização terminar.</div>'
+        : '';
 
       const notasOutubro = [
         { mercado: 'Carrefour (03/11)', ciclo: 'Ciclo Outubro (Encerrado)', metodo: 'Cartão VA', valor: 280.66 },
@@ -3709,6 +3730,7 @@ const MatrixApp = (function () {
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
+${avisoPendente}
           <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,255,65,0.08);border:1px solid var(--border-glow);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <span style="color:var(--matrix-green);display:flex;align-items:center;gap:6px;font-weight:bold;">
               <span class="live-pulse"></span> App Casa Maracaju 88 Conectado • Ciclo Novembro Vigente
@@ -3727,17 +3749,17 @@ const MatrixApp = (function () {
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px;">
             <div style="background:var(--bg-card);border:1.5px solid rgba(0,255,102,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(0,255,102,0.05);">
               <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VA (Novembro)</div>
-              <div style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:2px;">${formatBRL(vaSaldo)}</div>
+              <div style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:2px;">${vaSaldoTxt}</div>
               <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;">Crédito ${formatBRL(vaTot)} − Gasto ${formatBRL(vaGasto)}</div>
             </div>
             <div style="background:var(--bg-card);border:1.5px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:inset 0 0 10px rgba(6,182,212,0.05);">
               <div style="font-size:11px;color:var(--text-muted);">Saldo Atual VR (Novembro)</div>
-              <div style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:2px;">${formatBRL(vrSaldo)}</div>
+              <div style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:2px;">${vrSaldoTxt}</div>
               <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;">Crédito ${formatBRL(vrTot)} − Gasto ${formatBRL(vrGasto)}</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Total Alimentação Disponível</div>
-              <div style="font-size:16px;font-weight:800;color:var(--text-bright);margin-top:2px;">${formatBRL(vaSaldo + vrSaldo)}</div>
+              <div style="font-size:16px;font-weight:800;color:var(--text-bright);margin-top:2px;">${totalSaldoTxt}</div>
               <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">VA + VR combinados</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:10px;border-radius:var(--radius-sm);">
@@ -3756,11 +3778,11 @@ const MatrixApp = (function () {
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:8px;align-items:end;">
               <div>
                 <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VA (R$)</label>
-                <input type="number" step="0.01" id="inlineMaracajuVaSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vaSaldo.toFixed(2)}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
+                <input type="number" step="0.01" id="inlineMaracajuVaSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vaSaldoInput}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
               </div>
               <div>
                 <label style="display:block;font-size:10px;color:var(--text-muted);margin-bottom:2px;">Saldo Atual VR (R$)</label>
-                <input type="number" step="0.01" id="inlineMaracajuVrSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vrSaldo.toFixed(2)}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
+                <input type="number" step="0.01" id="inlineMaracajuVrSaldo" class="matrix-input" style="width:100%;padding:6px 8px;font-size:12px;" value="${vrSaldoInput}" onchange="MatrixApp.salvarSaldoAtualMaracajuInline(true)">
               </div>
               <div style="display:flex;gap:6px;">
                 <button class="btn-matrix" style="padding:6px 10px;font-size:11px;width:100%;" onclick="MatrixApp.salvarSaldoAtualMaracajuInline()">

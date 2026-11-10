@@ -84,6 +84,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
    de valor ou de mês: o estado só é semeado quando faltam `vaTotal`/`vrTotal`/`saldoVaRestante`/
    `saldoVrRestante` (v117). Comparar float com `!==` ou fixar `'2026-11'` apagava o saldo real
    do app a cada carregamento.
+10. **Nunca renderize valor de exemplo como se fosse real.** Enquanto o satélite não sincronizou,
+    o KPI mostra `—` (os seeds levam `semente: true` e o HTML nasce neutro — v120). Foi assim que
+    o chip exibia `1.988,78 / 805,41` antes de fixar os números do Casa Maracaju.
 
 ## Dívida técnica conhecida
 

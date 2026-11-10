@@ -476,4 +476,21 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   real do app (`1.614,98 / 343,26`), voltando ao certo só depois de uma sincronização.
 - Service Worker atualizado para `matrix-finance-v117`.
 
+---
 
+## 32. Nada de Valor de Exemplo na Tela: Estados de Carregamento (v120)
+
+- **Dados de satélite nunca aparecem "chutados"**: enquanto o primeiro puxão dos apps de terceiros não chega,
+  o chip **Casa Maracaju** (`#topSatVaVal` / `#topSatVrVal`) exibe **`VA —` / `VR —`**, com opacidade 0.75 e
+  `title` "Sincronizando saldos com o app Casa Maracaju…".
+- **Regra de implementação**:
+  - o HTML nasce com `—` (nunca com números de exemplo);
+  - os seeds de `satellites.maracaju` (em `db.js` e `app.js`) carregam `semente: true`;
+  - o render só mostra números quando o objeto **não é semente** (ou é `manualOverride` do usuário), isto é,
+    quando veio de `syncMaracajuFromLocal` / `scrapeAll`;
+  - estado real salvo em `localStorage` (sem `semente`) aparece imediatamente, sem flash.
+- **Drilldown `maracaju`**: com estado pendente, mostra o aviso âmbar "⏳ Aguardando o primeiro puxão do app
+  Casa Maracaju…" e saldos/inputs com `—`.
+- **Ao adicionar novos KPIs satélites**: siga o mesmo padrão (placeholder neutro + marca de semente), para não
+  repetir o flash de `1.988,78 / 805,41` antes da sincronização.
+- Service Worker atualizado para `matrix-finance-v120`.

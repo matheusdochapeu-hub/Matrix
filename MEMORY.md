@@ -364,6 +364,33 @@ fotográfica, mas estava salva em PNG RGBA (1.584 KB no 1024, 483 KB no 512, 443
 - `check-syntax` 11/11; suíte **16/16** (incluindo manifest + assets do SW existindo no disco).
 - Páginas no ar conferidas: todos os ícones retornam 200 com os novos tamanhos.
 
+---
+
+## [2026-11-10 17:25] - Matrix Finance v120: Fim do "Flash" de Valores de Exemplo no Carregamento
+
+### 🐞 Bug
+Ao abrir o app, o chip **Casa Maracaju** exibia `VA R$ 1.988,78 / VR R$ 805,41` (valores de exemplo) por um
+instante antes de o puxão dos apps satélites fixar os números reais. Duas fontes:
+
+1. os valores estavam **fixos no HTML** (`#topSatVaVal` / `#topSatVrVal`) e apareciam antes mesmo do JS rodar;
+2. quando o estado não tinha `satellites.maracaju`, `db.js`/`app.js` injetavam um objeto-semente com esses
+   números e o render tratava como valor real até a primeira sincronização.
+
+### 🛠️ Correção
+- HTML: os chips agora nascem com **`VA —` / `VR —`** (nada de número fictício antes do render).
+- Os dois seeds de `satellites.maracaju` passaram a carregar **`semente: true`**.
+- No render do painel: enquanto `semente && !manualOverride`, o chip mostra **`—`** com opacidade 0.75 e
+  `title` "Sincronizando saldos com o app Casa Maracaju…". O número só aparece quando vem de
+  `syncMaracajuFromLocal`/`scrapeAll` (ou de um ajuste manual do usuário).
+- No drilldown do Casa Maracaju (`abrirDrilldown('maracaju')`): aviso âmbar "⏳ Aguardando o primeiro puxão
+  do app Casa Maracaju…" e saldos/inputs com **`—`** enquanto pendente.
+- Estado real salvo em `localStorage` (sem `semente`) continua renderizando imediatamente, sem flash.
+
+### 🧪 Validação (Chromium headless, amostragem a cada 150 ms desde o primeiro paint)
+- Perfil limpo: chip = `VA — | VR —` em **todas** as amostras (nenhum `1.988,78`), drilldown com aviso.
+- Estado real injetado (1.614,98 / 343,26) + reload: chip renderiza `VA R$ 1.614,98` direto.
+- `check-syntax` 11/11, suíte **16/16**, `sw.js` e `?v=` em **v120**.
+
 
 
 

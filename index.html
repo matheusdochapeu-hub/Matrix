@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=119">
+  <link rel="stylesheet" href="css/matrix.css?v=120">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -113,8 +113,8 @@
                 <span style="font-size:9px;color:var(--matrix-green);font-family:var(--font-mono);font-weight:700;">VA & VR</span>
               </div>
               <strong class="sat-chip-val" id="topSatCasaVal" style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;white-space:nowrap;line-height:1.2;">
-                <span style="color:var(--matrix-green);" id="topSatVaVal">VA R$ 1.988,78</span>
-                <span style="color:var(--cyan);margin-left:3px;" id="topSatVrVal">VR R$ 805,41</span>
+                <span style="color:var(--matrix-green);" id="topSatVaVal">VA —</span>
+                <span style="color:var(--cyan);margin-left:3px;" id="topSatVrVal">VR —</span>
               </strong>
             </div>
           </div>
@@ -2953,16 +2953,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=119"></script>
-  <script src="js/matrix-rain.js?v=119"></script>
-  <script src="js/db.js?v=119"></script>
-  <script src="js/calendar-engine.js?v=119"></script>
-  <script src="js/amortization-engine.js?v=119"></script>
-  <script src="js/scenario-simulator.js?v=119"></script>
-  <script src="js/pdf-reader.js?v=119"></script>
-  <script src="js/satellite-connectors.js?v=119"></script>
-  <script src="js/sync-engine.js?v=119"></script>
-  <script src="js/app.js?v=119"></script>
+  <script src="js/seed-data.js?v=120"></script>
+  <script src="js/matrix-rain.js?v=120"></script>
+  <script src="js/db.js?v=120"></script>
+  <script src="js/calendar-engine.js?v=120"></script>
+  <script src="js/amortization-engine.js?v=120"></script>
+  <script src="js/scenario-simulator.js?v=120"></script>
+  <script src="js/pdf-reader.js?v=120"></script>
+  <script src="js/satellite-connectors.js?v=120"></script>
+  <script src="js/sync-engine.js?v=120"></script>
+  <script src="js/app.js?v=120"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2974,7 +2974,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=119', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=120', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

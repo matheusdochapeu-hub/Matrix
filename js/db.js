@@ -230,6 +230,7 @@ const MatrixDB = (function () {
       if (maracajuSemDados) {
         memoryCache.satellites.maracaju = {
           origem: 'Maracaju 88',
+          semente: true,
           atualizadoEm: new Date().toISOString(),
           cicloVigente: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })(),
           creditDate: null,
