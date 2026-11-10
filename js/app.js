@@ -1380,7 +1380,11 @@ const MatrixApp = (function () {
         btn.classList.add('active');
         btn.setAttribute('aria-selected', 'true');
         try {
-          btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          const tabsBar = btn.closest('.matrix-tabs');
+          if (tabsBar) {
+            const scrollLeft = btn.offsetLeft - (tabsBar.clientWidth / 2) + (btn.clientWidth / 2);
+            tabsBar.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+          }
         } catch (e) {}
       } else {
         btn.classList.remove('active');
@@ -1442,9 +1446,16 @@ const MatrixApp = (function () {
       const openModal = document.querySelector('.matrix-modal-backdrop.open');
       if (openModal) return;
 
-      // Não acionar se o toque começou dentro de elementos com scroll horizontal próprio, formulários ou botões
       const target = e.target;
-      if (target && target.closest && target.closest('input, textarea, select, button, .monthly-horizon-grid, .data-table, .matrix-tabs, #calDaysScroll, table, .table-scroll-wrapper, .modal')) {
+      if (!target || !target.closest) return;
+
+      // Restringe estritamente o swipe de abas ao corpo da aba ativa (.tab-content.active)
+      // Toques no cabeçalho, painel superior executivo ou barra de satélites NUNCA devem acionar troca de abas
+      const inTabContent = target.closest('.tab-content.active');
+      if (!inTabContent) return;
+
+      // Não acionar se o toque começou dentro de elementos com scroll horizontal próprio, formulários ou botões
+      if (target.closest('input, textarea, select, button, a, .unified-satellites-bar, .sat-chip, .unified-top-panel, .unified-top-header, .unified-header, .monthly-horizon-grid, .data-table, .matrix-tabs, #calDaysScroll, table, .table-scroll-wrapper, .modal, .timeline-controls-bar, .sim-vision-bar, [style*="overflow-x"]')) {
         return;
       }
 
