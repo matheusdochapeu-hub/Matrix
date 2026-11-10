@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MATRIX FINANCE - "WHAT-IF" SCENARIO SIMULATOR (PROJEÇÕES FUTURAS)
  * Laboratório de projeções financeiras: teste despesas hipotéticas (ex: seguro de vida da Scarlet R$ 100~150,
  * parcelas de cartão, investimentos futuros) segregando rigorosamente as contas bancárias e fontes de renda:

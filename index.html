@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=98">
+  <link rel="stylesheet" href="css/matrix.css?v=112">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -2952,74 +2952,17 @@
     </div>
   </div>
 
-        <!-- QUADRO DE RESULTADOS EM TEMPO REAL -->
-        <div style="background:var(--bg-card);border:1.5px solid var(--border-glow);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;box-shadow:inset 0 0 15px rgba(0,255,102,0.04);">
-          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;font-family:var(--font-mono);display:flex;justify-content:space-between;">
-            <span>📊 Resultado da Simulação (Horizonte 29 anos / 348 meses):</span>
-            <span style="color:var(--matrix-green);" id="sim2055LabelMeta">Meta 2: Recompor Poder de Compra</span>
-          </div>
-
-          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(135px, 1fr));gap:8px;font-family:var(--font-mono);margin-bottom:10px;">
-            <div style="background:rgba(0,255,102,0.06);border:1px solid rgba(0,255,102,0.25);padding:10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);">APORTE MENSAL NECESSÁRIO</div>
-              <div id="simResAporteMensal" style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:3px;">R$ 1.015,78</div>
-              <div style="font-size:9px;color:var(--matrix-green);margin-top:2px;">por mês até dez/2054</div>
-            </div>
-
-            <div style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.25);padding:10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);">TÍTULOS A COMPRAR / MÊS</div>
-              <div id="simResTitulosMes" style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:3px;">2,18 títulos</div>
-              <div style="font-size:9px;color:var(--cyan);margin-top:2px;">baseado no PU informado</div>
-            </div>
-
-            <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);padding:10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);">TOTAL DE TÍTULOS 2055</div>
-              <div id="simResTotalTitulos" style="font-size:16px;font-weight:800;color:var(--amber);margin-top:3px;">2.259,5 títulos</div>
-              <div style="font-size:9px;color:var(--amber);margin-top:2px;">cotas de Renda+ acumuladas</div>
-            </div>
-
-            <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25);padding:10px;border-radius:4px;">
-              <div style="font-size:9.5px;color:var(--text-muted);">PATRIMÔNIO EM 2055</div>
-              <div id="simResMontanteFinal" style="font-size:16px;font-weight:800;color:#c084fc;margin-top:3px;">R$ 1.053.372</div>
-              <div style="font-size:9px;color:#c084fc;margin-top:2px;">paga 240 parcelas mensais</div>
-            </div>
-          </div>
-
-          <div style="font-size:10.5px;color:var(--text-dim);line-height:1.4;border-top:1px dashed rgba(255,255,255,0.08);padding-top:8px;">
-            💡 <em>Mecânica do Título:</em> Ao investir a quantia acima todo mês, você acumula as cotas necessárias para que o Tesouro Nacional lhe pague exatamente a renda mensal escolhida (corrigida mês a mês pela inflação oficial do IPCA) por 20 anos consecutivos (de janeiro de 2055 a dezembro de 2074).
-          </div>
-        </div>
-
-        <!-- AÇÕES, DOWNLOAD E IMPRESSÃO -->
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <button type="button" class="btn-matrix" style="padding:6px 12px;font-size:11px;" onclick="MatrixApp.salvarParametrosSimulador2055()">
-            💾 Salvar Parâmetros
-          </button>
-          
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button type="button" class="btn-matrix" style="padding:6px 12px;font-size:11px;color:var(--cyan);border-color:var(--cyan);" onclick="MatrixApp.imprimirRelatorioAposentadoria2055()">
-              🖨️ Imprimir / Salvar PDF
-            </button>
-            <button type="button" class="btn-matrix primary" style="padding:6px 14px;font-size:11px;font-weight:700;" onclick="MatrixApp.baixarRelatorioAposentadoria2055()">
-              📥 Baixar Relatório (.md)
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=98"></script>
-  <script src="js/matrix-rain.js?v=98"></script>
-  <script src="js/db.js?v=98"></script>
-  <script src="js/calendar-engine.js?v=98"></script>
-  <script src="js/amortization-engine.js?v=98"></script>
-  <script src="js/scenario-simulator.js?v=98"></script>
-  <script src="js/pdf-reader.js?v=98"></script>
-  <script src="js/satellite-connectors.js?v=98"></script>
-  <script src="js/sync-engine.js?v=98"></script>
-  <script src="js/app.js?v=98"></script>
+  <script src="js/seed-data.js?v=112"></script>
+  <script src="js/matrix-rain.js?v=112"></script>
+  <script src="js/db.js?v=112"></script>
+  <script src="js/calendar-engine.js?v=112"></script>
+  <script src="js/amortization-engine.js?v=112"></script>
+  <script src="js/scenario-simulator.js?v=112"></script>
+  <script src="js/pdf-reader.js?v=112"></script>
+  <script src="js/satellite-connectors.js?v=112"></script>
+  <script src="js/sync-engine.js?v=112"></script>
+  <script src="js/app.js?v=112"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -3031,7 +2974,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=98', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=112', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

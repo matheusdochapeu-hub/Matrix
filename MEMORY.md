@@ -1,4 +1,4 @@
-﻿# Memória Persistente do Projeto — Matrix Finance 360
+# Memória Persistente do Projeto — Matrix Finance 360
 
 Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e histórico de correções do **Matrix Finance 360** (app central) e dos apps satélites conectados.
 
@@ -122,6 +122,42 @@ Propostas estruturadas e validadas para modernização da aba de simulações e 
    - Ao excluir um lançamento vinculado via `removeItemByIndex`, o valor aportado é subtraído automaticamente do saldo do investimento.
 4. **PWA & Cache**:
    - `sw.js` atualizado para `matrix-finance-v94`.
+
+---
+
+## [2026-11-10 14:35] - Matrix Finance v112: Revisão Técnica, Remoção de Bloco Órfão do Simulador 2055 e Alinhamento de Versões
+
+### 🔍 Motivação & Solução
+1. **Fim da Duplicação Visível no Simulador 2055 (dívida técnica da v111)**:
+   - O `index.html` mantinha, depois do fechamento do `#simulador2055ModalBackdrop`, um **bloco órfão** com o quadro de resultados do simulador (grid de 4 cards) e outra barra de ações.
+   - Como o bloco era filho direto do `<body>`, ele era renderizado sempre, com valores fixos antigos (`R$ 1.015,78`, `2.259,5 títulos`, `R$ 1.053.372`), enquanto o bloco real dentro do modal exibia os valores calculados (`R$ 1.014.106,20`, `2.175,9 cotas`).
+   - Pior: os 5 ids (`simResAporteMensal`, `simResTitulosMes`, `simResTotalTitulos`, `simResMontanteFinal`, `sim2055LabelMeta`) apareciam duas vezes; `getElementById` sempre devolvia o nó do modal, então a cópia órfã nunca era atualizada.
+   - Correção: bloco órfão removido (57 linhas). Verificado em Chromium headless (desktop 1440px e mobile 390px): cada id passou a existir uma única vez, sem valores fixos na tela e sem overflow horizontal.
+2. **Alinhamento do Cache-Busting com o Service Worker**:
+   - Os `<script>`/`<link>` do `index.html` estavam em `?v=98` enquanto o `sw.js` já estava em `matrix-finance-v111` — exatamente o descompasso que a regra de publicação proíbe.
+   - `?v=` e `CACHE_NAME` foram unificados na v112 (`matrix-finance-v112`), e um novo teste (`HTML: ?v= dos assets casa com o CACHE_NAME`) passou a reprovar qualquer desalinhamento futuro.
+3. **Higiene de Codificação**:
+   - BOMs UTF-8 residuais removidos de `js/satellite-connectors.js`, `js/scenario-simulator.js`, `js/seed-data.js` e `MEMORY.md` (a limpeza anterior os havia deixado para trás e ainda reintroduziu um BOM no `MEMORY.md`).
+   - Texto duplamente codificado corrigido em `js/satellite-connectors.js`: `"ZÃ© Delivery - NuPay"` → `"Zé Delivery - NuPay"` (apareceria corrompido no drilldown de faturas) e comentário `requisiÃ§Ã£o` → `requisição`.
+4. **Suíte de Testes Mais Estrita e Portátil**:
+   - O teste de IDs duplicados perdeu a lista de exceções: agora **qualquer** id repetido reprova.
+   - `package.json`: `test` passou a usar glob entre aspas (`node --test "test/*.test.js"`) e `engines.node` subiu para `>=22` (o runner de testes precisa expandir o glob; a CI já usava Node 22).
+   - CI (`.github/workflows/ci.yml`) passou a rodar `npm run verify` (uma única fonte de verdade para sintaxe + testes).
+   - `.gitignore` ganhou `node_modules/` e artefatos locais, já que o projeto passou a ter `package.json`.
+5. **PWA & Cache**:
+   - `sw.js` e `?v=` atualizados para `matrix-finance-v112`.
+
+### 🧪 Validação Executada
+- `node scripts/check-syntax.js`: 11/11 arquivos sem erro.
+- `node --test "test/*.test.js"`: 15/15 testes aprovados.
+- Chromium headless (CDP): 0 exceções/erros de console; 12 modais abrindo e fechando; 7 abas sem overflow (desktop e mobile); Service Worker registrado; fluxo completo dos botões rápidos (fixar, editar, reordenar, excluir, restaurar) e lançamento de gasto diário persistindo após reload.
+
+### ⚠️ Pendências Identificadas (não alteradas nesta versão)
+1. **Segredo em repositório público**: `js/satellite-connectors.js` expõe `maracajuToken: 'Maracaju88CasalSegredo2026!'` (linhas ~27, ~390 e ~1223) e a URL do Apps Script do Casa Maracaju. Precisa de rotação do token no Apps Script e configuração via `localStorage` (`matrix_maracaju_*`).
+2. **Acoplamento temporal a Nov/2026**: comparações `'2026-11'` em `sync-engine.js` (preservação do consumo local do Casa Maracaju) e em `app.js` deixam de valer quando o mês virar.
+3. **Botões rápidos não sincronizam**: ficam apenas no `localStorage` do dispositivo (decisão consciente, mas vale registrar).
+
+
 
 
 

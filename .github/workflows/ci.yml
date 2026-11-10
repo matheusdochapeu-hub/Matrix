@@ -18,8 +18,5 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verificar sintaxe de todos os JS
-        run: node scripts/check-syntax.js
-
-      - name: Rodar suíte de testes
-        run: node --test test/**/*.test.js
+      - name: Sintaxe + suíte de testes (mesmo comando do npm run verify)
+        run: npm run verify

@@ -30,11 +30,12 @@ Abrir `index.html` direto por `file://` quebra o Service Worker e o fetch do App
 ## Testes e verificação
 
 ```powershell
-node scripts/check-syntax.js      # valida sintaxe de todos os js/ e do sw.js
-node --test test/**/*.test.js     # 15 testes: sintaxe, integridade do HTML, Service Worker
-npm run verify                    # os dois acima em sequência
+npm run check      # sintaxe de todos os js/ + sw.js + apps_script.gs
+npm test           # 15 testes: sintaxe, integridade do HTML, Service Worker
+npm run verify     # os dois acima em sequência (é o que a CI roda)
 ```
-O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`.
+O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
+(a suíte exige Node >= 22 por causa do glob do `node --test`).
 
 ## Deploy
 
@@ -57,10 +58,13 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`.
 ## Regras críticas (o que NÃO fazer)
 
 1. **Ao alterar qualquer asset, subir DUAS versões:** `CACHE_NAME` em `sw.js`
-   (`matrix-finance-vN`) **e** o `?v=N` de todos os `<script>` no `index.html`.
-   O teste `HTML: versionamento ?v= é uniforme` reprova se ficarem dessincronizados.
+   (`matrix-finance-vN`) **e** o `?v=N` de todos os `<script>`/`<link>` no `index.html`.
+   O teste `HTML: versionamento ?v= é uniforme` reprova se os assets divergirem entre
+   si, e `HTML: ?v= dos assets casa com o CACHE_NAME` reprova se o HTML e o `sw.js`
+   ficarem em versões diferentes (foi exatamente o que aconteceu até a v111: HTML em
+   `?v=98` e cache em `v111`).
 2. **Nunca reaproveitar `id` no HTML.** `getElementById` devolve só o primeiro.
-   O teste de IDs duplicados existe por causa de um bug real (ver dívida abaixo).
+   O teste de IDs duplicados reprova qualquer repetição (sem lista de exceções).
 3. **Não remover os `stopPropagation`/`popstate` dos modais** — foram adicionados para
    impedir fechamento acidental ao arrastar/rolar no celular.
 4. **Nunca apagar `diarios` em massa** na sincronização: o merge é por `id` e por
@@ -69,11 +73,22 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`.
 
 ## Dívida técnica conhecida
 
-- O quadro de resultados do simulador 2055 está **duplicado** no `index.html`
-  (dois blocos com os mesmos `id`: `simResAporteMensal`, `simResTitulosMes`,
-  `simResTotalTitulos`, `simResMontanteFinal`, `sim2055LabelMeta`). O segundo bloco é
-  uma cópia antiga com valores fixos e nunca é atualizado. A suíte permite esses 5 IDs
-  como exceção; qualquer novo duplicado reprova. **Corrigir removendo o bloco antigo.**
+- **Resolvida na v112:** o quadro de resultados do simulador 2055 estava duplicado no
+  `index.html` (bloco dentro do modal + cópia órfã no fim do `<body>` com valores fixos
+  `R$ 1.053.372` / `2.259,5 títulos`, que nunca era atualizada). O bloco órfão foi
+  removido e o teste de IDs duplicados voltou a ser estrito.
+- **Acoplamento temporal:** `js/sync-engine.js` e `js/app.js` ainda tratam
+  `'2026-11'`/`'2026'` como constantes em várias regras (ex.: preservação do consumo
+  local do Casa Maracaju no sync). Ao virar o mês/ano, revisar essas comparações.
+- **Persistência de botões rápidos é só local:** `MatrixDB.saveCustomQuickButtons`
+  grava em `localStorage` (`matrix_custom_quick_buttons`) e não entra no estado
+  sincronizado com o Google Sheets — cada dispositivo tem seus próprios atalhos.
+- **⚠️ Segredo exposto no repositório público:** `js/satellite-connectors.js` contém
+  `maracajuToken: 'Maracaju88CasalSegredo2026!'` (linhas ~27, ~390 e ~1223) junto da
+  URL do Apps Script do Casa Maracaju. Como o GitHub Pages é público, qualquer pessoa
+  consegue ler/gravar os dados de VA/VR. **Ação do dono do projeto:** rotacionar o
+  token no Apps Script e passar a configurá-lo por `localStorage`
+  (`matrix_maracaju_*`) em vez de deixá-lo no código.
 
 ## Vizinhança (ecossistema)
 

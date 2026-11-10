@@ -2,3 +2,12 @@
 Thumbs.db
 *.log
 .env
+
+# Dependências (o app em si é vanilla JS; node_modules só existe para rodar a suíte de testes)
+node_modules/
+.npm/
+
+# Artefatos locais de debug/teste
+coverage/
+.tmp/
+*.local.json

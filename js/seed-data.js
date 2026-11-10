@@ -1,4 +1,4 @@
-﻿const MATRIX_SEED_DATA = {
+const MATRIX_SEED_DATA = {
   "versao": "1.0.0",
   "atualizadoEm": "2026-11-05T15:20:00Z",
   "perfil": {

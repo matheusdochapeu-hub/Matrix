@@ -24,59 +24,28 @@ test('HTML: documento completo e sem tags truncadas', () => {
   assert.equal(truncadas.length, 0, `Tags suspeitas/truncadas encontradas: ${truncadas.join(', ')}`);
 });
 
-{
+test('HTML: nenhum id duplicado (quebra getElementById em produção)', () => {
   /*
-   * Dívida conhecida (2026-11-10): o quadro de resultados do simulador 2055 está
-   * duplicado dentro do mesmo modal — um bloco dinâmico (atualizado por
-   * getElementById em app.js) e uma cópia antiga com valores fixos
-   * ("R$ 1.053.372", "2.259,5 títulos"). Como getElementById sempre devolve o
-   * PRIMEIRO elemento, a cópia antiga nunca é atualizada.
-   *
-   * Enquanto a duplicação não for removida, estes IDs ficam na lista de
-   * exceções. Qualquer NOVO id duplicado reprova a suíte.
+   * Até a v111 o quadro de resultados do simulador 2055 aparecia duas vezes no
+   * index.html: o bloco dentro do modal (atualizado por getElementById) e uma
+   * cópia órfã no fim do <body> com valores fixos. Como getElementById devolve
+   * sempre o PRIMEIRO elemento, a cópia órfã ficava visível e nunca era
+   * atualizada. Na v112 o bloco órfão foi removido, então nenhuma exceção é
+   * tolerada aqui: qualquer id repetido reprova a suíte.
    */
-  const IDS_DUPLICADOS_CONHECIDOS = new Set([
-    'simResAporteMensal',
-    'simResTitulosMes',
-    'simResTotalTitulos',
-    'simResMontanteFinal',
-    'sim2055LabelMeta'
-  ]);
+  const ids = Array.from(html.matchAll(/\sid=["']([^"']+)["']/g)).map((m) => m[1]);
+  const vistos = new Map();
+  const duplicados = [];
 
-  test('HTML: nenhum id duplicado (quebra getElementById em produção)', () => {
-    const ids = Array.from(html.matchAll(/\sid=["']([^"']+)["']/g)).map((m) => m[1]);
-    const vistos = new Map();
-    const duplicados = [];
+  for (const id of ids) {
+    const total = (vistos.get(id) || 0) + 1;
+    vistos.set(id, total);
+    if (total === 2) duplicados.push(id);
+  }
 
-    for (const id of ids) {
-      const total = (vistos.get(id) || 0) + 1;
-      vistos.set(id, total);
-      if (total === 2) duplicados.push(id);
-    }
-
-    const inesperados = duplicados.filter((id) => !IDS_DUPLICADOS_CONHECIDOS.has(id));
-    assert.equal(
-      inesperados.length,
-      0,
-      `IDs duplicados no index.html: ${inesperados.join(', ')}. (IDs da dívida conhecida do simulador 2055 estão permitidos.)`
-    );
-    assert.ok(ids.length > 100, `Esperado um HTML grande com muitos IDs, encontrado ${ids.length}.`);
-  });
-
-  test('HTML: a dívida de IDs duplicados não cresceu além do conhecido', () => {
-    const ids = Array.from(html.matchAll(/\sid=["']([^"']+)["']/g)).map((m) => m[1]);
-    const contagem = new Map();
-    ids.forEach((id) => contagem.set(id, (contagem.get(id) || 0) + 1));
-
-    for (const id of IDS_DUPLICADOS_CONHECIDOS) {
-      const total = contagem.get(id) || 0;
-      assert.ok(
-        total <= 2,
-        `O id "${id}" aparece ${total}x. A duplicação conhecida é de 2 ocorrências — foi piorada.`
-      );
-    }
-  });
-}
+  assert.equal(duplicados.length, 0, `IDs duplicados no index.html: ${duplicados.join(', ')}.`);
+  assert.ok(ids.length > 100, `Esperado um HTML grande com muitos IDs, encontrado ${ids.length}.`);
+});
 
 test('HTML: todos os <script src> apontam para arquivos existentes', () => {
   assert.ok(scriptsCarregados.length >= 8, `Esperado ao menos 8 scripts, encontrado ${scriptsCarregados.length}.`);
@@ -113,6 +82,21 @@ test('HTML: versionamento ?v= é uniforme em todos os assets', () => {
     distintas.length,
     1,
     `Todos os assets devem compartilhar a mesma versão ?v=; encontrado: ${distintas.join(', ')}. Misturar versões deixa o PWA com arquivos antigos em cache.`
+  );
+});
+
+test('HTML: ?v= dos assets casa com o CACHE_NAME do service worker', () => {
+  const versaoHtml = html.match(/\?v=(\d+)/);
+  assert.ok(versaoHtml, 'Os assets devem usar cache-busting com ?v=.');
+
+  const sw = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
+  const versaoCache = sw.match(/CACHE_NAME\s*=\s*['"]matrix-finance-v(\d+)['"]/);
+  assert.ok(versaoCache, 'sw.js deve declarar CACHE_NAME no padrão matrix-finance-vN.');
+
+  assert.equal(
+    versaoHtml[1],
+    versaoCache[1],
+    `O ?v=${versaoHtml[1]} do index.html está dessincronizado do CACHE_NAME v${versaoCache[1]} do sw.js. Suba as DUAS versões juntas ao publicar assets.`
   );
 });
 

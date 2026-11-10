@@ -356,3 +356,22 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **Persistência Local e no DB**:
   - Gravado no `localStorage` sob a chave `matrix_custom_quick_buttons` e sincronizado com `MatrixDB.getCustomQuickButtons()` e `MatrixDB.saveCustomQuickButtons()`.
   - Service Worker atualizado para `matrix-finance-v111`.
+
+---
+
+## 26. Revisão Técnica v112: Fonte Única de Resultados no Simulador 2055, Versões Alinhadas e Higiene de Encoding
+- **Quadro de Resultados do Simulador 2055 (fonte única)**:
+  - O `index.html` tinha **dois** quadros de resultados: o real, dentro de `#simulador2055ModalBackdrop` (`.sim2055-results-grid`, atualizado por `getElementById`), e uma **cópia órfã** no fim do `<body>` com valores fixos (`R$ 1.015,78`, `2.259,5 títulos`, `R$ 1.053.372`).
+  - A cópia órfã aparecia sempre na página e nunca era atualizada (os ids repetidos faziam `getElementById` devolver o nó do modal). Foi **removida**; agora cada id do simulador existe uma única vez e o teste de IDs duplicados é estrito, sem exceções.
+- **Versão do cache sempre igual à versão dos assets**:
+  - Até a v111 o HTML estava em `?v=98` com `CACHE_NAME = matrix-finance-v111`. Passou a valer a regra única: `?v=N` de todos os `<script>`/`<link>` **deve** ser igual ao `N` de `matrix-finance-vN` no `sw.js` (coberto por teste).
+  - Versão vigente: **`matrix-finance-v112`**.
+- **Encoding**:
+  - Removidos BOMs residuais de `js/satellite-connectors.js`, `js/scenario-simulator.js`, `js/seed-data.js` e `MEMORY.md`.
+  - Corrigido texto duplamente codificado no baseline de faturas (`"ZÃ© Delivery - NuPay"` → `"Zé Delivery - NuPay"`).
+- **Observação sobre a §18:** os elementos `#topTotalBeneficiosVal` e `#topRendaConjuntaSub` citados ali **não existem mais** no markup atual (a seção é histórica). Hoje os benefícios são exibidos em:
+  - `#topVaVal` / `#topVrVal` (linhas de **crédito** do mês: `R$ 2.050,00` e `R$ 1.105,00`, base USC, sem rollover — o rollover não entra em "Ganhos" para não duplicar receita de mês anterior);
+  - `#topSatVaVal` / `#topSatVrVal` (chip Casa Maracaju com o **saldo restante** do ciclo vigente, ex.: `VA R$ 1.988,78` / `VR R$ 805,41`);
+  - `#topSatCasaVal` (container do chip) e `#topGanhosFooterTotalVal` (total de ganhos com benefícios).
+  - O KPI `#calVRTotal` da aba Calendário (`R$ 1.170,00` = 18 dias civis × R$ 65) é **informativo** e não sobrescreve mais `totais['VR']` — a regra contratual de VR (`R$ 1.105,16`) permanece inviolável.
+

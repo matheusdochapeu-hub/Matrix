@@ -5,11 +5,11 @@
   "description": "MATRIX Finance 360 — central de gestão e inteligência financeira (PWA + Google Apps Script)",
   "type": "module",
   "scripts": {
-    "test": "node --test test/**/*.test.js",
+    "test": "node --test \"test/*.test.js\"",
     "check": "node scripts/check-syntax.js",
     "verify": "npm run check && npm test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
