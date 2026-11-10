@@ -219,17 +219,20 @@ const MatrixDB = (function () {
     // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};
-      const maracajuObsoleto = !memoryCache.satellites.maracaju ||
-        memoryCache.satellites.maracaju.vaTotal !== 2059.84 ||
-        memoryCache.satellites.maracaju.vrTotal !== 1105.16 ||
-        !memoryCache.satellites.maracaju.cicloVigente ||
-        memoryCache.satellites.maracaju.cicloVigente !== '2026-11';
-      if (maracajuObsoleto) {
+      // v117: só cria o estado inicial quando o saldo do Casa Maracaju NÃO existe (ou está
+      // sem os campos essenciais). Antes, qualquer vaTotal/vrTotal diferente do seed (inclusive
+      // string x number vindo da planilha) ou ciclo diferente de '2026-11' apagava o saldo real
+      // a cada carregamento — o chip "voltava" para os valores de exemplo.
+      const satM = memoryCache.satellites.maracaju;
+      const maracajuSemDados = !satM
+        || satM.vaTotal == null || satM.vrTotal == null
+        || satM.saldoVaRestante == null || satM.saldoVrRestante == null;
+      if (maracajuSemDados) {
         memoryCache.satellites.maracaju = {
           origem: 'Maracaju 88',
           atualizadoEm: new Date().toISOString(),
-          cicloVigente: '2026-11',
-          creditDate: '2026-11-06',
+          cicloVigente: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })(),
+          creditDate: null,
           vaMensal: 2050.0,
           vaRollover: 9.84,
           vaTotal: 2059.84,

@@ -80,6 +80,10 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
    quando já existe compra do satélite com o mesmo `data|valor|método` (v116); itens
    `fromMatrix` nunca voltam como `comprasRegistros` (v115). Sem essas duas travas o gasto
    dobra e o saldo fica abaixo do real.
+9. **O saldo de VA/VR é do Casa Maracaju.** Nunca sobrescreva `satellites.maracaju` por diferença
+   de valor ou de mês: o estado só é semeado quando faltam `vaTotal`/`vrTotal`/`saldoVaRestante`/
+   `saldoVrRestante` (v117). Comparar float com `!==` ou fixar `'2026-11'` apagava o saldo real
+   do app a cada carregamento.
 
 ## Dívida técnica conhecida
 

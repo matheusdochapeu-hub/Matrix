@@ -454,4 +454,20 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   saldo VA/VR abaixo do real (diferença de 1× a soma dos diários espelhados).
 - Service Worker atualizado para `matrix-finance-v116`.
 
+---
+
+## 31. Saldo do Casa Maracaju é Preservado no Carregamento (v117)
+
+- **Fonte da verdade**: o saldo vigente de VA/VR vem do app **Casa Maracaju 88** (aba *Mercado*) e chega ao
+  Matrix pelo conector/ponte `MARACAJU_STATE_v1`. O Matrix **não** pode substituí-lo por valores de exemplo.
+- **Regra de inicialização**: `db.js` (`sanitizeState`) e `app.js` (`init`) só criam o estado inicial quando
+  **faltam** `vaTotal`, `vrTotal`, `saldoVaRestante` ou `saldoVrRestante`. Nunca por:
+  - `vaTotal !== 2059.84` / `vrTotal !== 1105.16` (comparação estrita de float; `"2059.84"` string quebrava);
+  - `cicloVigente !== '2026-11'` (mês fixo — na virada do mês zerava o saldo todo carregamento).
+- **Seed**: `cicloVigente` é calculado com a data real e `creditDate` nasce `null` (o conector preenche no
+  primeiro sync). Não reintroduza literais de mês no seed.
+- **Sintoma que isso causava**: ao carregar, o chip mostrava `1.988,78 / 805,41` (exemplo) em vez do saldo
+  real do app (`1.614,98 / 343,26`), voltando ao certo só depois de uma sincronização.
+- Service Worker atualizado para `matrix-finance-v117`.
+
 

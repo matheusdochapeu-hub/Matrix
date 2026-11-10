@@ -252,15 +252,18 @@ const MatrixApp = (function () {
     try {
       const state = MatrixDB.getState();
       if (!state.satellites) state.satellites = {};
-      const maracajuNaoInicializado = !state.satellites.maracaju ||
-        !state.satellites.maracaju.cicloVigente ||
-        state.satellites.maracaju.cicloVigente !== '2026-11';
+      // v117: idem db.js — não sobrescrever o saldo real quando o ciclo virou ou quando o
+      // vaTotal/vrTotal vieram da planilha em outro formato. Só semeia se faltar dado.
+      const satMInit = state.satellites.maracaju;
+      const maracajuNaoInicializado = !satMInit
+        || satMInit.vaTotal == null || satMInit.vrTotal == null
+        || satMInit.saldoVaRestante == null || satMInit.saldoVrRestante == null;
       if (maracajuNaoInicializado) {
         state.satellites.maracaju = {
           origem: 'Maracaju 88',
           atualizadoEm: new Date().toISOString(),
-          cicloVigente: '2026-11',
-          creditDate: '2026-11-06',
+          cicloVigente: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })(),
+          creditDate: null,
           vaMensal: 2050.00,
           vaRollover: 9.84,
           vaTotal: 2059.84,

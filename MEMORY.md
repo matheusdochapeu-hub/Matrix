@@ -282,6 +282,35 @@ vezes: uma pelo registro vindo do Casa Maracaju e outra pelo diário do Matrix.
 - Chip renderizou `VA R$ 1.955,45` / `VR R$ 805,41`; sem erros de console.
 - `check-syntax` 11/11, suíte **15/15**, `sw.js` e `?v=` em **v116**.
 
+---
+
+## [2026-11-10 16:40] - Matrix Finance v117: Saldo do Casa Maracaju Não é Mais Zerado ao Carregar
+
+### 🐞 Bug (o "bug pequeno ao carregar")
+O saldo correto do VA/VR vem do app Casa Maracaju (aba **Mercado**) e estava sendo **sobrescrito
+pelos valores de exemplo** durante o carregamento:
+
+- `db.js` (`sanitizeState`) recriava `satellites.maracaju` sempre que
+  `vaTotal !== 2059.84` **ou** `vrTotal !== 1105.16` **ou** `cicloVigente !== '2026-11'`;
+- `app.js` (`init`) fazia o mesmo quando `cicloVigente !== '2026-11'`.
+
+Comparações estritas (`!==`) de float/string e o mês fixo faziam o estado real (ex.: VA 1.614,98 /
+VR 343,26, gasto 444,86 / 761,90) ser substituído pelo seed (1.988,78 / 805,41) a cada carga — e o
+chip só voltava ao valor certo se a ponte/sincronização recompusesse em seguida. Quando `vaTotal`
+chegava da planilha como **string** (`"2059.84"`), o reset acontecia sempre.
+
+### 🛠️ Correção
+- Ambos os pontos agora só semeiam o estado quando **faltam os campos essenciais**
+  (`vaTotal`, `vrTotal`, `saldoVaRestante`, `saldoVrRestante`); nunca por diferença de valor.
+- `cicloVigente`/`creditDate` do seed deixaram de ser `'2026-11'`/`'2026-11-06'` fixos: o ciclo é
+  calculado com a data real e `creditDate` é `null` (o conector preenche no primeiro sync).
+
+### 🧪 Validação (Chromium headless, com reload real)
+- Caso 1 — estado do app (`saldoVa 1614.98`, `saldoVr 343.26`, `vaTotal` como string,
+  `cicloVigente '2026-12'`): após **reload**, chip continua `VA R$ 1.614,98` / `VR R$ 343,26`.
+- Caso 2 — estado legado sem saldos: seed aplicado (`1.988,78` / `805,41`), como esperado.
+- `check-syntax` 11/11, suíte **15/15**, `sw.js` e `?v=` em **v117**.
+
 
 
 
