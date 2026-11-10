@@ -25,6 +25,35 @@ const MatrixApp = (function () {
     return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  // Atualização suave e discreta de texto em elementos de valor (KPIs e cards)
+  function smoothSetText(elOrId, newText, newColor = null) {
+    const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+    if (!el) return;
+    const current = el.textContent ? el.textContent.trim() : '';
+    const target = newText != null ? String(newText).trim() : '';
+
+    if (newColor) el.style.color = newColor;
+
+    if (current === target) return;
+
+    if (!current || !el.classList.contains('smooth-val')) {
+      el.classList.add('smooth-val');
+      el.textContent = target;
+      return;
+    }
+
+    el.classList.add('smooth-val-out');
+    setTimeout(() => {
+      el.textContent = target;
+      if (newColor) el.style.color = newColor;
+      el.classList.remove('smooth-val-out');
+      el.classList.add('smooth-val-in');
+      setTimeout(() => {
+        el.classList.remove('smooth-val-in');
+      }, 360);
+    }, 60);
+  }
+
   // ==========================================
   // UTILITÁRIOS DE DATAS NO FORMATO BRASILEIRO
   // ==========================================
@@ -2011,10 +2040,10 @@ const MatrixApp = (function () {
 
     // 2. Pilares Satélites no Topo
     const satFatEl = document.getElementById('topSatFaturaVal');
-    if (satFatEl) satFatEl.textContent = formatBRL(faturaNubank);
+    if (satFatEl) smoothSetText(satFatEl, formatBRL(faturaNubank));
 
     const satFisioEl = document.getElementById('topSatFisioVal');
-    if (satFisioEl) satFisioEl.textContent = formatBRL(ganhosScarlet);
+    if (satFisioEl) smoothSetText(satFisioEl, formatBRL(ganhosScarlet));
 
     // 3. Pilar Satélite: Casa Maracaju 88 (Benefícios VA & VR — SEMPRE mostra o SALDO ATUAL RESTANTE)
     const satMaracaju = (state.satellites && state.satellites.maracaju) || {
@@ -2036,8 +2065,8 @@ const MatrixApp = (function () {
     const satVaEl = document.getElementById('topSatVaVal');
     const satVrEl = document.getElementById('topSatVrVal');
     if (satVaEl && satVrEl) {
-      satVaEl.textContent = `VA ${formatBRL(vaAtual)}`;
-      satVrEl.textContent = `VR ${formatBRL(vrAtual)}`;
+      smoothSetText(satVaEl, `VA ${formatBRL(vaAtual)}`);
+      smoothSetText(satVrEl, `VR ${formatBRL(vrAtual)}`);
     } else if (satCasaEl) {
       satCasaEl.innerHTML = `<span style="color:var(--matrix-green);">VA ${formatBRL(vaAtual)}</span> <span style="color:var(--cyan);margin-left:4px;">VR ${formatBRL(vrAtual)}</span>`;
     }
@@ -2070,11 +2099,11 @@ const MatrixApp = (function () {
 
     // Cálculo 1: Salário + Renda Extra (Conta Corrente)
     const rConjuntaEl = document.getElementById('topRendaConjuntaVal');
-    if (rConjuntaEl) rConjuntaEl.textContent = formatBRL(rendaMatheusTotal);
+    if (rConjuntaEl) smoothSetText(rConjuntaEl, formatBRL(rendaMatheusTotal));
 
     // Cálculo 2: Salário + Renda Extra + Benefícios (VA + VR)
     const gComBeneficiosEl = document.getElementById('topGanhosComBeneficiosVal');
-    if (gComBeneficiosEl) gComBeneficiosEl.textContent = formatBRL(ganhosComBeneficiosTotal);
+    if (gComBeneficiosEl) smoothSetText(gComBeneficiosEl, formatBRL(ganhosComBeneficiosTotal));
 
     const rConjuntaSubEl = document.getElementById('topRendaConjuntaSub') || document.getElementById('topRendaSub');
     if (rConjuntaSubEl) {
@@ -2150,7 +2179,7 @@ const MatrixApp = (function () {
 
     // Cálculo 1: Fixos + Variáveis + Diários (+ Início de Ano se houver)
     const gastosTotaisEl = document.getElementById('topGastosTotaisVal');
-    if (gastosTotaisEl) gastosTotaisEl.textContent = formatBRL(calcM.totalGastos);
+    if (gastosTotaisEl) smoothSetText(gastosTotaisEl, formatBRL(calcM.totalGastos));
 
     const gastosContaSub = document.querySelector('.dual-gastos-box.calc1 .dual-gastos-sub');
     if (gastosContaSub) {
@@ -2162,7 +2191,7 @@ const MatrixApp = (function () {
     // Cálculo 2: Fixos + Variáveis + Diários + Nubank
     const totalComNubank = calcM.totalGastos + faturaNubank;
     const gastosComNubankEl = document.getElementById('topGastosComNubankVal');
-    if (gastosComNubankEl) gastosComNubankEl.textContent = formatBRL(totalComNubank);
+    if (gastosComNubankEl) smoothSetText(gastosComNubankEl, formatBRL(totalComNubank));
 
     const gastosFooterTotalEl = document.getElementById('topGastosFooterTotalVal');
     if (gastosFooterTotalEl) gastosFooterTotalEl.textContent = formatBRL(totalComNubank);
@@ -2215,7 +2244,7 @@ const MatrixApp = (function () {
     // Valor Principal no topo do Card: Sobra pra Mim
     const topSobraMatheusEl = document.getElementById('topSobraMatheusVal');
     if (topSobraMatheusEl) {
-      topSobraMatheusEl.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      smoothSetText(topSobraMatheusEl, `${sobraMatheus >= 0 ? "+" : ""}${formatBRL(sobraMatheus)}`, sobraMatheus >= 0 ? "var(--matrix-green)" : "var(--rose)");
       topSobraMatheusEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
@@ -2283,25 +2312,25 @@ const MatrixApp = (function () {
 
     const sobraValEl = document.getElementById('topSobraNoMesVal');
     if (sobraValEl) {
-      sobraValEl.textContent = `${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}`;
+      smoothSetText(sobraValEl, `${sobraCasalReal >= 0 ? "+" : ""}${formatBRL(sobraCasalReal)}`, sobraCasalReal >= 0 ? "var(--matrix-green)" : "var(--rose)");
       sobraValEl.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
     const casalSobraMatheusVal = document.getElementById('topCasalSobraMatheusVal');
     if (casalSobraMatheusVal) {
-      casalSobraMatheusVal.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      smoothSetText(casalSobraMatheusVal, `${sobraMatheus >= 0 ? "+" : ""}${formatBRL(sobraMatheus)}`, sobraMatheus >= 0 ? "var(--matrix-green)" : "var(--rose)");
       casalSobraMatheusVal.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
     const casalSobraScarletVal = document.getElementById('topCasalSobraScarletVal');
     if (casalSobraScarletVal) {
-      casalSobraScarletVal.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      smoothSetText(casalSobraScarletVal, `${scarletSobra >= 0 ? "+" : ""}${formatBRL(scarletSobra)}`, scarletSobra >= 0 ? "var(--purple)" : "var(--rose)");
       casalSobraScarletVal.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
     }
 
     const casalSobraTotalVal = document.getElementById('topCasalSobraTotalVal');
     if (casalSobraTotalVal) {
-      casalSobraTotalVal.textContent = `${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}`;
+      smoothSetText(casalSobraTotalVal, `${sobraCasalReal >= 0 ? "+" : ""}${formatBRL(sobraCasalReal)}`, sobraCasalReal >= 0 ? "var(--matrix-green)" : "var(--rose)");
       casalSobraTotalVal.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
@@ -2396,10 +2425,10 @@ const MatrixApp = (function () {
     }
 
     const elAtual = document.getElementById('topScarletGanhosAtualVal');
-    if (elAtual) elAtual.textContent = formatBRL(fisioRealizadoAtual);
+    if (elAtual) smoothSetText(elAtual, formatBRL(fisioRealizadoAtual));
 
     const elPrevisto = document.getElementById('topScarletGanhosPrevistoVal');
-    if (elPrevisto) elPrevisto.textContent = formatBRL(fisioPrevistoAtual);
+    if (elPrevisto) smoothSetText(elPrevisto, formatBRL(fisioPrevistoAtual));
 
     const elFisioLabel = document.getElementById('topScarletGanhosFisioLabel');
     if (elFisioLabel) {
@@ -2412,10 +2441,10 @@ const MatrixApp = (function () {
     }
 
     const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
-    if (topScarletFisioVal) topScarletFisioVal.textContent = formatBRL(scarletFisio);
+    if (topScarletFisioVal) smoothSetText(topScarletFisioVal, formatBRL(scarletFisio));
 
     const topScarletOutrasVal = document.getElementById('topScarletOutrasRendasVal');
-    if (topScarletOutrasVal) topScarletOutrasVal.textContent = formatBRL(scarletOutras);
+    if (topScarletOutrasVal) smoothSetText(topScarletOutrasVal, formatBRL(scarletOutras));
 
     const topScarletOutrasRow = document.getElementById('topScarletOutrasRendasRow');
     if (topScarletOutrasRow) {
@@ -2437,10 +2466,10 @@ const MatrixApp = (function () {
     }
 
     const topScarletSubtotalVal = document.getElementById('topScarletSubtotalVal');
-    if (topScarletSubtotalVal) topScarletSubtotalVal.textContent = formatBRL(scarletSubtotal);
+    if (topScarletSubtotalVal) smoothSetText(topScarletSubtotalVal, formatBRL(scarletSubtotal));
 
     const topScarletFaturaVal = document.getElementById('topScarletFaturaVal');
-    if (topScarletFaturaVal) topScarletFaturaVal.textContent = `- ${formatBRL(scarletFatura)}`;
+    if (topScarletFaturaVal) smoothSetText(topScarletFaturaVal, `- ${formatBRL(scarletFatura)}`);
 
     const topScarletGastosPropriosVal = document.getElementById('topScarletGastosPropriosVal');
     if (topScarletGastosPropriosVal) {
@@ -2455,7 +2484,7 @@ const MatrixApp = (function () {
 
     const topScarletSobraFinalVal = document.getElementById('topScarletSobraFinalVal');
     if (topScarletSobraFinalVal) {
-      topScarletSobraFinalVal.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      smoothSetText(topScarletSobraFinalVal, `${scarletSobra >= 0 ? "+" : ""}${formatBRL(scarletSobra)}`, scarletSobra >= 0 ? "var(--matrix-green)" : "var(--rose)");
       topScarletSobraFinalVal.style.color = scarletSobra >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 

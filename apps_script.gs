@@ -251,13 +251,13 @@ function doPost(e) {
       sheetRaw.getRange(2, 1, 1, clearCols).clearContent();
       sheetRaw.getRange(2, 1, 1, rowPayload.length).setValues([rowPayload]);
 
-      // 2. Gravar Lançamentos tabulados (Ano / Mês)
+      // 2. Gravar Lançamentos tabulados (Ano / Mês) - Otimizado (sem recriar formatação a cada sync)
       if (state.anos) {
         var sheetLanc = ensureSheetWithHeaders(ss, SHEET_LANCAMENTOS, HEADERS_LANCAMENTOS);
-        sheetLanc.clearContents();
-        sheetLanc.appendRow(HEADERS_LANCAMENTOS);
-        sheetLanc.setFrozenRows(1);
-        sheetLanc.getRange(1, 1, 1, HEADERS_LANCAMENTOS.length).setFontWeight("bold").setBackground("#0f1713").setFontColor("#00ff66");
+        var lrLanc = sheetLanc.getLastRow();
+        if (lrLanc >= 2) {
+          sheetLanc.getRange(2, 1, lrLanc - 1, HEADERS_LANCAMENTOS.length).clearContent();
+        }
 
         var rowsLanc = [];
         for (var ano in state.anos) {
@@ -291,13 +291,13 @@ function doPost(e) {
         }
       }
 
-      // 3. Gravar Investimentos tabulados
+      // 3. Gravar Investimentos tabulados - Otimizado
       if (state.investimentos && Array.isArray(state.investimentos)) {
         var sheetInv = ensureSheetWithHeaders(ss, SHEET_INVESTIMENTOS, HEADERS_INVESTIMENTOS);
-        sheetInv.clearContents();
-        sheetInv.appendRow(HEADERS_INVESTIMENTOS);
-        sheetInv.setFrozenRows(1);
-        sheetInv.getRange(1, 1, 1, HEADERS_INVESTIMENTOS.length).setFontWeight("bold").setBackground("#0f1713").setFontColor("#00ff66");
+        var lrInv = sheetInv.getLastRow();
+        if (lrInv >= 2) {
+          sheetInv.getRange(2, 1, lrInv - 1, HEADERS_INVESTIMENTOS.length).clearContent();
+        }
 
         var rowsInv = state.investimentos.map(function (inv) {
           return [inv.id || "", inv.ativo || "", inv.corretora || "", inv.categoria || "", inv.valorAtual || 0, inv.status || "", nowIso];
@@ -307,13 +307,13 @@ function doPost(e) {
         }
       }
 
-      // 4. Gravar Holerites tabulados
+      // 4. Gravar Holerites tabulados - Otimizado
       if (state.holerites && Array.isArray(state.holerites)) {
         var sheetHol = ensureSheetWithHeaders(ss, SHEET_HOLERITES, HEADERS_HOLERITES);
-        sheetHol.clearContents();
-        sheetHol.appendRow(HEADERS_HOLERITES);
-        sheetHol.setFrozenRows(1);
-        sheetHol.getRange(1, 1, 1, HEADERS_HOLERITES.length).setFontWeight("bold").setBackground("#0f1713").setFontColor("#00ff66");
+        var lrHol = sheetHol.getLastRow();
+        if (lrHol >= 2) {
+          sheetHol.getRange(2, 1, lrHol - 1, HEADERS_HOLERITES.length).clearContent();
+        }
 
         var rowsHol = state.holerites.map(function (h) {
           return [h.periodo || "", h.orgao || "", h.cargo || "", h.vencimentos || 0, h.descontos || 0, h.liquido || 0, h.fgts || 0, nowIso];

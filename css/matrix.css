@@ -3912,3 +3912,35 @@ body {
   box-shadow: 0 0 10px rgba(192, 132, 252, 0.3);
 }
 
+
+/* ==========================================================================
+   TRANSIÇÕES SUAVES E DISCRETAS DE VALORES (KPIs & Painéis)
+   ========================================================================== */
+.smooth-val {
+  display: inline-block;
+  transition: opacity 0.16s ease-out, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), filter 0.16s ease-out;
+  will-change: transform, opacity;
+}
+
+.smooth-val-out {
+  opacity: 0.25;
+  transform: translateY(-2px) scale(0.98);
+  filter: blur(0.4px);
+}
+
+.smooth-val-in {
+  animation: matrixValuePop 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes matrixValuePop {
+  0% {
+    opacity: 0.5;
+    transform: translateY(2px) scale(1.02);
+    text-shadow: 0 0 6px currentColor;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    text-shadow: none;
+  }
+}
