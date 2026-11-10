@@ -2347,16 +2347,69 @@ const MatrixApp = (function () {
       topSobraScarletEl.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
     }
 
-    // Dados dinâmicos de atendimentos e agendamentos FisioFlow
+    // Dados dinâmicos de atendimentos e agendamentos FisioFlow para o mês selecionado
+    const curMIdx = MONTH_NAMES.indexOf(currentMonth);
+    const selectedYM = `${currentYear}-${String(curMIdx + 1).padStart(2, '0')}`;
+
+    let prevMIdx = curMIdx - 1;
+    let prevYear = parseInt(currentYear, 10);
+    if (prevMIdx < 0) {
+      prevMIdx = 11;
+      prevYear -= 1;
+    }
+    const prevMesNome = MONTH_NAMES[prevMIdx];
+    const prevMesAbbr = prevMesNome ? prevMesNome.slice(0, 3) : '';
+
+    const nextMIdx = (curMIdx + 1) % 12;
+    const nextMesNome = MONTH_NAMES[nextMIdx];
+
     const satFisioFlow = (state.satellites && state.satellites.fisioflow) || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
-    const fisioRealizadoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualTotal) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].realizado || 0 : 0)) : 0;
-    const fisioPrevistoAtual = satFisioFlow ? (parseFloat(satFisioFlow.mesAtualPrevisto) || (satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes['2026-11'] ? satFisioFlow.ganhosPorMes['2026-11'].previsto || 0 : 3810)) : 3810;
+
+    let fisioRealizadoAtual = 0;
+    let fisioPrevistoAtual = 0;
+    let fisioSessoesAtual = 0;
+
+    if (satFisioFlow && satFisioFlow.ganhosPorMes && satFisioFlow.ganhosPorMes[selectedYM]) {
+      const gMes = satFisioFlow.ganhosPorMes[selectedYM];
+      fisioRealizadoAtual = (parseFloat(gMes.total) || parseFloat(gMes.realizado) || 0);
+      fisioPrevistoAtual = (parseFloat(gMes.previsto) || 0);
+      fisioSessoesAtual = parseInt(gMes.sessoes, 10) || 0;
+    } else if (selectedYM === '2026-11' && satFisioFlow) {
+      // Fallback exclusivo de Novembro/2026
+      fisioRealizadoAtual = parseFloat(satFisioFlow.mesAtualTotal) || 995.00;
+      fisioPrevistoAtual = parseFloat(satFisioFlow.mesAtualPrevisto) || 3810.00;
+      fisioSessoesAtual = 11;
+    }
+
+    const elAtualLabel = document.getElementById('topScarletGanhosAtualLabel');
+    if (elAtualLabel) {
+      elAtualLabel.textContent = fisioSessoesAtual > 0
+        ? `🩺 Realizado no Mês (${fisioSessoesAtual} sessões):`
+        : '🩺 Realizado no Mês:';
+    }
+
+    const elAtualRow = document.getElementById('topScarletGanhosAtualRow');
+    if (elAtualRow) {
+      elAtualRow.title = fisioSessoesAtual > 0
+        ? `Sessões realizadas em ${currentMonth}. Cairão no caixa de ${nextMesNome} (Regra M+1).`
+        : `Nenhuma sessão realizada em ${currentMonth}/${currentYear} no app Atendimentos.`;
+    }
 
     const elAtual = document.getElementById('topScarletGanhosAtualVal');
     if (elAtual) elAtual.textContent = formatBRL(fisioRealizadoAtual);
 
     const elPrevisto = document.getElementById('topScarletGanhosPrevistoVal');
     if (elPrevisto) elPrevisto.textContent = formatBRL(fisioPrevistoAtual);
+
+    const elFisioLabel = document.getElementById('topScarletGanhosFisioLabel');
+    if (elFisioLabel) {
+      elFisioLabel.textContent = `🩺 (+) Caixa Fisio do Mês (M+1 • ${prevMesAbbr}):`;
+    }
+
+    const elFisioRow = document.getElementById('topScarletGanhosFisioRow');
+    if (elFisioRow) {
+      elFisioRow.title = `Valor faturado no mês anterior (${prevMesNome}/${prevYear}) e creditado no caixa de ${currentMonth}/${currentYear} (Regra M+1).`;
+    }
 
     const topScarletFisioVal = document.getElementById('topScarletGanhosFisioVal');
     if (topScarletFisioVal) topScarletFisioVal.textContent = formatBRL(scarletFisio);
