@@ -325,3 +325,17 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   - O motor `getTopQuickExpenses` consulta `MatrixDB.getCategoryMemory()` e atribui peso garantido para que a Mega Sena nunca desapareça por falta de histórico inicial no mês corrente.
   - O modal agora abre com padrão coerente: categoria `Alimentação` e conta `🟢 Débito Inter (Mês Vigente)`.
   - Service Worker atualizado para `matrix-finance-v109`.
+
+
+---
+
+## 24. Isolamento Estrito do Scroll Horizontal dos Chips Satélites no Mobile
+- **Eliminação de Rolagem da Tela para Baixo ("Scroll Hijack") ao Mover os Chips**:
+  - A barra `.unified-satellites-bar` e os chips `.sat-chip` receberam as regras W3C `touch-action: pan-x !important;` e `overscroll-behavior: contain !important;`.
+  - Isso impede categoricamente que o navegador móvel (Android Chrome / iOS Safari) interprete pequenos desvios verticais de arraste como scroll da página, blindando a tela contra rolagem vertical indesejada.
+- **Isolamento da Navegação Gestual de Abas (`initSwipeNavigation`)**:
+  - O listener de gestos de swipe entre abas foi restrito estritamente ao corpo da aba ativa (`.tab-content.active`).
+  - Toques que iniciam no cabeçalho, painel superior executivo (`#unifiedTopExecutivePanel`) ou na barra de satélites (`.unified-satellites-bar` e `.sat-chip`) são sumariamente ignorados pelo motor de swipe.
+- **Eliminação de Saltos Verticais via `scrollIntoView` na Troca de Abas**:
+  - A linha `btn.scrollIntoView(...)` em `switchTab` foi substituída por rolagem horizontal contida exclusivamente no container `.matrix-tabs` (`tabsBar.scrollTo({ left, behavior: 'smooth' })`), eliminando de vez qualquer salto da janela para baixo.
+  - Service Worker atualizado para `matrix-finance-v110`.
