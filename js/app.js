@@ -4398,7 +4398,7 @@ const MatrixApp = (function () {
             <td class="action-col">
               ${isCarona ? `
                 <button class="btn-icon" style="font-size:13px;" title="Ver e gerenciar dias no Calendário USP & Caronas" onclick="MatrixApp.abrirCalendarioParaCaronas('${currentYear}', '${currentMonth}')">📅</button>
-                <button class="btn-icon" style="font-size:12px;color:var(--cyan);" title="Lançar Carona hoje nos Gastos Diários (+ R$ 60)" onclick="MatrixApp.lancarCaronaRapidaHoje()">⚡</button>
+                <button class="btn-icon" style="font-size:12px;color:var(--cyan);" title="Lançar Carona hoje nos Gastos Diários (+ R$ 30)" onclick="MatrixApp.lancarCaronaRapidaHoje()">⚡</button>
                 <button class="btn-icon edit" title="Editar este lançamento" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">✏️</button>
                 <button class="btn-icon delete" title="Excluir este lançamento" onclick="MatrixApp.removeItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})">🗑️</button>
               ` : isFatura ? `
@@ -4799,6 +4799,191 @@ const MatrixApp = (function () {
     }
   }
 
+  // ==========================================
+  // SUGESTÕES DINÂMICAS DE GASTOS DIÁRIOS RÁPIDOS (TOP 3)
+  // ==========================================
+  function getTopQuickExpenses(ano, mes) {
+    const sAno = String(ano || currentYear || '2026');
+    const sMes = String(mes || currentMonth || 'Novembro');
+    const state = MatrixDB.getState();
+
+    const freqMap = {};
+
+    function processItem(it, weight = 1) {
+      if (!it || !it.nome) return;
+      let rawName = String(it.nome || '').trim();
+      if (!rawName || isSummaryOrTotalItem(rawName)) return;
+
+      // Remove marcadores de faturas de cartão/roteamento
+      rawName = rawName.replace(/\s*\((Crédito Nubank|Crédito BB|Débito Inter|Pix Inter|Crédito Banco do Brasil)\)/gi, '').trim();
+      if (!rawName) return;
+
+      const isCarona = isCaronaItem({ nome: rawName, categoria: it.categoria });
+      const normKey = isCarona ? 'carona_usp' : rawName.toLowerCase();
+
+      if (!freqMap[normKey]) {
+        freqMap[normKey] = {
+          key: normKey,
+          isCarona,
+          nome: isCarona ? 'Carona USP' : rawName,
+          count: 0,
+          valores: [],
+          contas: {},
+          categorias: {}
+        };
+      }
+
+      const entry = freqMap[normKey];
+      entry.count += weight;
+
+      const val = parseFloat(it.valor);
+      if (!isNaN(val) && val > 0) {
+        entry.valores.push(val);
+      }
+
+      if (it.conta) {
+        entry.contas[it.conta] = (entry.contas[it.conta] || 0) + 1;
+      }
+      if (it.categoria) {
+        entry.categorias[it.categoria] = (entry.categorias[it.categoria] || 0) + 1;
+      }
+    }
+
+    // 1. Prioriza com peso 3 os gastos do mês corrente
+    const monthData = (state.anos && state.anos[sAno] && state.anos[sAno][sMes]) || MatrixDB.getMonth(sAno, sMes) || {};
+    (monthData.diarios || []).forEach(it => processItem(it, 3));
+
+    // 2. Analisa meses anteriores no histórico recente com peso 1 para preencher opções
+    if (state.anos) {
+      Object.entries(state.anos).forEach(([aKey, meses]) => {
+        if (!meses) return;
+        Object.entries(meses).forEach(([mKey, md]) => {
+          if (aKey === sAno && mKey === sMes) return;
+          if (md && Array.isArray(md.diarios)) {
+            md.diarios.forEach(it => processItem(it, 1));
+          }
+        });
+      });
+    }
+
+    // 3. Garante 'Carona USP' fixa com R$ 30 e Pix Inter como opção primária incondicional
+    if (!freqMap['carona_usp']) {
+      freqMap['carona_usp'] = {
+        key: 'carona_usp',
+        isCarona: true,
+        nome: 'Carona USP',
+        count: 9999,
+        valores: [30],
+        contas: { pix_inter: 10 },
+        categorias: { Transporte: 10 }
+      };
+    } else {
+      freqMap['carona_usp'].isCarona = true;
+      freqMap['carona_usp'].nome = 'Carona USP';
+      freqMap['carona_usp'].valores = [30];
+      freqMap['carona_usp'].contas['pix_inter'] = (freqMap['carona_usp'].contas['pix_inter'] || 0) + 10;
+      freqMap['carona_usp'].categorias['Transporte'] = 10;
+    }
+
+    const items = Object.values(freqMap).map(e => {
+      if (e.isCarona) {
+        return {
+          nome: 'Carona USP',
+          valor: 30,
+          categoria: 'Transporte',
+          conta: 'pix_inter',
+          icone: '🚗',
+          count: e.count
+        };
+      }
+
+      let valorFinal = 0;
+      if (e.valores.length > 0) {
+        const valCounts = {};
+        let maxVCount = 0;
+        e.valores.forEach(v => {
+          valCounts[v] = (valCounts[v] || 0) + 1;
+          if (valCounts[v] > maxVCount) {
+            maxVCount = valCounts[v];
+            valorFinal = v;
+          }
+        });
+      }
+
+      let contaFinal = 'pix_inter';
+      let maxCCount = 0;
+      Object.entries(e.contas).forEach(([cName, cCnt]) => {
+        if (cCnt > maxCCount) {
+          maxCCount = cCnt;
+          contaFinal = cName;
+        }
+      });
+
+      let catFinal = 'Outros';
+      let maxCatCount = 0;
+      Object.entries(e.categorias).forEach(([catName, catCnt]) => {
+        if (catCnt > maxCatCount) {
+          maxCatCount = catCnt;
+          catFinal = catName;
+        }
+      });
+
+      let icone = '⚡';
+      const nl = e.nome.toLowerCase();
+      const cl = catFinal.toLowerCase();
+      if (nl.includes('carona') || cl.includes('transporte') || nl.includes('uber') || nl.includes('combustivel')) icone = '🚗';
+      else if (cl.includes('supermercado') || nl.includes('mercado') || nl.includes('padaria') || nl.includes('compra')) icone = '🛒';
+      else if (cl.includes('farmácia') || cl.includes('saúde') || nl.includes('droga') || nl.includes('farmacia')) icone = '💊';
+      else if (cl.includes('alimentação') || nl.includes('lanche') || nl.includes('restaurante') || nl.includes('almoço')) icone = '🍽️';
+      else if (cl.includes('lazer') || nl.includes('cinema')) icone = '🍿';
+      else if (cl.includes('transferência') || nl.includes('scarlet')) icone = '🤝';
+
+      return {
+        nome: e.nome,
+        valor: valorFinal,
+        categoria: catFinal,
+        conta: contaFinal,
+        icone,
+        count: e.count
+      };
+    });
+
+    items.sort((a, b) => {
+      if (a.nome === 'Carona USP') return -1;
+      if (b.nome === 'Carona USP') return 1;
+      return b.count - a.count;
+    });
+
+    return items.slice(0, 3);
+  }
+
+  function renderQuickExpenseButtons(ano, mes) {
+    const container = document.getElementById('quickExpenseQuickButtons');
+    if (!container) return;
+
+    const topItems = getTopQuickExpenses(ano, mes);
+    if (!topItems || topItems.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const themeColors = [
+      { border: 'rgba(0,255,102,0.4)', color: 'var(--matrix-green)', bg: 'rgba(0,255,102,0.06)' },
+      { border: 'rgba(6,182,212,0.4)', color: 'var(--cyan)', bg: 'rgba(6,182,212,0.06)' },
+      { border: 'rgba(192,132,252,0.4)', color: 'var(--purple)', bg: 'rgba(192,132,252,0.06)' }
+    ];
+
+    container.innerHTML = topItems.map((it, idx) => {
+      const theme = themeColors[idx % themeColors.length];
+      const valStr = it.valor > 0 ? ` (R$ ${it.valor % 1 === 0 ? it.valor : it.valor.toFixed(2)})` : '';
+      const safeNome = it.nome.replace(/'/g, "\\'");
+      const safeCat = (it.categoria || '').replace(/'/g, "\\'");
+      const safeConta = (it.conta || 'pix_inter').replace(/'/g, "\\'");
+
+      return `<button type="button" class="btn-matrix" style="font-size:10px;padding:3px 8px;border-color:${theme.border};color:${theme.color};background:${theme.bg};" onclick="MatrixApp.preencherGastoRapido('${safeNome}', ${it.valor}, '${safeCat}', '${safeConta}')" title="Preencher gasto rápido: ${it.nome}">${it.icone} ${it.nome}${valStr}</button>`;
+    }).join('');
+  }
+
   function preencherGastoRapido(nome, valor, categoria, conta) {
     const nomeInput = document.getElementById('quickExpenseNome');
     const valorInput = document.getElementById('quickExpenseValor');
@@ -4807,7 +4992,7 @@ const MatrixApp = (function () {
     const pagoSim = document.getElementById('quickExpensePagoSim');
 
     if (nomeInput) nomeInput.value = nome;
-    if (valorInput) valorInput.value = Number(valor).toFixed(2);
+    if (valorInput) valorInput.value = (valor != null && !isNaN(valor) && valor > 0) ? (Number(valor) % 1 === 0 ? String(Number(valor)) : Number(valor).toFixed(2)) : '';
     if (catSelect && categoria) catSelect.value = categoria;
     if (contaSelect && conta) contaSelect.value = conta;
     if (pagoSim) pagoSim.checked = true;
@@ -4817,7 +5002,7 @@ const MatrixApp = (function () {
 
   function lancarCaronaRapidaHoje() {
     openQuickExpenseModal();
-    preencherGastoRapido('Carona USP', 60, 'Transporte', 'debito_inter');
+    preencherGastoRapido('Carona USP', 30, 'Transporte', 'pix_inter');
   }
 
   function onQuickExpenseCategoriaChange(catVal) {
@@ -4981,6 +5166,11 @@ function onModalCategoriaChange(catVal) {
   }
 
   function openQuickExpenseModal(index = null) {
+    try {
+      renderQuickExpenseButtons(currentYear, currentMonth);
+    } catch (e) {
+      console.warn('Erro ao renderizar botões rápidos:', e);
+    }
     const titleEl = document.getElementById('quickExpenseModalTitle');
     const idxInput = document.getElementById('quickExpenseEditIndex');
     const nomeInput = document.getElementById('quickExpenseNome');
@@ -10584,6 +10774,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     isCaronaItem,
     getCaronasProvisionSummary,
     preencherGastoRapido,
+    renderQuickExpenseButtons,
+    getTopQuickExpenses,
     lancarCaronaRapidaHoje,
     salvarStatusDiaCalendario,
     switchTab,
