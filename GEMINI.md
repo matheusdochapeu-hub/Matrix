@@ -417,4 +417,23 @@ Este documento registra as regras de negócio, integrações, convenções de UX
     explicativo. **Nunca** grava em `totais['VR']` — a regra contratual de VR segue inviolável.
 - Service Worker atualizado para `matrix-finance-v114`.
 
+---
+
+## 29. Saldo VA/VR sem Contagem Dupla (v115)
+
+- **Fonte única para cada compra**: um gasto com conta `cartao_va`/`cartao_vr` lançado **no Matrix** entra no
+  saldo do Casa Maracaju **apenas** pelo parâmetro `matrixDiarios` de `processMaracajuData`.
+  - `comprasCicloAtual` pode conter itens `fromMatrix: true` (para exibição/histórico), mas eles **não podem
+    voltar como `comprasRegistros`** em `syncMaracajuFromLocal` — por isso o filtro `.filter(r => !r.fromMatrix)`
+    em `existingSynthetic` e o `if (r.fromMatrix) return;` no laço de registros.
+  - Motivo: os "registros" deduplicam por `id`/`nfeKey`, enquanto os diários deduplicam por
+    `data_valor_nome`; sem o filtro, a mesma compra era somada duas vezes (bug da v114, corrigido na v115).
+- **Auto-cura de estado inflado**: as guardas `existing.gasto* > computed.gasto*` (que preservavam gastos
+  antigos) só se aplicam quando **não** existe derivado de diários (`temDerivadosDeDiarios`). Com diários,
+  o recálculo é autoritativo e corrige valores gravados pelo bug na primeira carga.
+- **Sintoma que isso causava**: chip Casa Maracaju com saldo menor que o real (ex.: `VA 1.614,98` / `VR 343,26`
+  quando o correto era `1.988,78` / `805,41` no cenário base) — a diferença era exatamente 2× a soma dos diários
+  de VA/VR do mês.
+- Service Worker atualizado para `matrix-finance-v115`.
+
 

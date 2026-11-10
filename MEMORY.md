@@ -225,6 +225,35 @@ fosse o VR do mês.
   chip do Casa Maracaju continua exibindo saldo restante, sem erros de console e sem overflow.
 - `sw.js` e `?v=` em **v114**.
 
+---
+
+## [2026-11-10 16:05] - Matrix Finance v115: Correção da Contagem Dupla no Saldo VA/VR (Chip Casa Maracaju)
+
+### 🐞 Bug
+O chip **Casa Maracaju** exibia saldos menores que os reais (ex.: `VA R$ 1.614,98` / `VR R$ 343,26` em vez de
+`1.988,78` / `805,41` no cenário base). Causa: **cada diário do Matrix com conta `cartao_va`/`cartao_vr` era
+somado duas vezes** no gasto do ciclo:
+
+1. `processMaracajuData` grava os diários no ciclo com `fromMatrix: true` (`comprasCicloAtual`);
+2. no sync seguinte, `syncMaracajuFromLocal` realimentava `existing.comprasCicloAtual` como `comprasRegistros`
+   — a deduplicação dos "registros" usa `id`/`nfeKey`, enquanto a dos diários usa `data_valor_nome`, então a
+   mesma compra não era reconhecida como duplicada;
+3. o bloco 3 voltava a somar os mesmos diários → gasto dobrado e, via regra de "máximo", o valor inflado ficava
+   preso no estado (não se curava sozinho).
+
+### 🛠️ Correção
+- `existingSynthetic.comprasRegistros` agora **filtra `fromMatrix`** (diários são reaplicados pelo parâmetro).
+- `processMaracajuData` **ignora `fromMatrix`** dentro de `comprasRegistros` (defensivo para qualquer origem).
+- As guardas de "máximo" (`existing.gasto > computed.gasto`) só valem quando **não** há derivados de diários
+  (`temDerivadosDeDiarios`), permitindo a auto-cura de estados já inflados.
+
+### 🧪 Validação (Chromium headless, dados injetados)
+- Antes: diários de VA R$ 100 + VR R$ 50 → `gastoVa` 271,06 e `gastoVr` 399,75 (dobrado).
+- Depois: `gastoVa` 171,06 e `gastoVr` 349,75, **estáveis** em três sincronizações seguidas.
+- Estado inflado artificialmente (`gastoVa = 999` + compra `fromMatrix` legada) volta para 171,06 no sync.
+- Chip renderiza `VA R$ 1.888,78` / `VR R$ 755,41` (1.988,78 − 100 e 805,41 − 50).
+- `check-syntax` 11/11 e suíte **15/15**; `sw.js` e `?v=` em **v115**.
+
 
 
 

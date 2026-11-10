@@ -75,6 +75,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
    estrutural (foi assim que `.sim2055-meta-btn` se perdia na v112).
 7. **Confira sempre desktop e celular** (1440, 768, 390 e 360px): sem overflow horizontal,
    sem rótulo truncado, alvos de toque ≥ 40px e o FAB "Gasto Diário" não pode cobrir campos.
+8. **Saldo VA/VR: uma compra, uma soma.** Diários com conta `cartao_va`/`cartao_vr` entram no
+   Casa Maracaju **só** por `matrixDiarios`; itens `fromMatrix` nunca voltam como
+   `comprasRegistros` no sync (senão o gasto dobra — bug corrigido na v115).
 
 ## Dívida técnica conhecida
 

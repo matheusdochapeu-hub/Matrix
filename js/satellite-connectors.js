@@ -753,6 +753,9 @@ const SatelliteConnectors = (function () {
 
     // 1. Processa comprasRegistros (NFC-e e lançamentos manuais de VA/VR no Maracaju 88)
     registros.forEach(r => {
+      // v115: itens que vieram dos diários do Matrix entram apenas pelo bloco 3 (matrixDiarios),
+      // senão a mesma compra é somada duas vezes no ciclo.
+      if (r && r.fromMatrix) return;
       const val = parseFloat(r.total !== undefined ? r.total : (r.valor || 0));
       if (!Number.isFinite(val) || val <= 0) return;
 
@@ -957,12 +960,20 @@ const SatelliteConnectors = (function () {
         const c = String((d && d.conta) || '').toLowerCase();
         return c === 'cartao_vr' || c === 'vr' || c === 'cartao_va' || c === 'va';
       });
+      // v115: estados antigos guardavam no ciclo compras derivadas dos diários (fromMatrix).
+      // Nesses casos o recálculo manda, para o gasto inflado (contagem dupla) não ficar preso no "máximo".
+      const temDerivadosDeDiarios = hasMatrixBenefitDiarios
+        || !!(existing && Array.isArray(existing.comprasCicloAtual)
+          && existing.comprasCicloAtual.some(r => r && r.fromMatrix));
 
       if (localRaw || hasMatrixBenefitDiarios) {
         // Mescla compras que já vieram da nuvem (existing.comprasCicloAtual) com o localStorage para nunca apagar gastos sincronizados
+        // v115: os diários do Matrix são reaplicados a cada sync (parâmetro matrixDiarios).
+        // Se as entradas derivadas deles (fromMatrix) voltarem como "registros", o gasto VA/VR dobra.
         const existingSynthetic = existing ? {
           lastUpdated: existing.atualizadoEm,
-          comprasRegistros: Array.isArray(existing.comprasCicloAtual) ? existing.comprasCicloAtual : []
+          comprasRegistros: (Array.isArray(existing.comprasCicloAtual) ? existing.comprasCicloAtual : [])
+            .filter(r => r && !r.fromMatrix)
         } : null;
         const mergedInput = mergeMaracajuPayloads(existingSynthetic, localRaw || {});
         const computed = processMaracajuData(mergedInput, 1105.0, novDiarios);
@@ -979,11 +990,13 @@ const SatelliteConnectors = (function () {
             }
             return existing;
           }
-          if ((existing.gastoVrMesAtual || 0) > computed.gastoVrMesAtual) {
+          // v115: quando há diários VA/VR no Matrix, o recálculo é autoritativo (inclui tudo).
+          // Sem diários, mantém o "máximo" para não perder gastos que só existiam na nuvem.
+          if (!temDerivadosDeDiarios && (existing.gastoVrMesAtual || 0) > computed.gastoVrMesAtual) {
             computed.gastoVrMesAtual = existing.gastoVrMesAtual;
             computed.saldoVrRestante = Math.max(0, Math.round((computed.vrTotal - computed.gastoVrMesAtual) * 100) / 100);
           }
-          if ((existing.gastoMercadoMesAtual || 0) > computed.gastoMercadoMesAtual) {
+          if (!temDerivadosDeDiarios && (existing.gastoMercadoMesAtual || 0) > computed.gastoMercadoMesAtual) {
             computed.gastoMercadoMesAtual = existing.gastoMercadoMesAtual;
             computed.saldoVaRestante = Math.max(0, Math.round((computed.vaTotal - computed.gastoMercadoMesAtual) * 100) / 100);
           }
