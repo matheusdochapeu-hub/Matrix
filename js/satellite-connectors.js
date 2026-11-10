@@ -750,6 +750,11 @@ const SatelliteConnectors = (function () {
     const comprasCicloAtual = [];
     const comprasCicloAnterior = [];
     const seenKeys = new Set();
+    // v116: o modal de gasto diário do Matrix é ESPELHO do Casa Maracaju. Para uma compra
+    // espelhada (mesma data + valor + método) não ser somada de novo, guardamos a assinatura
+    // dos lançamentos que já vieram do satélite.
+    const seenSateliteDateValue = new Set();
+    const assinaturaCompra = (dataStr, val, isVr) => `${String(dataStr || '').slice(0, 10)}|${(Math.round(val * 100) / 100).toFixed(2)}|${isVr ? 'vr' : 'va'}`;
 
     // 1. Processa comprasRegistros (NFC-e e lançamentos manuais de VA/VR no Maracaju 88)
     registros.forEach(r => {
@@ -779,6 +784,7 @@ const SatelliteConnectors = (function () {
         paymentMethod: isVr ? 'vr' : 'va',
         itemsCount: Array.isArray(r.items) ? r.items.length : 0
       };
+      seenSateliteDateValue.add(assinaturaCompra(dataStr, val, isVr));
 
       // Compras anteriores à data do crédito (ex: 03/11 < 06/11) pertencem ao ciclo anterior (Outubro)
       if (dataStr && dataStr < creditDateNov) {
@@ -810,6 +816,7 @@ const SatelliteConnectors = (function () {
         paymentMethod: 'vr',
         itemsCount: 1
       };
+      seenSateliteDateValue.add(assinaturaCompra(dataStr, val, true));
 
       if (dataStr && dataStr < creditDateNov) {
         gastoVrCicloAnterior += val;
@@ -832,9 +839,11 @@ const SatelliteConnectors = (function () {
         const val = parseFloat(d.valor || 0);
         if (!Number.isFinite(val) || val <= 0) return;
 
-        const dataStr = String(d.data || '').slice(0, 10);
+        const dataStr = String(d.data || d.dataHora || '').slice(0, 10);
         const dedupKey = `${dataStr}_${val.toFixed(2)}_${String(d.nome || '').trim().toLowerCase()}`;
         if (seenKeys.has(dedupKey)) return;
+        // v116: espelho do Casa Maracaju (mesma data/valor/método) já está contado no satélite.
+        if (seenSateliteDateValue.has(assinaturaCompra(dataStr, val, isVr))) return;
         seenKeys.add(dedupKey);
 
         const itemEntry = {

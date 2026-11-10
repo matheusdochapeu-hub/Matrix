@@ -254,6 +254,34 @@ somado duas vezes** no gasto do ciclo:
 - Chip renderiza `VA R$ 1.888,78` / `VR R$ 755,41` (1.988,78 − 100 e 805,41 − 50).
 - `check-syntax` 11/11 e suíte **15/15**; `sw.js` e `?v=` em **v115**.
 
+---
+
+## [2026-11-10 16:20] - Matrix Finance v116: Lançamentos VA/VR do Matrix Reconhecidos como Espelho do Casa Maracaju
+
+### 🔍 Contexto
+O modal de gasto diário do Matrix é **espelho** do app Casa Maracaju: a mesma compra de VA/VR
+costuma existir nos dois lados. A correção da v115 impedia a contagem dupla *do mesmo diário*,
+mas uma compra espelhada (mesma data/valor, **nome diferente** no Matrix) ainda entrava duas
+vezes: uma pelo registro vindo do Casa Maracaju e outra pelo diário do Matrix.
+
+### 🛠️ Correção
+- `processMaracajuData` passou a montar `seenSateliteDateValue` com a assinatura
+  `data|valor|método` de cada compra/refeição vinda do satélite.
+- Ao percorrer `matrixDiarios`, se a assinatura já existe, o diário é **ignorado** (é espelho);
+  se não existe, entra **uma única vez** (compra exclusiva do Matrix).
+- Leitura da data do diário passou a considerar `dataHora` (os diários reais gravam `dataHora`,
+  não `data`) — antes a data saía vazia e a assinatura nunca casaria.
+- Corrigido também o *write-back* do espelho em `app.js` (`salvarSaldoAtualMaracajuInline`):
+  `monthlyEndingBalances` era gravado na chave fixa `'2026-11'`; agora usa `sat.cicloVigente`
+  (ou o mês real), para o saldo editado cair no ciclo certo na virada do mês.
+
+### 🧪 Validação (Chromium headless)
+- Compra do satélite: `2026-11-07 • R$ 71,06 • VA`. Diário espelho com a mesma data/valor e nome
+  diferente → **não somou** (gasto VA permaneceu 71,06).
+- Diário exclusivo do Matrix (`R$ 33,33`) → somou **uma vez** (gasto VA 104,39; saldo 1.955,45).
+- Chip renderizou `VA R$ 1.955,45` / `VR R$ 805,41`; sem erros de console.
+- `check-syntax` 11/11, suíte **15/15**, `sw.js` e `?v=` em **v116**.
+
 
 
 

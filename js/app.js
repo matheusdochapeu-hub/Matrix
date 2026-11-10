@@ -3929,7 +3929,10 @@ const MatrixApp = (function () {
       if (!parsedLocal.settings) parsedLocal.settings = {};
       if (!parsedLocal.settings.benefits) parsedLocal.settings.benefits = {};
       if (!parsedLocal.settings.benefits.monthlyEndingBalances) parsedLocal.settings.benefits.monthlyEndingBalances = {};
-      parsedLocal.settings.benefits.monthlyEndingBalances['2026-11'] = {
+      // v116: grava no ciclo vigente do Casa Maracaju (antes era fixo em '2026-11' e, na
+      // virada do mês, o espelho passaria a escrever no ciclo errado).
+      const cicloEspelho = (sat && sat.cicloVigente) || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+      parsedLocal.settings.benefits.monthlyEndingBalances[cicloEspelho] = {
         vaEndingBalance: novoVaSaldo,
         vrEndingBalance: novoVrSaldo
       };

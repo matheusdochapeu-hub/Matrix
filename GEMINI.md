@@ -436,4 +436,22 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   de VA/VR do mês.
 - Service Worker atualizado para `matrix-finance-v115`.
 
+---
+
+## 30. Gasto Diário de VA/VR é Espelho do Casa Maracaju (v116)
+
+- O modal **Registrar Gasto Diário** é o espelho do app Casa Maracaju: ao lançar uma compra com
+  `cartao_va`/`cartao_vr`, ela normalmente já existe do outro lado.
+- **Regra de soma**: `processMaracajuData` monta `seenSateliteDateValue` com a assinatura
+  `data|valor|método` de cada compra vinda do satélite. Um diário do Matrix com a mesma
+  assinatura é **ignorado** (é espelho); com assinatura nova entra **uma única vez**.
+- **Data do diário**: usar `d.data || d.dataHora` — os diários reais gravam `dataHora`
+  (`2026-11-07T10:00`), então o corte para `YYYY-MM-DD` é obrigatório para a assinatura casar.
+- **Espelho reverso (edição de saldo)**: `salvarSaldoAtualMaracajuInline` grava
+  `settings.benefits.monthlyEndingBalances[cicloVigente]` no `MARACAJU_STATE_v1`; nunca use
+  chave fixa de mês.
+- **Cuidado ao mudar isso**: remover a deduplicação por `data+valor+método` reintroduz o bug do
+  saldo VA/VR abaixo do real (diferença de 1× a soma dos diários espelhados).
+- Service Worker atualizado para `matrix-finance-v116`.
+
 
