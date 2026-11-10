@@ -375,3 +375,21 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   - `#topSatCasaVal` (container do chip) e `#topGanhosFooterTotalVal` (total de ganhos com benefícios).
   - O KPI `#calVRTotal` da aba Calendário (`R$ 1.170,00` = 18 dias civis × R$ 65) é **informativo** e não sobrescreve mais `totais['VR']` — a regra contratual de VR (`R$ 1.105,16`) permanece inviolável.
 
+---
+
+## 27. UX Responsiva (v113): Nada de Informação Cortada, FAB Discreto e Alvos de Toque Reais
+
+- **Regra de ouro do truncamento**: rótulos e valores **informativos** não podem depender de `text-overflow: ellipsis`. Onde o texto não cabe, ele **quebra linha** (`.dual-gastos-title`, `.dual-gastos-sub`, `.unified-card-title`, `.unified-row > span`, `.cal-header-title`, `.cal-kpi-label`, `.cal-kpi-sub`, `.cal-banner-inline`, `.eq-label`). O único lugar em que `ellipsis` continua aceitável é em conteúdo redundante (tooltip já presente).
+- **Nunca sobrescrever `className` de botões que carregam classe estrutural.** `setSim2055Meta` e `onSim2055CustomRendaInput` faziam `btn.className = 'btn-matrix'` e apagavam `.sim2055-meta-btn` — o layout de card do simulador 2055 quebrava assim que o modal abria. Use a lista completa (`'btn-matrix sim2055-meta-btn [primary]'`) ou `classList.toggle`.
+- **FAB "Gasto Diário"**:
+  - `≤480px`: circular de 52px, só o ícone (`aria-label="Registrar gasto diário"`), para não cobrir valores de tabelas;
+  - **oculto** nas abas `tab-holerites` e `tab-backup` (feito em `switchTab`) para não cobrir campos de formulário;
+  - `.tab-content.active` reserva `padding-bottom` para o conteúdo rolar além do FAB.
+- **Alvos de toque (mobile)**: mínimo de ~40px de altura nos controles do cabeçalho (`header-controls`), 42×38px nas setas de mês (`#prevMonthBtn`/`#nextMonthBtn`) e 30px nos chips `✏️ Saldos`. A regra antiga `.month-nav-btn` apontava para uma classe inexistente — cuidado com seletores órfãos.
+- **Rolagem horizontal com pista visual**: `.unified-satellites-bar` e `.cal-legend-bar` usam máscara de *fade* na borda direita (`mask-image`) para indicar que há mais conteúdo; os rótulos dos chips têm 9,5px (mínimo aceitável) no celular.
+- **Formulários**: em `≤640px`, linhas com `datetime-local` + valor empilham (o input de data tem largura mínima grande e esmagava o campo de valor).
+- **Simulador 2055**: `.sim2055-meta-grid` usa `repeat(auto-fit, minmax(128px, 1fr))` e os cards de resultado não cortam valores (`R$ 1.014.106,20` deve aparecer inteiro).
+- **Checklist de validação visual**: o app deve ser conferido em **1440×900, 768×1024, 390×844 e 360×740** com `document.documentElement.scrollWidth === window.innerWidth` e nenhum rótulo truncado.
+- Service Worker atualizado para `matrix-finance-v113`.
+
+

@@ -1424,6 +1424,14 @@ const MatrixApp = (function () {
     if (targetId === 'tab-financiamento') renderFinancing();
     if (targetId === 'tab-investimentos') renderInvestments();
     if (targetId === 'tab-backup') renderBackup();
+
+    // 5. UX v113: o FAB "Gasto Diário" cobria campos dos formulários de Holerites e Backup.
+    //    Ele só aparece nas abas em que lançar um gasto faz sentido.
+    const fab = document.getElementById('fabQuickExpense');
+    if (fab) {
+      const semFab = (targetId === 'tab-holerites' || targetId === 'tab-backup');
+      fab.style.display = semFab ? 'none' : '';
+    }
   }
 
   function initSwipeNavigation() {
@@ -1908,15 +1916,15 @@ const MatrixApp = (function () {
 
           <!-- Rodapé: Gastos e Sobra Real (Igual Sobra do Casal do Card Anterior) -->
           <div class="horizon-bottom-bar" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border-dim);display:flex;flex-direction:column;gap:3px;">
-            <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:2px;padding-bottom:3px;border-bottom:1px dashed rgba(255,255,255,0.08);" title="Renda Matheus (${formatBRL(rendaMatheusTotal)}) + Renda Scarlet (${formatBRL(rendaScarletTotal)}) + VA/VR (${formatBRL(totalBeneficios)})">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:10px;font-weight:700;margin-bottom:2px;padding-bottom:3px;border-bottom:1px dashed rgba(255,255,255,0.08);" title="Renda Matheus (${formatBRL(rendaMatheusTotal)}) + Renda Scarlet (${formatBRL(rendaScarletTotal)}) + VA/VR (${formatBRL(totalBeneficios)})">
               <span style="color:var(--matrix-green);">💼 Ganhos Totais (+ VA/VR):</span>
               <strong style="color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(ganhosConjuntosTotais)}</strong>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:9.5px;">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:9.5px;">
               <span style="color:var(--text-muted);" title="Fixos (${formatBRL(fixos)}) + Variáveis (${formatBRL(outros)}) + Diários (${formatBRL(diarios)}) + Nubank (${formatBRL(faturaNubank)})">Gastos (Fixos+Var+Diár+Nubank):</span>
               <strong style="color:var(--rose);font-family:var(--font-mono);">${formatBRL(totalGastosCasal)}</strong>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;" title="Sobra Matheus (${formatBRL(sobraMatheus)}) + Sobra Scarlet (${formatBRL(sobraScarlet)})">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:10px;font-weight:700;" title="Sobra Matheus (${formatBRL(sobraMatheus)}) + Sobra Scarlet (${formatBRL(sobraScarlet)})">
               <span style="color:var(--text-main);">Sobra Real (Casal):</span>
               <strong style="color:${sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};font-family:var(--font-mono);">${sobraCasalReal >= 0 ? '+' : ''}${formatBRL(sobraCasalReal)}</strong>
             </div>
@@ -10338,10 +10346,12 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     [1, 2, 3, 4].forEach(idx => {
       const btn = document.getElementById('btnSimMeta' + idx);
       if (btn) {
+        // UX v113: className era sobrescrito e apagava a classe estrutural .sim2055-meta-btn,
+        // fazendo os cartões de meta voltarem ao layout de botão comum (texto cortado).
         if (idx === metaIdx) {
-          btn.className = 'btn-matrix primary';
+          btn.className = 'btn-matrix sim2055-meta-btn primary';
         } else {
-          btn.className = 'btn-matrix';
+          btn.className = 'btn-matrix sim2055-meta-btn';
         }
       }
     });
@@ -10369,10 +10379,10 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     currentSim2055Meta = 4;
     [1, 2, 3].forEach(idx => {
       const btn = document.getElementById('btnSimMeta' + idx);
-      if (btn) btn.className = 'btn-matrix';
+      if (btn) btn.className = 'btn-matrix sim2055-meta-btn';
     });
     const btn4 = document.getElementById('btnSimMeta4');
-    if (btn4) btn4.className = 'btn-matrix primary';
+    if (btn4) btn4.className = 'btn-matrix sim2055-meta-btn primary';
     const labelMeta = document.getElementById('sim2055LabelMeta');
     if (labelMeta) labelMeta.textContent = 'Meta 4: Renda Personalizada';
     recalcularSimulador2055();

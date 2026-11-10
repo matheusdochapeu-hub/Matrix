@@ -157,6 +157,36 @@ Propostas estruturadas e validadas para modernização da aba de simulações e 
 2. **Acoplamento temporal a Nov/2026**: comparações `'2026-11'` em `sync-engine.js` (preservação do consumo local do Casa Maracaju) e em `app.js` deixam de valer quando o mês virar.
 3. **Botões rápidos não sincronizam**: ficam apenas no `localStorage` do dispositivo (decisão consciente, mas vale registrar).
 
+---
+
+## [2026-11-10 15:15] - Matrix Finance v113: Revisão de UX Desktop + Celular (truncamentos, FAB e alvos de toque)
+
+### 🔍 Motivação
+Auditoria de interface com screenshots reais em 1440×900, 768×1024, 390×844 e 360×740 (Chromium headless),
+medindo truncamento de texto, alvos de toque, fontes mínimas, overflow horizontal e sobreposição de elementos.
+
+### 🛠️ Correções
+1. **Truncamento sistêmico eliminado (10 elementos no desktop, 4 no celular → 0)**:
+   - Títulos e subtítulos dos cards do painel (`1. FIXOS + VARIÁVEIS + DIÁR…`, `Pago: R$ 7.161,38 • ⏳ … a pagar`) passaram a quebrar linha em vez de usar `text-overflow: ellipsis`;
+   - `.unified-card-title` (ex.: `👩‍⚕️ Sobra Scarlet`, que ficava com 14px de largura), `.cal-header-title`, `.cal-kpi-label`, `.cal-kpi-sub`, `.cal-banner-inline` e o banner de equações (`.eq-label`, que estava em **7,2px**) também foram ajustados;
+   - `.unified-row`: quando o valor é longo, ele desce para a linha de baixo em vez de esmagar o rótulo.
+2. **Bug de classe no simulador 2055 (`setSim2055Meta`)**: a função fazia `btn.className = 'btn-matrix'`, apagando a classe estrutural `.sim2055-meta-btn`. Resultado: os 4 cartões de meta viravam botões comuns, com texto cortado e sem o layout de card. A classe agora é preservada; o grid passou a `auto-fit/minmax(128px, 1fr)` e os valores dos resultados (`R$ 1.014.106,20`) não são mais cortados.
+3. **FAB "Gasto Diário"**:
+   - Em telas ≤480px vira um FAB circular de 52px (só o ícone, com `aria-label`), reduzindo a área que cobria valores de tabelas;
+   - Fica oculto nas abas **Holerites** e **Backup**, onde cobria campos de formulário;
+   - `.tab-content.active` ganhou `padding-bottom` para o conteúdo poder rolar além do FAB.
+4. **Barra de chips satélites e legenda do calendário**: ganharam máscara de *fade* na borda direita (sinalizando rolagem horizontal) e o rótulo dos chips subiu de 8,5px para 9,5px.
+5. **Alvos de toque no celular**: a regra `.month-nav-btn` apontava para uma classe que **não existe no HTML** — as setas ◀/▶ seguiam com 32×31px. Agora `#prevMonthBtn`/`#nextMonthBtn` têm 42×38px e os controles do cabeçalho têm `min-height: 40px`.
+6. **Modal de gasto diário**: o campo `datetime-local` esmagava o campo **Valor** para ~115px; no celular os dois passam a ocupar a linha inteira (e `minmax(0,1fr)` no desktop).
+7. **Duplicidade no mobile**: dois botões `+ Novo Investimento` empilhados — o secundário (cabeçalho da carteira) fica oculto em telas ≤768px.
+8. **Holerites (13º)**: o valor quebrava no meio (`~R$` / `1.280,00`); agora fica em `nowrap` com o rótulo podendo quebrar.
+9. **Rodapé dos cards de horizonte**: valores colados no rótulo (`Ganhos Totais (+ VA/VR):R$ …`) — adicionado `gap` e `flex-wrap`.
+
+### 🧪 Validação
+- `node --test "test/*.test.js"`: **15/15**; `check-syntax`: 11/11.
+- Chromium headless: **0 erros/ exceções de console**, `horizontalOverflow = 0` e **`clipped = 0`** nas três viewports (1440, 390 e 360).
+- `sw.js` e `?v=` em **v113**.
+
 
 
 

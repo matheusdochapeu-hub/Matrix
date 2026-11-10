@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=112">
+  <link rel="stylesheet" href="css/matrix.css?v=113">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -52,7 +52,7 @@
         
         <!-- Year Selector & Add Year -->
         <div style="display:flex;align-items:center;gap:6px;">
-          <select id="yearSelect" class="matrix-select" style="width: auto; padding: 4px 8px;"></select>
+          <select id="yearSelect" class="matrix-select" aria-label="Ano da timeline" title="Selecionar o ano da timeline" style="width: auto; padding: 4px 8px;"></select>
           <button id="addYearBtn" class="btn-matrix" title="Criar ou planejar um novo ano (ex: 2027, 2028, 2029...)" onclick="MatrixApp.promptAddNewYear()">+ Ano</button>
         </div>
 
@@ -958,13 +958,13 @@
                 Admissão em 06/07/2026 (6 meses trabalhados):
               </div>
               <div style="font-family:var(--font-mono);font-size:12px;line-height:1.8;">
-                <div style="display:flex;justify-content:space-between;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
                   <span>1ª Parcela (30/11/2026):</span>
-                  <strong style="color:var(--matrix-green);">R$ 1.566,00</strong>
+                  <strong style="color:var(--matrix-green);white-space:nowrap;">R$ 1.566,00</strong>
                 </div>
-                <div style="display:flex;justify-content:space-between;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
                   <span>2ª Parcela (20/12/2026 com descontos):</span>
-                  <strong style="color:var(--matrix-green);">~R$ 1.280,00</strong>
+                  <strong style="color:var(--matrix-green);white-space:nowrap;">~R$ 1.280,00</strong>
                 </div>
               </div>
             </div>
@@ -1426,7 +1426,7 @@
               📁 Ativos em Carteira
               <span id="investCountBadge" class="box-badge" style="font-size:10px;color:var(--matrix-green);border-color:var(--matrix-green);">0 ativos</span>
             </div>
-            <button class="btn-matrix primary" style="padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;" onclick="MatrixApp.openNewInvestmentModal()">
+            <button class="btn-matrix primary inv-new-btn-secondary" style="padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;" onclick="MatrixApp.openNewInvestmentModal()">
               <span>+</span> Novo Investimento
             </button>
           </div>
@@ -2276,7 +2276,7 @@
   </div>
 
   <!-- BOTÃO FLUTUANTE DE GASTO DIÁRIO (FAB) -->
-  <button id="fabQuickExpense" class="fab-quick-expense" onclick="MatrixApp.openQuickExpenseModal()" title="Registrar Gasto Diário Imediato">
+  <button id="fabQuickExpense" class="fab-quick-expense" onclick="MatrixApp.openQuickExpenseModal()" title="Registrar Gasto Diário Imediato" aria-label="Registrar gasto diário">
     <span class="fab-icon">⚡</span>
     <span class="fab-label">+ Gasto Diário</span>
   </button>
@@ -2294,8 +2294,8 @@
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;color:var(--text-muted);">Descrição do Gasto:</label>
         <input type="text" id="quickExpenseNome" class="matrix-input" placeholder="Ex: Carona USP, Droga Raia, Padaria, Posto Shell...">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:4px;">
-          <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-family:var(--font-mono);">⚡ Atalhos Frequentes:</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;margin-bottom:4px;">
+          <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-family:var(--font-mono);white-space:nowrap;">⚡ Atalhos Frequentes:</span>
           <div style="display:flex;gap:6px;">
             <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 7px;border-color:rgba(0,255,102,0.4);color:var(--matrix-green);background:rgba(0,255,102,0.06);" onclick="MatrixApp.salvarAtualComoBotaoRapido()" title="Salvar os dados preenchidos no formulário como um novo botão de atalho permanente">⭐ Fixar como Botão</button>
             <button type="button" class="btn-matrix" style="font-size:9.5px;padding:2px 7px;border-color:rgba(192,132,252,0.4);color:var(--purple);background:rgba(192,132,252,0.06);" onclick="MatrixApp.abrirGerenciadorBotoesRapidos()" title="Editar, reordenar ou excluir seus botões de atalho rápido">⚙️ Editar Botões</button>
@@ -2307,7 +2307,7 @@
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div class="quick-expense-value-row" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:12px;">
         <div>
           <label style="font-size:11px;color:var(--text-muted);">Valor em Reais (R$):</label>
           <input type="number" step="0.01" id="quickExpenseValor" class="matrix-input" placeholder="0,00">
@@ -2902,26 +2902,26 @@
           <div class="sim2055-results-grid">
             <div class="sim2055-result-card" style="background:rgba(0,255,102,0.06);border:1px solid rgba(0,255,102,0.25);">
               <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">APORTE MENSAL</div>
-              <div id="simResAporteMensal" style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R$ 1.015,78</div>
-              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">por mês até dez/2054</div>
+              <div id="simResAporteMensal" style="font-size:16px;font-weight:800;color:var(--matrix-green);margin-top:3px;white-space:normal;overflow:visible;">R$ 1.015,78</div>
+              <div style="font-size:9.5px;color:var(--matrix-green);margin-top:2px;opacity:0.85;white-space:normal;overflow:visible;">por mês até dez/2054</div>
             </div>
 
             <div class="sim2055-result-card" style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.25);">
               <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">COTAS / MÊS</div>
-              <div id="simResTitulosMes" style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">2,18 títulos</div>
-              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">baseado no PU informado</div>
+              <div id="simResTitulosMes" style="font-size:16px;font-weight:800;color:var(--cyan);margin-top:3px;white-space:normal;overflow:visible;">2,18 títulos</div>
+              <div style="font-size:9.5px;color:var(--cyan);margin-top:2px;opacity:0.85;white-space:normal;overflow:visible;">baseado no PU informado</div>
             </div>
 
             <div class="sim2055-result-card" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);">
               <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">TOTAL ACUMULADO</div>
-              <div id="simResTotalTitulos" style="font-size:16px;font-weight:800;color:var(--amber);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">2.259,5 títulos</div>
-              <div style="font-size:9.5px;color:var(--amber);margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">cotas de Renda+ 2055</div>
+              <div id="simResTotalTitulos" style="font-size:16px;font-weight:800;color:var(--amber);margin-top:3px;white-space:normal;overflow:visible;">2.259,5 títulos</div>
+              <div style="font-size:9.5px;color:var(--amber);margin-top:2px;opacity:0.85;white-space:normal;overflow:visible;">cotas de Renda+ 2055</div>
             </div>
 
             <div class="sim2055-result-card" style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.25);">
               <div style="font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">PATRIMÔNIO EM 2055</div>
-              <div id="simResMontanteFinal" style="font-size:16px;font-weight:800;color:#c084fc;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R$ 1.053.372</div>
-              <div style="font-size:9.5px;color:#c084fc;margin-top:2px;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">paga 240 parcelas mensais</div>
+              <div id="simResMontanteFinal" style="font-size:16px;font-weight:800;color:#c084fc;margin-top:3px;white-space:normal;overflow:visible;">R$ 1.053.372</div>
+              <div style="font-size:9.5px;color:#c084fc;margin-top:2px;opacity:0.85;white-space:normal;overflow:visible;">paga 240 parcelas mensais</div>
             </div>
           </div>
 
@@ -2953,16 +2953,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=112"></script>
-  <script src="js/matrix-rain.js?v=112"></script>
-  <script src="js/db.js?v=112"></script>
-  <script src="js/calendar-engine.js?v=112"></script>
-  <script src="js/amortization-engine.js?v=112"></script>
-  <script src="js/scenario-simulator.js?v=112"></script>
-  <script src="js/pdf-reader.js?v=112"></script>
-  <script src="js/satellite-connectors.js?v=112"></script>
-  <script src="js/sync-engine.js?v=112"></script>
-  <script src="js/app.js?v=112"></script>
+  <script src="js/seed-data.js?v=113"></script>
+  <script src="js/matrix-rain.js?v=113"></script>
+  <script src="js/db.js?v=113"></script>
+  <script src="js/calendar-engine.js?v=113"></script>
+  <script src="js/amortization-engine.js?v=113"></script>
+  <script src="js/scenario-simulator.js?v=113"></script>
+  <script src="js/pdf-reader.js?v=113"></script>
+  <script src="js/satellite-connectors.js?v=113"></script>
+  <script src="js/sync-engine.js?v=113"></script>
+  <script src="js/app.js?v=113"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2974,7 +2974,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=112', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=113', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

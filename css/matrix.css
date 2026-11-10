@@ -498,8 +498,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
+  gap: 4px 6px;
+  /* UX v113: com 4 ações no cabeçalho (Renda/Gasto/Rendas/badge) o título do card
+     "👩‍⚕️ Sobra Scarlet" era reduzido a 14px. Agora as ações quebram para a linha de baixo. */
+  flex-wrap: wrap;
   min-height: 26px;
   margin-bottom: 6px;
 }
@@ -519,9 +521,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.4px;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 0;
 }
 
 .unified-edit-btn {
@@ -631,16 +634,21 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 4px 8px;
   min-height: 19px;
   color: var(--text-main);
-  white-space: nowrap;
+  /* UX v113: quando o valor é longo (ex.: "- R$ 7.161,38 (⏳ R$ 4.644,82 a pagar)")
+     o rótulo era esmagado a ~60px e ficava invisível. Agora o valor desce para a linha
+     de baixo, alinhado à direita, preservando o rótulo. */
+  flex-wrap: wrap;
 }
 
 .unified-row > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .unified-row strong {
@@ -702,20 +710,22 @@ body {
 }
 
 .eq-label {
-  font-size: 7.2px;
-  letter-spacing: -0.2px;
+  /* UX v113: 7.2px era ilegível; agora quebra em 2 linhas em vez de ser cortado. */
+  font-size: 8.5px;
+  letter-spacing: 0;
   color: var(--text-muted);
   text-transform: uppercase;
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   line-height: 1.15;
 }
 
 .eq-val {
-  font-size: 8.5px;
-  letter-spacing: -0.35px;
+  /* UX v113: 9.5px fazia os 5 valores do card Scarlet se tocarem; 8.8px mantém legível e cabe. */
+  font-size: 8.8px;
+  letter-spacing: -0.2px;
   font-weight: 700;
   font-family: var(--font-mono);
   color: var(--text-main);
@@ -811,9 +821,12 @@ body {
   font-weight: 700;
   font-family: var(--font-mono);
   letter-spacing: 0.2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: antes o título era cortado com "..." ("1. FIXOS + VARIÁVEIS + DIÁR..."). */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  min-width: 0;
+  line-height: 1.3;
 }
 
 .dual-gastos-badge {
@@ -831,7 +844,9 @@ body {
   align-items: baseline;
   gap: 6px;
   margin-top: 5px;
-  flex-wrap: nowrap;
+  /* UX v113: quando o subtítulo não cabe ao lado do valor, ele desce para a própria linha
+     (alinhado à direita) em vez de ser espremido em 3 linhas. */
+  flex-wrap: wrap;
 }
 
 .dual-gastos-val {
@@ -840,16 +855,21 @@ body {
   font-weight: 800;
   line-height: 1.1;
   white-space: nowrap;
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .dual-gastos-sub {
   font-size: 9.5px;
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: subtítulo informativo não pode ser cortado (ex.: "Pago: R$ 7.161,38 • ⏳ R$ 4.644,82 a pagar"). */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.3;
 }
 
 /* Caixa de Sobra no Mês */
@@ -1489,10 +1509,50 @@ body {
 
 @media (max-width: 768px) {
   .fab-quick-expense {
-    bottom: 20px;
-    right: 16px;
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
     padding: 10px 14px;
     font-size: 11.5px;
+    box-shadow: 0 4px 16px rgba(0, 255, 102, 0.4);
+  }
+
+  /* UX v113: espaço para o FAB não cobrir o fim do conteúdo (formulários, tabelas, calendário). */
+  .tab-content.active {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 640px) {
+  /* UX v113: o campo "Data e Hora" (datetime-local) tem largura mínima grande e
+     esmagava o campo "Valor" para ~115px. No celular os dois passam a ocupar a linha toda. */
+  .quick-expense-value-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* UX v113: no celular o FAB com texto cobria valores de tabelas e campos de formulário.
+     Ele vira um FAB circular compacto (52px), padrão Material, mantendo o rótulo acessível. */
+  .fab-quick-expense {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    box-shadow: 0 4px 18px rgba(0, 255, 102, 0.5);
+  }
+
+  .fab-quick-expense .fab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .fab-quick-expense .fab-icon {
+    font-size: 22px;
   }
 }
 
@@ -2107,7 +2167,11 @@ body {
     font-size: 12px;
   }
 
-  .month-nav-btn {
+  /* UX v113: a regra apontava para .month-nav-btn, classe que não existe no HTML.
+     As setas ◀/▶ usam .btn-icon (ids prevMonthBtn/nextMonthBtn) e ficavam com 32x31px. */
+  .month-nav-btn,
+  #prevMonthBtn,
+  #nextMonthBtn {
     min-width: 42px;
     min-height: 38px;
     display: flex;
@@ -2120,6 +2184,26 @@ body {
     padding: 6px 8px;
     font-size: 11px;
     height: 34px;
+  }
+
+  /* UX v113: alvos de toque do cabeçalho com no mínimo ~40px de altura */
+  .header-controls > button,
+  .header-controls .matrix-select,
+  .header-controls #btnInstallApp,
+  .header-controls #rainToggleBtn,
+  .header-controls #addYearBtn {
+    min-height: 40px;
+  }
+
+  .unified-edit-btn {
+    min-height: 30px;
+    padding: 4px 9px;
+  }
+
+  /* UX v113: dois "+ Novo Investimento" idênticos ficavam empilhados no celular.
+     Mantém o da barra de ações e esconde o repetido no cabeçalho da carteira. */
+  .inv-new-btn-secondary {
+    display: none !important;
   }
 
   /* Navigation Tabs Sticky & Touch Friendly on Mobile */
@@ -2320,10 +2404,13 @@ body {
   font-size: 15px;
   font-weight: 700;
   color: var(--matrix-green);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: o título era cortado ("Calendário USP & Caro...") em telas estreitas. */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   margin: 0;
+  min-width: 0;
+  line-height: 1.25;
 }
 
 .cal-header-badge {
@@ -2446,10 +2533,12 @@ body {
 }
 
 .cal-banner-inline {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: instrução "Toque em qualquer dia para…" era cortada; agora quebra em 2 linhas. */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   display: block;
+  line-height: 1.35;
 }
 
 .cal-notification-banner.saved-flash {
@@ -2483,10 +2572,12 @@ body {
   color: var(--text-muted);
   font-family: var(--font-mono);
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: rótulos como "DIAS CARONA (CICLO SALÁRIO)" eram cortados no celular. */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   letter-spacing: 0.2px;
+  line-height: 1.25;
 }
 
 .cal-kpi-val {
@@ -2506,9 +2597,11 @@ body {
   font-size: 9.5px;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* UX v113: "Ciclo: 06/11 a 0…" perdia o fim da informação no celular. */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.3;
 }
 
 .cal-legend-bar {
@@ -2834,6 +2927,10 @@ body {
     white-space: nowrap !important;
     display: flex !important;
     flex-wrap: nowrap !important;
+    scrollbar-width: none !important;
+    /* UX v113: mesma dica visual da barra de satélites — a legenda rola na horizontal. */
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 20px), transparent 100%);
   }
   .cal-legend-item {
     flex-shrink: 0 !important;
@@ -3489,6 +3586,9 @@ body {
     touch-action: pan-x !important;
     overscroll-behavior-x: contain !important;
     overscroll-behavior-y: contain !important;
+    /* UX v113: o 3º chip ficava cortado no seco; a máscara suaviza e sinaliza que há rolagem lateral. */
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 22px), transparent 100%);
   }
 
   .unified-satellites-bar::-webkit-scrollbar {
@@ -3522,7 +3622,8 @@ body {
   }
 
   .sat-chip-label {
-    font-size: 8.5px !important;
+    /* UX v113: 8.5px era ilegível no celular. */
+    font-size: 9.5px !important;
     color: var(--text-muted) !important;
     text-transform: uppercase !important;
     letter-spacing: 0.4px !important;
@@ -3555,13 +3656,13 @@ body {
   }
 
   .eq-label {
-    font-size: 7.2px !important;
-    letter-spacing: -0.2px !important;
+    font-size: 8.5px !important;
+    letter-spacing: 0 !important;
   }
 
   .eq-val {
-    font-size: 8.2px !important;
-    letter-spacing: -0.35px !important;
+    font-size: 8.8px !important;
+    letter-spacing: -0.2px !important;
   }
 
   .eq-op {
@@ -3758,7 +3859,8 @@ body {
 /* Simulador Aposentadoria 2055 Modal Enhancements (v49) */
 .sim2055-meta-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* UX v113: 4 colunas fixas estouravam o modal de 680px e cortavam a meta 3/4. */
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: 8px;
 }
 .sim2055-meta-btn {
@@ -3779,9 +3881,9 @@ body {
   display: block;
   font-size: 11px;
   line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
   width: 100%;
 }
 .sim2055-meta-btn span {

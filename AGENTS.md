@@ -70,6 +70,11 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 4. **Nunca apagar `diarios` em massa** na sincronização: o merge é por `id` e por
    `(nome, valor, dataHora)` de propósito.
 5. **Não expor dados pessoais** em arquivos que vão para o repositório público.
+6. **UX: informação nunca é cortada.** Rótulos/valores informativos quebram linha em vez de
+   usar `ellipsis`; e **nunca** atribua `className` inteiro em botões que têm classe
+   estrutural (foi assim que `.sim2055-meta-btn` se perdia na v112).
+7. **Confira sempre desktop e celular** (1440, 768, 390 e 360px): sem overflow horizontal,
+   sem rótulo truncado, alvos de toque ≥ 40px e o FAB "Gasto Diário" não pode cobrir campos.
 
 ## Dívida técnica conhecida
 
