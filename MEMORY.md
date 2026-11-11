@@ -530,3 +530,30 @@ nacional) e quantos **dias faltam** — válido para qualquer mês do seletor.
   - status "Cotações de agora atualizadas (2/2)." e 1 chamada por ação de cada vez.
 - Sem erros de console; mobile 390 sem overflow.
 - `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v129**.
+
+---
+
+## [2026-11-11 15:50] - Matrix Finance v130: Cards de Meta do Renda+ 2055 Passam a ser Calculados
+
+### 🐛 O problema
+Os três cards do banner do simulador (`+1 Salário Líquido USP`, `100% Poder de Compra`,
+`P.C. + Dobro de Dinheiro`) eram **texto fixo no HTML** (`R$ 6.044/mês`, `~R$ 941/mês`, etc.).
+Salvar os parâmetros do simulador não mudava nada neles — só o modal recalculava.
+
+### 🛠️ A correção
+- Extraído o núcleo do cálculo para `calcularAporte2055(renda, params)` (mesma matemática do simulador:
+  348 meses de acumulação, 240 de usufruto, 15% de IR sobre os ganhos, saldo atual capitalizado).
+- `parametrosSimulador2055()` lê `matrix_simulador_2055_params` (o simulador salva a cada recálculo)
+  e usa os inputs só como fallback.
+- `atualizarCardsMetas2055()` recalcula os 3 aportes e as rendas das metas e escreve nos cards
+  (`simMeta1Aporte` … `simMeta3Aporte`), além de um rodapé com os parâmetros usados
+  (`Calculado com IPCA + 6,50% a.a. • saldo atual R$ 1.318,89 • PU R$ 466,07`).
+- Chamado no `renderInvestments`, no fim de `recalcularSimulador2055` (que roda a cada `oninput`) e em
+  `salvarParametrosSimulador2055` — que agora **recalcula antes de salvar**.
+- O `title` de cada card mostra patrimônio necessário e títulos/mês.
+
+### 🧪 Validação (Chromium)
+- Padrão (IPCA+6,5%, saldo R$ 1.318,89): `~R$ 941` / `~R$ 1.016` / `~R$ 1.795` (relatório: 941,15 / 1.015,78 / 1.794,92).
+- Parâmetros salvos a 6,0% / saldo 0: `~R$ 1.076` / `~R$ 1.160` / `~R$ 2.043` (relatório a 6%: 1.068,01 / 1.152,58 / 2.035,50 — mesma faixa).
+- Salvar pelo modal a 6,0%: cards passam a `~R$ 1.068` / `~R$ 1.153` / `~R$ 2.036` e o rodapé para `IPCA + 6,00%`.
+- `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v130**.

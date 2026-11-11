@@ -7574,6 +7574,9 @@ function onModalCategoriaChange(catVal) {
 
     renderStockCards(invList);
 
+    // v130: cards de meta do banner calculados com os parâmetros salvos
+    atualizarCardsMetas2055();
+
     // v129: puxa o fechamento do dia anterior das ações (uma vez por período; o módulo tem cache).
     if (typeof MarketQuotes !== 'undefined' && typeof MarketQuotes.autoSincronizarFechamentos === 'function') {
       MarketQuotes.autoSincronizarFechamentos().catch(() => {});
@@ -10650,35 +10653,110 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     closeModal('simulador2055ModalBackdrop');
   }
 
+  // v130: núcleo do cálculo do Renda+ 2055 (usado pelo simulador e pelos cards de metas).
+  // Patrimônio necessário em 2055 = valor presente dos 240 saques (renda bruta / 0,875 por causa do IR).
+  const METAS_2055 = [
+    { id: 1, renda: 6044.00, rendaEl: 'simMeta1Renda', aporteEl: 'simMeta1Aporte' },
+    { id: 2, renda: 6519.11, rendaEl: 'simMeta2Renda', aporteEl: 'simMeta2Aporte' },
+    { id: 3, renda: 11479.11, rendaEl: 'simMeta3Renda', aporteEl: 'simMeta3Aporte' }
+  ];
+
+  function calcularAporte2055(rendaDesejada, params) {
+    const mesesAcumulacao = 348; // 29 anos (2026 a dez/2054)
+    const mesesUsufruto = 240;   // 20 anos (jan/2055 a dez/2074)
+    const fatorIr = 0.875;       // 15% de IR sobre os ganhos reais
+    const taxaReal = (parseFloat(params && params.taxaReal) || 6.5) / 100;
+    const saldoAtual = Math.max(0, parseFloat(params && params.saldoAtual) || 0);
+    const puTitulo = Math.max(0, parseFloat(params && params.puTitulo) || 466.07);
+    const renda = Math.max(0, parseFloat(rendaDesejada) || 0);
+
+    const rMes = Math.pow(1 + taxaReal, 1 / 12) - 1;
+    const rendaBrutaNecessaria = renda / fatorIr;
+    const vpSaques = rMes === 0
+      ? rendaBrutaNecessaria * mesesUsufruto
+      : rendaBrutaNecessaria * (1 - Math.pow(1 + rMes, -mesesUsufruto)) / rMes;
+    const fvSaldoAtual = saldoAtual * Math.pow(1 + rMes, mesesAcumulacao);
+    const saldoLiquidoAcumular = Math.max(0, vpSaques - fvSaldoAtual);
+    const fatorAcum = rMes === 0
+      ? mesesAcumulacao
+      : (Math.pow(1 + rMes, mesesAcumulacao) - 1) / rMes;
+    const aporteMensal = fatorAcum > 0 ? saldoLiquidoAcumular / fatorAcum : 0;
+    const titulosPorMes = puTitulo > 0 ? aporteMensal / puTitulo : 0;
+
+    return { aporteMensal, vpSaques, titulosPorMes, rendaBrutaNecessaria, rMes };
+  }
+
+  // Lê os parâmetros salvos (localStorage) mesclando com o que estiver na tela do simulador.
+  function parametrosSimulador2055() {
+    let salvos = {};
+    try {
+      salvos = JSON.parse(localStorage.getItem(SIMULADOR_2055_STORAGE_KEY) || '{}') || {};
+    } catch (e) {
+      salvos = {};
+    }
+    const ler = (id, chave, padrao) => {
+      // o simulador salva a cada recálculo, então o localStorage é a fonte mais recente;
+      // o input só serve de fallback quando ainda não há nada salvo.
+      const s = parseFloat(salvos[chave]);
+      if (isFinite(s) && s >= 0) return s;
+      const el = document.getElementById(id);
+      const v = el ? parseFloat(el.value) : NaN;
+      if (isFinite(v) && v > 0) return v;
+      return padrao;
+    };
+    return {
+      puTitulo: ler('sim2055ValorTitulo', 'puTitulo', 466.07),
+      taxaReal: ler('sim2055TaxaReal', 'taxaReal', 6.5),
+      saldoAtual: ler('sim2055SaldoAtual', 'saldoAtual', 1318.89),
+      rendaDesejada: ler('sim2055RendaDesejada', 'rendaDesejada', 6519.11),
+      meta: salvos.meta || currentSim2055Meta || 2,
+      salvoEm: salvos.salvoEm || ''
+    };
+  }
+
+  // v130: os 3 cards do banner (Investimentos) agora são calculados, não texto fixo.
+  function atualizarCardsMetas2055() {
+    const params = parametrosSimulador2055();
+    let algum = false;
+
+    METAS_2055.forEach(meta => {
+      const rendaEl = document.getElementById(meta.rendaEl);
+      const aporteEl = document.getElementById(meta.aporteEl);
+      const calc = calcularAporte2055(meta.renda, params);
+      const aporteTxt = `~R$ ${Math.round(calc.aporteMensal).toLocaleString('pt-BR')}/mês`;
+      const rendaTxt = `${formatBRL(meta.renda)}/mês`;
+      if (rendaEl) { rendaEl.textContent = rendaTxt; algum = true; }
+      if (aporteEl) { aporteEl.textContent = aporteTxt; algum = true; }
+
+      const card = (aporteEl || rendaEl) ? (aporteEl || rendaEl).closest('div[title]') : null;
+      if (card) {
+        card.setAttribute('title',
+          'Clique para simular esta meta\n' +
+          `Aporte calculado com IPCA + ${params.taxaReal.toFixed(2).replace('.', ',')}% a.a. • ` +
+          `saldo atual ${formatBRL(params.saldoAtual)} • PU ${formatBRL(params.puTitulo)}
+` +
+          `Patrimônio necessário em 2055: ${formatBRL(calc.vpSaques)} (~${Math.round(calc.titulosPorMes)} títulos/mês)`
+        );
+      }
+    });
+
+    const rodape = document.getElementById('simMetasParametros');
+    if (rodape) {
+      rodape.textContent = `Calculado com IPCA + ${params.taxaReal.toFixed(2).replace('.', ',')}% a.a. • saldo atual ${formatBRL(params.saldoAtual)} • PU ${formatBRL(params.puTitulo)}`;
+    }
+    return algum;
+  }
+
   function recalcularSimulador2055() {
     const puTitulo = parseFloat(document.getElementById('sim2055ValorTitulo')?.value) || 466.07;
     const taxaRealAnual = (parseFloat(document.getElementById('sim2055TaxaReal')?.value) || 6.5) / 100;
     const rendaDesejada = parseFloat(document.getElementById('sim2055RendaDesejada')?.value) || 6519.11;
     const saldoAtualRenda = parseFloat(document.getElementById('sim2055SaldoAtual')?.value) || 1318.89;
 
-    const mesesAcumulacao = 348; // 29 anos (2026 a dez/2054)
-    const mesesUsufruto = 240;   // 20 anos (jan/2055 a dez/2074)
-
-    // Taxa mensal real
-    const rMes = Math.pow(1 + taxaRealAnual, 1 / 12) - 1;
-
-    // Fator de IR (15% sobre os ganhos de capital reais no resgate)
-    const fatorIr = 0.875;
-    const rendaBrutaNecessaria = rendaDesejada / fatorIr;
-
-    // Valor presente dos 240 saques mensais (patrimônio em jan/2055)
-    const vpSaques = rendaBrutaNecessaria * (1 - Math.pow(1 + rMes, -mesesUsufruto)) / rMes;
-
-    // Saldo já existente renderá pelos 348 meses
-    const fvSaldoAtual = saldoAtualRenda * Math.pow(1 + rMes, mesesAcumulacao);
-    const saldoLiquidoAcumular = Math.max(0, vpSaques - fvSaldoAtual);
-
-    // Fator de acumulação para aportes mensais
-    const fatorAcum = (Math.pow(1 + rMes, mesesAcumulacao) - 1) / rMes;
-    const aporteMensal = saldoLiquidoAcumular / fatorAcum;
-
-    // Quantidade de Títulos / Cotas calculada pelo Preço Unitário (PU)
-    const titulosPorMes = puTitulo > 0 ? (aporteMensal / puTitulo) : 0;
+    const calc = calcularAporte2055(rendaDesejada, { taxaReal: taxaRealAnual * 100, saldoAtual: saldoAtualRenda, puTitulo });
+    const aporteMensal = calc.aporteMensal;
+    const vpSaques = calc.vpSaques;
+    const titulosPorMes = calc.titulosPorMes;
     const totalTitulosAcumulados = puTitulo > 0 ? (vpSaques / puTitulo) : 0;
 
     // Atualiza KPIs visuais
@@ -10706,9 +10784,14 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
       };
       localStorage.setItem(SIMULADOR_2055_STORAGE_KEY, JSON.stringify(params));
     } catch (e) {}
+
+    // v130: mantém os cards do banner sincronizados com o que está na tela
+    atualizarCardsMetas2055();
   }
 
   function salvarParametrosSimulador2055() {
+    // v130: garante que KPIs e cards reflitam exatamente o que está na tela
+    recalcularSimulador2055();
     const params = {
       puTitulo: parseFloat(document.getElementById('sim2055ValorTitulo')?.value) || 466.07,
       taxaReal: parseFloat(document.getElementById('sim2055TaxaReal')?.value) || 6.5,
@@ -10722,6 +10805,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
 
     try {
       localStorage.setItem(SIMULADOR_2055_STORAGE_KEY, JSON.stringify(params));
+      atualizarCardsMetas2055();
       alert('Parâmetros da simulação salvos com sucesso! O simulador manterá suas preferências sempre que for aberto.');
     } catch (e) {
       alert('Erro ao salvar no dispositivo: ' + e.message);
@@ -11176,6 +11260,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
+    atualizarCardsMetas2055,
     atualizarCotacoesAtuais,
     atualizarCotacoesFechamento,
     repararConexaoFisio,

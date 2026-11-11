@@ -548,3 +548,18 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **Ao mudar `apps_script.gs`, sempre avise que é preciso reimplantar** (Implantar → Gerenciar implantações →
   Editar → Versão: Nova versão). Sem isso a ação nova responde `Ação inválida` e o app mostra a instrução.
 - Service Worker atualizado para `matrix-finance-v129`.
+
+---
+
+## 36. Cards de Meta do Renda+ 2055 são Calculados (v130)
+
+- **Nunca** volte a colocar números fixos nos cards do banner do simulador. As rendas das metas são
+  constantes (`6044,00` / `6519,11` / `11479,11` — documentadas no relatório), mas o **aporte** é
+  calculado por `calcularAporte2055(renda, params)` com os parâmetros salvos:
+  `matrix_simulador_2055_params` (PU, taxa real, saldo atual).
+- Fórmula: patrimônio = `renda/0,875 × (1 − (1+r)^-240)/r`; aporte = `(patrimônio − saldo×(1+r)^348) /
+  (((1+r)^348 − 1)/r)`, com `r = (1+taxa)^(1/12) − 1`.
+- `atualizarCardsMetas2055()` é chamado no `renderInvestments`, no `recalcularSimulador2055` (oninput) e no
+  `salvarParametrosSimulador2055` (que recalcula antes de salvar). O rodapé `#simMetasParametros` mostra
+  a taxa e o saldo usados — se o card não mudar, confira esse rodapé.
+- Service Worker atualizado para `matrix-finance-v130`.

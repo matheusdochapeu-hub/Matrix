@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=129">
+  <link rel="stylesheet" href="css/matrix.css?v=130">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1480,25 +1480,26 @@
             <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:4px;cursor:pointer;" onclick="MatrixApp.abrirSimuladorAposentadoria2055(1)" title="Clique para simular esta meta">
               <div style="color:var(--cyan);font-weight:700;margin-bottom:2px;">1️⃣ +1 Salário Líquido USP</div>
               <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:10px;">
-                <span>Renda: <strong style="color:var(--text-bright);">R$ 6.044/mês</strong></span>
-                <span>Aporte: <strong style="color:var(--matrix-green);">~R$ 941/mês</strong></span>
+                <span>Renda: <strong id="simMeta1Renda" style="color:var(--text-bright);">R$ 6.044/mês</strong></span>
+                <span>Aporte: <strong id="simMeta1Aporte" style="color:var(--matrix-green);">~R$ 941/mês</strong></span>
               </div>
             </div>
             <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:4px;cursor:pointer;" onclick="MatrixApp.abrirSimuladorAposentadoria2055(2)" title="Clique para simular esta meta">
               <div style="color:var(--amber);font-weight:700;margin-bottom:2px;">2️⃣ 100% Poder de Compra</div>
               <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:10px;">
-                <span>Cobre perdas: <strong style="color:var(--text-bright);">R$ 6.519/mês</strong></span>
-                <span>Aporte: <strong style="color:var(--amber);">~R$ 1.015/mês</strong></span>
+                <span>Cobre perdas: <strong id="simMeta2Renda" style="color:var(--text-bright);">R$ 6.519/mês</strong></span>
+                <span>Aporte: <strong id="simMeta2Aporte" style="color:var(--amber);">~R$ 1.015/mês</strong></span>
               </div>
             </div>
             <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:4px;cursor:pointer;" onclick="MatrixApp.abrirSimuladorAposentadoria2055(3)" title="Clique para simular esta meta">
               <div style="color:#c084fc;font-weight:700;margin-bottom:2px;">3️⃣ P.C. + Dobro de Dinheiro</div>
               <div style="display:flex;justify-content:space-between;color:var(--text-muted);font-size:10px;">
-                <span>Renda: <strong style="color:var(--text-bright);">R$ 11.479/mês</strong></span>
-                <span>Aporte: <strong style="color:#c084fc;">~R$ 1.795/mês</strong></span>
+                <span>Renda: <strong id="simMeta3Renda" style="color:var(--text-bright);">R$ 11.479/mês</strong></span>
+                <span>Aporte: <strong id="simMeta3Aporte" style="color:#c084fc;">~R$ 1.795/mês</strong></span>
               </div>
             </div>
           </div>
+          <div id="simMetasParametros" style="font-size:9.5px;color:var(--text-dim);font-family:var(--font-mono);margin-top:6px;">—</div>
         </div>
 
         <!-- 5. Alocação Real por Horizonte e Vencimento -->
@@ -2972,17 +2973,17 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=129"></script>
-  <script src="js/matrix-rain.js?v=129"></script>
-  <script src="js/db.js?v=129"></script>
-  <script src="js/calendar-engine.js?v=129"></script>
-  <script src="js/amortization-engine.js?v=129"></script>
-  <script src="js/scenario-simulator.js?v=129"></script>
-  <script src="js/pdf-reader.js?v=129"></script>
-  <script src="js/satellite-connectors.js?v=129"></script>
-  <script src="js/sync-engine.js?v=129"></script>
-  <script src="js/market-quotes.js?v=129"></script>
-  <script src="js/app.js?v=129"></script>
+  <script src="js/seed-data.js?v=130"></script>
+  <script src="js/matrix-rain.js?v=130"></script>
+  <script src="js/db.js?v=130"></script>
+  <script src="js/calendar-engine.js?v=130"></script>
+  <script src="js/amortization-engine.js?v=130"></script>
+  <script src="js/scenario-simulator.js?v=130"></script>
+  <script src="js/pdf-reader.js?v=130"></script>
+  <script src="js/satellite-connectors.js?v=130"></script>
+  <script src="js/sync-engine.js?v=130"></script>
+  <script src="js/market-quotes.js?v=130"></script>
+  <script src="js/app.js?v=130"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2994,7 +2995,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=129', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=130', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

@@ -119,6 +119,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     (a `/exec` devolve ACAO `*`). Não troque por proxy público nem por API com token embutido.
 21. **Mexeu em `apps_script.gs`? Avise para reimplantar.** Implantar → Gerenciar implantações → Editar →
     Versão: "Nova versão". Sem isso o app recebe "Ação inválida" e a feature nova não funciona.
+22. **Previews do simulador são calculados, não fixos.** Os três cards de meta do Renda+ 2055 reagem a
+    `matrix_simulador_2055_params` via `atualizarCardsMetas2055()` (v130). Se voltarem a ser texto fixo,
+    salvar parâmetros deixa de refletir na tela — que foi exatamente o bug relatado.
 
 ## Dívida técnica conhecida
 
