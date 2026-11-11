@@ -236,7 +236,7 @@ function fetchQuotesViaSheets(tickers) {
     }
 
     var valores = null;
-    for (var tent = 0; tent < 12; tent++) {
+    for (var tent = 0; tent < 4; tent++) {
       valores = sh.getRange(1, 1, lista.length, 5).getValues();
       var todosOk = true;
       for (var j = 0; j < lista.length; j++) {
@@ -270,6 +270,7 @@ function fetchQuotesViaSheets(tickers) {
         out[k] = {
           ticker: lista[k],
           ok: false,
+          pendente: true,
           error: "GOOGLEFINANCE sem preço para " + lista[k] +
             " (leitura: " + JSON.stringify([row[1], row[3]]) + ")"
         };
@@ -348,8 +349,10 @@ function doGet(e) {
         });
       }
 
+      var pendente = quotes.some(function (q) { return q && q.pendente; });
       return jsonResponse({
         success: true,
+        pendente: pendente,
         data: quotes,
         timestamp: new Date().toISOString()
       }, e);

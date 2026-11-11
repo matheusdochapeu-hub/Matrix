@@ -137,6 +137,11 @@ const MarketQuotes = (function () {
       return { ok: false, error: ultimoErro };
     }
 
+    // A planilha pode ainda estar calculando o GOOGLEFINANCE: espera e tenta de novo.
+    if (json && json.pendente) {
+      return { ok: false, pendente: true, data: json.data || [] };
+    }
+
     if (json.success === false) {
       const msg = String(json.error || '');
       // A versão publicada do Apps Script ainda não conhece a ação "quotes".
@@ -243,9 +248,15 @@ const MarketQuotes = (function () {
     emAndamento = true;
     atualizarStatus('Consultando cotações…', 'loading');
     try {
-      const res = await buscarQuotes(tickers);
+      let res = await buscarQuotes(tickers);
+      // até 3 tentativas com 3,5s: cobre o primeiro cálculo do GOOGLEFINANCE na planilha
+      for (let tentativa = 1; tentativa <= 2 && res && res.pendente; tentativa++) {
+        atualizarStatus('Planilha calculando a cotação… (tentativa ' + (tentativa + 1) + '/3)', 'loading');
+        await new Promise(r => setTimeout(r, 3500));
+        res = await buscarQuotes(tickers);
+      }
       if (!res.ok) {
-        atualizarStatus(res.error, 'erro');
+        atualizarStatus(res.error || 'Não foi possível obter as cotações.', 'erro');
         return res;
       }
 
