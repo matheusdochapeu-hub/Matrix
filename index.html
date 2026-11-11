@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=128">
+  <link rel="stylesheet" href="css/matrix.css?v=129">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1426,11 +1426,15 @@
             <button class="invest-filter-btn" id="btnFilterTitularScarlet" onclick="MatrixApp.setInvestFilter('Scarlet')">👩 Scarlet</button>
             <button class="invest-filter-btn" id="btnToggleAgrupamento" onclick="MatrixApp.toggleInvestAgrupamento()" style="margin-left:4px;">📦 Agrupar por Ativo</button>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center;flex-wrap:wrap;">
+            <button class="btn-matrix" id="btnInvCotacaoAtual" style="padding:5px 10px;font-size:11px;white-space:nowrap;font-weight:700;color:var(--matrix-green);border-color:var(--matrix-green);" onclick="MatrixApp.atualizarCotacoesAtuais()" title="Puxa o preço do momento (intradiário) de cada ação da carteira">📈 Cotação atual</button>
             <button class="btn-matrix primary" style="padding:5px 12px;font-size:11px;white-space:nowrap;font-weight:700;" onclick="MatrixApp.openNewInvestmentModal()">+ Novo Investimento</button>
             <a href="https://www.google.com/finance/beta/portfolio/a7326896-4800-49d4-9616-79e71eb60b97?hl=pt" target="_blank" class="btn-matrix" style="padding:5px 10px;font-size:11px;color:var(--cyan);border-color:var(--cyan);text-decoration:none;white-space:nowrap;" title="Google Finance">📈 Google Finance ↗</a>
           </div>
         </div>
+
+        <!-- v129: status da última consulta de cotações -->
+        <div id="invQuoteStatus" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);margin:-6px 0 10px 2px;min-height:14px;"></div>
 
         <!-- 3. Ativos em Carteira (Posicionado diretamente abaixo dos filtros) -->
         <div style="margin-bottom:20px;background:rgba(5,8,7,0.4);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:12px 14px;">
@@ -1537,10 +1541,10 @@
         <div class="stock-monitor-box" style="margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
             <div style="font-weight:700;color:var(--cyan);font-size:13px;display:flex;align-items:center;gap:6px;">
-              📊 Monitor B3 em Tempo Real (Google Finance)
+              📊 Monitor B3 — fechamento e cotação atual
             </div>
             <div style="font-size:11px;color:var(--text-muted);">
-              Cotações de fechamento integradas com o portfólio oficial do Google Finance.
+              Fechamento do dia anterior automático; botão “Cotação atual” puxa o preço do momento. Fonte: Yahoo Finance via backup do Matrix.
             </div>
           </div>
           <div class="stock-cards-grid" id="stockCardsContainer">
@@ -2968,16 +2972,17 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=128"></script>
-  <script src="js/matrix-rain.js?v=128"></script>
-  <script src="js/db.js?v=128"></script>
-  <script src="js/calendar-engine.js?v=128"></script>
-  <script src="js/amortization-engine.js?v=128"></script>
-  <script src="js/scenario-simulator.js?v=128"></script>
-  <script src="js/pdf-reader.js?v=128"></script>
-  <script src="js/satellite-connectors.js?v=128"></script>
-  <script src="js/sync-engine.js?v=128"></script>
-  <script src="js/app.js?v=128"></script>
+  <script src="js/seed-data.js?v=129"></script>
+  <script src="js/matrix-rain.js?v=129"></script>
+  <script src="js/db.js?v=129"></script>
+  <script src="js/calendar-engine.js?v=129"></script>
+  <script src="js/amortization-engine.js?v=129"></script>
+  <script src="js/scenario-simulator.js?v=129"></script>
+  <script src="js/pdf-reader.js?v=129"></script>
+  <script src="js/satellite-connectors.js?v=129"></script>
+  <script src="js/sync-engine.js?v=129"></script>
+  <script src="js/market-quotes.js?v=129"></script>
+  <script src="js/app.js?v=129"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2989,7 +2994,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=128', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=129', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

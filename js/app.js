@@ -7573,6 +7573,12 @@ function onModalCategoriaChange(catVal) {
     if (hVarEl) hVarEl.textContent = formatBRL(totalVariavel);
 
     renderStockCards(invList);
+
+    // v129: puxa o fechamento do dia anterior das ações (uma vez por período; o módulo tem cache).
+    if (typeof MarketQuotes !== 'undefined' && typeof MarketQuotes.autoSincronizarFechamentos === 'function') {
+      MarketQuotes.autoSincronizarFechamentos().catch(() => {});
+    }
+
     renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet, {
       liquidez: totalLiquidez,
       renda2055: totalRenda2055,
@@ -7639,8 +7645,17 @@ function onModalCategoriaChange(catVal) {
               <div style="color:var(--text-main);">${qtd} cotas</div>
             </div>
             <div>
-              <span style="color:var(--text-dim);font-size:9px;">FECHAMENTO B3:</span>
+              <span style="color:var(--text-dim);font-size:9px;">${item.cotacaoModo === 'atual' ? 'COTAÇÃO ATUAL:' : 'FECHAMENTO B3:'}</span>
               <div style="color:var(--cyan);font-weight:600;">${formatBRL(pAtual)}</div>
+              ${(() => {
+                const fechData = item.cotacaoFechamentoData ? MarketQuotes.formatarDataCurta(item.cotacaoFechamentoData) : '';
+                const horaAtual = item.cotacaoModo === 'atual' && item.cotacaoAtualEm ? MarketQuotes.formatarHoraCurta(item.cotacaoAtualEm) : '';
+                if (!fechData && !horaAtual) return '';
+                const partes = [];
+                if (fechData) partes.push(`fech. ${fechData}`);
+                if (horaAtual) partes.push(`atual ${horaAtual}`);
+                return `<div style="font-size:9px;color:var(--text-dim);margin-top:2px;">${partes.join(' • ')}</div>`;
+              })()}
             </div>
           </div>
 
@@ -8159,6 +8174,43 @@ function onModalCategoriaChange(catVal) {
     MatrixDB.saveState(state);
     closeModal('investAporteModalBackdrop');
     renderInvestments();
+  }
+
+  // v129: botão "Cotação atual" — preço intradiário de cada ação da carteira.
+  async function atualizarCotacoesAtuais() {
+    if (typeof MarketQuotes === 'undefined' || typeof MarketQuotes.sincronizar !== 'function') {
+      alert('Módulo de cotações não carregado.');
+      return;
+    }
+    const btn = document.getElementById('btnInvCotacaoAtual');
+    const textoOriginal = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Buscando…';
+    }
+    try {
+      const res = await MarketQuotes.sincronizar('atual');
+      if (!res.ok && res.error) {
+        alert('Não foi possível puxar as cotações:\n\n' + res.error);
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = textoOriginal || '📈 Cotação atual';
+      }
+    }
+  }
+
+  // v129: puxa o fechamento do dia anterior de novo (útil depois de um feriado/virada de dia).
+  async function atualizarCotacoesFechamento() {
+    if (typeof MarketQuotes === 'undefined' || typeof MarketQuotes.sincronizar !== 'function') {
+      alert('Módulo de cotações não carregado.');
+      return;
+    }
+    const res = await MarketQuotes.sincronizar('fechamento');
+    if (!res.ok && res.error) {
+      alert('Não foi possível puxar o fechamento:\n\n' + res.error);
+    }
   }
 
   function openAtualizarCotacaoModal(id) {
@@ -11124,6 +11176,8 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
+    atualizarCotacoesAtuais,
+    atualizarCotacoesFechamento,
     repararConexaoFisio,
     abrirDrilldown,
     abrirRaioXSimulador,

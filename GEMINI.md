@@ -531,3 +531,20 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **KPIs do calendário (mobile)**: tamanhos por **classe** (`.cal-kpi-label` 9,5px · `.cal-kpi-val` 17px ·
   `.cal-kpi-sub` 10px). Não volte a usar `div:last-child` — o seletor pegava o sub-rótulo e o deixava com 15px.
 - Service Worker atualizado para `matrix-finance-v128`.
+
+---
+
+## 35. Cotações de Ações: Fechamento Automático + Botão "Cotação Atual" (v129)
+
+- **Fonte única**: ação `quotes` do Apps Script (`fetchStockQuote` → Yahoo Finance via `UrlFetchApp`).
+  O Yahoo **não** libera CORS para o navegador; a `/exec` do Apps Script libera (`Access-Control-Allow-Origin: *`).
+  Nunca chame o Yahoo direto do cliente nem dependa de proxies públicos (brapi sem token = 401; allorigins instável).
+- **Contrato da ação**: `GET ?action=quotes&symbols=CSNA3,MGLU3&token=...` →
+  `{ success: true, data: [{ ticker, ok, fechamento, fechamentoData, atual, atualEm, moeda, fonte }] }`.
+  `fechamentoData` é `YYYY-MM-DD` no fuso `America/Sao_Paulo` e **nunca** é o dia corrente (é o último fechamento
+  anterior a hoje); `atual` é `meta.regularMarketPrice`.
+- **Cliente** (`js/market-quotes.js`): cache `matrix_market_quotes_v1` (12 min), auto-sync no máximo a cada 10 min,
+  `fechamento` no boot da aba e `atual` no botão. Tickers vêm de `item.ticker` ou do padrão `AAAA3` dentro de `ativo`.
+- **Ao mudar `apps_script.gs`, sempre avise que é preciso reimplantar** (Implantar → Gerenciar implantações →
+  Editar → Versão: Nova versão). Sem isso a ação nova responde `Ação inválida` e o app mostra a instrução.
+- Service Worker atualizado para `matrix-finance-v129`.

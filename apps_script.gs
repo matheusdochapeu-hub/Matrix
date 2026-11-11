@@ -84,6 +84,97 @@ function ensureSheetWithHeaders(ss, sheetName, headers) {
   return sheet;
 }
 
+/**
+ * Cotações de ações da B3 (v129).
+ * Busca no Yahoo Finance (mesmo provedor que o app já usa para o Tesouro) o fechamento do
+ * dia anterior e o preço atual. Roda no servidor porque o Yahoo não libera CORS para o
+ * navegador — a URL /exec do Apps Script devolve Access-Control-Allow-Origin: *.
+ */
+function roundQuote2(v) {
+  var n = Number(v);
+  if (!isFinite(n)) return null;
+  return Math.round(n * 100) / 100;
+}
+
+function fetchStockQuote(ticker) {
+  var t = String(ticker || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!t) return { ticker: ticker, ok: false, error: "ticker inválido" };
+
+  var cache = null;
+  try { cache = CacheService.getScriptCache(); } catch (e) {}
+  var cacheKey = "quote_" + t;
+  if (cache) {
+    try {
+      var hit = cache.get(cacheKey);
+      if (hit) return JSON.parse(hit);
+    } catch (e) {}
+  }
+
+  var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(t + ".SA") +
+    "?range=1mo&interval=1d&includePrePost=false";
+  var out = { ticker: t, ok: false, error: "sem cotação" };
+  try {
+    var res = UrlFetchApp.fetch(url, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    if (res.getResponseCode() === 200) {
+      var json = JSON.parse(res.getContentText());
+      var result = json && json.chart && json.chart.result && json.chart.result[0];
+      if (result) {
+        var meta = result.meta || {};
+        var ts = result.timestamp || [];
+        var closes = (result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close) || [];
+        var hoje = Utilities.formatDate(new Date(), "America/Sao_Paulo", "yyyy-MM-dd");
+        var fechamento = null, fechamentoData = null;
+        for (var i = ts.length - 1; i >= 0; i--) {
+          if (closes[i] === null || closes[i] === undefined) continue;
+          var dia = Utilities.formatDate(new Date(ts[i] * 1000), "America/Sao_Paulo", "yyyy-MM-dd");
+          if (dia < hoje) { fechamento = closes[i]; fechamentoData = dia; break; }
+        }
+        if (fechamento === null) {
+          fechamento = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+        }
+        var atual = (typeof meta.regularMarketPrice === "number")
+          ? meta.regularMarketPrice
+          : (closes.length ? closes[closes.length - 1] : fechamento);
+        var atualEm = meta.regularMarketTime
+          ? new Date(meta.regularMarketTime * 1000).toISOString()
+          : new Date().toISOString();
+
+        out = {
+          ticker: t,
+          ok: true,
+          moeda: meta.currency || "BRL",
+          fechamento: roundQuote2(fechamento),
+          fechamentoData: fechamentoData,
+          atual: roundQuote2(atual),
+          atualEm: atualEm,
+          fonte: "Yahoo Finance"
+        };
+      }
+    } else {
+      out.error = "Yahoo HTTP " + res.getResponseCode();
+    }
+  } catch (err) {
+    out.error = String(err);
+  }
+
+  if (cache && out.ok) {
+    try { cache.put(cacheKey, JSON.stringify(out), 180); } catch (e) {}
+  }
+  return out;
+}
+
+function fetchStockQuotes(tickers) {
+  var lista = String(tickers || "CSNA3,MGLU3").split(",")
+    .map(function (s) { return String(s).trim().toUpperCase(); })
+    .filter(function (s) { return s.length > 0; })
+    .slice(0, 12);
+  return lista.map(fetchStockQuote);
+}
+
 function doGet(e) {
   try {
     if (!isAuthorized(e)) {
@@ -99,6 +190,17 @@ function doGet(e) {
         ping: "pong",
         title: ss.getName(),
         spreadsheetId: ss.getId(),
+        timestamp: new Date().toISOString()
+      }, e);
+    }
+
+    if (action === "quotes" || action === "cotacoes") {
+      var quotes = fetchStockQuotes(
+        (e && e.parameter && (e.parameter.symbols || e.parameter.tickers)) || "CSNA3,MGLU3"
+      );
+      return jsonResponse({
+        success: true,
+        data: quotes,
         timestamp: new Date().toISOString()
       }, e);
     }

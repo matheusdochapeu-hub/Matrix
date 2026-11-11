@@ -114,6 +114,11 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     úteis “civis” nem esqueça o `+1` (o salário que fecha o ciclo cai no mês seguinte).
 19. **KPIs do calendário: tamanho por classe, não por posição.** `div:last-child` pegava o
     sub-rótulo e o deixava com 15px no celular (v128). Use `.cal-kpi-label` / `.cal-kpi-val` / `.cal-kpi-sub`.
+20. **Cotação de ação vem do Apps Script, não do Yahoo direto.** `query1.finance.yahoo.com` não manda
+    `Access-Control-Allow-Origin` e o navegador bloqueia; a ação `quotes` do `apps_script.gs` resolve
+    (a `/exec` devolve ACAO `*`). Não troque por proxy público nem por API com token embutido.
+21. **Mexeu em `apps_script.gs`? Avise para reimplantar.** Implantar → Gerenciar implantações → Editar →
+    Versão: "Nova versão". Sem isso o app recebe "Ação inválida" e a feature nova não funciona.
 
 ## Dívida técnica conhecida
 

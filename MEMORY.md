@@ -495,3 +495,38 @@ nacional) e quantos **dias faltam** — válido para qualquer mês do seletor.
 - Desktop 1440 e mobile 390: card visível, sem overflow horizontal.
 - Nov/2026 = **23 dias** / Dez/2026 = **57 dias** / Out/2026 = **✔ já creditado**.
 - `check-syntax` 11/11, suíte **22/22**, `sw.js` e `?v=` em **v128**.
+
+---
+
+## [2026-11-11 15:10] - Matrix Finance v129: Cotações de Ações em Investimentos (Fechamento + Botão "Agora")
+
+### ✨ O que foi entregue
+- **Fechamento do dia anterior automático**: ao abrir a aba Investimentos, o app puxa a cotação de fechamento
+  de cada ação da carteira (tickers lidos de `ativo`, ex.: "CSNA3", "MGLU3") e recalcula
+  `precoAtual` / `valorAtual`. Cache local de 12 min e auto-sync a cada 10 min.
+- **Botão "📈 Cotação atual"** na barra de filtros: puxa o preço **intradiário** (`regularMarketPrice`) e
+  atualiza a carteira na hora; o card mostra "fech. 10/11 • atual 14:35".
+- Cards do "Monitor B3" agora exibem o rótulo **FECHAMENTO B3** ou **COTAÇÃO ATUAL** conforme o modo, com a
+  data do fechamento e a hora da cotação intradiária.
+- Solução: `js/market-quotes.js` (novo) + ação **`quotes`** em `apps_script.gs`.
+
+### 🔎 Por que a busca passa pelo Apps Script
+- O Yahoo Finance (`query1.finance.yahoo.com/v8/finance/chart/...`) **não devolve
+  `Access-Control-Allow-Origin`** — o navegador bloqueia. Testado: 200 com `Vary: Origin`, mas sem ACAO.
+- A URL `/exec` do Apps Script **devolve `Access-Control-Allow-Origin: *`**, então o `fetch` do app funciona
+  direto (JSONP só como fallback). A ação roda no servidor com `UrlFetchApp` e cache de 180 s no `CacheService`.
+- `brapi.dev` sem token → 401; `allorigins` (proxy) → 522 no teste. Nenhum provedor público confiável.
+
+### ⚠️ Ação manual obrigatória (uma vez)
+- A ação `quotes` só existe no `apps_script.gs` do repositório. **É preciso reimplantar o script** no Google
+  Sheets (Extensões → Apps Script → colar o arquivo → Implantar → Gerenciar implantações → Editar →
+  Versão: "Nova versão" → Implantar). Sem isso o endpoint responde `{"success":false,"error":"Ação inválida: quotes"}`
+  e o app mostra a mensagem de reimplantação.
+
+### 🧪 Validação (Chromium + Apps Script mockado)
+- Mock com CSNA3 (fech. 4,38 / atual 4,43) e MGLU3 (fech. 6,52 / atual 7,52):
+  - automático: `precoAtual` 4,38 / 6,52 e carteira recalculada (175,20 / 893,24), card com "fech. 10/11";
+  - botão: 4,43 / 7,52 (177,20 / 1.030,24), card com "COTAÇÃO ATUAL" + "fech. 10/11 • atual 14:35";
+  - status "Cotações de agora atualizadas (2/2)." e 1 chamada por ação de cada vez.
+- Sem erros de console; mobile 390 sem overflow.
+- `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v129**.
