@@ -196,7 +196,8 @@ function diaUtilAnteriorISO() {
   return Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd");
 }
 
-function fetchQuotesViaSheets(tickers) {
+function fetchQuotesViaSheets(tickers, tentativasEspera) {
+  var espera = (typeof tentativasEspera === "number") ? tentativasEspera : 4;
   var lista = (tickers || []).map(function (t) { return String(t).toUpperCase(); });
   var out = lista.map(function (t) { return { ticker: t, ok: false, error: "sem cotação" }; });
   var ss = null;
@@ -235,8 +236,10 @@ function fetchQuotesViaSheets(tickers) {
       SpreadsheetApp.flush();
     }
 
+    if (espera <= 0) return out; // chamada de aquecimento: só grava as fórmulas
+
     var valores = null;
-    for (var tent = 0; tent < 4; tent++) {
+    for (var tent = 0; tent < espera; tent++) {
       valores = sh.getRange(1, 1, lista.length, 5).getValues();
       var todosOk = true;
       for (var j = 0; j < lista.length; j++) {
@@ -368,6 +371,10 @@ function doGet(e) {
     }
 
     if (action === "get_state" || action === "restore" || action === "getData") {
+      // v134: deixa o GOOGLEFINANCE calculando em segundo plano (sem esperar), para o
+      // botão "Cotação atual" já encontrar o valor pronto na primeira consulta do dia.
+      try { fetchQuotesViaSheets(["CSNA3", "MGLU3"], 0); } catch (e) {}
+
       var sheetRaw = ss.getSheetByName(SHEET_BACKUP_JSON);
       if (!sheetRaw || sheetRaw.getLastRow() < 2) {
         return jsonResponse({
