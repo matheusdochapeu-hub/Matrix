@@ -1250,13 +1250,27 @@ const SatelliteConnectors = (function () {
     if (cfg.fisioUrl) {
       const attempt = new Date().toISOString();
       try {
-        const fisioData = await fetchGasDataWithJsonpFallback(cfg.fisioUrl, { action: 'getData', token: cfg.fisioToken || '' });
+        let usedUrl = cfg.fisioUrl;
+        let fisioData = await fetchGasDataWithJsonpFallback(cfg.fisioUrl, { action: 'getData', token: cfg.fisioToken || '' });
+
+        // v125: se a URL salva não responder (URL antiga, de outro app ou colada errada),
+        // tenta o endpoint oficial uma vez e passa a usá-lo. Foi o caso real em que o campo
+        // FisioFlow guardava a URL do Casa Maracaju (ou uma implantação antiga).
+        if (!fisioData && cfg.fisioUrl !== DEFAULT_ENDPOINTS.fisioUrl) {
+          const fallbackData = await fetchGasDataWithJsonpFallback(DEFAULT_ENDPOINTS.fisioUrl, { action: 'getData', token: cfg.fisioToken || '' });
+          if (fallbackData) {
+            fisioData = fallbackData;
+            usedUrl = DEFAULT_ENDPOINTS.fisioUrl;
+            try { localStorage.setItem(STORAGE_KEYS.fisioUrl, DEFAULT_ENDPOINTS.fisioUrl); } catch (_) {}
+          }
+        }
+
         if (fisioData) {
           const processed = processFisioData(fisioData);
           processed.syncError = null;
           processed.lastAttempt = attempt;
           state.satellites.fisioflow = processed;
-          statusResults.fisio = { success: true, atualizadoEm: processed.atualizadoEm };
+          statusResults.fisio = { success: true, atualizadoEm: processed.atualizadoEm, url: usedUrl };
         } else {
           // Mantém o último retrato bom; só marca que a tentativa falhou (não sobrescreve
           // com baseline nem atualiza atualizadoEm, para a tela não fingir que sincronizou).
