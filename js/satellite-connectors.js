@@ -1170,17 +1170,9 @@ const SatelliteConnectors = (function () {
     async function fetchGasDataWithJsonpFallback(url, params = {}) {
     if (!url) return null;
 
-    // Para URLs do Google Apps Script (script.google.com), prioriza JSONP direto
-    // Isso evita o atraso de 6s de timeout CORS que invariavelmente ocorre no mobile
-    if (url.includes('script.google.com')) {
-      if (typeof SyncEngine !== 'undefined' && typeof SyncEngine.jsonpRequest === 'function') {
-        try {
-          const jsonpData = await SyncEngine.jsonpRequest(url, params, 8000);
-          if (jsonpData && jsonpData.status !== 'error') return jsonpData.data || jsonpData;
-        } catch (e) {}
-      }
-    }
-
+    // v136: os Apps Script dos satélites respondem com Access-Control-Allow-Origin: *,
+    // então o fetch nativo é o caminho principal. O JSONP ficou como fallback (era o principal
+    // e estourava timeout de 8s: a resposta do Atendimentos leva de 5s a 11s).
     const fetchOpts = {
       method: 'GET',
       mode: 'cors',
@@ -1195,10 +1187,10 @@ const SatelliteConnectors = (function () {
       .join('&');
     const fullUrl = url + sep + query;
 
-    // 1. Tenta fetch nativo (com timeout rápido de 2.5s)
+    // 1. Fetch nativo com timeout generoso (Apps Script pode demorar 10s+)
     try {
       const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 20000) : null;
       const res = await fetch(fullUrl, controller ? Object.assign({}, fetchOpts, { signal: controller.signal }) : fetchOpts);
       if (timeoutId) clearTimeout(timeoutId);
       if (res.ok) {
@@ -1206,13 +1198,13 @@ const SatelliteConnectors = (function () {
         if (json && json.status !== 'error') return json.data || json;
       }
     } catch (e) {
-      // Falha CORS ou rede: continua para o fallback JSONP
+      // CORS/rede/timeout: cai para o JSONP
     }
 
     // 2. Fallback JSONP via SyncEngine ou script tag direto
     if (typeof SyncEngine !== 'undefined' && typeof SyncEngine.jsonpRequest === 'function') {
       try {
-        const data = await SyncEngine.jsonpRequest(url, params, 9000);
+        const data = await SyncEngine.jsonpRequest(url, params, 20000);
         if (data && data.status !== 'error') return data.data || data;
       } catch (e) {}
     } else {

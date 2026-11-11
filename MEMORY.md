@@ -606,3 +606,28 @@ implantação) não tinha o escopo `https://www.googleapis.com/auth/script.exter
 - Validado em Chromium: carteira com CSNA3/MGLU3/PETR4/HGLG11 ⇒ 4 cards e a chamada
   `action=quotes&symbols=CSNA3,MGLU3,PETR4,HGLG11`.
 - `check-syntax` 13/13, suíte **22/22**, `sw.js` e `?v=` em **v133**.
+
+---
+
+## [2026-11-11 17:05] - Matrix Finance v134: Atendimentos (FisioFlow) Voltam a Carregar
+
+### 🐛 Sintoma
+"Agora está dando erro em Atendimentos ao puxar os dados" — o alerta de scraping dizia que o app de
+Atendimentos não respondeu, e o console mostrava
+`Uncaught ReferenceError: _matrix_gas_cb_… is not defined`.
+
+### 🔎 Causa
+- O conector pedia **JSONP primeiro com timeout de 8 s**, mas o endpoint do Atendimentos responde em
+  **5,4 s a 10,5 s** (74 KB). Estourava o timeout, o `cleanup()` apagava o callback e, quando a resposta
+  chegava, o navegador executava `cb(...)` → `ReferenceError`.
+- O fallback `fetch` tinha timeout de apenas **2,5 s** e o segundo JSONP, 9 s — também estouravam.
+- Os três endpoints (Matrix, Atendimentos, Faturas, Casa Maracaju) devolvem `Access-Control-Allow-Origin: *`,
+  então o JSONP nem era necessário.
+
+### 🛠️ Correção
+- `fetchGasDataWithJsonpFallback`: **fetch nativo primeiro** com timeout de **20 s**; JSONP vira fallback (20 s).
+- `SyncEngine.jsonpRequest`: no timeout o callback é trocado por um **no-op** em vez de apagado — resposta
+  atrasada não gera mais `ReferenceError`.
+- Validado: coleta automática e o botão "Fazer Scraping dos 3 Apps Agora" concluem com sucesso
+  ("Scraping concluído com sucesso"), 16 sessões e R$ 1.435 a receber em nov/2026, 0 erros no console.
+- `check-syntax` 13/13, suíte **22/22**, `sw.js` e `?v=` em **v134**.

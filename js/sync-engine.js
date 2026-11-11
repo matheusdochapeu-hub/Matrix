@@ -297,7 +297,10 @@ const SyncEngine = (function () {
 
       function cleanup() {
         clearTimeout(timer);
-        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        // v136: NÃO apagar o callback. Se a resposta do Apps Script chegar depois do timeout,
+        // o navegador executaria cb(...) e estouraria "Uncaught ReferenceError: _matrix_gas_cb_… is not defined".
+        // Deixamos um no-op no lugar.
+        window[cbName] = function () {};
         if (script && script.parentNode) script.parentNode.removeChild(script);
       }
 
