@@ -270,7 +270,29 @@ const MarketQuotes = (function () {
     emAndamento = true;
     atualizarStatus('Consultando cotações…', 'loading');
     try {
-      // v136: uma tentativa só no Apps Script. Se não vier, o fallback do GitHub responde na hora.
+      // v137: se o data/quotes.json responde rápido, aplica na hora e deixa o Apps Script
+      // tentar em segundo plano (quando ele funciona, o preço intradiário substitui o do JSON).
+      const jsonRapido = await buscarQuotesDoJson();
+      if (jsonRapido) {
+        const mudouJson = aplicarQuotes(state.investimentos, jsonRapido.data, modo);
+        if (mudouJson) MatrixDB.saveState(state, 'cotacao_json_github', { skipCloudSync: true });
+        if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
+        const quandoJson = jsonRapido.geradoEm ? new Date(jsonRapido.geradoEm).toLocaleString('pt-BR') : '';
+        atualizarStatus(`Cotações via GitHub${quandoJson ? ' (' + quandoJson + ')' : ''} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
+
+        // tenta o Apps Script sem bloquear a interface
+        buscarQuotes(tickers).then(res => {
+          if (res && res.ok && res.data) {
+            const mudouGas = aplicarQuotes(state.investimentos, res.data, modo);
+            if (mudouGas) MatrixDB.saveState(state, 'cotacao_gas', { skipCloudSync: true });
+            if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
+            atualizarStatus(`Cotações de ${modo === 'atual' ? 'agora' : 'fechamento'} atualizadas (${res.data.filter(q => q && q.ok).length}/${tickers.length}).`, 'ok');
+          }
+        }).catch(() => {});
+
+        return { ok: true, data: jsonRapido.data, fonte: 'github' };
+      }
+
       const res = await buscarQuotes(tickers);
       if (!res.ok) {
         // Apps Script fora do ar / sem permissão / planilha calculando: usa o JSON do GitHub.
