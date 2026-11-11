@@ -910,10 +910,6 @@ window.NEXO_FATURAS = {
       "tag": "parc",
       "cat": null
     },
-    "Cobertura 5/10__4": {
-      "tag": "parc",
-      "cat": null
-    },
     "Tennis One 4/10__4": {
       "tag": "parc",
       "cat": null
