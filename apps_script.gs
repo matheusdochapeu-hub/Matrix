@@ -201,30 +201,48 @@ function fetchQuotesViaSheets(tickers) {
   var out = lista.map(function (t) { return { ticker: t, ok: false, error: "sem cotação" }; });
   var ss = null;
   try { ss = getTargetSpreadsheet({}); } catch (e) { ss = null; }
-  if (!ss) return out;
+  if (!ss) {
+    for (var x = 0; x < out.length; x++) out[x].error = "planilha indisponível";
+    return out;
+  }
 
   var NOME = "_CotacoesMatrix";
   var sh = ss.getSheetByName(NOME);
   if (!sh) sh = ss.insertSheet(NOME);
 
+  // A planilha pode usar vírgula ou ponto e vírgula como separador de argumentos.
+  // Em vez de adivinhar, escrevemos as duas versões em colunas diferentes e lemos a que funcionar.
+  var COL_PRECO_VIRG = 2, COL_FECH_VIRG = 3, COL_PRECO_PONTOVIRG = 4, COL_FECH_PONTOVIRG = 5;
+
   try {
-    sh.clearContents();
-    for (var i = 0; i < lista.length; i++) {
-      var linha = i + 1;
-      sh.getRange(linha, 1).setValue(lista[i]);
-      sh.getRange(linha, 2).setFormula('=IFERROR(GOOGLEFINANCE("BVMF:' + lista[i] + '","price"),"")');
-      sh.getRange(linha, 3).setFormula('=IFERROR(GOOGLEFINANCE("BVMF:' + lista[i] + '","closeyest"),"")');
+    var precisoEscrever = true;
+    if (sh.getLastRow() >= lista.length && lista.length > 0) {
+      var atuais = sh.getRange(1, 1, lista.length, 1).getValues();
+      precisoEscrever = atuais.some(function (row, i) { return String(row[0]).toUpperCase() !== lista[i]; });
     }
-    SpreadsheetApp.flush();
+
+    if (precisoEscrever) {
+      sh.clearContents();
+      for (var i = 0; i < lista.length; i++) {
+        var r = i + 1;
+        var t = lista[i];
+        sh.getRange(r, 1).setValue(t);
+        sh.getRange(r, COL_PRECO_VIRG).setFormula('=GOOGLEFINANCE("BVMF:' + t + '","price")');
+        sh.getRange(r, COL_FECH_VIRG).setFormula('=GOOGLEFINANCE("BVMF:' + t + '","closeyest")');
+        sh.getRange(r, COL_PRECO_PONTOVIRG).setFormula('=GOOGLEFINANCE("BVMF:' + t + '";"price")');
+        sh.getRange(r, COL_FECH_PONTOVIRG).setFormula('=GOOGLEFINANCE("BVMF:' + t + '";"closeyest")');
+      }
+      SpreadsheetApp.flush();
+    }
 
     var valores = null;
-    for (var tent = 0; tent < 5; tent++) {
-      valores = sh.getRange(1, 1, lista.length, 3).getValues();
-      var faltou = false;
+    for (var tent = 0; tent < 12; tent++) {
+      valores = sh.getRange(1, 1, lista.length, 5).getValues();
+      var todosOk = true;
       for (var j = 0; j < lista.length; j++) {
-        if (!(typeof valores[j][1] === "number" && valores[j][1] > 0)) { faltou = true; break; }
+        if (!(typeof valores[j][1] === "number") && !(typeof valores[j][3] === "number")) { todosOk = false; break; }
       }
-      if (!faltou) break;
+      if (todosOk) break;
       Utilities.sleep(1500);
       SpreadsheetApp.flush();
     }
@@ -232,21 +250,29 @@ function fetchQuotesViaSheets(tickers) {
     var dataFech = diaUtilAnteriorISO();
     var agoraIso = new Date().toISOString();
     for (var k = 0; k < lista.length; k++) {
-      var preco = valores[k][1];
-      var fech = valores[k][2];
-      if (typeof preco === "number" && preco > 0) {
+      var row = valores[k];
+      var preco = (typeof row[1] === "number" && row[1] > 0) ? row[1]
+        : ((typeof row[3] === "number" && row[3] > 0) ? row[3] : null);
+      var fech = (typeof row[2] === "number" && row[2] > 0) ? row[2]
+        : ((typeof row[4] === "number" && row[4] > 0) ? row[4] : null);
+      if (preco) {
         out[k] = {
           ticker: lista[k],
           ok: true,
           moeda: "BRL",
-          fechamento: roundQuote2(typeof fech === "number" && fech > 0 ? fech : preco),
+          fechamento: roundQuote2(fech || preco),
           fechamentoData: dataFech,
           atual: roundQuote2(preco),
           atualEm: agoraIso,
           fonte: "Google Finance (Sheets)"
         };
       } else {
-        out[k] = { ticker: lista[k], ok: false, error: "GOOGLEFINANCE sem preço para " + lista[k] };
+        out[k] = {
+          ticker: lista[k],
+          ok: false,
+          error: "GOOGLEFINANCE sem preço para " + lista[k] +
+            " (leitura: " + JSON.stringify([row[1], row[3]]) + ")"
+        };
       }
     }
   } catch (e) {
@@ -279,6 +305,25 @@ function doGet(e) {
         title: ss.getName(),
         spreadsheetId: ss.getId(),
         timestamp: new Date().toISOString()
+      }, e);
+    }
+
+    if (action === "quotes_debug" || action === "cotacoes_debug") {
+      var ssDbg = getTargetSpreadsheet(e);
+      var shDbg = ssDbg.getSheetByName("_CotacoesMatrix");
+      var linhas = [], formulas = [];
+      if (shDbg && shDbg.getLastRow() > 0) {
+        linhas = shDbg.getRange(1, 1, shDbg.getLastRow(), 5).getDisplayValues();
+        formulas = shDbg.getRange(1, 2, shDbg.getLastRow(), 1).getFormulas();
+      }
+      return jsonResponse({
+        success: true,
+        aba: "_CotacoesMatrix",
+        existe: !!shDbg,
+        linhas: linhas,
+        formulas: formulas,
+        locale: ssDbg.getSpreadsheetLocale(),
+        agora: new Date().toISOString()
       }, e);
     }
 
