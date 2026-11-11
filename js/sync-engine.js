@@ -18,6 +18,10 @@ const SyncEngine = (function () {
     fisioflowToken: 'matrix_fisioflow_token'
   };
 
+  // v127: endpoint do Apps Script de backup do Matrix, configurado de fábrica.
+  // O token continua vindo do usuário (localStorage) — a URL sozinha não grava nada sem ele.
+  const DEFAULT_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyTXjWm4651tmwl4AujcG299cHBYGmECtLKoTruRaI7y9kzNOKr58QeKp0O46Erxb7DFQ/exec';
+
   const DEFAULT_SPREADSHEET_ID = '1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU';
   const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1imbffaHJJIIZDqFbTwCJS7_TPUJAvRhcBWPtURYoMwU/edit';
   const SHEETS_STRICT_CHAR_LIMIT = 35000; // Garantia estrita muito abaixo dos 50.000 chars do Google Sheets
@@ -42,7 +46,7 @@ const SyncEngine = (function () {
   function getConfig() {
     syncInputsIfPresent();
     return {
-      cloudUrl: (localStorage.getItem(STORAGE_KEYS.cloudUrl) || '').trim(),
+      cloudUrl: (localStorage.getItem(STORAGE_KEYS.cloudUrl) || DEFAULT_CLOUD_URL).trim(),
       cloudToken: (localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!').trim(),
       lastSync: localStorage.getItem(STORAGE_KEYS.lastSync) || '',
       spreadsheetId: DEFAULT_SPREADSHEET_ID,

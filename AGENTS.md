@@ -102,6 +102,13 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 14. **Calendário de 7 colunas** exige `grid-template-columns: repeat(7, minmax(0, 1fr))` e
     `min-width: 0` nas células; sem isso o `min-content` dos textos desalinha os dias do
     cabeçalho no celular (v121).
+15. **Backup já vem configurado** (`DEFAULT_CLOUD_URL` em `sync-engine.js`). Não remova o fallback:
+    sem ele o app abre em modo offline e mostra apenas o cache local, sem puxar o estado da planilha.
+16. **`touch-action: pan-x` só em faixa horizontal.** Em contêiner de conteúdo (`.tab-content`,
+    `.tabs-carousel-viewport`, corpo) ele **mata a rolagem vertical** no celular — foi o que travava
+    o app na parte de baixo (v127). Use `pan-y pinch-zoom`; o swipe de abas é JS.
+17. **Dado de satélite velho não é atual.** Com `atualizadoEm` > 6 h e sem resposta na sessão, o chip
+    mostra `—` e só troca pelo valor quando o `maracaju` responde (ou após o fallback de 8 s).
 
 ## Dívida técnica conhecida
 

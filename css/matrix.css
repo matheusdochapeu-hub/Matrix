@@ -3304,7 +3304,9 @@ body {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    touch-action: pan-x !important;
+    /* v127: pan-x aqui BLOQUEAVA a rolagem vertical com o dedo dentro do conteúdo
+       (o app travava na parte de baixo). O swipe de abas é feito via JS, não pelo gesto nativo. */
+    touch-action: pan-y pinch-zoom !important;
   }
 
   .fluxo-columns {

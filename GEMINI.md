@@ -494,3 +494,21 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - **Ao adicionar novos KPIs satélites**: siga o mesmo padrão (placeholder neutro + marca de semente), para não
   repetir o flash de `1.988,78 / 805,41` antes da sincronização.
 - Service Worker atualizado para `matrix-finance-v120`.
+
+---
+
+## 33. Backup Pré-configurado, Satélite "Fresco" e Rolagem no Celular (v127)
+
+- **Endpoint de backup padrão**: `DEFAULT_CLOUD_URL` em `sync-engine.js` aponta para o Apps Script de backup
+  do Matrix. `getConfig().cloudUrl` = `localStorage` → fallback para esse default, então o boot já chama
+  `fetchFromCloud()`. O token continua em `localStorage` (a URL sozinha não grava nada sem ele).
+- **Dado de satélite velho não é exibido como atual**:
+  - `maracajuFreshNestaSessao` só fica `true` quando o Casa Maracaju responde (`results.maracaju.success`) ou
+    quando o `fetchFromCloud` retorna dados;
+  - `atualizadoEm` com mais de **6 h** + sessão sem sincronização ⇒ chip `VA — / VR —` (mesmo no drilldown);
+  - **fallback de 8 s** aceita o último dado salvo se nada responder (offline/sem token), via `scheduleRenderAll`.
+- **Rolagem no celular**: **nunca** use `touch-action: pan-x` em contêiner de conteúdo (`.tab-content`).
+  `pan-x` desliga o pan vertical e o app "trava" ao arrastar dentro da página. Use `pan-y pinch-zoom`;
+  o swipe horizontal de abas é feito por JS. `pan-x` só em faixas horizontais (`.unified-satellites-bar`,
+  `.sat-chip`, `.cal-legend-bar`).
+- Service Worker atualizado para `matrix-finance-v127`.

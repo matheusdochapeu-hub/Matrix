@@ -430,3 +430,38 @@ instante antes de o puxão dos apps satélites fixar os números reais. Duas fon
 - **Calendário**: qualquer grid de 7 colunas com texto precisa de `minmax(0, 1fr)` + `min-width: 0`.
 - **Casa Maracaju (v122)**: o ciclo e os saldos publicados em `settings.matrixBenefits`/`benefitsSummary` prevalecem sobre o recálculo local; compras com `deletedIds` não voltam no merge. Coberto por `test/maracaju-benefits.test.js`.
 - **Ação externa obrigatória**: publicar uma nova versão do Apps Script de `matheus-app-fisioterapia` (Implantar → Gerenciar implantações → Editar → Nova versão) para o JSONP valer no endpoint em produção.
+
+---
+
+## [2026-11-11 13:05] - Matrix Finance v127: Backup Pré-configurado, Satélite "Fresco" e Rolagem Livre no Celular
+
+### 🛠️ 1) Endpoint de backup já configurado de fábrica
+- `js/sync-engine.js` ganhou `DEFAULT_CLOUD_URL` com o Apps Script de backup do Matrix
+  (`AKfycbyTXjWm4651tmwl4AujcG299cHBYGmECtLKoTruRaI7y9kzNOKr58QeKp0O46Erxb7DFQ`).
+- `getConfig().cloudUrl` = `localStorage` → fallback para esse default, então o `init()` já dispara
+  `fetchFromCloud()` ao abrir (antes, sem URL, o app abria em modo offline e usava apenas o cache local).
+- O token continua vindo de `localStorage` (default `MatrixReloaded2026!`); a URL sozinha não grava nada.
+
+### 🛠️ 2) VA/VR não mostram mais valor velho até a nuvem responder
+- Novo `maracajuFreshNestaSessao`: só vira `true` quando o **Casa Maracaju responde** de fato
+  (`results.maracaju.success`) ou quando o `fetchFromCloud` traz dados.
+- `renderAll`/`renderTopPanel`: estado com `atualizadoEm` de **mais de 6 h** e sem resposta na sessão
+  entra em modo pendente (`VA — / VR —`, mesmo padrão da v120) — inclusive no drilldown do Casa Maracaju.
+- **Fallback de 8 s**: se nada respondeu (offline / sem token), aceita o último dado salvo e re-renderiza
+  via `scheduleRenderAll` (respeitando a regra de boot sem piscar da v121).
+- Causa do relato "puxou o valor errado até eu logar o script": sem URL/token o app não sincronizava e
+  exibia o último estado salvo, possivelmente de outro ciclo.
+
+### 🛠️ 3) Rolagem travada na parte inferior no celular
+- Causa: `@media (max-width: 600px) .tab-content { touch-action: pan-x !important; }` — `pan-x` desabilita
+  o pan vertical, então arrastar o dedo **dentro do conteúdo** não rolava a página.
+- Correção: `touch-action: pan-y pinch-zoom !important`. O swipe entre abas continua via JS
+  (`initSwipeNavigation`). `pan-x` segue apenas nas faixas horizontais (chips e legenda).
+
+### 🧪 Validação (Chromium headless, 390×844)
+- App sem nenhuma configuração sincronizou sozinho no boot e exibiu **VA R$ 1.614,98 / VR R$ 343,26**
+  com badge "🟢 Salvo & Sincronizado" (dados reais vindos do backup), 0 erros de console e 0 requests 404.
+- Estado artificial de 48 h + offline: chip `VA —` até o fallback de 8 s e então o valor salvo.
+- Rolagem por toque (`Input.dispatchTouchEvent`): 381 px no primeiro arrasto; `touch-action` do
+  `.tab-content.active` = `pan-y pinch-zoom`.
+- `check-syntax` 11/11, suíte **22/22**, `sw.js` e `?v=` em **v127**.

@@ -17,6 +17,8 @@ const MatrixApp = (function () {
   // v121: durante o boot os valores chegam em ondas (local → nuvem → satélites). Animar cada
   // troca fazia a tela "piscar"; só liberamos o fade depois que o primeiro carregamento assentou.
   let smoothAnimationsReady = false;
+  // v127: marca se o Casa Maracaju/planilha já responderam nesta sessão (evita exibir dado velho como atual).
+  let maracajuFreshNestaSessao = false;
   let renderScheduled = false;
 
   const MONTH_NAMES = [
@@ -503,6 +505,7 @@ const MatrixApp = (function () {
                 MatrixDB.saveState(cState, 'cloud_restore_fatura_upgrade', { skipCloudSync: true });
               }
             }
+            maracajuFreshNestaSessao = true;
             populateYearSelector();
             scheduleRenderAll();
           } else if (res.success && !res.data) {
@@ -518,6 +521,15 @@ const MatrixApp = (function () {
         SyncEngine.updateStatusUI('offline');
         runSatScrape();
       }
+
+      // v127: se em 8s nada respondeu (offline / sem token), aceita o último dado salvo
+      // em vez de deixar o chip travado em "—".
+      setTimeout(() => {
+        if (!maracajuFreshNestaSessao) {
+          maracajuFreshNestaSessao = true;
+          scheduleRenderAll();
+        }
+      }, 8000);
     }, 50);
 
     // Sincronização em tempo real ao alternar abas (Maracaju 88 <-> Matrix no mesmo navegador)
@@ -2096,7 +2108,11 @@ const MatrixApp = (function () {
     };
     // v120: enquanto só existir o estado-semente (antes do primeiro puxão do Casa Maracaju),
     // nunca exibir os números de exemplo como se fossem reais.
-    const maracajuPendente = !!(satMaracaju.semente && !satMaracaju.manualOverride);
+    // v127: dado com mais de 6h e sem resposta nesta sessão também entra em modo pendente.
+    const satAtualizadoMs = Date.parse(satMaracaju.atualizadoEm || '') || 0;
+    const satHorasDeIdade = satAtualizadoMs ? (Date.now() - satAtualizadoMs) / 3600000 : 999;
+    const maracajuDesatualizado = satHorasDeIdade > 6 && !maracajuFreshNestaSessao;
+    const maracajuPendente = !satMaracaju.manualOverride && !!(satMaracaju.semente || maracajuDesatualizado);
     const vaAtual = isMesVigenteReal(currentYear, currentMonth)
       ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
       : va;
@@ -3720,7 +3736,9 @@ const MatrixApp = (function () {
       const gastoAnterior = sat.gastoMercadoCicloAnterior || 390.41;
       const comprasAtuais = Array.isArray(sat.comprasCicloAtual) ? sat.comprasCicloAtual : [];
       // v120: enquanto o primeiro puxão do Casa Maracaju não chega, não exibir números de exemplo.
-      const maracajuPendenteDrill = !!(sat.semente && !sat.manualOverride);
+      const satDrillAtualizadoMs = Date.parse(sat.atualizadoEm || '') || 0;
+      const satDrillVelho = (!satDrillAtualizadoMs ? 999 : (Date.now() - satDrillAtualizadoMs) / 3600000) > 6;
+      const maracajuPendenteDrill = !sat.manualOverride && !!(sat.semente || (satDrillVelho && !maracajuFreshNestaSessao));
       const vaSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vaSaldo);
       const vrSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vrSaldo);
       const totalSaldoTxt = maracajuPendenteDrill ? '—' : formatBRL(vaSaldo + vrSaldo);
@@ -8262,6 +8280,10 @@ function onModalCategoriaChange(catVal) {
 
     try {
       const results = await SatelliteConnectors.scrapeAll();
+      // v127: só considera "fresco" se o Casa Maracaju realmente respondeu
+      if (results && results.maracaju && results.maracaju.success) {
+        maracajuFreshNestaSessao = true;
+      }
       renderSatellitesUI();
       scheduleRenderAll();
       if (!silent) {
