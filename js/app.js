@@ -8184,6 +8184,25 @@ function onModalCategoriaChange(catVal) {
       if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.ganhoPossivelMes || sat.fisioflow.capacidadeMensalRecorrente || sat.fisioflow.projecaoMensalRecorrente || 0);
     }
 
+    // Diagnóstico visível do conector (versão do app, última tentativa/sucesso e URL efetiva).
+    const diagEl = document.getElementById('fisioDiag');
+    if (diagEl) {
+      const appScript = document.querySelector('script[src*="app.js"]');
+      const verMatch = appScript && appScript.src.match(/[?&]v=(\d+)/);
+      const partes = [`App v${verMatch ? verMatch[1] : '?'}`];
+      const ff = sat.fisioflow;
+      if (ff) {
+        partes.push(ff.syncError ? `⚠️ ${ff.syncError}` : '✅ OK');
+        if (ff.atualizadoEm) partes.push(`atualizado ${new Date(ff.atualizadoEm).toLocaleString('pt-BR')}`);
+        if (ff.lastAttempt) partes.push(`tentativa ${new Date(ff.lastAttempt).toLocaleString('pt-BR')}`);
+      } else {
+        partes.push('sem dados ainda');
+      }
+      partes.push(`URL: ${satCfg.fisioUrl}`);
+      diagEl.textContent = partes.join(' • ');
+      diagEl.title = diagEl.textContent;
+    }
+
     // 2. Faturas (Nubank Black)
     const faturasBadge = document.getElementById('badgeFaturasStatus');
     const faturasAtivo = true;
@@ -8250,7 +8269,8 @@ function onModalCategoriaChange(catVal) {
         if (fisioFalhou) {
           alert('Os outros apps foram atualizados, mas o Atendimentos não respondeu.\n\n' +
             (results.fisio.error || '') +
-            '\n\nPublique o Apps Script do app de fisioterapia com a versão que aceita ?callback= (JSONP).');
+            '\n\n1) Confirme que o Apps Script do app de fisioterapia foi publicado com a versão que aceita ?callback= (JSONP).\n' +
+            '2) Se já publicou, abra Backup & Conexões → "Reparar conexão com Atendimentos".');
         } else {
           alert('Scraping concluído com sucesso nos apps configurados!');
         }
@@ -8262,6 +8282,35 @@ function onModalCategoriaChange(catVal) {
         const btn = document.querySelector('[onclick*="executarScrapingSatellites"]');
         if (btn) btn.textContent = '🔄 Fazer Scraping dos 3 Apps Agora';
       }
+    }
+  }
+
+  async function repararConexaoFisio() {
+    let urlOficial = '';
+    try {
+      urlOficial = SatelliteConnectors.resetFisioUrl();
+    } catch (e) {}
+    const urlInput = document.getElementById('cfgFisioUrl');
+    if (urlInput && urlOficial) urlInput.value = urlOficial;
+    renderSatellitesUI();
+    alert('URL do app de Atendimentos restaurada.\n\nVou testar a conexão agora. Se o celular estiver sem acesso ao script.google.com, o teste também vai falhar.');
+
+    try {
+      const results = await SatelliteConnectors.scrapeAll();
+      renderSatellitesUI();
+      scheduleRenderAll();
+      const ff = (MatrixDB.getState().satellites || {}).fisioflow || {};
+      if (results && results.fisio && results.fisio.success) {
+        alert('Conexão OK!\n\nSessões no mês: ' + (ff.mesAtualTotal || 0) +
+          '\nPrevisto: ' + (ff.mesAtualPrevisto || 0) +
+          '\nAtualizado: ' + (ff.atualizadoEm ? new Date(ff.atualizadoEm).toLocaleString('pt-BR') : 'agora'));
+      } else {
+        alert('Ainda não respondeu.\n\n' +
+          ((results && results.fisio && results.fisio.error) || ff.syncError || 'Sem resposta') +
+          '\n\nTeste no navegador do celular abrindo:\n' + urlOficial + '?action=getData&callback=teste');
+      }
+    } catch (e) {
+      alert('Erro ao testar a conexão: ' + e.message);
     }
   }
 
@@ -10992,6 +11041,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
+    repararConexaoFisio,
     abrirDrilldown,
     abrirRaioXSimulador,
     navegarParaMes,

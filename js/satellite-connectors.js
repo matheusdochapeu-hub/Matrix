@@ -162,6 +162,11 @@ const SatelliteConnectors = (function () {
     };
   }
 
+  function resetFisioUrl() {
+    try { localStorage.setItem(STORAGE_KEYS.fisioUrl, DEFAULT_ENDPOINTS.fisioUrl); } catch (_) {}
+    return DEFAULT_ENDPOINTS.fisioUrl;
+  }
+
   function saveSatelliteConfig(cfg) {
     if (cfg.fisioUrl !== undefined) {
       const f = (cfg.fisioUrl || '').trim();
@@ -1436,6 +1441,7 @@ const SatelliteConnectors = (function () {
 
   return {
     getSatelliteConfig,
+    resetFisioUrl,
     getBaselineFaturasData,
     saveSatelliteConfig,
     getBaselineFisioData,
