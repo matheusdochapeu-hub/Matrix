@@ -138,12 +138,24 @@ const SatelliteConnectors = (function () {
   ];
 
   function getSatelliteConfig() {
+    const rawFisio = (localStorage.getItem(STORAGE_KEYS.fisioUrl) || '').trim();
+    const rawMaracaju = (localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '').trim();
+    const maracajuUrl = rawMaracaju || DEFAULT_ENDPOINTS.maracajuUrl;
+
+    // v123: o FisioFlow já foi configurado com a MESMA URL do Casa Maracaju. São planilhas
+    // diferentes; nesse caso o Matrix lia o app errado e os ganhos da Scarlet nunca atualizavam.
+    let fisioUrl = rawFisio || DEFAULT_ENDPOINTS.fisioUrl;
+    if (rawFisio && (rawFisio === maracajuUrl || rawFisio === DEFAULT_ENDPOINTS.maracajuUrl)) {
+      fisioUrl = DEFAULT_ENDPOINTS.fisioUrl;
+      try { localStorage.setItem(STORAGE_KEYS.fisioUrl, fisioUrl); } catch (_) {}
+    }
+
     return {
-      fisioUrl: localStorage.getItem(STORAGE_KEYS.fisioUrl) || DEFAULT_ENDPOINTS.fisioUrl,
+      fisioUrl,
       fisioToken: localStorage.getItem(STORAGE_KEYS.fisioToken) || '',
       faturasUrl: localStorage.getItem(STORAGE_KEYS.faturasUrl) || DEFAULT_ENDPOINTS.faturasUrl,
       faturasToken: localStorage.getItem(STORAGE_KEYS.faturasToken) || '',
-      maracajuUrl: localStorage.getItem(STORAGE_KEYS.maracajuUrl) || DEFAULT_ENDPOINTS.maracajuUrl,
+      maracajuUrl,
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || DEFAULT_ENDPOINTS.maracajuToken,
       autoScrapeOnOpen: localStorage.getItem(STORAGE_KEYS.autoScrapeOnOpen) !== 'false',
       includeSimulated: localStorage.getItem(STORAGE_KEYS.includeSimulatedInvoices) === 'true'
@@ -151,7 +163,12 @@ const SatelliteConnectors = (function () {
   }
 
   function saveSatelliteConfig(cfg) {
-    if (cfg.fisioUrl !== undefined) localStorage.setItem(STORAGE_KEYS.fisioUrl, cfg.fisioUrl.trim());
+    if (cfg.fisioUrl !== undefined) {
+      const f = (cfg.fisioUrl || '').trim();
+      const m = ((cfg.maracajuUrl !== undefined ? cfg.maracajuUrl : localStorage.getItem(STORAGE_KEYS.maracajuUrl)) || DEFAULT_ENDPOINTS.maracajuUrl).trim();
+      // FisioFlow e Casa Maracaju são apps/planilhas distintos; nunca aceite a mesma URL.
+      localStorage.setItem(STORAGE_KEYS.fisioUrl, (f && f !== m && f !== DEFAULT_ENDPOINTS.maracajuUrl) ? f : DEFAULT_ENDPOINTS.fisioUrl);
+    }
     if (cfg.fisioToken !== undefined) localStorage.setItem(STORAGE_KEYS.fisioToken, cfg.fisioToken.trim());
     if (cfg.faturasUrl !== undefined) localStorage.setItem(STORAGE_KEYS.faturasUrl, cfg.faturasUrl.trim());
     if (cfg.faturasToken !== undefined) localStorage.setItem(STORAGE_KEYS.faturasToken, cfg.faturasToken.trim());
