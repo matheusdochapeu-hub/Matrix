@@ -122,6 +122,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 22. **Previews do simulador são calculados, não fixos.** Os três cards de meta do Renda+ 2055 reagem a
     `matrix_simulador_2055_params` via `atualizarCardsMetas2055()` (v130). Se voltarem a ser texto fixo,
     salvar parâmetros deixa de refletir na tela — que foi exatamente o bug relatado.
+23. **UrlFetchApp pede escopo próprio.** Se a ação `quotes` responder "sem permissão para chamar
+    UrlFetchApp", rode `testarCotacoes()` no editor (aceite a permissão) antes de publicar nova versão.
+    O `appsscript.json` do repo já traz `script.external_request`.
 
 ## Dívida técnica conhecida
 

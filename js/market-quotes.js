@@ -149,6 +149,15 @@ const MarketQuotes = (function () {
     }
 
     const data = Array.isArray(json.data) ? json.data : null;
+    if (data && data.length) {
+      const oks = data.filter(q => q && q.ok);
+      if (!oks.length) {
+        const primeiro = data.map(q => (q && q.error) || '').filter(Boolean)[0] || '';
+        ultimoErro = mapearErroProvedor(primeiro);
+        return { ok: false, error: ultimoErro, precisaAutorizar: /UrlFetchApp|external_request/i.test(primeiro) };
+      }
+    }
+
     if (!data) {
       // Planilha publicada ainda sem a ação "quotes": devolve o estado, não as cotações.
       ultimoErro = 'O Apps Script publicado ainda não tem a ação de cotações. Reimplante o script do Matrix (Implantar → Gerenciar implantações → Nova versão).';
@@ -158,6 +167,22 @@ const MarketQuotes = (function () {
     ultimoErro = '';
     registrarNoCache(data);
     return { ok: true, data };
+  }
+
+  function mapearErroProvedor(msg) {
+    const bruto = String(msg || '');
+    if (/UrlFetchApp|external_request|permiss[ãa]o para chamar/i.test(bruto)) {
+      return 'O script do Matrix ainda não está autorizado a acessar serviços externos (UrlFetchApp).\n\n' +
+        'No editor do Apps Script: rode a função testarCotacoes uma vez e aceite a permissão; ' +
+        'depois Implantar → Gerenciar implantações → Editar → Versão: "Nova versão" → Implantar.';
+    }
+    if (/HTTP 429|Too Many Requests|rate limit/i.test(bruto)) {
+      return 'O Yahoo Finance limitou as consultas (HTTP 429). Tente de novo em alguns minutos.';
+    }
+    if (/HTTP 4\d\d|HTTP 5\d\d/i.test(bruto)) {
+      return 'O provedor de cotações respondeu com erro: ' + bruto + '. Tente de novo em alguns minutos.';
+    }
+    return bruto ? 'Não foi possível obter as cotações: ' + bruto : 'Nenhuma cotação foi retornada.';
   }
 
   // ---------------------------------------------------------------- aplicação no estado
@@ -232,7 +257,14 @@ const MarketQuotes = (function () {
         MatrixApp.renderInvestments();
       }
       const quando = modo === 'atual' ? 'agora' : 'fechamento';
-      atualizarStatus(`Cotações de ${quando} atualizadas (${res.data.filter(q => q && q.ok).length}/${tickers.length}).`, 'ok');
+      const okCount = res.data.filter(q => q && q.ok).length;
+      const total = tickers.length;
+      if (okCount === 0) {
+        const msg = 'Nenhuma cotação foi atualizada (0/' + total + ').';
+        atualizarStatus(msg, 'erro');
+        return { ok: false, error: msg, data: res.data };
+      }
+      atualizarStatus(`Cotações de ${quando} atualizadas (${okCount}/${total}).`, okCount === total ? 'ok' : 'loading');
       return res;
     } finally {
       emAndamento = false;

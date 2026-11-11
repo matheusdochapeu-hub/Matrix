@@ -557,3 +557,36 @@ Salvar os parâmetros do simulador não mudava nada neles — só o modal recalc
 - Parâmetros salvos a 6,0% / saldo 0: `~R$ 1.076` / `~R$ 1.160` / `~R$ 2.043` (relatório a 6%: 1.068,01 / 1.152,58 / 2.035,50 — mesma faixa).
 - Salvar pelo modal a 6,0%: cards passam a `~R$ 1.068` / `~R$ 1.153` / `~R$ 2.036` e o rodapé para `IPCA + 6,00%`.
 - `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v130**.
+
+---
+
+## [2026-11-11 16:10] - Matrix Finance v131: Cotações Explicam a Falha (escopo UrlFetchApp)
+
+### 🐛 Sintoma
+O botão "Cotação atual" mostrava **"Cotações de agora atualizadas (0/2)."** em verde e nada mudava.
+O endpoint respondia `success: true` com `data: [{ ok: false, error: "Exception: Você não tem permissão
+para chamar UrlFetchApp.fetch. Permissões necessárias: .../script.external_request" }]`.
+
+### 🔎 Causa
+O Apps Script foi reimplantado com a ação `quotes`, mas a **autorização do script** (conta que executa a
+implantação) não tinha o escopo `https://www.googleapis.com/auth/script.external_request` — sem ele, o
+`UrlFetchApp.fetch` é bloqueado mesmo o código estando correto.
+
+### 🛠️ Correções
+- `appsscript.json` criado no repositório com `oauthScopes` explícitos: `spreadsheets` + `script.external_request`.
+- `testarCotacoes()` no `apps_script.gs`: rodar uma vez no editor dispara o consentimento e valida a cotação.
+- `market-quotes.js`: `mapearErroProvedor()` traduz o erro de permissão (e 429/HTTP) em instrução clara;
+  se **nenhuma** ação retornar cotação, `sincronizar` devolve `ok:false` e a linha de status fica em
+  vermelho com o texto do problema (antes ficava verde "0/2" sem explicação).
+
+### ✅ Para funcionar (ação do usuário)
+1. Apps Script → **Configurações do projeto** → marcar "Mostrar arquivo de manifesto appsscript.json" e
+   colar o `appsscript.json` do repo.
+2. Rodar a função **`testarCotacoes`** e aceitar a permissão.
+3. **Implantar → Gerenciar implantações → Editar → Versão: "Nova versão" → Implantar**.
+
+### 🧪 Validação
+- Antes: `ok:false` silencioso com "(0/2)" em verde.
+- Depois: status e alerta com "O script do Matrix ainda não está autorizado a acessar serviços externos
+  (UrlFetchApp)…" — confirmado em Chromium contra o endpoint real.
+- `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v131**.

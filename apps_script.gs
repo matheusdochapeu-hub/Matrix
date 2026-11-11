@@ -167,6 +167,16 @@ function fetchStockQuote(ticker) {
   return out;
 }
 
+/** Rode esta função UMA VEZ no editor do Apps Script para autorizar o UrlFetchApp
+ *  (escopo https://www.googleapis.com/auth/script.external_request).
+ *  Ela não altera nenhuma planilha — só consulta a cotação de CSNA3 no Yahoo e loga o resultado.
+ */
+function testarCotacoes() {
+  var q = fetchStockQuote("CSNA3");
+  Logger.log(JSON.stringify(q));
+  return q;
+}
+
 function fetchStockQuotes(tickers) {
   var lista = String(tickers || "CSNA3,MGLU3").split(",")
     .map(function (s) { return String(s).trim().toUpperCase(); })

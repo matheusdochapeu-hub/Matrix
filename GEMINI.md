@@ -563,3 +563,15 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   `salvarParametrosSimulador2055` (que recalcula antes de salvar). O rodapé `#simMetasParametros` mostra
   a taxa e o saldo usados — se o card não mudar, confira esse rodapé.
 - Service Worker atualizado para `matrix-finance-v130`.
+
+---
+
+## 37. Cotações: escopo UrlFetchApp e mensagens de erro (v131)
+
+- `UrlFetchApp` exige o escopo **`https://www.googleapis.com/auth/script.external_request`**. O
+  `appsscript.json` do repositório já declara `spreadsheets` + `script.external_request`; mantenha-o assim.
+- Ao reimplantar o script, **autorizar de novo** rodando `testarCotacoes()` no editor (aceitar a permissão)
+  e só então publicar "Nova versão". Sem isso a ação `quotes` responde `ok:false` com erro de permissão.
+- O cliente **nunca** deve dizer "atualizadas (0/N)" em verde: `MarketQuotes.sincronizar` devolve `ok:false`
+  e escreve o motivo (permissão, HTTP 429, HTTP 5xx) na linha `#invQuoteStatus`.
+- Service Worker atualizado para `matrix-finance-v131`.
