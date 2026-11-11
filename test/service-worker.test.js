@@ -60,7 +60,8 @@ test('Service Worker: todo script carregado pelo index.html também é precachea
 test('Service Worker: CSS do app está precacheado', () => {
   const normalizados = assets.map((a) => a.replace(/^\.\//, ''));
   const cssDoHtml = Array.from(html.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)).map((m) =>
-    m[1].replace(/\?.*$/, '')
+    // v135: normalize o "./" do HTML, senão um <link href="./algo.css"> nunca casa com './algo.css'
+    m[1].replace(/\?.*$/, '').replace(/^\.\//, '')
   );
 
   const ausentes = cssDoHtml.filter((href) => !/^https?:/i.test(href) && !normalizados.includes(href));
