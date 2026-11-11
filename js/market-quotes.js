@@ -355,6 +355,32 @@ const MarketQuotes = (function () {
     return res;
   }
 
+  // Reaplica o que já está no cache local (sem rede). Usado depois de restaurar a nuvem,
+  // que pode trazer precoAtual antigo por cima da cotação recém-buscada.
+  function aplicarCacheNoEstado(modo = 'fechamento') {
+    try {
+      const cache = lerCache();
+      const tickers = Object.keys(cache);
+      if (!tickers.length) return false;
+      const quotes = tickers.map(t => ({
+        ticker: t,
+        ok: true,
+        fechamento: cache[t].fechamento,
+        fechamentoData: cache[t].fechamentoData,
+        atual: cache[t].atual,
+        atualEm: cache[t].atualEm,
+        moeda: cache[t].moeda,
+        fonte: cache[t].fonte
+      }));
+      const state = MatrixDB.getState();
+      const mudou = aplicarQuotes(state.investimentos, quotes, modo);
+      if (mudou) MatrixDB.saveState(state, 'cotacao_cache_local', { skipCloudSync: true });
+      return mudou;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function atualizarStatus(texto, tipo) {
     const el = document.getElementById('invQuoteStatus');
     if (!el) return;
@@ -385,6 +411,7 @@ const MarketQuotes = (function () {
     sincronizar,
     autoSincronizarFechamentos,
     resumo,
+    aplicarCacheNoEstado,
     formatarDataCurta,
     formatarHoraCurta,
     ultimoErroMsg,

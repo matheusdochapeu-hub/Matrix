@@ -506,6 +506,10 @@ const MatrixApp = (function () {
               }
             }
             maracajuFreshNestaSessao = true;
+            // v137: o estado da nuvem pode trazer precoAtual antigo; reaplica a cotação local
+            if (typeof MarketQuotes !== 'undefined' && typeof MarketQuotes.aplicarCacheNoEstado === 'function') {
+              MarketQuotes.aplicarCacheNoEstado('fechamento');
+            }
             populateYearSelector();
             scheduleRenderAll();
           } else if (res.success && !res.data) {
