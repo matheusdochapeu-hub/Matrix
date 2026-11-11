@@ -3,7 +3,7 @@
  * Laboratório de projeções financeiras: teste despesas hipotéticas (ex: seguro de vida da Scarlet R$ 100~150,
  * parcelas de cartão, investimentos futuros) segregando rigorosamente as contas bancárias e fontes de renda:
  * 👨 Eu (Matheus • Salário USP / BB / Inter)
- * 👩 Scarlet (FisioFlow / Cartão Nubank Scarlet)
+ * 👩 Scarlet (Atendimentos / Cartão Nubank Scarlet)
  * 🛒 Vale Alimentação (VA - Casa Maracaju 88)
  * 🍽️ Vale Refeição (VR Presencial)
  * ⚖️ Consolidado do Casal
@@ -25,7 +25,7 @@ const ScenarioSimulator = (function () {
     },
     scarlet: {
       id: 'scarlet',
-      nome: 'Scarlet (FisioFlow)',
+      nome: 'Scarlet (Atendimentos)',
       icon: '👩',
       cor: '#f472b6',
       descricao: 'Faturamento de Fisioterapia e Fatura Nubank Scarlet'
@@ -63,7 +63,7 @@ const ScenarioSimulator = (function () {
     const renda = (scen.renda || '').toLowerCase();
     const tit = (scen.titulo || '').toLowerCase();
 
-    // 1. Scarlet (FisioFlow / Nubank Scarlet)
+    // 1. Scarlet (Atendimentos / Nubank Scarlet)
     if (conta === 'nubank_scarlet' || renda === 'ganhos_scarlet' || tit.includes('scarlet') || tit.includes('fisio')) {
       return 'scarlet';
     }
@@ -245,7 +245,7 @@ const ScenarioSimulator = (function () {
       const manual = parseFloat(monthData.scarlet.ganhosManual);
       if (!isNaN(manual)) return manual;
     }
-    // Regra estrita M+1 do FisioFlow para 2026
+    // Regra estrita M+1 dos Atendimentos para 2026
     if (ano === '2026' && mesName === 'Outubro') return 3700.00;
     if (ano === '2026' && mesName === 'Novembro') return 1140.00;
     if (ano === '2026' && mesName === 'Dezembro') return 995.00;
@@ -483,7 +483,7 @@ const ScenarioSimulator = (function () {
           },
           scarlet: {
             id: 'scarlet',
-            nome: 'Scarlet (FisioFlow)',
+            nome: 'Scarlet (Atendimentos)',
             icon: '👩',
             ganhos: scarletGanhos,
             ganhosFisio: scarletFisio,
@@ -547,7 +547,7 @@ const ScenarioSimulator = (function () {
       },
       scarlet: {
         id: 'scarlet',
-        nome: 'Scarlet (FisioFlow)',
+        nome: 'Scarlet (Atendimentos)',
         icon: '👩',
         cor: '#f472b6',
         impactoTotalCenarios: results.reduce((acc, r) => acc + r.contas.scarlet.custoCenarios, 0),
@@ -580,7 +580,7 @@ const ScenarioSimulator = (function () {
     // Cálculo de correlação com fontes de renda (O dinheiro sai dos ganhos do Matheus ou da Scarlet)
     const correlacaoRendas = {
       salario_usp: { id: 'salario_usp', pilar: 'matheus', nome: 'Salário Líquido USP (Matheus)', totalMensal: 0, count: 0 },
-      ganhos_scarlet: { id: 'ganhos_scarlet', pilar: 'scarlet', nome: 'Ganhos Scarlet (FisioFlow)', totalMensal: 0, count: 0 },
+      ganhos_scarlet: { id: 'ganhos_scarlet', pilar: 'scarlet', nome: 'Ganhos Scarlet (Atendimentos)', totalMensal: 0, count: 0 },
       va_mercado: { id: 'va_mercado', pilar: 'va', nome: 'Vale Alimentação (VA)', totalMensal: 0, count: 0 },
       vr_almoco: { id: 'vr_almoco', pilar: 'vr', nome: 'Vale Refeição (VR)', totalMensal: 0, count: 0 },
       reserva_aportes: { id: 'reserva_aportes', pilar: 'reserva', nome: 'Investimentos / Reserva', totalMensal: 0, count: 0 }

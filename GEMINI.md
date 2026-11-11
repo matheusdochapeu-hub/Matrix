@@ -14,7 +14,7 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   1. **Casa Maracaju 88 (`maracaju88`)**: Gestão de Vale Alimentação (VA), Vale Refeição (VR) e obras/contas da casa.
      - **URL Cloud Sync**: `https://script.google.com/macros/s/AKfycbz8kE8p5E-cW-bT7wJ9C4X2mN1vP6qR0sT3uV5wX7yZ9aB1cD3e/exec` (configurável em `satellite-connectors.js` / localStorage `maracaju_cloud_url`).
   2. **Faturas & Parcelado à Vista (`parcelado-a-vista`)**: Gestão de cartões (Nubank Matheus, BB Ourocard Matheus, Nubank Scarlet).
-  3. **FisioFlow (`fisioflow`)**: Gestão clínica e faturamento de fisioterapia da Scarlet.
+  3. **Atendimentos Scarlet (`fisioflow` é só a chave interna)**: o faturamento clínico da Scarlet vem do app pessoal `../matheus-app-fisioterapia` (`satellite-connectors.js` → `DEFAULT_ENDPOINTS.fisioUrl`). O `../fisioflow` é o produto comercial multi-tenant e **não** alimenta o Matrix.
 - **Ambiente Técnico Local**:
   - Binário do Node.js local (para validação de sintaxe `node --check` e testes headless JSDOM): `C:\Users\matheus.ribeiro\Desktop\Matheus\5. IA\node-bin\PFiles64\nodejs\node.exe`
 

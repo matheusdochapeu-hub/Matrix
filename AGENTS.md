@@ -31,7 +31,7 @@ Abrir `index.html` direto por `file://` quebra o Service Worker e o fetch do App
 
 ```powershell
 npm run check      # sintaxe de todos os js/ + sw.js + apps_script.gs
-npm test           # 19 testes: sintaxe, integridade do HTML, manifest, Service Worker e regressões de dados
+npm test           # 22 testes: sintaxe, integridade do HTML, manifest, Service Worker e regressões de dados
 npm run verify     # os dois acima em sequência (é o que a CI roda)
 ```
 O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
@@ -50,7 +50,7 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 | `js/app.js` | Núcleo da aplicação (~555 KB). Renderização, modais, cálculos |
 | `js/db.js` | `MatrixDB`: persistência local, backups e auto-recuperação |
 | `js/sync-engine.js` | Sincronização com o Google Sheets |
-| `js/satellite-connectors.js` | Puxa dados de maracaju88, faturas e fisioflow |
+| `js/satellite-connectors.js` | Puxa dados de maracaju88, faturas e do app Atendimentos da Scarlet (chave interna: `fisioflow`) |
 | `js/seed-data.js` | Dados iniciais e baseline |
 | `sw.js` | Service Worker; `CACHE_NAME` versiona o cache |
 | `apps_script.gs` | Backend/API do Google Apps Script |
@@ -83,7 +83,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 9. **O saldo de VA/VR é do Casa Maracaju.** Nunca sobrescreva `satellites.maracaju` por diferença
    de valor ou de mês: o estado só é semeado quando faltam `vaTotal`/`vrTotal`/`saldoVaRestante`/
    `saldoVrRestante` (v117). Comparar float com `!==` ou fixar `'2026-11'` apagava o saldo real
-   do app a cada carregamento.
+   do app a cada carregamento. Desde a v122 o conector usa `settings.matrixBenefits` /
+   `benefitsSummary` (inclusive o `cycleKey`) como autoridade — o ciclo de benefícios não é o
+   mês do calendário. Também respeita `deletedIds` do Maracaju e nunca devolve compra apagada.
 10. **Nunca renderize valor de exemplo como se fosse real.** Enquanto o satélite não sincronizou,
     o KPI mostra `—` (os seeds levam `semente: true` e o HTML nasce neutro — v120). Foi assim que
     o chip exibia `1.988,78 / 805,41` antes de fixar os números do Casa Maracaju.
@@ -130,6 +132,8 @@ Este app é o **centro**. Os satélites alimentam dados para cá:
 
 - `../maracaju88` — VA/VR e contas da casa (saldo de benefícios).
 - `../parcelado-a-vista` — faturas dos cartões (Nubank/BB).
-- `../fisioflow` — faturamento clínico da Scarlet (ganho possível/recebido).
+- `../matheus-app-fisioterapia` — **Atendimentos da Scarlet** (app pessoal). É a fonte real do
+  conector com chave interna `fisioflow` (ganho possível/recebido). **Não confundir** com
+  `../fisioflow`, que é o produto comercial multi-tenant e não alimenta o Matrix.
 
 Ao mexer em contratos de dados entre apps, ajuste também `js/satellite-connectors.js`.
