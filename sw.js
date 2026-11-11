@@ -1,4 +1,4 @@
-const CACHE_NAME = 'matrix-finance-v131';
+const CACHE_NAME = 'matrix-finance-v132';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS_TO_CACHE = [
   './js/amortization-engine.js',
   './js/scenario-simulator.js',
   './js/pdf-reader.js',
+  './js/faturas-data.js',
   './js/satellite-connectors.js',
   './js/sync-engine.js',
   './js/market-quotes.js',

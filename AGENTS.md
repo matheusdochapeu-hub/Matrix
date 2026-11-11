@@ -125,6 +125,11 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 23. **UrlFetchApp pede escopo próprio.** Se a ação `quotes` responder "sem permissão para chamar
     UrlFetchApp", rode `testarCotacoes()` no editor (aceite a permissão) antes de publicar nova versão.
     O `appsscript.json` do repo já traz `script.external_request`.
+24. **A lista de faturas é gerada, não digitada.** `js/faturas-data.js` vem de
+    `nexo/scripts/drift.mjs --gerar`, a partir da `BASE_ITEMS` do app Faturas + os
+    metadados `cat`/`tag` daqui. Não edite o arquivo à mão: rode o gerador no repo `Nexo`.
+    O array em `js/satellite-connectors.js` é **fallback** (se o gerado não carregar,
+    o app funciona igual). O script precisa estar no precache do `sw.js` — há teste para isso.
 
 ## Dívida técnica conhecida
 

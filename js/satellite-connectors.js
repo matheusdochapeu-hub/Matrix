@@ -137,6 +137,32 @@ const SatelliteConnectors = (function () {
     { d: 'Petlove Clube 2/12', v: 9.99, de: 5, ate: 12, tag: 'parc', cat: 'Pet & Veterinário' }
   ];
 
+  /* v132 — a lista de faturas vem de js/faturas-data.js (gerada a partir do app
+     Faturas por nexo/scripts/drift.mjs). O array acima fica como fallback:
+     se o arquivo não carregar, nada muda. */
+  (function () {
+    try {
+      var dados = (typeof window !== 'undefined' && window.NEXO_FATURAS) || null;
+      if (!dados || !Array.isArray(dados.base) || !dados.base.length) return;
+      var meta = dados.meta || {};
+      var lista = dados.base.map(function (it) {
+        var m = meta[it.d + '__' + it.de] || {};
+        return {
+          d: it.d,
+          v: it.v,
+          de: it.de,
+          ate: it.ate,
+          tag: m.tag || it.tag || 'parc',
+          cat: m.cat || it.cat
+        };
+      });
+      BASE_ITEMS.length = 0;
+      for (var k = 0; k < lista.length; k++) BASE_ITEMS.push(lista[k]);
+    } catch (e) {
+      /* qualquer falha mantém a lista embutida */
+    }
+  })();
+
   function getSatelliteConfig() {
     const rawFisio = (localStorage.getItem(STORAGE_KEYS.fisioUrl) || '').trim();
     const rawMaracaju = (localStorage.getItem(STORAGE_KEYS.maracajuUrl) || '').trim();
