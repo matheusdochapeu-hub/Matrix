@@ -17,6 +17,9 @@ const MarketQuotes = (function () {
   let emAndamento = false;
   let ultimoAutoMs = 0;
   let ultimoErro = '';
+  // v136: quando o Apps Script falha (sem permissão/planilha sem calcular), não insistimos
+  // a cada clique — vamos direto para o data/quotes.json por alguns minutos.
+  let gasIndisponivelAte = 0;
 
   // ---------------------------------------------------------------- utilidades
   function tickerDe(item) {
@@ -110,11 +113,20 @@ const MarketQuotes = (function () {
       token: cfg.cloudToken || ''
     };
 
+    if (Date.now() < gasIndisponivelAte) {
+      return { ok: false, error: 'Apps Script temporariamente indisponível para cotações.', pulado: true };
+    }
+
     let json = null;
     let erroFetch = '';
     try {
       const qs = new URLSearchParams(Object.assign({}, params, { _: String(Date.now()) }));
-      const resp = await fetch(`${cfg.cloudUrl}?${qs.toString()}`, { method: 'GET', cache: 'no-store' });
+      const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timer = controller ? setTimeout(() => controller.abort(), 9000) : null;
+      const resp = await fetch(`${cfg.cloudUrl}?${qs.toString()}`, controller
+        ? { method: 'GET', cache: 'no-store', signal: controller.signal }
+        : { method: 'GET', cache: 'no-store' });
+      if (timer) clearTimeout(timer);
       if (resp.ok) {
         json = await resp.json();
       } else {
@@ -124,21 +136,15 @@ const MarketQuotes = (function () {
       erroFetch = String((e && e.message) || e);
     }
 
-    if (!json && typeof SyncEngine !== 'undefined' && typeof SyncEngine.jsonpRequest === 'function') {
-      try {
-        json = await SyncEngine.jsonpRequest(cfg.cloudUrl, params, 12000);
-      } catch (e) {
-        erroFetch = String((e && e.message) || e);
-      }
-    }
-
     if (!json) {
+      gasIndisponivelAte = Date.now() + 10 * 60 * 1000;
       ultimoErro = erroFetch || 'Falha ao consultar as cotações';
       return { ok: false, error: ultimoErro };
     }
 
-    // A planilha pode ainda estar calculando o GOOGLEFINANCE: espera e tenta de novo.
+    // A planilha pode ainda estar calculando o GOOGLEFINANCE.
     if (json && json.pendente) {
+      gasIndisponivelAte = Date.now() + 5 * 60 * 1000;
       return { ok: false, pendente: true, data: json.data || [] };
     }
 
@@ -170,6 +176,7 @@ const MarketQuotes = (function () {
     }
 
     ultimoErro = '';
+    gasIndisponivelAte = 0;
     registrarNoCache(data);
     return { ok: true, data };
   }
@@ -263,13 +270,8 @@ const MarketQuotes = (function () {
     emAndamento = true;
     atualizarStatus('Consultando cotações…', 'loading');
     try {
-      let res = await buscarQuotes(tickers);
-      // até 3 tentativas com 3,5s: cobre o primeiro cálculo do GOOGLEFINANCE na planilha
-      for (let tentativa = 1; tentativa <= 2 && res && res.pendente; tentativa++) {
-        atualizarStatus('Planilha calculando a cotação… (tentativa ' + (tentativa + 1) + '/3)', 'loading');
-        await new Promise(r => setTimeout(r, 3500));
-        res = await buscarQuotes(tickers);
-      }
+      // v136: uma tentativa só no Apps Script. Se não vier, o fallback do GitHub responde na hora.
+      const res = await buscarQuotes(tickers);
       if (!res.ok) {
         // Apps Script fora do ar / sem permissão / planilha calculando: usa o JSON do GitHub.
         const fb = await buscarQuotesDoJson();
