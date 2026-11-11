@@ -190,6 +190,21 @@ const MarketQuotes = (function () {
     return bruto ? 'Não foi possível obter as cotações: ' + bruto : 'Nenhuma cotação foi retornada.';
   }
 
+  // Plano B: data/quotes.json publicado pelo GitHub Actions (mesma origem, sem CORS).
+  async function buscarQuotesDoJson() {
+    try {
+      const resp = await fetch('data/quotes.json?_=' + Date.now(), { cache: 'no-store' });
+      if (!resp.ok) return null;
+      const json = await resp.json();
+      const data = Array.isArray(json.quotes) ? json.quotes.filter(q => q && q.ok) : [];
+      if (!data.length) return null;
+      registrarNoCache(data);
+      return { ok: true, data, geradoEm: json.geradoEm || '' };
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ---------------------------------------------------------------- aplicação no estado
   function aplicarQuotes(invList, quotes, modo) {
     let mudou = false;
@@ -256,6 +271,20 @@ const MarketQuotes = (function () {
         res = await buscarQuotes(tickers);
       }
       if (!res.ok) {
+        // Apps Script fora do ar / sem permissão / planilha calculando: usa o JSON do GitHub.
+        const fb = await buscarQuotesDoJson();
+        if (fb) {
+          const mudouFb = aplicarQuotes(state.investimentos, fb.data, modo);
+          if (mudouFb) {
+            MatrixDB.saveState(state, 'cotacao_fallback_github', { skipCloudSync: true });
+          }
+          if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) {
+            MatrixApp.renderInvestments();
+          }
+          const quandoFb = fb.geradoEm ? new Date(fb.geradoEm).toLocaleString('pt-BR') : '';
+          atualizarStatus(`Cotações via GitHub${quandoFb ? ' (' + quandoFb + ')' : ''} — ${fb.data.length}/${tickers.length}.`, 'ok');
+          return { ok: true, data: fb.data, fonte: 'github' };
+        }
         atualizarStatus(res.error || 'Não foi possível obter as cotações.', 'erro');
         return res;
       }
@@ -289,7 +318,17 @@ const MarketQuotes = (function () {
     if (!state) return { ok: false };
     if (!precisaSincronizar(state.investimentos)) return { ok: false, ignorado: true };
     ultimoAutoMs = Date.now();
-    return sincronizar('fechamento');
+    const res = await sincronizar('fechamento');
+    if (!res || !res.ok) {
+      const fb = await buscarQuotesDoJson();
+      if (fb) {
+        const mudou = aplicarQuotes(state.investimentos, fb.data, 'fechamento');
+        if (mudou) MatrixDB.saveState(state, 'cotacao_fallback_github', { skipCloudSync: true });
+        if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
+        return { ok: true, data: fb.data, fonte: 'github' };
+      }
+    }
+    return res;
   }
 
   function atualizarStatus(texto, tipo) {
