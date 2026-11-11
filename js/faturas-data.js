@@ -486,13 +486,6 @@ window.NEXO_FATURAS = {
       "tag": "parc"
     },
     {
-      "d": "Cobertura 5/10",
-      "v": 1246,
-      "de": 4,
-      "ate": 4,
-      "tag": "parc"
-    },
-    {
       "d": "Tennis One 4/10",
       "v": 156.99,
       "de": 4,
@@ -643,363 +636,367 @@ window.NEXO_FATURAS = {
   "meta": {
     "Casa Almeida 5/5__1": {
       "tag": "parc",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Maravilhas do Lar 2/2__1": {
       "tag": "parc",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Black Creek 3/4__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "S V Comercio 2/2__1": {
       "tag": "parc",
-      "cat": "Compras & Variados"
+      "cat": null
     },
     "Globoplay 8/12__1": {
       "tag": "parc",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Estratégia 3/12__1": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Amazon 3/3__1": {
       "tag": "parc",
-      "cat": "Compras & E-commerce"
+      "cat": null
     },
     "Petlove Clube 10/12__1": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
     },
     "Tennis One 4/5__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Black Creek 3/4 (2)__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Petlove NuPay 2/2__1": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
     },
     "Studio Rocha 4/6__1": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Quiosque Ribeirão 2/2__1": {
       "tag": "parc",
-      "cat": "Alimentação & Gastronomia"
+      "cat": null
     },
     "Maravilhas do Lar 2/2 (2)__1": {
       "tag": "parc",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Casas Bahia 10/10__1": {
       "tag": "parc",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Tennis One 3/4__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Le Sac 4/4__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Converse Dom Pedro 5/6__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Gelatto Borelli__1": {
       "tag": "var",
-      "cat": "Alimentação & Gastronomia"
+      "cat": null
     },
     "Estacionamento__1": {
       "tag": "var",
-      "cat": "Transporte & Tag"
+      "cat": null
     },
     "Rd Saude Online (1)__1": {
       "tag": "var",
-      "cat": "Saúde & Farmácia"
+      "cat": null
     },
     "Mercadolivre__1": {
       "tag": "var",
-      "cat": "Compras & E-commerce"
+      "cat": null
     },
     "Rd Saude Online (2)__1": {
       "tag": "var",
-      "cat": "Saúde & Farmácia"
+      "cat": null
     },
     "Claro Flex__1": {
       "tag": "var",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Shopping Ribeirão__1": {
       "tag": "var",
-      "cat": "Alimentação & Gastronomia"
+      "cat": null
     },
     "Bagaggio 1/2__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Pernambucanas 1/3__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 1/10__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tramontina__1": {
       "tag": "var",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Divai Utilidades__1": {
       "tag": "var",
-      "cat": "Casa & Utilidades"
+      "cat": null
     },
     "Caedu__1": {
       "tag": "var",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Estac Shopping (2)__1": {
       "tag": "var",
-      "cat": "Transporte & Tag"
+      "cat": null
     },
     "Inovathi 1/3__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Pernambucanas (avulso)__1": {
       "tag": "var",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Lupofranquia 1/3__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Sigapay__1": {
       "tag": "var",
-      "cat": "Transporte & Tag"
+      "cat": null
     },
     "Cotton On 1/3__1": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Borelli (1)__1": {
       "tag": "var",
-      "cat": "Alimentação & Gastronomia"
+      "cat": null
     },
     "Borelli (2)__1": {
       "tag": "var",
-      "cat": "Alimentação & Gastronomia"
+      "cat": null
     },
     "Corrida Sampa 1/3__1": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Tennis One 4/4__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Cotton On 2/3__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Converse Dom Pedro 6/6__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Pernambucanas 2/3__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Bagaggio 2/2__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 2/10__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Inovathi 2/3__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Lupofranquia 2/3__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 5/5__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Black Creek 4/4__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Studio Rocha 5/6__2": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Black Creek 4/4 (2)__2": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Globoplay 9/12__2": {
       "tag": "parc",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Estratégia 4/12__2": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Petlove Clube 11/12__2": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
     },
     "Corrida Sampa 2/3__2": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Pernambucanas 3/3__3": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Cotton On 3/3__3": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 3/10__3": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Inovathi 3/3__3": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Lupofranquia 3/3__3": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Studio Rocha 6/6__3": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Globoplay 10/12__3": {
       "tag": "parc",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Estratégia 5/12__3": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Petlove Clube 12/12__3": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
     },
     "Corrida Sampa 3/3__3": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Studio Rocha 1/6 (nova)__4": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Globoplay 11/12__4": {
       "tag": "parc",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Petlove Clube 1/12 (nova)__4": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
+    },
+    "Cobertura 5/10__4": {
+      "tag": "parc",
+      "cat": null
     },
     "Tennis One 4/10__4": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 5/10__5": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 6/10__6": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 7/10__7": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 8/10__8": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 9/10__9": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Tennis One 10/10__10": {
       "tag": "parc",
-      "cat": "Vestuário & Moda"
+      "cat": null
     },
     "Estratégia 6/12__4": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 7/12__5": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 8/12__6": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 9/12__7": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 10/12__8": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 11/12__9": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Estratégia 12/12__10": {
       "tag": "parc",
-      "cat": "Educação & Cursos"
+      "cat": null
     },
     "Studio Rocha 2/6 (nova)__5": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Studio Rocha 3/6 (nova)__6": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Studio Rocha 4/6 (nova)__7": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Studio Rocha 5/6 (nova)__8": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Studio Rocha 6/6 (nova)__9": {
       "tag": "parc",
-      "cat": "Saúde & Bem-estar"
+      "cat": null
     },
     "Globoplay 12/12__5": {
       "tag": "parc",
-      "cat": "Serviços & Assinaturas"
+      "cat": null
     },
     "Petlove Clube 2/12__5": {
       "tag": "parc",
-      "cat": "Pet & Veterinário"
+      "cat": null
     }
   }
 };
