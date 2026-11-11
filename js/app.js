@@ -14,6 +14,10 @@ const MatrixApp = (function () {
   let currentInvestFilter = 'todos';
   let investAgrupado = false;
   let investExpandedGroups = {};
+  // v121: durante o boot os valores chegam em ondas (local → nuvem → satélites). Animar cada
+  // troca fazia a tela "piscar"; só liberamos o fade depois que o primeiro carregamento assentou.
+  let smoothAnimationsReady = false;
+  let renderScheduled = false;
 
   const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -41,6 +45,13 @@ const MatrixApp = (function () {
     if (newColor) el.style.color = newColor;
 
     if (current === target) return;
+
+    // Sem animação no boot (ou com a aba em segundo plano): evita o efeito de piscar
+    // quando o mesmo valor é re-renderizado várias vezes durante a sincronização.
+    if (!smoothAnimationsReady || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) {
+      el.textContent = target;
+      return;
+    }
 
     if (!current || !el.classList.contains('smooth-val')) {
       el.classList.add('smooth-val');
@@ -465,6 +476,7 @@ const MatrixApp = (function () {
     updateMonthDisplay();
     renderAll();
     renderHoleritesHistorico();
+    setTimeout(() => { smoothAnimationsReady = true; }, 5000);
 
     // Inicialização ultra-rápida (instantânea da memória/disco local)
     // As chamadas em nuvem rodam em segundo plano sem bloquear a interface
@@ -492,7 +504,7 @@ const MatrixApp = (function () {
               }
             }
             populateYearSelector();
-            renderAll();
+            scheduleRenderAll();
           } else if (res.success && !res.data) {
             // Planilha conectada porém vazia: grava o primeiro backup automaticamente
             SyncEngine.syncToCloud().then(() => {
@@ -509,17 +521,20 @@ const MatrixApp = (function () {
     }, 50);
 
     // Sincronização em tempo real ao alternar abas (Maracaju 88 <-> Matrix no mesmo navegador)
-    let lastFocusScrape = 0;
+    // v121: 2 min de intervalo e só com a aba visível. Antes cada retorno de foco disparava um
+    // scrape completo (init + foco + botão), o que re-renderizava a tela várias vezes.
+    let lastFocusScrape = Date.now();
     window.addEventListener('focus', () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       const now = Date.now();
-      if (now - lastFocusScrape > 12000) {
+      if (now - lastFocusScrape > 120000) {
         lastFocusScrape = now;
         if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.scrapeAll === 'function') {
-          SatelliteConnectors.scrapeAll().then(() => renderAll());
+          SatelliteConnectors.scrapeAll().then(() => scheduleRenderAll()).catch(() => {});
         }
       } else if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
         const updated = SatelliteConnectors.syncMaracajuFromLocal();
-        if (updated) renderKPIs();
+        if (updated) scheduleRenderAll();
       }
     });
     window.addEventListener('storage', (e) => {
@@ -527,7 +542,7 @@ const MatrixApp = (function () {
         if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
           SatelliteConnectors.syncMaracajuFromLocal();
         }
-        renderAll();
+        scheduleRenderAll();
       }
     });
 
@@ -892,7 +907,7 @@ const MatrixApp = (function () {
   }
 
   // Despesas da própria Scarlet (Fatura Nubank, Psicóloga, Investimentos pessoais, etc.):
-  // Pagas com a renda dela (FisioFlow/Extras) e nunca entram na sobra pessoal do Matheus.
+  // Pagas com a renda dela (Atendimentos/Extras) e nunca entram na sobra pessoal do Matheus.
   function isGastoDaScarlet(it) {
     if (!it) return false;
     const n = (it.nome || '').toLowerCase().trim();
@@ -999,7 +1014,7 @@ const MatrixApp = (function () {
     };
   }
 
-  // Identifica qualquer receita pertencente à Scarlet (seja FisioFlow ou Outras Rendas/Renda Extra da Scarlet)
+  // Identifica qualquer receita pertencente à Scarlet (seja Atendimentos ou Outras Rendas/Renda Extra da Scarlet)
   function isReceitaDaScarlet(r) {
     if (!r || isBeneficioNaoPecunia(r)) return false;
     const n = (r.nome || '').toLowerCase().trim();
@@ -1018,7 +1033,7 @@ const MatrixApp = (function () {
     return false;
   }
 
-  // Identifica se a receita da Scarlet é o lançamento base de atendimentos FisioFlow (para separar de Outras Rendas/Extras da Scarlet)
+  // Identifica se a receita da Scarlet é o lançamento base de atendimentos Atendimentos (para separar de Outras Rendas/Extras da Scarlet)
   function isReceitaFisioFlowBase(r) {
     if (!isReceitaDaScarlet(r)) return false;
     const n = (r.nome || '').toLowerCase().trim();
@@ -1218,32 +1233,21 @@ const MatrixApp = (function () {
     }
 
     // 2. REGRA M+1 DO FISIOFLOW (Ciclo: faturado no mês M cai no caixa do mês M+1)
-    // Outubro/2026 recebe o faturamento de Setembro/2026 (40 sessões) = R$ 3.700,00
-    if (ano === '2026' && mes === 'Outubro') {
-      return 3700.00;
-    }
-
-    // Novembro/2026 recebe o faturamento de Outubro/2026 (13 sessões: R$ 950 + R$ 190) = R$ 1.140,00
-    if (ano === '2026' && mes === 'Novembro') {
-      return 1140.00;
-    }
-
-    // Dezembro/2026 recebe o faturamento de Novembro/2026 (11 sessões) = R$ 995,00
-    if (ano === '2026' && mes === 'Dezembro') {
-      return 995.00;
-    }
-
-    // 3. Consulta ao satélite FisioFlow para competência M-1
-    const satFisio = (state.satellites && state.satellites.fisioflow) ||
-      (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
+    // v121: nada de 3.700/1.140/995 fixos. O valor vem de satellites.fisioflow.ganhosPorMes,
+    // que é recalculado a cada puxão do app de fisioterapia (novas sessões/pagamentos entram).
+    const satFisio = (state.satellites && state.satellites.fisioflow) || null;
 
     if (satFisio && satFisio.ganhosPorMes && satFisio.ganhosPorMes[prevYm]) {
       const g = satFisio.ganhosPorMes[prevYm];
+      const totalFaturado = parseFloat(g.total);
       const realFaturado = (parseFloat(g.realizado) || 0) + (parseFloat(g.aReceber) || 0);
-      if (realFaturado > 0) return realFaturado;
+      const valor = !isNaN(totalFaturado) && totalFaturado > 0 ? totalFaturado : realFaturado;
+      if (valor > 0) return valor;
     }
 
-    // De Janeiro/2027 em diante: estritamente ZERO (0) se não houver faturamento real no app fonte
+    // 3. Sem satélite e sem override manual, não há valor real a exibir.
+    // (O antigo fallback usava monthData.scarlet.ganhos, que podia carregar 995/1140 de
+    //  calibrações antigas e mascarar a falta de sincronização.)
     return 0;
   }
 
@@ -1275,11 +1279,8 @@ const MatrixApp = (function () {
       }
     }
 
-    // Regra oficial para Novembro/2026: R$ 4.000,00 recebidos referentes a outros trabalhos prestados em Outubro
-    if (ano === '2026' && mes === 'Novembro') {
-      return 4000.00;
-    }
-
+    // v121: sem fallback fixo de R$ 4.000,00 para Novembro. Se a renda não está lançada
+    // (ou foi removida), o valor correto é zero — não um número de exemplo.
     return 0;
   }
 
@@ -1744,6 +1745,14 @@ const MatrixApp = (function () {
     }
   }
 
+  function scheduleRenderAll() {
+    if (renderScheduled) return;
+    renderScheduled = true;
+    const run = () => { renderScheduled = false; renderAll(); };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(run);
+    else setTimeout(run, 16);
+  }
+
   function renderAll() {
     renderKPIs();
     renderMonthlyHorizonCards();
@@ -1810,7 +1819,7 @@ const MatrixApp = (function () {
       });
       const rendaMatheusTotal = salMatheus + outrosGanhosMatheus;
 
-      // 2. Rendas Scarlet (FisioFlow + Outras Rendas dela)
+      // 2. Rendas Scarlet (Atendimentos + Outras Rendas dela)
       const salScarlet = getGanhosScarletMes(m.ano, m.mes);
       const outrasRendasScarlet = getOutrasRendasScarletMes(m.ano, m.mes);
       const labelExtraScarlet = getDescOutrasRendasScarletMes(m.ano, m.mes);
@@ -1896,7 +1905,7 @@ const MatrixApp = (function () {
                   <span style="color:var(--cyan);">${formatBRL(rendaScarletTotal)}</span>
                 </div>
                 <div class="horizon-breakdown-row" style="font-size:9px;opacity:0.85;">
-                  <span>• Ganhos Fisio (FisioFlow):</span>
+                  <span>• Ganhos Fisio (Atendimentos):</span>
                   <span>${formatBRL(salScarlet)}</span>
                 </div>
                 ${outrasRendasScarlet > 0 ? `
@@ -1981,7 +1990,7 @@ const MatrixApp = (function () {
     const val13Pago = rec13List.filter(r => r.pago === true).reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
     const val13Pendente = rec13List.filter(r => r.pago !== true).reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
 
-    // 2. Ganhos Scarlet (FisioFlow)
+    // 2. Ganhos Scarlet (Atendimentos)
     const ganhosScarlet = getGanhosScarletMes(currentYear, currentMonth);
 
     // 3. Vale Alimentação - VA (Fixo 2050.00) & 4. Vale Refeição - VR (Calendário Matrix)
@@ -2005,7 +2014,7 @@ const MatrixApp = (function () {
     const outrosGanhos = outrosGanhosPago; // Apenas o que está pago entra no saldo de recursos disponíveis em conta!
 
     // Ganhos em Pecúnia (Dinheiro Líquido em Conta - Exclui estritamente VA e VR)
-    // Composição rigorosa: Salário USP Matheus + Renda Extra Matheus + FisioFlow Scarlet + Outras Rendas Scarlet
+    // Composição rigorosa: Salário USP Matheus + Renda Extra Matheus + Atendimentos Scarlet + Outras Rendas Scarlet
     const outrasRendasScarletMes = getOutrasRendasScarletMes(currentYear, currentMonth);
     const beneficiosNaoPecunia = Math.round((va + vr) * 100) / 100;
 
@@ -2416,7 +2425,7 @@ const MatrixApp = (function () {
       topSobraScarletEl.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
     }
 
-    // Dados dinâmicos de atendimentos e agendamentos FisioFlow para o mês selecionado
+    // Dados dinâmicos de atendimentos e agendamentos Atendimentos para o mês selecionado
     const curMIdx = MONTH_NAMES.indexOf(currentMonth);
     const selectedYM = `${currentYear}-${String(curMIdx + 1).padStart(2, '0')}`;
 
@@ -2432,7 +2441,7 @@ const MatrixApp = (function () {
     const nextMIdx = (curMIdx + 1) % 12;
     const nextMesNome = MONTH_NAMES[nextMIdx];
 
-    const satFisioFlow = (state.satellites && state.satellites.fisioflow) || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : null);
+    const satFisioFlow = (state.satellites && state.satellites.fisioflow) || null;
 
     let fisioRealizadoAtual = 0;
     let fisioPrevistoAtual = 0;
@@ -2443,18 +2452,23 @@ const MatrixApp = (function () {
       fisioRealizadoAtual = (parseFloat(gMes.total) || parseFloat(gMes.realizado) || 0);
       fisioPrevistoAtual = (parseFloat(gMes.previsto) || 0);
       fisioSessoesAtual = parseInt(gMes.sessoes, 10) || 0;
-    } else if (selectedYM === '2026-11' && satFisioFlow) {
-      // Fallback exclusivo de Novembro/2026
-      fisioRealizadoAtual = parseFloat(satFisioFlow.mesAtualTotal) || 995.00;
-      fisioPrevistoAtual = parseFloat(satFisioFlow.mesAtualPrevisto) || 3810.00;
-      fisioSessoesAtual = 11;
+    } else if (selectedYM === '2026-11' && satFisioFlow && !satFisioFlow.semente) {
+      fisioRealizadoAtual = parseFloat(satFisioFlow.mesAtualTotal) || 0;
+      fisioPrevistoAtual = parseFloat(satFisioFlow.mesAtualPrevisto) || 0;
+      fisioSessoesAtual = parseInt(satFisioFlow.totalAtendimentosRegistrados, 10) || 0;
     }
+
+    const temFisioReal = !!satFisioFlow && !satFisioFlow.semente;
 
     const elAtualLabel = document.getElementById('topScarletGanhosAtualLabel');
     if (elAtualLabel) {
-      elAtualLabel.textContent = fisioSessoesAtual > 0
+      const baseLabel = fisioSessoesAtual > 0
         ? `🩺 Realizado no Mês (${fisioSessoesAtual} sessões):`
         : '🩺 Realizado no Mês:';
+      elAtualLabel.textContent = (satFisioFlow && satFisioFlow.syncError) ? `⚠️ ${baseLabel}` : baseLabel;
+      elAtualLabel.title = (satFisioFlow && satFisioFlow.syncError)
+        ? `Último dado bom: ${satFisioFlow.atualizadoEm ? new Date(satFisioFlow.atualizadoEm).toLocaleString('pt-BR') : '—'}. Falha: ${satFisioFlow.syncError}`
+        : '';
     }
 
     const elAtualRow = document.getElementById('topScarletGanhosAtualRow');
@@ -2465,10 +2479,10 @@ const MatrixApp = (function () {
     }
 
     const elAtual = document.getElementById('topScarletGanhosAtualVal');
-    if (elAtual) smoothSetText(elAtual, formatBRL(fisioRealizadoAtual));
+    if (elAtual) smoothSetText(elAtual, temFisioReal ? formatBRL(fisioRealizadoAtual) : '—');
 
     const elPrevisto = document.getElementById('topScarletGanhosPrevistoVal');
-    if (elPrevisto) smoothSetText(elPrevisto, formatBRL(fisioPrevistoAtual));
+    if (elPrevisto) smoothSetText(elPrevisto, temFisioReal ? formatBRL(fisioPrevistoAtual) : '—');
 
     const elFisioLabel = document.getElementById('topScarletGanhosFisioLabel');
     if (elFisioLabel) {
@@ -2781,7 +2795,7 @@ const MatrixApp = (function () {
       if (!temFisioNoArray && fisioVal > 0) {
         todasReceitas.push({
           id: 'sat_fisioflow_view',
-          nome: 'Ganhos Scarlet (FisioFlow)',
+          nome: 'Ganhos Scarlet (Atendimentos)',
           categoria: 'Atendimentos / Scarlet',
           valor: fisioVal,
           pago: true
@@ -3280,7 +3294,7 @@ const MatrixApp = (function () {
             <div style="background:var(--bg-card);border:1px solid rgba(6,182,212,0.3);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">Atendimentos Fisio</div>
               <div style="font-size:15px;font-weight:bold;color:var(--cyan);margin-top:2px;">${formatBRL(ganhosScarlet)}</div>
-              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">FisioFlow M+1</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Atendimentos M+1</div>
             </div>
             <div style="background:var(--bg-card);border:1px solid rgba(192,132,252,0.3);padding:10px;border-radius:var(--radius-sm);">
               <div style="font-size:11px;color:var(--text-muted);">${descOutrasScarlet || 'Outras Rendas'}</div>
@@ -3561,9 +3575,8 @@ const MatrixApp = (function () {
       `;
 
     } else if (tipo === 'fisioflow') {
-      titleEl.innerHTML = `🩺 Consolidado Financeiro FisioFlow (Scarlet) (${periodLabel})`;
-      const sat = (state.satellites && (state.satellites.fisioflow || state.satellites.fisio)) || 
-        (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFisioData ? SatelliteConnectors.getBaselineFisioData() : {});
+      titleEl.innerHTML = `🩺 Consolidado Financeiro Atendimentos (Scarlet) (${periodLabel})`;
+      const sat = (state.satellites && (state.satellites.fisioflow || state.satellites.fisio)) || {};
 
       const curMIdx = MONTH_NAMES.indexOf(currentMonth);
       let prevMIdx = curMIdx - 1;
@@ -3574,22 +3587,17 @@ const MatrixApp = (function () {
       }
       const prevMesNome = MONTH_NAMES[prevMIdx];
       const ganhosMes = getGanhosScarletMes(currentYear, currentMonth);
-      const capacidadeBase = sat.capacidadeMensalRecorrente || sat.projecaoMensalRecorrente || 4400.00;
+      const capacidadeBase = sat.capacidadeMensalRecorrente || sat.projecaoMensalRecorrente || 0;
       const ganhoPossivel = sat.ganhoPossivelMes || capacidadeBase;
-      const totalHistorico = sat.totalHistoricoRecebido || 10505.00;
-      const pacAtivos = sat.pacientesAtivos || 8;
-      const ganhosMap = (sat.ganhosPorMes && Object.keys(sat.ganhosPorMes).length > 0) ? sat.ganhosPorMes : {
-        '2026-08': { realizado: 4670, aReceber: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
-        '2026-09': { realizado: 3700, aReceber: 0, sessoes: 40, total: 3700, ganhoPossivel: 3700 },
-        '2026-10': { realizado: 950, aReceber: 190, sessoes: 13, total: 1140, ganhoPossivel: 1140 },
-        '2026-11': { realizado: 0, aReceber: 995, previsto: 3810, sessoes: 11, total: 995, ganhoPossivel: 4805 }
-      };
+      const totalHistorico = sat.totalHistoricoRecebido || 0;
+      const pacAtivos = sat.pacientesAtivos || 0;
+      const ganhosMap = (sat.ganhosPorMes && Object.keys(sat.ganhosPorMes).length > 0) ? sat.ganhosPorMes : {};
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
           <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(6,182,212,0.08);border:1px solid var(--cyan);padding:8px 12px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">
             <span style="color:var(--cyan);display:flex;align-items:center;gap:6px;font-weight:bold;">
-              <span class="live-pulse" style="background:var(--cyan);"></span> Conexão FisioFlow Ativa (Regra +1 Mês)
+              <span class="live-pulse" style="background:var(--cyan);"></span> Conexão Atendimentos Ativa (Regra +1 Mês)
             </span>
             <span class="lock-pill" style="border-color:var(--cyan);color:var(--cyan);" title="O que é faturado no mês M é utilizado no caixa do mês M+1">
               📅 Ciclo: Fatura em M &rarr; Caixa em M+1
@@ -3604,7 +3612,7 @@ const MatrixApp = (function () {
             </div>
             <div style="background:var(--bg-card);border:1px solid rgba(0,255,102,0.3);padding:10px;border-radius:var(--radius-sm);box-shadow:0 0 10px rgba(0,255,102,0.06);">
               <div style="font-size:11px;color:var(--matrix-green);font-weight:bold;display:flex;align-items:center;gap:4px;">
-                <span>🎯</span> Ganho Possível (FisioFlow)
+                <span>🎯</span> Ganho Possível (Atendimentos)
               </div>
               <div style="font-size:16px;font-weight:bold;color:var(--matrix-green);margin-top:2px;">${formatBRL(ganhoPossivel)}</div>
               <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Capacidade: ${formatBRL(capacidadeBase)}/mês (${pacAtivos} pac.)</div>
@@ -3623,7 +3631,7 @@ const MatrixApp = (function () {
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-              <strong style="color:var(--text-main);font-size:13px;">📈 Conciliação FisioFlow &rarr; Caixa Matrix</strong>
+              <strong style="color:var(--text-main);font-size:13px;">📈 Conciliação Atendimentos &rarr; Caixa Matrix</strong>
               <span style="font-size:11px;color:var(--text-muted);">Histórico Total: ${formatBRL(totalHistorico)}</span>
             </div>
             <div style="max-height:220px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
@@ -4014,7 +4022,7 @@ ${avisoPendente}
     cartao_vr: { label: 'Cartão VR', class: 'vr', icon: '🍽️' },
     vr: { label: 'Cartão VR', class: 'vr', icon: '🍽️' },
 
-    // Scarlet / FisioFlow
+    // Scarlet / Atendimentos
     scarlet_fisio: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
     scarlet_extra: { label: 'Renda Extra Scarlet', class: 'fisio', icon: '👩‍⚕️🎁' },
     scarlet: { label: 'Fisio Scarlet', class: 'fisio', icon: '🩺' },
@@ -4087,7 +4095,7 @@ ${avisoPendente}
       return '<span class="bank-badge vr" title="Cartão Vale Refeição (Almoço USP)"><span class="bank-icon">🍽️</span> <strong>Cartão VR</strong></span>';
     }
     if (c.includes('fisio') || r.includes('fisio') || (n.includes('fisio') && !n.includes('fatura'))) {
-      return '<span class="bank-badge fisio" title="Ganhos da Scarlet (FisioFlow)"><span class="bank-icon">🩺</span> <strong>FisioFlow (Scarlet)</strong></span>';
+      return '<span class="bank-badge fisio" title="Ganhos da Scarlet (Atendimentos)"><span class="bank-icon">🩺</span> <strong>Atendimentos Scarlet</strong></span>';
     }
     if (c === 'bb' || r.includes('salario') || n.includes('bb') || n.includes('salário') || c === 'salario_bb') {
       return '<span class="bank-badge bb" title="Salário Líquido USP (Conta BB)"><span class="bank-icon">🟡🏦</span> <strong>BB Salário USP</strong></span>';
@@ -4181,7 +4189,7 @@ ${avisoPendente}
         <div style="font-size:10.5px;display:flex;flex-direction:column;gap:3px;margin-top:6px;">
           <div style="display:flex;justify-content:space-between;"><span>🏛️ Salário USP (BB):</span><strong>${formatBRL(salUsp)}</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>🎁 Renda Extra:</span><strong>${formatBRL(outrosGanhos)}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span>🩺 Ganhos Scarlet (FisioFlow):</span><strong>${formatBRL(scarletTotal)}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>🩺 Ganhos Scarlet (Atendimentos):</span><strong>${formatBRL(scarletTotal)}</strong></div>
         </div>
       </div>
 
@@ -5399,7 +5407,7 @@ function onModalCategoriaChange(catVal) {
       });
       const ganhoMatheusMes = salMatheus + decimoTerceiro + extrasMatheus;
 
-      // Ganhos Scarlet: FisioFlow (regra M+1) + Outras Rendas da Scarlet
+      // Ganhos Scarlet: Atendimentos (regra M+1) + Outras Rendas da Scarlet
       const fisioScarlet = getGanhosScarletMes(ano, mes);
       const outrasScarlet = getOutrasRendasScarletMes(ano, mes);
       const ganhoScarletMes = fisioScarlet + outrasScarlet;
@@ -5549,7 +5557,7 @@ function onModalCategoriaChange(catVal) {
           <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px;">
             Média real: <strong style="color:#e879f9;">${formatBRL(mediaScarlet)}/mês</strong> (${divisorMeses}m)
           </div>
-          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">FisioFlow (M+1) + Outras Rendas</div>
+          <div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">Atendimentos (M+1) + Outras Rendas</div>
         </div>
 
         <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:12px;border-radius:var(--radius-sm);">
@@ -5614,7 +5622,7 @@ function onModalCategoriaChange(catVal) {
                   </td>
                   <td class="val-col" style="color:#e879f9;font-weight:600;">
                     ${formatBRL(l.ganhoScarletMes)}
-                    <span style="font-size:9px;color:var(--text-dim);display:block;">FisioFlow: ${formatBRL(l.fisioScarlet)}</span>
+                    <span style="font-size:9px;color:var(--text-dim);display:block;">Atendimentos: ${formatBRL(l.fisioScarlet)}</span>
                   </td>
                   <td class="val-col" style="color:var(--matrix-green);font-weight:700;background:rgba(255,255,255,0.02);">${formatBRL(l.rendaCasalMes)}</td>
                   <td class="val-col" style="color:var(--rose);font-weight:600;">${formatBRL(l.gastosMes)}</td>
@@ -5730,15 +5738,15 @@ function onModalCategoriaChange(catVal) {
             </div>
           </div>
 
-          <!-- Card 3: Financiamento Caixa & Fatura Scarlet / FisioFlow -->
+          <!-- Card 3: Financiamento Caixa & Fatura Scarlet / Atendimentos -->
           <div style="background:rgba(0,0,0,0.5);border-left:3px solid #8b5cf6;padding:10px 12px;border-radius:var(--radius-xs);grid-column:1/-1;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <strong style="color:var(--text-main);font-size:12.5px;">🏛️ Financiamento Caixa & Consolidação FisioFlow</strong>
+              <strong style="color:var(--text-main);font-size:12.5px;">🏛️ Financiamento Caixa & Consolidação Atendimentos</strong>
               <span style="color:var(--matrix-green);font-size:11px;font-weight:bold;">Economia em Juros: Dezenas de milhares de R$</span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">
               • <strong>Amortização Exclusiva de Prazo (Financiamento Caixa):</strong> Saldo devedor de R$ 157.884,49 em 271 prestações (Price, 8,99% a.a., parcela de R$ 1.395,88). Cada aporte extraordinário com foco exclusivo em prazo extingue parcelas do final da dívida com abatimento exponencial de juros futuros. O FGTS mensal USP (R$ 501,12) acumula ~R$ 12.000 a cada 24 meses para abatimento obrigatório por prazo.<br>
-              • <strong>Auto-suficiência da Fatura Scarlet (Nubank Black):</strong> Com a capacidade contratada de R$ 4.400/mês (7 pacientes ativos no FisioFlow), a consolidação dos atendimentos particulares dispensa repasses externos do Matheus, gerando excedente para a Previdência da Scarlet (Renda+ 2055).<br>
+              • <strong>Auto-suficiência da Fatura Scarlet (Nubank Black):</strong> Com a capacidade contratada de R$ 4.400/mês (7 pacientes ativos nos Atendimentos), a consolidação dos atendimentos particulares dispensa repasses externos do Matheus, gerando excedente para a Previdência da Scarlet (Renda+ 2055).<br>
               • <strong>Blindagem com Benefícios (VA R$ 2.050 + VR R$ 1.105):</strong> Direcionar 100% dos gastos de supermercado e almoço para os cartões de benefício (Casa Maracaju 88), mantendo custo zero de alimentação em conta corrente.
             </div>
           </div>
@@ -6016,8 +6024,8 @@ function onModalCategoriaChange(catVal) {
           O término dos empréstimos (Edna R$ 500, Alberto R$ 250, Cesar R$ 150) liberará R$ 900/mês de fluxo livre para canalizar à Reserva Imediata e Renda+ 2055.
         </div>
         <div class="tip-box">
-          <strong>3. Amortização Exclusiva de Prazo (Caixa) & FisioFlow</strong><br>
-          Foco estrito em redução de prazo no financiamento da Caixa (eliminando juros futuros com FGTS USP bienal) e expansão da capacidade do FisioFlow (R$ 4.400/mês) para auto-suficiência da fatura Scarlet.
+          <strong>3. Amortização Exclusiva de Prazo (Caixa) & Atendimentos</strong><br>
+          Foco estrito em redução de prazo no financiamento da Caixa (eliminando juros futuros com FGTS USP bienal) e expansão da capacidade dos Atendimentos (R$ 4.400/mês) para auto-suficiência da fatura Scarlet.
         </div>
       </body>
       </html>
@@ -6052,7 +6060,7 @@ function onModalCategoriaChange(catVal) {
     };
     const rendaLabels = {
       salario_usp: 'Salário Líquido USP (Matheus)',
-      ganhos_scarlet: 'Ganhos da Scarlet (FisioFlow)',
+      ganhos_scarlet: 'Ganhos da Scarlet (Atendimentos)',
       va_mercado: 'Vale Alimentação (VA Maracaju 88)',
       vr_almoco: 'Vale Refeição (VR Presencial)',
       reserva_aportes: 'Reserva de Emergência / Investimentos'
@@ -6107,7 +6115,7 @@ function onModalCategoriaChange(catVal) {
           const tipoDesc = tipoKey === 'parcelado' ? `📦 Parcelado (${scen.parcelas || 2}x)` : (tipoLabels[tipoKey] || '🔄 Recorrente Mensal');
           const contaDesc = contaLabels[scen.conta] || scen.conta || 'Nubank Scarlet (Mastercard Black)';
           const scenRendaKey = (scen.renda === 'orcamento_geral' || scen.renda === 'estudio_extra') ? (pilar === 'scarlet' ? 'ganhos_scarlet' : 'salario_usp') : (scen.renda || 'salario_usp');
-          const rendaDesc = rendaLabels[scenRendaKey] || (pilar === 'scarlet' ? 'Ganhos da Scarlet (FisioFlow)' : 'Salário Líquido USP (Matheus)');
+          const rendaDesc = rendaLabels[scenRendaKey] || (pilar === 'scarlet' ? 'Ganhos da Scarlet (Atendimentos)' : 'Salário Líquido USP (Matheus)');
 
           const pilar = ScenarioSimulator.getScenarioPilar(scen);
           let pilarBadge = `<span class="status-badge" style="font-size:10px;background:rgba(56,189,248,0.12);color:var(--cyan);border-color:var(--cyan);">👨 Conta Matheus</span>`;
@@ -6530,13 +6538,13 @@ function onModalCategoriaChange(catVal) {
           <!-- 👩 Scarlet -->
           <div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.3);border-radius:var(--radius-sm);padding:10px 12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:700;color:#f472b6;font-size:12px;">👩 Scarlet (FisioFlow + Nubank)</span>
+              <span style="font-weight:700;color:#f472b6;font-size:12px;">👩 Scarlet (Atendimentos + Nubank)</span>
               <span class="status-badge ${rowContas.scarlet.saldoSimulado >= 0 ? 'pago' : 'danger'}" style="font-size:9.5px;">
                 ${rowContas.scarlet.saldoSimulado >= 0 ? 'Folga' : 'Déficit'}
               </span>
             </div>
             <div style="font-size:11px;color:var(--text-muted);display:flex;justify-content:space-between;padding:2px 0;">
-              <span>FisioFlow (M+1):</span>
+              <span>Atendimentos (M+1):</span>
               <span style="color:var(--text-main);">${formatBRL(rowContas.scarlet.ganhosFisio != null ? rowContas.scarlet.ganhosFisio : rowContas.scarlet.ganhos)}</span>
             </div>
             ${rowContas.scarlet.outrasRendas > 0 ? `
@@ -6827,13 +6835,13 @@ function onModalCategoriaChange(catVal) {
 
       if (d.statusTipo === 'weekend') {
         cellTypeClass = 'weekend';
-        tagShort = '💤 Fim Sem';
+        tagShort = '💤 Fim';
         tagFull = '💤 Fim de Semana';
         detail = '<span>Descanso</span>';
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Fim de semana. Clique para alterar status.`;
       } else if (d.statusTipo === 'abonada') {
         cellTypeClass = 'custom-abonada';
-        tagShort = '📝 Abonada';
+        tagShort = '📝 Abon.';
         tagFull = `📝 ${d.customLeaveDesc || 'Falta Abonada'}`;
         detail = '<span style="color:var(--cyan);font-weight:600;">Falta Abonada</span>';
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Falta Abonada. Sem Carona/VR. Clique para alterar.`;
@@ -6851,13 +6859,13 @@ function onModalCategoriaChange(catVal) {
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Férias (${d.customLeaveDesc}). Clique para alterar.`;
       } else if (d.statusTipo === 'holiday') {
         cellTypeClass = 'holiday';
-        tagShort = '🎉 Feriado';
+        tagShort = '🎉 Fer.';
         tagFull = `🎉 ${d.holidayDesc || 'Feriado'}`;
         detail = '<span style="color:var(--amber);">Feriado</span>';
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Feriado (${d.holidayDesc}). Clique para transformar em trabalho presencial.`;
       } else if (d.statusTipo === 'recess') {
         cellTypeClass = 'recess';
-        tagShort = '🏛️ Recesso';
+        tagShort = '🏛️ Rec.';
         tagFull = '🏛️ Recesso USP';
         detail = '<span style="color:var(--cyan);">Recesso Fim de Ano</span>';
         tooltip = `Dia ${d.day} (${d.dayOfWeekStr}): Recesso oficial USP de fim de ano.`;
@@ -8157,16 +8165,23 @@ function onModalCategoriaChange(catVal) {
     const state = MatrixDB.getState();
     const sat = state.satellites || {};
 
-    // 1. FisioFlow (Scarlet)
+    // 1. Atendimentos Scarlet
     const fisioBadge = document.getElementById('badgeFisioStatus');
     const fisioAtivo = !!(satCfg.fisioUrl && satCfg.fisioUrl.trim()) || !!sat.fisioflow;
     if (fisioBadge) {
-      fisioBadge.className = fisioAtivo ? 'status-badge pago' : 'status-badge pendente';
-      fisioBadge.textContent = fisioAtivo ? 'ATIVO' : 'PENDENTE';
+      if (sat.fisioflow && sat.fisioflow.syncError) {
+        fisioBadge.className = 'status-badge danger';
+        fisioBadge.textContent = 'ERRO';
+        fisioBadge.title = sat.fisioflow.syncError;
+      } else {
+        fisioBadge.className = fisioAtivo ? 'status-badge pago' : 'status-badge pendente';
+        fisioBadge.textContent = fisioAtivo ? 'ATIVO' : 'PENDENTE';
+        fisioBadge.title = '';
+      }
     }
-    if (sat.fisioflow) {
+    if (sat.fisioflow && !sat.fisioflow.semente) {
       if (document.getElementById('satFisioMesAtual')) document.getElementById('satFisioMesAtual').textContent = formatBRL(sat.fisioflow.mesAtualTotal);
-      if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.ganhoPossivelMes || sat.fisioflow.capacidadeMensalRecorrente || sat.fisioflow.projecaoMensalRecorrente || 4400.00);
+      if (document.getElementById('satFisioPrevisao')) document.getElementById('satFisioPrevisao').textContent = formatBRL(sat.fisioflow.ganhoPossivelMes || sat.fisioflow.capacidadeMensalRecorrente || sat.fisioflow.projecaoMensalRecorrente || 0);
     }
 
     // 2. Faturas (Nubank Black)
@@ -8229,9 +8244,16 @@ function onModalCategoriaChange(catVal) {
     try {
       const results = await SatelliteConnectors.scrapeAll();
       renderSatellitesUI();
-      renderAll();
+      scheduleRenderAll();
       if (!silent) {
-        alert('Scraping concluído com sucesso nos apps configurados!');
+        const fisioFalhou = results && results.fisio && results.fisio.success === false;
+        if (fisioFalhou) {
+          alert('Os outros apps foram atualizados, mas o Atendimentos não respondeu.\n\n' +
+            (results.fisio.error || '') +
+            '\n\nPublique o Apps Script do app de fisioterapia com a versão que aceita ?callback= (JSONP).');
+        } else {
+          alert('Scraping concluído com sucesso nos apps configurados!');
+        }
       }
     } catch (e) {
       if (!silent) alert('Erro no scraping: ' + e.message);
@@ -8490,7 +8512,7 @@ function onModalCategoriaChange(catVal) {
     if (titular === 'scarlet' && tipo === 'receita') {
       if (titleEl) titleEl.textContent = '+ Nova Renda / Receita da Scarlet';
       if (nomeLabel) nomeLabel.textContent = 'Descrição da Renda da Scarlet:';
-      if (nomeInput) nomeInput.placeholder = 'Ex: Atendimentos FisioFlow, Consultoria, Aulas, Trabalhos prestados...';
+      if (nomeInput) nomeInput.placeholder = 'Ex: Atendimentos Scarlet, Consultoria, Aulas, Trabalhos prestados...';
       if (catSelect) catSelect.value = 'Outras Rendas Scarlet';
       if (rendaSelect) rendaSelect.value = 'outras_rendas_scarlet';
     } else if (titular === 'scarlet') {
@@ -8895,7 +8917,7 @@ function onModalCategoriaChange(catVal) {
     // 1. Salário Matheus
     const salMatheus = getSalarioLiquidoMes(saldosModalTargetAno, saldosModalTargetMes);
 
-    // 2. Ganhos Scarlet (Atendimentos FisioFlow + Outras Rendas)
+    // 2. Ganhos Scarlet (Atendimentos Scarlet + Outras Rendas)
     const ganhosScarlet = getGanhosScarletMes(saldosModalTargetAno, saldosModalTargetMes);
     const outrasRendasScarlet = getOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
     const descOutrasScarlet = getDescOutrasRendasScarletMes(saldosModalTargetAno, saldosModalTargetMes);
@@ -9103,7 +9125,7 @@ function onModalCategoriaChange(catVal) {
       } else {
         monthData.receitas.push({
           id: 'rec_fisio_' + saldosModalTargetMes + '_' + saldosModalTargetAno,
-          nome: 'Ganhos Scarlet (FisioFlow)',
+          nome: 'Ganhos Scarlet (Atendimentos)',
           valor: ganhosScarlet,
           categoria: 'Fisio Scarlet',
           conta: 'scarlet_fisio',

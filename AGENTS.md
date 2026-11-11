@@ -31,7 +31,7 @@ Abrir `index.html` direto por `file://` quebra o Service Worker e o fetch do App
 
 ```powershell
 npm run check      # sintaxe de todos os js/ + sw.js + apps_script.gs
-npm test           # 16 testes: sintaxe, integridade do HTML, manifest e Service Worker
+npm test           # 19 testes: sintaxe, integridade do HTML, manifest, Service Worker e regressões de dados
 npm run verify     # os dois acima em sequência (é o que a CI roda)
 ```
 O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
@@ -87,6 +87,19 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 10. **Nunca renderize valor de exemplo como se fosse real.** Enquanto o satélite não sincronizou,
     o KPI mostra `—` (os seeds levam `semente: true` e o HTML nasce neutro — v120). Foi assim que
     o chip exibia `1.988,78 / 805,41` antes de fixar os números do Casa Maracaju.
+11. **FisioFlow só entra por JSONP.** O `doGet` de `../matheus-app-fisioterapia/Code.gs` precisa
+    manter o bloco `callback` (v121); sem ele o navegador bloqueia a leitura por CORS. Nunca fixe
+    os ganhos da Scarlet por mês (`3.700/1.140/995`): o caixa M+1 vem de
+    `satellites.fisioflow.ganhosPorMes[prevYm]`.
+12. **Receitas: id é sagrado.** Nunca reescreva ids de receita no `compactStateForCloud` e nunca
+    faça merge de receita só por id. O par seed (`rec_sal_...`) × cópia antiga (`r0`, `r1`...) é
+    duplicata e deve ser limpo por `MatrixDB.dedupeReceitasInState` (v121).
+13. **Boot sem piscar.** `scrapeAll` tem trava de concorrência; `focus` só coleta a cada 2 min com
+    a aba visível; renders assíncronos usam `scheduleRenderAll` e o fade fica desligado nos
+    primeiros 5 s (v121). Não reintroduza `renderAll()` direto nesses caminhos.
+14. **Calendário de 7 colunas** exige `grid-template-columns: repeat(7, minmax(0, 1fr))` e
+    `min-width: 0` nas células; sem isso o `min-content` dos textos desalinha os dias do
+    cabeçalho no celular (v121).
 
 ## Dívida técnica conhecida
 

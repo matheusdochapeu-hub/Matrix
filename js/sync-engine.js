@@ -111,28 +111,55 @@ const SyncEngine = (function () {
       simulacoesAtivas: Array.isArray(rawState.simulacoesAtivas) ? JSON.parse(JSON.stringify(rawState.simulacoesAtivas)) : [],
       simulacoesAmortizacao: [],
       calendarioCustom: rawState.calendarioCustom ? JSON.parse(JSON.stringify(rawState.calendarioCustom)) : { overrides: {}, folgas: [] },
-      satellites: (rawState.satellites && rawState.satellites.maracaju) ? {
-        maracaju: {
-          origem: rawState.satellites.maracaju.origem || 'Maracaju 88',
-          atualizadoEm: rawState.satellites.maracaju.atualizadoEm,
-          cicloVigente: rawState.satellites.maracaju.cicloVigente || '2026-11',
-          creditDate: rawState.satellites.maracaju.creditDate || '2026-11-06',
-          vaMensal: rawState.satellites.maracaju.vaMensal || 2050,
-          vaRollover: rawState.satellites.maracaju.vaRollover != null ? rawState.satellites.maracaju.vaRollover : 9.84,
-          vaTotal: rawState.satellites.maracaju.vaTotal || 2059.84,
-          gastoMercadoMesAtual: rawState.satellites.maracaju.gastoMercadoMesAtual || 0,
-          saldoVaRestante: rawState.satellites.maracaju.saldoVaRestante != null ? rawState.satellites.maracaju.saldoVaRestante : 2059.84,
-          vrCreditadoNoMes: rawState.satellites.maracaju.vrCreditadoNoMes || 1105,
-          vrRollover: rawState.satellites.maracaju.vrRollover != null ? rawState.satellites.maracaju.vrRollover : 0.16,
-          vrTotal: rawState.satellites.maracaju.vrTotal || 1105.16,
-          gastoVrMesAtual: rawState.satellites.maracaju.gastoVrMesAtual || 0,
-          saldoVrRestante: rawState.satellites.maracaju.saldoVrRestante != null ? rawState.satellites.maracaju.saldoVrRestante : 1105.16,
-          totalBeneficios: rawState.satellites.maracaju.totalBeneficios || 3165,
-          totalDisponivel: rawState.satellites.maracaju.totalDisponivel != null ? rawState.satellites.maracaju.totalDisponivel : 3165,
-          gastoMercadoCicloAnterior: rawState.satellites.maracaju.gastoMercadoCicloAnterior || 390.41,
-          comprasCicloAtual: Array.isArray(rawState.satellites.maracaju.comprasCicloAtual) ? rawState.satellites.maracaju.comprasCicloAtual.slice(0, 30) : []
+      satellites: (() => {
+        const sat = {};
+        const m = rawState.satellites && rawState.satellites.maracaju;
+        if (m) {
+          sat.maracaju = {
+            origem: m.origem || 'Maracaju 88',
+            atualizadoEm: m.atualizadoEm,
+            cicloVigente: m.cicloVigente || '2026-11',
+            creditDate: m.creditDate || '2026-11-06',
+            vaMensal: m.vaMensal || 2050,
+            vaRollover: m.vaRollover != null ? m.vaRollover : 9.84,
+            vaTotal: m.vaTotal || 2059.84,
+            gastoMercadoMesAtual: m.gastoMercadoMesAtual || 0,
+            saldoVaRestante: m.saldoVaRestante != null ? m.saldoVaRestante : 2059.84,
+            vrCreditadoNoMes: m.vrCreditadoNoMes || 1105,
+            vrRollover: m.vrRollover != null ? m.vrRollover : 0.16,
+            vrTotal: m.vrTotal || 1105.16,
+            gastoVrMesAtual: m.gastoVrMesAtual || 0,
+            saldoVrRestante: m.saldoVrRestante != null ? m.saldoVrRestante : 1105.16,
+            totalBeneficios: m.totalBeneficios || 3165,
+            totalDisponivel: m.totalDisponivel != null ? m.totalDisponivel : 3165,
+            gastoMercadoCicloAnterior: m.gastoMercadoCicloAnterior || 390.41,
+            comprasCicloAtual: Array.isArray(m.comprasCicloAtual) ? m.comprasCicloAtual.slice(0, 30) : []
+          };
         }
-      } : undefined,
+        // v121: o Atendimentos também precisa sobreviver ao round-trip da nuvem. Antes ele era
+        // descartado no compact e o fetchFromCloud apagava o satélite local a cada abertura.
+        const ff = rawState.satellites && rawState.satellites.fisioflow;
+        if (ff) {
+          sat.fisioflow = {
+            origem: ff.origem || 'Atendimentos',
+            atualizadoEm: ff.atualizadoEm || null,
+            ganhosPorMes: ff.ganhosPorMes && typeof ff.ganhosPorMes === 'object'
+              ? JSON.parse(JSON.stringify(ff.ganhosPorMes))
+              : {},
+            totalHistoricoRecebido: ff.totalHistoricoRecebido || 0,
+            mesAtualTotal: ff.mesAtualTotal || 0,
+            mesAtualPrevisto: ff.mesAtualPrevisto || 0,
+            ganhoPossivelMes: ff.ganhoPossivelMes || 0,
+            capacidadeMensalRecorrente: ff.capacidadeMensalRecorrente || 0,
+            projecaoMensalRecorrente: ff.projecaoMensalRecorrente || 0,
+            pacientesAtivos: ff.pacientesAtivos || 0,
+            totalAtendimentosRegistrados: ff.totalAtendimentosRegistrados || 0,
+            syncError: ff.syncError || null,
+            lastAttempt: ff.lastAttempt || null
+          };
+        }
+        return Object.keys(sat).length ? sat : undefined;
+      })(),
       anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
     };
 
@@ -183,7 +210,9 @@ const SyncEngine = (function () {
                 // Preserva IDs semânticos da Scarlet/Fisio/Salário/VA/VR para não perder vínculo após restaurar da nuvem
                 const idStr = String(it.id || '');
                 const isSemanticId = idStr.includes('scarlet') || idStr.includes('fisio') || idStr.startsWith('rec_sal') || idStr.startsWith('rec_va') || idStr.startsWith('rec_vr') || idStr.startsWith('rec_extra');
-                if (idStr.length > 10 && !isSemanticId) {
+                // v121: NUNCA reescrever o id de uma RECEITA. O merge da nuvem casa por id e, ao
+                // trocar 'rec_...' por 'r0', a mesma renda voltava como item novo e duplicava.
+                if (idStr.length > 10 && !isSemanticId && tipo !== 'receitas') {
                   it.id = tipo[0] + idx;
                 }
               });
@@ -410,6 +439,35 @@ const SyncEngine = (function () {
     };
   }
 
+  function normalizarNomeReceita(valor) {
+    return String(valor || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function isSeedReceitaId(id) {
+    return /^rec_(sal|vr|va|13|13o|extra|fisio|ferias|decimo|outras)/.test(String(id || ''));
+  }
+
+  function isShortReceitaId(id) {
+    return /^r\d+$/.test(String(id || ''));
+  }
+
+  // Duas rendas representam a mesma linha quando têm o mesmo nome E o mesmo valor,
+  // ou quando uma é o seed canônico (rec_...) e a outra é a cópia antiga curta (r0, r1...).
+  function mesmaReceita(a, b) {
+    if (!a || !b) return false;
+    const nomeA = normalizarNomeReceita(a.nome);
+    const nomeB = normalizarNomeReceita(b.nome);
+    if (!nomeA || nomeA !== nomeB) return false;
+    const valorA = Math.round((parseFloat(a.valor) || 0) * 100);
+    const valorB = Math.round((parseFloat(b.valor) || 0) * 100);
+    if (valorA === valorB) return true;
+    return (isSeedReceitaId(a.id) && isShortReceitaId(b.id)) || (isShortReceitaId(a.id) && isSeedReceitaId(b.id));
+  }
+
   async function fetchFromCloud(options = {}) {
     const cfg = getConfig();
     if (!cfg.cloudUrl) {
@@ -495,6 +553,23 @@ const SyncEngine = (function () {
           payloadData.satellites.maracaju = localMaracajuSat;
         }
       }
+
+      // v121: o backup antigo não guardava o Atendimentos. Sem preservar o local, toda abertura
+      // apagava os ganhos reais da Scarlet e a tela voltava para os valores de exemplo.
+      const localFisioSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.fisioflow;
+      const cloudFisioSat = payloadData.satellites.fisioflow;
+      const localFisioTs = localFisioSat && localFisioSat.atualizadoEm ? Date.parse(localFisioSat.atualizadoEm) : 0;
+      const cloudFisioTs = cloudFisioSat && cloudFisioSat.atualizadoEm ? Date.parse(cloudFisioSat.atualizadoEm) : 0;
+      if (!cloudFisioSat && localFisioSat) {
+        payloadData.satellites.fisioflow = JSON.parse(JSON.stringify(localFisioSat));
+      } else if (localFisioSat && cloudFisioSat) {
+        // O snapshot da planilha pode estar mais velho que o último scraping deste aparelho.
+        const localTemSync = localFisioTs > 0;
+        const cloudTemSync = cloudFisioTs > 0;
+        if ((localTemSync && !cloudTemSync) || (localTemSync && cloudTemSync && localFisioTs > cloudFisioTs)) {
+          payloadData.satellites.fisioflow = JSON.parse(JSON.stringify(localFisioSat));
+        }
+      }
       // MERGE INTELIGENTE E NÃO-DESTRUTIVO DE DIÁRIOS E LANÇAMENTOS LOCAIS:
       let hadLocalDiariosMerged = false;
       if (currentLocalState && currentLocalState.anos && payloadData && payloadData.anos) {
@@ -532,14 +607,29 @@ const SyncEngine = (function () {
             ['fixos', 'outros', 'receitas'].forEach(tipo => {
               if (localMonth && Array.isArray(localMonth[tipo])) {
                 if (!Array.isArray(cloudMonth[tipo])) cloudMonth[tipo] = [];
-                localMonth[tipo].forEach(locIt => {
-                  if (!locIt || !locIt.id) return;
-                  const inCloud = cloudMonth[tipo].some(cIt => cIt.id === locIt.id);
-                  if (!inCloud) {
-                    cloudMonth[tipo].push(JSON.parse(JSON.stringify(locIt)));
-                    hadLocalDiariosMerged = true;
+                for (const locIt of localMonth[tipo]) {
+                  if (!locIt || !locIt.id) continue;
+                  if (cloudMonth[tipo].some(cIt => cIt && cIt.id === locIt.id)) continue;
+
+                  // v121: receita com o mesmo nome/valor (ou seed × cópia curta) não entra de novo.
+                  // Era isso que duplicava salário/VA/VR a cada restauração da planilha.
+                  if (tipo === 'receitas') {
+                    const sameIdx = cloudMonth[tipo].findIndex(cIt => mesmaReceita(cIt, locIt));
+                    if (sameIdx >= 0) {
+                      const cIt = cloudMonth[tipo][sameIdx];
+                      if (isSeedReceitaId(locIt.id) && isShortReceitaId(cIt.id)) {
+                        const merged = JSON.parse(JSON.stringify(locIt));
+                        if (cIt.pago && !merged.pago) merged.pago = true;
+                        cloudMonth[tipo][sameIdx] = merged;
+                        hadLocalDiariosMerged = true;
+                      }
+                      continue;
+                    }
                   }
-                });
+
+                  cloudMonth[tipo].push(JSON.parse(JSON.stringify(locIt)));
+                  hadLocalDiariosMerged = true;
+                }
               }
             });
           });
@@ -548,6 +638,11 @@ const SyncEngine = (function () {
 
       if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
         SatelliteConnectors.syncMaracajuFromLocal(payloadData);
+      }
+      // v121: limpa duplicatas de receita que já estavam gravadas na planilha (ex.: r0 + rec_sal...).
+      if (typeof MatrixDB.dedupeReceitasInState === 'function') {
+        const removidas = MatrixDB.dedupeReceitasInState(payloadData);
+        if (removidas > 0) hadLocalDiariosMerged = true;
       }
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
       if (hadLocalDiariosMerged) {

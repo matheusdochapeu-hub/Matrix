@@ -52,6 +52,96 @@ const MatrixDB = (function () {
     return false;
   }
 
+  // ==========================================
+  // v121: INTEGRIDADE DAS RECEITAS (ANTIDUPLICAÇÃO)
+  // ==========================================
+  function normalizarNomeReceita(valor) {
+    return String(valor || '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function isSeedReceitaId(id) {
+    return /^rec_(sal|vr|va|13|13o|extra|fisio|ferias|decimo|outras)/.test(String(id || ''));
+  }
+
+  function isShortReceitaId(id) {
+    return /^r\d+$/.test(String(id || ''));
+  }
+
+  function mergeReceitaFields(keep, drop) {
+    if (!keep || !drop) return keep;
+    if (drop.pago && !keep.pago) keep.pago = true;
+    ['conta', 'renda', 'categoria', 'naoPecunia', 'titular', 'dataHora', 'observacao', 'manual', 'isFisioBase'].forEach(k => {
+      if (keep[k] == null && drop[k] != null) keep[k] = drop[k];
+    });
+    return keep;
+  }
+
+  /**
+   * Remove duplicatas de receita do mesmo mês:
+   *  1) mesmo nome + mesmo valor (duplicata exata);
+   *  2) seed canônico (rec_sal_..., rec_va_...) + cópia antiga curta (r0, r1...).
+   * Nunca mexe em fixos/outros/diários nem em receitas de nomes diferentes.
+   */
+  function dedupeReceitasList(list) {
+    if (!Array.isArray(list) || list.length < 2) return { list, removed: 0 };
+
+    const out = [];
+    const exactIndex = new Map();
+    for (const item of list) {
+      if (!item || typeof item !== 'object') {
+        out.push(item);
+        continue;
+      }
+      const nome = normalizarNomeReceita(item.nome);
+      const valor = (Math.round((parseFloat(item.valor) || 0) * 100) / 100).toFixed(2);
+      const chave = nome + '|' + valor;
+      const idx = exactIndex.get(chave);
+      if (idx != null && out[idx]) {
+        const kept = out[idx];
+        if (isSeedReceitaId(item.id) && !isSeedReceitaId(kept.id)) {
+          out[idx] = mergeReceitaFields(item, kept);
+        } else {
+          mergeReceitaFields(kept, item);
+        }
+        continue;
+      }
+      exactIndex.set(chave, out.length);
+      out.push(item);
+    }
+
+    // Segunda passada: se existe a versão seed da mesma renda, a cópia curta antiga cai.
+    const seedNames = new Set();
+    out.forEach(it => {
+      if (it && isSeedReceitaId(it.id)) seedNames.add(normalizarNomeReceita(it.nome));
+    });
+    const final = out.filter(it => !(it && isShortReceitaId(it.id) && seedNames.has(normalizarNomeReceita(it.nome))));
+
+    return { list: final, removed: list.length - final.length };
+  }
+
+  function dedupeReceitasInState(state) {
+    if (!state || !state.anos) return 0;
+    let removed = 0;
+    Object.keys(state.anos).forEach(ano => {
+      const meses = state.anos[ano];
+      if (!meses || typeof meses !== 'object') return;
+      Object.keys(meses).forEach(mes => {
+        const m = meses[mes];
+        if (!m || !Array.isArray(m.receitas)) return;
+        const res = dedupeReceitasList(m.receitas);
+        if (res.removed > 0) {
+          m.receitas = res.list;
+          removed += res.removed;
+        }
+      });
+    });
+    return removed;
+  }
+
   // Regra Financeira: VA e VR são benefícios de alimentação e NÃO são dinheiro em pecúnia para pagar contas
   function isBeneficioNaoPecunia(itemOuNome) {
     if (!itemOuNome) return false;
@@ -105,7 +195,9 @@ const MatrixDB = (function () {
         if (m.receitas && Array.isArray(m.receitas)) {
           const origLen = m.receitas.length;
           m.receitas = m.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
-          if (m.receitas.length !== origLen) mutated = true;
+          const dedup = dedupeReceitasList(m.receitas);
+          m.receitas = dedup.list;
+          if (m.receitas.length !== origLen || dedup.removed > 0) mutated = true;
           // Sinalizar VA e VR existentes como não-pecúnia
           m.receitas.forEach(r => {
             if (isBeneficioNaoPecunia(r) && (!r.naoPecunia || r.categoria !== 'Benefício (Não Pecúnia)')) {
@@ -202,21 +294,10 @@ const MatrixDB = (function () {
       }
     }
 
-    // Sincronização e calibração de dados dinâmicos do FisioFlow (Novembro/2026: Previsto R$ 3.810,00)
-    if (memoryCache && memoryCache.satellites && memoryCache.satellites.fisioflow) {
-      const ff = memoryCache.satellites.fisioflow;
-      if (ff.mesAtualPrevisto === 3300 || (ff.ganhosPorMes && ff.ganhosPorMes['2026-11'] && ff.ganhosPorMes['2026-11'].previsto === 3300)) {
-        ff.mesAtualPrevisto = 3810.00;
-        ff.ganhoPossivelMes = (ff.mesAtualTotal || 995.00) + 3810.00;
-        if (ff.ganhosPorMes && ff.ganhosPorMes['2026-11']) {
-          ff.ganhosPorMes['2026-11'].previsto = 3810;
-          ff.ganhosPorMes['2026-11'].ganhoPossivel = (ff.ganhosPorMes['2026-11'].total || 995) + 3810;
-        }
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryCache)); } catch (_) {}
-      }
-    }
+    // v121: removida a calibração fixa "3300 → 3810" dos Atendimentos. O previsto agora vem
+    // integralmente do app de fisioterapia (processFisioData) e não pode ser sobrescrito aqui.
 
-    // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, FisioFlow, Faturas)
+    // Inicialização e vinculação automática dos conectores satélites (Maracaju 88, Atendimentos, Faturas)
     if (memoryCache) {
       if (!memoryCache.satellites) memoryCache.satellites = {};
       // v117: só cria o estado inicial quando o saldo do Casa Maracaju NÃO existe (ou está
@@ -308,36 +389,9 @@ const MatrixDB = (function () {
         }
       }
 
-      // 2. Regra M+1 para Scarlet em 2026 (Outubro: 3.700, Novembro: 1.140, Dezembro: 995)
-      if (memoryCache.anos['2026']) {
-        const ano2026 = memoryCache.anos['2026'];
-        if (ano2026['Outubro'] && ano2026['Outubro'].scarlet && ano2026['Outubro'].scarlet.ganhosManual == null) {
-          if (ano2026['Outubro'].scarlet.ganhos !== 3700) {
-            ano2026['Outubro'].scarlet.ganhos = 3700;
-            cacheMutated = true;
-          }
-        }
-        if (ano2026['Novembro'] && ano2026['Novembro'].scarlet && ano2026['Novembro'].scarlet.ganhosManual == null) {
-          if (ano2026['Novembro'].scarlet.ganhos !== 1140) {
-            ano2026['Novembro'].scarlet.ganhos = 1140;
-            cacheMutated = true;
-          }
-        }
-        if (ano2026['Dezembro'] && ano2026['Dezembro'].scarlet && ano2026['Dezembro'].scarlet.ganhosManual == null) {
-          if (ano2026['Dezembro'].scarlet.ganhos !== 995) {
-            ano2026['Dezembro'].scarlet.ganhos = 995;
-            cacheMutated = true;
-          }
-          if (ano2026['Dezembro'].receitas) {
-            ano2026['Dezembro'].receitas.forEach(r => {
-              if (r.valor === 5200 || r.valor === '5200') {
-                r.valor = 995;
-                cacheMutated = true;
-              }
-            });
-          }
-        }
-      }
+      // 2. v121: os ganhos da Scarlet NÃO são mais fixados por mês. O valor de caixa
+      // (regra M+1) vem de satellites.fisioflow.ganhosPorMes; fixar 3.700/1.140/995 aqui
+      // impedia o app de refletir novas sessões/pagamentos lançados no app de fisioterapia.
 
       // 3. Zerar rendas inventadas de Scarlet de Janeiro/2027 em diante (a menos que tenha ganhosManual)
       Object.keys(memoryCache.anos).forEach(ano => {
@@ -571,9 +625,16 @@ const MatrixDB = (function () {
         id: 'snap_' + Date.now(),
         dataHora: new Date().toISOString(),
         motivo: reason,
-        resumo: `Backup automático às ${new Date().toLocaleTimeString('pt-BR')}`
+        resumo: `Backup automático às ${new Date().toLocaleTimeString('pt-BR')}`,
+        // v121: guarda o estado completo nos snapshots recentes. Antes o histórico só tinha
+        // rótulo/hora, então não servia para recuperar uma renda apagada por engano.
+        state: JSON.parse(JSON.stringify(state))
       });
       if (hist.length > 20) hist = hist.slice(0, 20);
+      // Mantém estado completo nos 6 mais recentes; os antigos ficam só como histórico.
+      hist = hist.map((snap, i) => i < 6 ? snap : ({
+        id: snap.id, dataHora: snap.dataHora, motivo: snap.motivo, resumo: snap.resumo
+      }));
       localStorage.setItem(BACKUP_HISTORY_KEY, JSON.stringify(hist));
     } catch (e) {
       // Se exceder a cota de 5MB do navegador com o backup duplicado, preserva o estado principal intacto
@@ -607,6 +668,19 @@ const MatrixDB = (function () {
       const raw = localStorage.getItem(BACKUP_HISTORY_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch (_) { return []; }
+  }
+
+  function restoreBackupSnapshot(id) {
+    try {
+      const snap = getBackupSnapshots().find(s => s && s.id === id);
+      if (!snap || !snap.state || !snap.state.anos) {
+        return { success: false, error: 'Este snapshot antigo não guarda o estado completo.' };
+      }
+      saveState(JSON.parse(JSON.stringify(snap.state)), 'restore_backup_snapshot');
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   }
 
   const MONTH_NAMES = [
@@ -1062,11 +1136,15 @@ const MatrixDB = (function () {
     removeTransactionByIndex,
     togglePaidByIndex,
     ensureMonthReceitas,
+    dedupeReceitasInState,
     isBeneficioNaoPecunia,
     getAllYears,
     createYear,
     exportBackupJSON,
     importBackupJSON,
+    getLastAutoBackup,
+    getBackupSnapshots,
+    restoreBackupSnapshot,
     resetToDefault,
     getCustomQuickButtons,
     saveCustomQuickButtons,

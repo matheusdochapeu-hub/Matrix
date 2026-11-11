@@ -395,3 +395,38 @@ instante antes de o puxão dos apps satélites fixar os números reais. Duas fon
 
 
 
+
+---
+
+## [2026-11-10 21:30] - Matrix Finance v122: FisioFlow Atualizado, Fim das Piscadas, Rendas sem Duplicata e Calendário Alinhado no Celular
+
+### 🔍 Problemas Identificados & Causa Raiz
+1. **Valores do FisioFlow não atualizavam**: o Apps Script do app de fisioterapia não responde JSONP e o navegador bloqueia a leitura por CORS (`Failed to fetch`). Além disso, `compactStateForCloud` descartava `satellites.fisioflow` e o `fetchFromCloud` apagava o satélite local a cada abertura; os valores de outubro/novembro/dezembro ainda estavam fixos em `3.700/1.140/995` em `app.js` e `db.js`.
+2. **Piscadas no boot**: init, evento de `focus` e botão podiam disparar `scrapeAll` em paralelo; cada coleta salvava e re-renderizava a tela, e `smoothSetText` animava cada troca de valor. O histórico de backups mostrava coletas a cada 13–40 s.
+3. **Rendas duplicadas**: `compactStateForCloud` reescrevia ids longos de receita para `r0`, `r1`...; o merge da nuvem casava só por `id` e re-inseria a versão local (`rec_sal_...`) como item novo. O snapshot da planilha já tinha os pares `rec_*` + `r*` em Dez/2026 e em todo 2027 (36 duplicatas no estado real).
+4. **Calendário torto no celular**: as grids usavam `repeat(7, 1fr)`, cujo mínimo é o `min-content`; os textos `nowrap` das células alargavam as colunas dos dias (61,6 px) enquanto o cabeçalho ficava em 48,3 px. O grid dos dias também estourava a largura do wrapper.
+5. **Backups**: o histórico `matrix_backup_history_v1` guardava apenas id/hora/motivo, sem o estado, então não permitia recuperar uma renda apagada.
+
+### 🛠️ Correções Implementadas
+- **FisioFlow**: `doGet` do `matheus-app-fisioterapia/Code.gs` passou a aceitar `?callback=` e devolver JSONP; `satellite-connectors.js` preserva o último retrato bom e registra `syncError`/`lastAttempt`; `app.js` calcula o caixa M+1 direto de `satellites.fisioflow.ganhosPorMes`, sem literais; `db.js` não calibra mais 3.810/3.700/1.140/995; `sync-engine.js` compacta e restaura `satellites.fisioflow`.
+- **Piscadas**: `scrapeAll` tem trava de concorrência (`scrapeInFlight`), o foco só coleta a cada 2 min e com a aba visível, renders assíncronos passam por `scheduleRenderAll` (rAF) e o fade de valores fica desligado nos primeiros 5 s.
+- **Duplicatas**: ids de receita nunca são reescritos; merge da nuvem reconhece a mesma renda por nome+valor ou seed×cópia curta e substitui a cópia pela seed; `MatrixDB.dedupeReceitasInState` limpa o estado local e o payload restaurado, disparando sync da versão limpa.
+- **Calendário**: grids com `repeat(7, minmax(0, 1fr))` e `min-width: 0` nas células; rótulos móveis encurtados (`Fim`, `Abon.`, `Fer.`, `Rec.`).
+- **Backups**: os 6 snapshots mais recentes passam a guardar o estado completo; `getLastAutoBackup`, `getBackupSnapshots` e `restoreBackupSnapshot` foram exportados.
+- **Versões**: `sw.js` e todos os `?v=` do `index.html` em **v122** (o v121 virou v122 quando as correções do ciclo do Casa Maracaju entraram na mesma árvore).
+
+### 🧪 Validação
+- `node scripts/check-syntax.js`: 11/11 arquivos OK.
+- `node --test "test/*.test.js"`: **22/22** (16 antigos + 3 regressões de dados: dedupe de receitas, parser FisioFlow e compactação com fisioflow + 3 do ciclo do Casa Maracaju).
+- Chromium local com o estado real: FisioFlow passou a mostrar **14 sessões / R$ 1.245,00 realizado / R$ 3.465,00 previsto**; Dezembro M+1 = **R$ 1.245,00**; apenas **1** coleta no boot e nenhuma nova ao simular dois eventos de foco.
+- Calendário: cabeçalho e dias com exatamente a mesma posição/largura em **390 px (48,3 px), 360 px (44 px) e 1440 px (185,4 px)**, sem overflow horizontal.
+- Cloud restore simulado: preservou `satellites.fisioflow`, removeu as 36 duplicatas e enviou o estado limpo para a planilha.
+
+### 🧠 Regras & Decisões Aprendidas (Para Próximos Chats)
+- **FisioFlow é JSONP**: o `doGet` do app de fisioterapia precisa manter o bloco `callback`; sem ele o Matrix não lê os dados por CORS.
+- **Nunca fixar ganhos da Scarlet por mês**: o caixa M+1 é sempre `ganhosPorMes[prevYm].total` (ou `realizado + aReceber`).
+- **Nunca reescrever id de receita** na compactação da nuvem; ids são a chave do merge.
+- **Uma coleta por boot**: não adicionar `scrapeAll` em `focus`/`visibilitychange` sem o throttle e a trava de concorrência.
+- **Calendário**: qualquer grid de 7 colunas com texto precisa de `minmax(0, 1fr)` + `min-width: 0`.
+- **Casa Maracaju (v122)**: o ciclo e os saldos publicados em `settings.matrixBenefits`/`benefitsSummary` prevalecem sobre o recálculo local; compras com `deletedIds` não voltam no merge. Coberto por `test/maracaju-benefits.test.js`.
+- **Ação externa obrigatória**: publicar uma nova versão do Apps Script de `matheus-app-fisioterapia` (Implantar → Gerenciar implantações → Editar → Nova versão) para o JSONP valer no endpoint em produção.

@@ -1,7 +1,7 @@
 /**
  * MATRIX FINANCE - SATELLITE APPS INGESTION & SCRAPING ENGINE (v1.3.0)
  * Coleta com alta precisão e sem distorções dos 3 apps satélites:
- * 1. FisioFlow: Ganhos passados, mês atual e projeções futuras (Scarlet).
+ * 1. Atendimentos: Ganhos passados, mês atual e projeções futuras (Scarlet).
  * 2. Faturas: Nubank Mastercard Black — dados reais da fatura calculados
  *    a partir dos itens base e lançamentos extras da planilha/app Faturas.
  * 3. Maracaju 88: Confronto duplo de benefícios (Mercado NFC-e vs VA e VR).
@@ -165,7 +165,8 @@ const SatelliteConnectors = (function () {
   // 1. PARSER FISIOFLOW (Scarlet)
   // ========================================================
   const BASELINE_FISIO = {
-    origem: 'FisioFlow',
+    origem: 'Atendimentos',
+    semente: true,
     atualizadoEm: new Date().toISOString(),
     ganhosPorMes: {
       '2026-08': { realizado: 4670, aReceber: 0, previsto: 0, sessoes: 51, total: 4670, ganhoPossivel: 4670 },
@@ -232,7 +233,7 @@ const SatelliteConnectors = (function () {
       return false;
     }
 
-    // Reconciliação idêntica ao motor financeiro do FisioFlow (reconcileSchedulesWithEntries):
+    // Reconciliação idêntica ao motor financeiro dos Atendimentos (reconcileSchedulesWithEntries):
     // Vincula sessões já realizadas aos agendamentos para não duplicar valores na previsão
     const usedEntryIds = {};
     const processedSchedules = agendamentos.map(ag => ({ ...ag }));
@@ -285,8 +286,13 @@ const SatelliteConnectors = (function () {
     const now = new Date();
     const curYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    // Somar atendimentos realizados/lançados
-    atendimentos.forEach(at => {
+    // Somar atendimentos realizados/lançados (cancelados não entram em sessões nem em valores)
+    const atendimentosValidos = atendimentos.filter(at => {
+      const st = String((at && at.Status) || '').toLowerCase();
+      return st !== 'cancelado' && st !== 'cancelada' && st !== 'canceled';
+    });
+
+    atendimentosValidos.forEach(at => {
       const val = parseFloat(at.Valor) || 0;
       const dataStr = String(at.Data || '');
       const ym = dataStr.slice(0, 7);
@@ -296,7 +302,8 @@ const SatelliteConnectors = (function () {
         ganhosPorMes[ym].sessoes++;
         ganhosPorMes[ym].total += val;
 
-        if (at.Status === 'PAGO' || at.Status === 'Pago' || at.Status === 'Recebido') {
+        const st = String(at.Status || '').toLowerCase();
+        if (st === 'pago' || st === 'recebido' || st === 'paid') {
           ganhosPorMes[ym].realizado += val;
           totalPassado += val;
         } else {
@@ -355,7 +362,7 @@ const SatelliteConnectors = (function () {
     const ganhoPossivelMes = mesAtualTotal + mesAtualPrevisto;
 
     return {
-      origem: 'FisioFlow',
+      origem: 'Atendimentos',
       atualizadoEm: new Date().toISOString(),
       ganhosPorMes,
       totalHistoricoRecebido: totalPassado,
@@ -365,7 +372,7 @@ const SatelliteConnectors = (function () {
       capacidadeMensalRecorrente: capacidadeMensalRecorrente || 4400.00,
       projecaoMensalRecorrente: capacidadeMensalRecorrente || 4400.00,
       pacientesAtivos: pacAtivosCount || 7,
-      totalAtendimentosRegistrados: atendimentos.length
+      totalAtendimentosRegistrados: atendimentosValidos.length
     };
   }
 
@@ -558,15 +565,35 @@ const SatelliteConnectors = (function () {
 
   function mergeMaracajuPayloads(cloudPayload, localPayload) {
     if (!cloudPayload && !localPayload) return {};
-    if (!cloudPayload || cloudPayload.status === 'error') return localPayload || {};
-    if (!localPayload || localPayload.status === 'error') return cloudPayload || {};
+    // Fonte com erro é descartada, mas a outra fonte (e os túmulos) continua valendo.
+    if (cloudPayload && cloudPayload.status === 'error') cloudPayload = null;
+    if (localPayload && localPayload.status === 'error') localPayload = null;
+    if (!cloudPayload && !localPayload) return {};
 
-    const cData = cloudPayload.data || cloudPayload;
-    const lData = localPayload.data || localPayload;
+    const cData = (cloudPayload && (cloudPayload.data || cloudPayload)) || {};
+    const lData = (localPayload && (localPayload.data || localPayload)) || {};
+
+    // Exclusões feitas no Casa Maracaju são definitivas: o Matrix não pode
+    // devolver na planilha uma compra que o usuário apagou (o app de origem
+    // já registra o "túmulo" em deletedIds).
+    const deletedIds = { comprasRegistros: {} };
+    [cData, lData].forEach(src => {
+      const col = src && src.deletedIds && src.deletedIds.comprasRegistros;
+      if (col && typeof col === 'object' && !Array.isArray(col)) {
+        Object.entries(col).forEach(([id, ts]) => {
+          deletedIds.comprasRegistros[id] = Math.max(Number(deletedIds.comprasRegistros[id]) || 0, Number(ts) || Date.now());
+        });
+      }
+    });
+    const isTombstoned = (r) => {
+      const id = r && r.id;
+      return !!(id && Object.prototype.hasOwnProperty.call(deletedIds.comprasRegistros, String(id)));
+    };
 
     const mapReg = new Map();
     const addRecord = (r) => {
       if (!r || typeof r !== 'object') return;
+      if (isTombstoned(r)) return;
       const mkt = String(r.marketName || r.establishment || r.estabelecimento || '').trim().toLowerCase();
       const key = r.id || r.nfeKey || `${String(r.date || r.data || '').slice(0, 10)}_${Number(r.total || r.valor || 0).toFixed(2)}_${mkt}`;
       const existing = mapReg.get(key);
@@ -610,16 +637,24 @@ const SatelliteConnectors = (function () {
       else if (lSpent > cSpent) mergedSummary = lSummary;
     }
 
+    const cMatrixBenefits = (cData.settings && cData.settings.matrixBenefits) || null;
+    const lMatrixBenefits = (lData.settings && lData.settings.matrixBenefits) || null;
+    const mergedMatrixBenefits = cloudIsNewer
+      ? (cMatrixBenefits || lMatrixBenefits)
+      : (lMatrixBenefits || cMatrixBenefits);
+
     const baseData = cloudIsNewer ? { ...lData, ...cData } : { ...cData, ...lData };
 
     return {
       ...baseData,
+      deletedIds,
       comprasRegistros: Array.from(mapReg.values()),
       settings: {
         ...(lData.settings || {}),
         ...(cData.settings || {}),
         benefits: mergedBenefits,
-        benefitsSummary: mergedSummary || undefined
+        benefitsSummary: mergedSummary || undefined,
+        matrixBenefits: mergedMatrixBenefits || undefined
       }
     };
   }
@@ -629,9 +664,17 @@ const SatelliteConnectors = (function () {
     const s = rawState.data || rawState;
     const stripBase64 = (val) => (typeof val === 'string' && val.startsWith('data:image/')) ? '' : val;
     const stripPhotosArr = (arr) => Array.isArray(arr) ? arr.filter(p => !String(p).startsWith('data:image/')) : undefined;
+    const toNumber = (v) => {
+      if (typeof v === 'number') return Number.isFinite(v) ? Math.round(v * 100) / 100 : 0;
+      const parsed = Number(String(v === undefined || v === null ? '' : v).replace(/\./g, '').replace(',', '.'));
+      return Number.isFinite(parsed) ? Math.round(parsed * 100) / 100 : 0;
+    };
     return {
       updatedAt: s.updatedAt || s.lastUpdated || new Date().toISOString(),
       lastUpdated: s.lastUpdated || s.updatedAt || new Date().toISOString(),
+      // Preserva as exclusões feitas no Casa Maracaju (senão o Matrix as "desfaz"
+      // ao enviar o payload mesclado de volta para a planilha).
+      deletedIds: (s.deletedIds && typeof s.deletedIds === 'object') ? s.deletedIds : { comprasRegistros: {} },
       reformas: (Array.isArray(s.reformas) ? s.reformas : []).map(r => ({
         ...r,
         photoUrl: stripBase64(r.photoUrl),
@@ -649,7 +692,7 @@ const SatelliteConnectors = (function () {
         marketName: r.marketName || r.establishment || r.estabelecimento || '',
         establishment: r.establishment || r.marketName || r.estabelecimento || '',
         cnpj: r.cnpj || '',
-        total: r.total !== undefined ? r.total : r.valor,
+        total: toNumber(r.total !== undefined ? r.total : r.valor),
         paymentMethod: r.paymentMethod || r.metodoPagamento || 'va',
         nfeKey: r.nfeKey || '',
         sourceUrl: r.sourceUrl || '',
@@ -659,8 +702,8 @@ const SatelliteConnectors = (function () {
           name: it.name,
           qty: it.qty,
           unit: it.unit,
-          unitPrice: it.unitPrice,
-          totalPrice: it.totalPrice,
+          unitPrice: toNumber(it.unitPrice),
+          totalPrice: toNumber(it.totalPrice),
           category: it.category
         }))
       })),
@@ -679,7 +722,8 @@ const SatelliteConnectors = (function () {
       })),
       settings: {
         benefits: (s.settings && s.settings.benefits) ? s.settings.benefits : undefined,
-        benefitsSummary: (s.settings && s.settings.benefitsSummary) ? s.settings.benefitsSummary : undefined
+        benefitsSummary: (s.settings && s.settings.benefitsSummary) ? s.settings.benefitsSummary : undefined,
+        matrixBenefits: (s.settings && s.settings.matrixBenefits) ? s.settings.matrixBenefits : undefined
       }
     };
   }
@@ -698,9 +742,9 @@ const SatelliteConnectors = (function () {
     const carro = Array.isArray(payload.carro) ? payload.carro : [];
 
     const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
     const curYear = now.getFullYear();
     const curMonth = now.getMonth() + 1;
-    const curCycleKey = `${curYear}-${String(curMonth).padStart(2, '0')}`;
 
     const rawBenefits = (payload.settings && payload.settings.benefits) || payload.benefits || {};
 
@@ -728,19 +772,41 @@ const SatelliteConnectors = (function () {
       }
     };
 
-    // Data de corte do crédito de Novembro: 06/11/2026 (4º dia útil bancário)
-    const creditDateNov = (benefitsConfig.monthlyCreditDates && benefitsConfig.monthlyCreditDates[curCycleKey]) || '2026-11-06';
+    // O CASA MARACAJU é a autoridade sobre o ciclo e os saldos. Quando ele publica
+    // o retrato do ciclo vigente (matrixBenefits/benefitsSummary), usamos o cycleKey
+    // dele — não o mês do calendário do Matrix. Antes, entre o dia 1º e o 4º dia
+    // útil, o Matrix achava que o ciclo já tinha virado e ignorava o saldo real.
+    const summary = (payload.settings && (payload.settings.matrixBenefits || payload.settings.benefitsSummary)) || payload.matrixBenefits || payload.benefitsSummary || null;
+    const summaryCycleKey = summary && /^\d{4}-\d{2}$/.test(String(summary.cycleKey || '')) ? String(summary.cycleKey) : '';
+    let curCycleKey = summaryCycleKey || `${curYear}-${pad(curMonth)}`;
 
-    const vaDeposit = benefitsConfig.vaFixedAmount; // R$ 2.050,00
+    function getCycleKeyFromDate(dateStr) {
+      const clean = String(dateStr || '').slice(0, 10);
+      const m = clean.match(/^(\d{4})-(\d{2})/);
+      if (!m) return '';
+      const y = Number(m[1]);
+      const mo = Number(m[2]);
+      const credit = (benefitsConfig.monthlyCreditDates && benefitsConfig.monthlyCreditDates[`${y}-${pad(mo)}`]) || '';
+      if (credit && clean < credit) {
+        const prev = new Date(y, mo - 2, 1);
+        return `${prev.getFullYear()}-${pad(prev.getMonth() + 1)}`;
+      }
+      return `${y}-${pad(mo)}`;
+    }
+
+    // Data de corte do crédito do ciclo vigente (ex.: 06/11/2026 = 4º dia útil).
+    const creditDateCiclo = (benefitsConfig.monthlyCreditDates && benefitsConfig.monthlyCreditDates[curCycleKey]) || '';
+
+    let vaDeposit = benefitsConfig.vaFixedAmount; // R$ 2.050,00
     const vrDays = (benefitsConfig.monthlyDays && benefitsConfig.monthlyDays[curCycleKey]) || 17;
-    const vrDeposit = Math.round(vrDays * benefitsConfig.vrDailyAmount * 100) / 100; // R$ 1.105,00
+    let vrDeposit = Math.round(vrDays * benefitsConfig.vrDailyAmount * 100) / 100; // R$ 1.105,00
 
-    const rollover = (benefitsConfig.monthlyRolloverOverrides && benefitsConfig.monthlyRolloverOverrides[curCycleKey]) || { vaRollover: 9.84, vrRollover: 0.16 };
+    const rollover = (benefitsConfig.monthlyRolloverOverrides && benefitsConfig.monthlyRolloverOverrides[curCycleKey]) || { vaRollover: 0, vrRollover: 0 };
     const vaRollover = Number(rollover.vaRollover) || 0;
     const vrRollover = Number(rollover.vrRollover) || 0;
 
-    const vaTotal = Math.round((vaDeposit + vaRollover) * 100) / 100; // R$ 2.059,84
-    const vrTotal = Math.round((vrDeposit + vrRollover) * 100) / 100; // R$ 1.105,16
+    let vaTotal = Math.round((vaDeposit + vaRollover) * 100) / 100; // R$ 2.059,84
+    let vrTotal = Math.round((vrDeposit + vrRollover) * 100) / 100; // R$ 1.105,16
 
     let gastoMercadoCicloAtual = 0;
     let gastoVrCicloAtual = 0;
@@ -787,7 +853,7 @@ const SatelliteConnectors = (function () {
       seenSateliteDateValue.add(assinaturaCompra(dataStr, val, isVr));
 
       // Compras anteriores à data do crédito (ex: 03/11 < 06/11) pertencem ao ciclo anterior (Outubro)
-      if (dataStr && dataStr < creditDateNov) {
+      if (dataStr && getCycleKeyFromDate(dataStr) === curCycleKey) {
         if (isVr) gastoVrCicloAnterior += val;
         else gastoMercadoCicloAnterior += val;
         comprasCicloAnterior.push(itemEntry);
@@ -818,7 +884,7 @@ const SatelliteConnectors = (function () {
       };
       seenSateliteDateValue.add(assinaturaCompra(dataStr, val, true));
 
-      if (dataStr && dataStr < creditDateNov) {
+      if (dataStr && getCycleKeyFromDate(dataStr) === curCycleKey) {
         gastoVrCicloAnterior += val;
         comprasCicloAnterior.push(itemEntry);
       } else {
@@ -848,7 +914,7 @@ const SatelliteConnectors = (function () {
 
         const itemEntry = {
           id: d.id || dedupKey,
-          date: dataStr || creditDateNov,
+          date: dataStr || creditDateCiclo,
           establishment: d.nome || (isVr ? 'Gasto VR (Matrix)' : 'Gasto VA (Matrix)'),
           total: Math.round(val * 100) / 100,
           paymentMethod: isVr ? 'vr' : 'va',
@@ -856,7 +922,7 @@ const SatelliteConnectors = (function () {
           fromMatrix: true
         };
 
-        if (dataStr && dataStr < creditDateNov) {
+        if (dataStr && getCycleKeyFromDate(dataStr) === curCycleKey) {
           if (isVr) gastoVrCicloAnterior += val;
           else gastoMercadoCicloAnterior += val;
           comprasCicloAnterior.push(itemEntry);
@@ -871,16 +937,36 @@ const SatelliteConnectors = (function () {
     gastoMercadoCicloAtual = Math.round(gastoMercadoCicloAtual * 100) / 100;
     gastoVrCicloAtual = Math.round(gastoVrCicloAtual * 100) / 100;
 
-    // 4. Integra resumo direto (benefitsSummary) salvo pelo Maracaju 88 se disponível para o ciclo vigente
-    const summary = (payload.settings && payload.settings.benefitsSummary) || payload.benefitsSummary || null;
-    if (summary && (!summary.cycleKey || summary.cycleKey === curCycleKey)) {
-      const sumVaSpent = Number(summary.vaSpent);
-      const sumVrSpent = Number(summary.vrSpent);
-      if (Number.isFinite(sumVaSpent) && sumVaSpent > gastoMercadoCicloAtual) {
-        gastoMercadoCicloAtual = Math.round(sumVaSpent * 100) / 100;
+    const round2 = (v) => Math.round(v * 100) / 100;
+    const asNumber = (v) => (v === undefined || v === null || v === '' ? NaN : Number(v));
+
+    // 4. O CASA MARACAJU é a autoridade sobre VA/VR. O retrato do ciclo
+    // (matrixBenefits/benefitsSummary) prevalece sobre o recálculo local —
+    // era isso que fazia o Matrix mostrar saldo diferente do app de origem
+    // (e ignorar o saldo quando o mês do calendário != ciclo do benefício).
+    const summaryMatchesCycle = !!summary && (!summary.cycleKey || String(summary.cycleKey) === curCycleKey);
+    if (summaryMatchesCycle) {
+      const sVaTotal = asNumber(summary.vaTotal);
+      const sVrTotal = asNumber(summary.vrTotal);
+      const sVaSpent = asNumber(summary.vaSpent);
+      const sVrSpent = asNumber(summary.vrSpent);
+      // O VR é a soma do depósito + sobra do ciclo anterior.
+      const sVrRollover = asNumber(summary.vrRollover);
+
+      if (Number.isFinite(sVaTotal) && sVaTotal > 0) {
+        vaDeposit = round2(Math.max(0, sVaTotal - vaRollover));
+        vaTotal = round2(sVaTotal);
       }
-      if (Number.isFinite(sumVrSpent) && sumVrSpent > gastoVrCicloAtual) {
-        gastoVrCicloAtual = Math.round(sumVrSpent * 100) / 100;
+      if (Number.isFinite(sVrTotal) && sVrTotal > 0) {
+        const resolvedRollover = Number.isFinite(sVrRollover) ? sVrRollover : vrRollover;
+        vrDeposit = round2(Math.max(0, sVrTotal - resolvedRollover));
+        vrTotal = round2(sVrTotal);
+      }
+      if (Number.isFinite(sVaSpent) && sVaSpent >= 0) {
+        gastoMercadoCicloAtual = round2(sVaSpent);
+      }
+      if (Number.isFinite(sVrSpent) && sVrSpent >= 0) {
+        gastoVrCicloAtual = round2(sVrSpent);
       }
     }
 
@@ -890,15 +976,24 @@ const SatelliteConnectors = (function () {
     let saldoVrRestante = Math.max(0, Math.round((vrTotal - gastoVrCicloAtual) * 100) / 100);
     let transbordouVr = gastoVrCicloAtual > vrTotal ? Math.round((gastoVrCicloAtual - vrTotal) * 100) / 100 : 0;
 
-    if (summary && (!summary.cycleKey || summary.cycleKey === curCycleKey)) {
-      const sumVaBal = Number(summary.vaBalance);
-      const sumVrBal = Number(summary.vrBalance);
-      if (Number.isFinite(sumVaBal) && sumVaBal >= 0 && sumVaBal < saldoVaRestante) {
-        saldoVaRestante = Math.round(sumVaBal * 100) / 100;
+    if (summaryMatchesCycle) {
+      const sumVaBal = asNumber(summary.vaBalance);
+      const sumVrBal = asNumber(summary.vrBalance);
+      if (Number.isFinite(sumVaBal) && sumVaBal >= 0) {
+        saldoVaRestante = round2(sumVaBal);
       }
-      if (Number.isFinite(sumVrBal) && sumVrBal >= 0 && sumVrBal < saldoVrRestante) {
-        saldoVrRestante = Math.round(sumVrBal * 100) / 100;
+      if (Number.isFinite(sumVrBal) && sumVrBal >= 0) {
+        saldoVrRestante = round2(sumVrBal);
       }
+      // Mantém o gasto coerente com o saldo informado (VA/VR residual).
+      if (Number.isFinite(sumVaBal) && sumVaBal >= 0 && (gastoMercadoCicloAtual === 0 || Math.abs((vaTotal - round2(sumVaBal)) - gastoMercadoCicloAtual) > 0.02)) {
+        gastoMercadoCicloAtual = Math.max(0, round2(vaTotal - round2(sumVaBal)));
+      }
+      if (Number.isFinite(sumVrBal) && sumVrBal >= 0 && (gastoVrCicloAtual === 0 || Math.abs((vrTotal - round2(sumVrBal)) - gastoVrCicloAtual) > 0.02)) {
+        gastoVrCicloAtual = Math.max(0, round2(vrTotal - round2(sumVrBal)));
+      }
+      transbordouVa = gastoMercadoCicloAtual > vaTotal ? round2(gastoMercadoCicloAtual - vaTotal) : 0;
+      transbordouVr = gastoVrCicloAtual > vrTotal ? round2(gastoVrCicloAtual - vrTotal) : 0;
     }
 
     // Respeita override de saldo final manual (monthlyEndingBalances) se configurado no Maracaju 88 para o ciclo vigente
@@ -931,7 +1026,7 @@ const SatelliteConnectors = (function () {
       origem: 'Maracaju 88',
       atualizadoEm: new Date().toISOString(),
       cicloVigente: curCycleKey,
-      creditDate: creditDateNov,
+      creditDate: creditDateCiclo,
       vaMensal: vaDeposit,
       vaRollover,
       vaTotal,
@@ -1110,7 +1205,17 @@ const SatelliteConnectors = (function () {
   // ========================================================
   // MOTOR CENTRAL DE SCRAPING DOS 3 APPS
   // ========================================================
+  // v121: uma única coleta por vez. Antes o init, o evento de foco e o botão podiam
+  // disparar scrapeAll em paralelo, cada um salvando e re-renderizando a tela (piscadas).
+  let scrapeInFlight = null;
+
   async function scrapeAll() {
+    if (scrapeInFlight) return scrapeInFlight;
+    scrapeInFlight = runScrapeAll().finally(() => { scrapeInFlight = null; });
+    return scrapeInFlight;
+  }
+
+  async function runScrapeAll() {
     const cfg = getSatelliteConfig();
     const state = MatrixDB.getState();
     if (!state.satellites) state.satellites = {};
@@ -1124,20 +1229,33 @@ const SatelliteConnectors = (function () {
       cache: 'no-store'
     };
 
-    // 1. FisioFlow
+    // 1. Atendimentos
     if (cfg.fisioUrl) {
+      const attempt = new Date().toISOString();
       try {
         const fisioData = await fetchGasDataWithJsonpFallback(cfg.fisioUrl, { action: 'getData', token: cfg.fisioToken || '' });
         if (fisioData) {
-          state.satellites.fisioflow = processFisioData(fisioData);
-          statusResults.fisio = { success: true };
-        } else if (!state.satellites.fisioflow) {
-          state.satellites.fisioflow = getBaselineFisioData();
+          const processed = processFisioData(fisioData);
+          processed.syncError = null;
+          processed.lastAttempt = attempt;
+          state.satellites.fisioflow = processed;
+          statusResults.fisio = { success: true, atualizadoEm: processed.atualizadoEm };
+        } else {
+          // Mantém o último retrato bom; só marca que a tentativa falhou (não sobrescreve
+          // com baseline nem atualiza atualizadoEm, para a tela não fingir que sincronizou).
+          if (!state.satellites.fisioflow) state.satellites.fisioflow = getBaselineFisioData();
+          const ff = state.satellites.fisioflow;
+          ff.syncError = 'Atendimentos não respondeu (CORS/JSONP).';
+          ff.lastAttempt = attempt;
+          statusResults.fisio = { success: false, error: ff.syncError };
         }
       } catch (e) {
         if (!state.satellites.fisioflow) {
           state.satellites.fisioflow = getBaselineFisioData();
         }
+        const ff = state.satellites.fisioflow;
+        ff.syncError = e.message;
+        ff.lastAttempt = attempt;
         statusResults.fisio = { success: false, error: e.message };
       }
     }
@@ -1293,6 +1411,8 @@ const SatelliteConnectors = (function () {
     processFisioData,
     processFaturasData,
     processMaracajuData,
+    mergeMaracajuPayloads,
+    compactMaracajuStateForCloud,
     getLocalMaracajuRawState,
     syncMaracajuFromLocal,
     scrapeAll
