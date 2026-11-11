@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=127">
+  <link rel="stylesheet" href="css/matrix.css?v=128">
 </head>
 <body>
   <!-- Canvas Digital Rain -->
@@ -1114,6 +1114,19 @@
             <div class="cal-kpi-label">Caronas (R$ 60/dia)</div>
             <div id="calCaronasTotal" class="cal-kpi-val rose">R$ 0,00</div>
             <div id="calCaronasSub" class="cal-kpi-sub">Custo no ciclo salarial</div>
+          </div>
+        </div>
+
+        <!-- Contagem regressiva para o próximo salário (4º dia útil bancário) -->
+        <div id="calSalaryCountdown" class="cal-salary-countdown">
+          <div class="cal-salary-countdown-info">
+            <span class="cal-salary-countdown-label">💼 Próximo salário <span class="cal-salary-countdown-tag">4º dia útil</span></span>
+            <span class="cal-salary-countdown-date" id="calSalaryDate">—</span>
+            <span class="cal-salary-countdown-sub" id="calSalarySub">—</span>
+          </div>
+          <div class="cal-salary-countdown-counter">
+            <span class="cal-salary-countdown-days" id="calSalaryDays">—</span>
+            <span class="cal-salary-countdown-unit" id="calSalaryDaysUnit">dias</span>
           </div>
         </div>
 
@@ -2955,16 +2968,16 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=127"></script>
-  <script src="js/matrix-rain.js?v=127"></script>
-  <script src="js/db.js?v=127"></script>
-  <script src="js/calendar-engine.js?v=127"></script>
-  <script src="js/amortization-engine.js?v=127"></script>
-  <script src="js/scenario-simulator.js?v=127"></script>
-  <script src="js/pdf-reader.js?v=127"></script>
-  <script src="js/satellite-connectors.js?v=127"></script>
-  <script src="js/sync-engine.js?v=127"></script>
-  <script src="js/app.js?v=127"></script>
+  <script src="js/seed-data.js?v=128"></script>
+  <script src="js/matrix-rain.js?v=128"></script>
+  <script src="js/db.js?v=128"></script>
+  <script src="js/calendar-engine.js?v=128"></script>
+  <script src="js/amortization-engine.js?v=128"></script>
+  <script src="js/scenario-simulator.js?v=128"></script>
+  <script src="js/pdf-reader.js?v=128"></script>
+  <script src="js/satellite-connectors.js?v=128"></script>
+  <script src="js/sync-engine.js?v=128"></script>
+  <script src="js/app.js?v=128"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2976,7 +2989,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=127', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=128', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 </body>

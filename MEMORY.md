@@ -465,3 +465,33 @@ instante antes de o puxão dos apps satélites fixar os números reais. Duas fon
 - Rolagem por toque (`Input.dispatchTouchEvent`): 381 px no primeiro arrasto; `touch-action` do
   `.tab-content.active` = `pan-y pinch-zoom`.
 - `check-syntax` 11/11, suíte **22/22**, `sw.js` e `?v=` em **v127**.
+
+---
+
+## [2026-11-11 14:20] - Matrix Finance v128: Contador Regressivo do Salário (4º Dia Útil) no Calendário
+
+### ✨ Novo recurso
+Card fixo na aba **Calendário**, logo abaixo dos KPIs: mostra o **próximo salário** (4º dia útil bancário
+nacional) e quantos **dias faltam** — válido para qualquer mês do seletor.
+
+- Exemplo validado: hoje **11/11/2026** ⇒ cartão exibe `04/12/2026 (sexta)` e **23 dias**
+  (exatamente o cálculo pedido: 04/12 − 11/11 = 23).
+- O salário exibido é o que **fecha o ciclo do mês selecionado** (`getSalaryPayday(mês+1)`), então:
+  - Dezembro/2026 ⇒ `07/01/2027 (quinta)`, 57 dias (01/01 feriado, 02–03 fim de semana, 07 é o 4º dia útil);
+  - Outubro/2026 (passado) ⇒ `✔` com "Salário já creditado em 06/11/2026".
+- Sempre usa `CalendarEngine.getSalaryPayday` — ou seja, **fins de semana e feriados bancários nacionais**
+  (incluindo Carnaval/Sexta Santa/Corpus Christi) não contam. Feriados municipais (ex.: 04/11 São Carlos)
+  não atrasam o crédito da folha USP, como já documentado na seção 12 do GEMINI.
+- Cores: verde quando faltam mais de 5 dias, **âmbar** nos últimos 5, "HOJE 💰" no dia do crédito
+  e `✔` para ciclos já creditados. O subtítulo mostra o ciclo (`06/11 a 03/12`).
+
+### 🎨 Ajustes de layout que vieram junto
+- **Hierarquia dos KPIs do calendário no celular**: a regra antiga usava seletores posicionais
+  (`.cal-kpis-grid > div > div:last-child`) e aplicava **15px no sub-rótulo** (quase do tamanho do valor),
+  esmagando o texto. Agora cada linha tem seu tamanho por classe: label 9,5px · valor 17px · sub 10px.
+- O crédito do VR (`crédito R$ 1.105,16`) desce para a própria linha no celular (`.cal-kpi-sub-credit`).
+
+### 🧪 Validação (Chromium headless)
+- Desktop 1440 e mobile 390: card visível, sem overflow horizontal.
+- Nov/2026 = **23 dias** / Dez/2026 = **57 dias** / Out/2026 = **✔ já creditado**.
+- `check-syntax` 11/11, suíte **22/22**, `sw.js` e `?v=` em **v128**.

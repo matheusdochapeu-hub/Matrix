@@ -109,6 +109,11 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     o app na parte de baixo (v127). Use `pan-y pinch-zoom`; o swipe de abas é JS.
 17. **Dado de satélite velho não é atual.** Com `atualizadoEm` > 6 h e sem resposta na sessão, o chip
     mostra `—` e só troca pelo valor quando o `maracaju` responde (ou após o fallback de 8 s).
+18. **Salário é 4º dia útil bancário.** O contador do calendário (v128) usa
+    `CalendarEngine.getSalaryPayday(mês + 1)` e conta dias corridos até a data. Não troque por dias
+    úteis “civis” nem esqueça o `+1` (o salário que fecha o ciclo cai no mês seguinte).
+19. **KPIs do calendário: tamanho por classe, não por posição.** `div:last-child` pegava o
+    sub-rótulo e o deixava com 15px no celular (v128). Use `.cal-kpi-label` / `.cal-kpi-val` / `.cal-kpi-sub`.
 
 ## Dívida técnica conhecida
 

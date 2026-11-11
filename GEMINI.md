@@ -512,3 +512,22 @@ Este documento registra as regras de negócio, integrações, convenções de UX
   o swipe horizontal de abas é feito por JS. `pan-x` só em faixas horizontais (`.unified-satellites-bar`,
   `.sat-chip`, `.cal-legend-bar`).
 - Service Worker atualizado para `matrix-finance-v127`.
+
+---
+
+## 34. Contador Regressivo do Salário no Calendário (v128)
+
+- **O que mostra**: `💼 Próximo salário [4º dia útil]` + data (`04/12/2026 (sexta)`) + **D-N dias**.
+  O salário exibido é o que **fecha o ciclo do mês selecionado**: `getSalaryPayday(mês + 1)`.
+  - Mês atual (nov/2026 em 11/11): 23 dias.
+  - Mês futuro (dez/2026): 07/01/2027, 57 dias.
+  - Mês passado: `✔` + "Salário já creditado em DD/MM/AAAA".
+- **Cálculo**: `CalendarEngine.getSalaryPayday(ano, mês)` — 4º dia útil **bancário nacional**
+  (fins de semana + feriados bancários; feriados municipais como 04/11 em São Carlos **não** entram).
+  A diferença é em dias corridos: `Math.round((alvo - hoje) / 86400000)`.
+- **Cores**: verde (> 5 dias), âmbar (≤ 5), "HOJE 💰" (0) e `✔` (negativo = já creditado).
+- **Nunca** recalcule isso com dias úteis “civis” ou com o mês do calendário sem o `+1`: o crédito de
+  um ciclo cai sempre no mês seguinte.
+- **KPIs do calendário (mobile)**: tamanhos por **classe** (`.cal-kpi-label` 9,5px · `.cal-kpi-val` 17px ·
+  `.cal-kpi-sub` 10px). Não volte a usar `div:last-child` — o seletor pegava o sub-rótulo e o deixava com 15px.
+- Service Worker atualizado para `matrix-finance-v128`.

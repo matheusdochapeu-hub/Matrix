@@ -6793,7 +6793,8 @@ function onModalCategoriaChange(catVal) {
         if (mdCal && mdCal.totais) mdVr = parseFloat(mdCal.totais['VR']);
       } catch (e) {}
       const vrContrato = satVr || (isFinite(mdVr) ? mdVr : null) || 1105.16;
-      vrSub.textContent = `${commute.vrWorkingDaysCount} dias x R$ 65 • crédito ${formatBRL(vrContrato)}`;
+      // v128: no celular o crédito desce para a própria linha (fica mais legível)
+      vrSub.innerHTML = `${commute.vrWorkingDaysCount} dias x R$ 65 <span class="cal-kpi-sub-credit">crédito ${formatBRL(vrContrato)}</span>`;
       if (vrEl) {
         const estourou = commute.totalVR > vrContrato + 0.01;
         vrEl.style.color = estourou ? 'var(--amber)' : '';
@@ -6818,6 +6819,66 @@ function onModalCategoriaChange(catVal) {
 
     const caronasSub = document.getElementById('calCaronasSub');
     if (caronasSub) caronasSub.textContent = `${commute.commuteWorkingDaysCount} dias x R$ 60`;
+
+    // v128: contagem regressiva para o salário que FECHA o ciclo do mês selecionado
+    // (4º dia útil bancário nacional do mês seguinte; fins de semana e feriados não contam).
+    try {
+      const calAnoNum = parseInt(calSelectedYear, 10);
+      const calMesNum = MONTH_NAMES.indexOf(calSelectedMonth) + 1;
+      if (calAnoNum && calMesNum >= 1 && typeof CalendarEngine !== 'undefined' && CalendarEngine.getSalaryPayday) {
+        const proxAno = calMesNum === 12 ? calAnoNum + 1 : calAnoNum;
+        const proxMes = calMesNum === 12 ? 1 : calMesNum + 1;
+        const paydayAtual = CalendarEngine.getSalaryPayday(calAnoNum, calMesNum);
+        const paydayProx = CalendarEngine.getSalaryPayday(proxAno, proxMes);
+
+        const hojeZero = new Date(); hojeZero.setHours(0, 0, 0, 0);
+        const alvoDate = new Date(proxAno, proxMes - 1, paydayProx.day); alvoDate.setHours(0, 0, 0, 0);
+        const dias = Math.round((alvoDate.getTime() - hojeZero.getTime()) / 86400000);
+        const diasSemana = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+        const dataFmt = `${String(paydayProx.day).padStart(2, '0')}/${String(proxMes).padStart(2, '0')}/${proxAno}`;
+        const diaSemana = diasSemana[alvoDate.getDay()];
+
+        const diasEl = document.getElementById('calSalaryDays');
+        const unitEl = document.getElementById('calSalaryDaysUnit');
+        const dateEl = document.getElementById('calSalaryDate');
+        const subEl = document.getElementById('calSalarySub');
+        const cardEl = document.getElementById('calSalaryCountdown');
+
+        if (dateEl) dateEl.textContent = `${dataFmt} (${diaSemana})`;
+        if (diasEl) {
+          if (dias > 0) {
+            diasEl.textContent = String(dias);
+            if (unitEl) unitEl.textContent = dias === 1 ? 'dia' : 'dias';
+            diasEl.style.color = dias <= 5 ? 'var(--amber)' : 'var(--matrix-green)';
+          } else if (dias === 0) {
+            diasEl.textContent = 'HOJE';
+            if (unitEl) unitEl.textContent = '💰';
+            diasEl.style.color = 'var(--cyan)';
+          } else {
+            diasEl.textContent = '✔';
+            if (unitEl) unitEl.textContent = '';
+            diasEl.style.color = 'var(--text-muted)';
+          }
+        }
+        if (subEl) {
+          const cicloTxt = commute.salaryCycle
+            ? `ciclo ${commute.salaryCycle.startFormatted} a ${commute.salaryCycle.endFormatted}`
+            : `ciclo a partir de ${paydayAtual.formatted}`;
+          subEl.textContent = dias < 0
+            ? `Salário já creditado em ${dataFmt} • ${cicloTxt}`
+            : `4º dia útil bancário • ${cicloTxt}`;
+        }
+        if (cardEl) {
+          cardEl.setAttribute('title', dias > 0
+            ? `Faltam ${dias} ${dias === 1 ? 'dia' : 'dias'} para o salário de ${dataFmt} (${diaSemana}), 4º dia útil bancário.`
+            : dias === 0
+              ? `O salário cai hoje: ${dataFmt} (${diaSemana}).`
+              : `O salário deste ciclo já foi creditado em ${dataFmt}.`);
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao calcular a contagem regressiva do salário:', e);
+    }
 
     // Render Grid dos Dias em 7 Colunas (Domingo a Sábado)
     const gridEl = document.getElementById('calendarDaysGrid');

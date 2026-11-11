@@ -2593,6 +2593,14 @@ body {
 .cal-kpi-val.amber { color: var(--amber); }
 .cal-kpi-val.rose { color: var(--rose); }
 
+.cal-kpi-sub-credit {
+  display: inline;
+}
+
+.cal-kpi-sub-credit::before {
+  content: '\2022  ';
+}
+
 .cal-kpi-sub {
   font-size: 9.5px;
   color: var(--text-dim);
@@ -2602,6 +2610,105 @@ body {
   overflow: visible;
   text-overflow: clip;
   line-height: 1.3;
+}
+
+/* Contagem regressiva para o salário (4º dia útil bancário) — v128 */
+.cal-salary-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(0, 255, 102, 0.10), rgba(0, 255, 102, 0.03));
+  border: 1.5px solid rgba(0, 255, 102, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  box-shadow: inset 0 0 14px rgba(0, 255, 102, 0.05);
+}
+
+.cal-salary-countdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cal-salary-countdown-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.cal-salary-countdown-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 102, 0.35);
+  color: var(--matrix-green);
+  font-size: 9px;
+  letter-spacing: 0.3px;
+}
+
+.cal-salary-countdown-date {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--matrix-green);
+}
+
+.cal-salary-countdown-sub {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.cal-salary-countdown-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.cal-salary-countdown-days {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--matrix-green);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-salary-countdown-unit {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+@media (max-width: 600px) {
+  .cal-kpi-sub-credit {
+    display: block;
+  }
+
+  .cal-kpi-sub-credit::before {
+    content: '';
+  }
+  .cal-salary-countdown {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .cal-salary-countdown-days {
+    font-size: 24px;
+  }
+  .cal-salary-countdown-date {
+    font-size: 11.5px;
+  }
 }
 
 .cal-legend-bar {
@@ -2945,11 +3052,16 @@ body {
     padding: 8px 10px !important;
     min-width: 0 !important;
   }
-  .cal-kpis-grid > div > div:first-child {
+  /* v128: os seletores posicionais pegavam o SUB-rótulo (15px, quase do tamanho do valor)
+     e deixavam o número no tamanho padrão. Agora cada linha tem seu tamanho por classe. */
+  .cal-kpis-grid > div > .cal-kpi-label {
     font-size: 9.5px !important;
   }
-  .cal-kpis-grid > div > div:last-child {
-    font-size: 15px !important;
+  .cal-kpis-grid > div > .cal-kpi-val {
+    font-size: 17px !important;
+  }
+  .cal-kpis-grid > div > .cal-kpi-sub {
+    font-size: 10px !important;
   }
   .calendar-controls-bar {
     flex-direction: column;
