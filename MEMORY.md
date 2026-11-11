@@ -590,3 +590,19 @@ implantação) não tinha o escopo `https://www.googleapis.com/auth/script.exter
 - Depois: status e alerta com "O script do Matrix ainda não está autorizado a acessar serviços externos
   (UrlFetchApp)…" — confirmado em Chromium contra o endpoint real.
 - `check-syntax` 12/12, suíte **22/22**, `sw.js` e `?v=` em **v131**.
+
+---
+
+## [2026-11-11 16:45] - Matrix Finance v133: Um Card por Ação (qualquer ticker)
+
+- O "Monitor B3" só desenhava CSNA3 e MGLU3 (dois cards fixos). Agora o `renderStockCards` percorre a
+  carteira e cria **um card por ativo que tenha ticker** (via `MarketQuotes.tickerDe`), com paleta de cores
+  rotativa; os dois cards antigos continuam como fallback quando a carteira não tem ações.
+- Ticker é lido de `item.ticker` ou do padrão `AAAA3/AAAA11` dentro de `ativo`
+  ("PETR4 (Petrobras)" → `PETR4`; "HGLG11 (CSHG Logística)" → `HGLG11`).
+- A consulta de cotações já mandava todos os tickers da carteira numa única chamada (limite de 12 por
+  requisição no `apps_script.gs`), então ativo novo entra no fechamento automático e no botão "Cotação atual"
+  sem nenhuma configuração extra.
+- Validado em Chromium: carteira com CSNA3/MGLU3/PETR4/HGLG11 ⇒ 4 cards e a chamada
+  `action=quotes&symbols=CSNA3,MGLU3,PETR4,HGLG11`.
+- `check-syntax` 13/13, suíte **22/22**, `sw.js` e `?v=` em **v133**.

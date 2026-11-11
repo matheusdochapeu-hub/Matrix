@@ -7670,10 +7670,25 @@ function onModalCategoriaChange(catVal) {
       `;
     }
 
-    container.innerHTML = `
-      ${renderCard(csna, 'CSNA3', 'var(--cyan)')}
-      ${renderCard(mglu, 'MGLU3', 'var(--amber)')}
-    `;
+    // v135: um card por ação da carteira (qualquer ticker), não só CSNA3/MGLU3.
+    const PALETA_ACOES = ['var(--cyan)', 'var(--amber)', '#c084fc', 'var(--matrix-green)', 'var(--rose)', '#38bdf8', '#f97316'];
+    const comTicker = (invList || []).filter(it => {
+      if (typeof MarketQuotes === 'undefined' || typeof MarketQuotes.tickerDe !== 'function') return false;
+      const tk = MarketQuotes.tickerDe(it);
+      if (!tk) return false;
+      return (parseFloat(it.quantidade) > 0) || (parseFloat(it.precoMedio) > 0) || (parseFloat(it.valorAtual) > 0);
+    });
+
+    if (comTicker.length) {
+      container.innerHTML = comTicker.map((it, i) =>
+        renderCard(it, MarketQuotes.tickerDe(it), PALETA_ACOES[i % PALETA_ACOES.length])
+      ).join('');
+    } else {
+      container.innerHTML = `
+        ${renderCard(csna, 'CSNA3', 'var(--cyan)')}
+        ${renderCard(mglu, 'MGLU3', 'var(--amber)')}
+      `;
+    }
   }
 
   function renderInvestCharts(invList, totalGeral, totalMatheus, totalScarlet, horizontes = {}) {
