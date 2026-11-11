@@ -172,9 +172,87 @@ function fetchStockQuote(ticker) {
  *  Ela não altera nenhuma planilha — só consulta a cotação de CSNA3 no Yahoo e loga o resultado.
  */
 function testarCotacoes() {
-  var q = fetchStockQuote("CSNA3");
-  Logger.log(JSON.stringify(q));
-  return q;
+  var viaSheets = fetchQuotesViaSheets(["CSNA3", "MGLU3"]);
+  Logger.log("GOOGLEFINANCE: " + JSON.stringify(viaSheets));
+  var viaYahoo = fetchStockQuote("CSNA3");
+  Logger.log("Yahoo/UrlFetchApp: " + JSON.stringify(viaYahoo));
+  return viaSheets;
+}
+
+/**
+ * Cotações SEM UrlFetchApp (v132).
+ * O escopo script.external_request pode não estar autorizado na conta; o GOOGLEFINANCE
+ * é uma função da própria planilha e funciona só com o escopo de spreadsheets.
+ * Escreve as fórmulas numa aba técnica e lê o valor calculado.
+ */
+function diaUtilAnteriorISO() {
+  var agora = new Date();
+  for (var i = 1; i <= 12; i++) {
+    var cand = new Date(agora.getTime() - i * 86400000);
+    var dow = cand.getDay();
+    if (dow === 0 || dow === 6) continue;
+    return Utilities.formatDate(cand, "America/Sao_Paulo", "yyyy-MM-dd");
+  }
+  return Utilities.formatDate(agora, "America/Sao_Paulo", "yyyy-MM-dd");
+}
+
+function fetchQuotesViaSheets(tickers) {
+  var lista = (tickers || []).map(function (t) { return String(t).toUpperCase(); });
+  var out = lista.map(function (t) { return { ticker: t, ok: false, error: "sem cotação" }; });
+  var ss = null;
+  try { ss = getTargetSpreadsheet({}); } catch (e) { ss = null; }
+  if (!ss) return out;
+
+  var NOME = "_CotacoesMatrix";
+  var sh = ss.getSheetByName(NOME);
+  if (!sh) sh = ss.insertSheet(NOME);
+
+  try {
+    sh.clearContents();
+    for (var i = 0; i < lista.length; i++) {
+      var linha = i + 1;
+      sh.getRange(linha, 1).setValue(lista[i]);
+      sh.getRange(linha, 2).setFormula('=IFERROR(GOOGLEFINANCE("BVMF:' + lista[i] + '","price"),"")');
+      sh.getRange(linha, 3).setFormula('=IFERROR(GOOGLEFINANCE("BVMF:' + lista[i] + '","closeyest"),"")');
+    }
+    SpreadsheetApp.flush();
+
+    var valores = null;
+    for (var tent = 0; tent < 5; tent++) {
+      valores = sh.getRange(1, 1, lista.length, 3).getValues();
+      var faltou = false;
+      for (var j = 0; j < lista.length; j++) {
+        if (!(typeof valores[j][1] === "number" && valores[j][1] > 0)) { faltou = true; break; }
+      }
+      if (!faltou) break;
+      Utilities.sleep(1500);
+      SpreadsheetApp.flush();
+    }
+
+    var dataFech = diaUtilAnteriorISO();
+    var agoraIso = new Date().toISOString();
+    for (var k = 0; k < lista.length; k++) {
+      var preco = valores[k][1];
+      var fech = valores[k][2];
+      if (typeof preco === "number" && preco > 0) {
+        out[k] = {
+          ticker: lista[k],
+          ok: true,
+          moeda: "BRL",
+          fechamento: roundQuote2(typeof fech === "number" && fech > 0 ? fech : preco),
+          fechamentoData: dataFech,
+          atual: roundQuote2(preco),
+          atualEm: agoraIso,
+          fonte: "Google Finance (Sheets)"
+        };
+      } else {
+        out[k] = { ticker: lista[k], ok: false, error: "GOOGLEFINANCE sem preço para " + lista[k] };
+      }
+    }
+  } catch (e) {
+    for (var m = 0; m < out.length; m++) out[m] = { ticker: lista[m], ok: false, error: String(e) };
+  }
+  return out;
 }
 
 function fetchStockQuotes(tickers) {
@@ -205,9 +283,26 @@ function doGet(e) {
     }
 
     if (action === "quotes" || action === "cotacoes") {
-      var quotes = fetchStockQuotes(
-        (e && e.parameter && (e.parameter.symbols || e.parameter.tickers)) || "CSNA3,MGLU3"
-      );
+      var alvo = (e && e.parameter && (e.parameter.symbols || e.parameter.tickers)) || "CSNA3,MGLU3";
+      var listaAlvo = String(alvo).split(",")
+        .map(function (s) { return String(s).trim().toUpperCase(); })
+        .filter(function (s) { return s.length > 0; })
+        .slice(0, 12);
+
+      // 1º: GOOGLEFINANCE (não exige script.external_request)
+      var quotes = fetchQuotesViaSheets(listaAlvo);
+
+      // 2º: para quem ficou sem preço, tenta o Yahoo (se a conta já autorizou UrlFetchApp)
+      var faltando = quotes.filter(function (q) { return !q.ok; }).map(function (q) { return q.ticker; });
+      if (faltando.length) {
+        var viaYahoo = fetchStockQuotes(faltando.join(","));
+        quotes = quotes.map(function (q) {
+          if (q.ok) return q;
+          var alt = viaYahoo.filter(function (y) { return y.ticker === q.ticker && y.ok; })[0];
+          return alt || q;
+        });
+      }
+
       return jsonResponse({
         success: true,
         data: quotes,
