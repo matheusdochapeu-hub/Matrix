@@ -564,7 +564,14 @@ const SyncEngine = (function () {
     const rawPayload = json && (json.data || json.state);
     if (json && (json.success || json.status === 'success' || json.ok) && rawPayload) {
       const currentLocalState = MatrixDB.getState();
-      const dirtySince = localStorage.getItem(DIRTY_LOCAL_KEY);
+      // v150: a marca "local pendente" só vale por 30 min. Se ela fica presa de uma sessão
+      // anterior (save que não sincronizou), o app preferia o cache local em TODO boot e nunca
+      // puxava a planilha — o sintoma era "abre em modo local e só sincroniza depois de testar".
+      const dirtyRaw = localStorage.getItem(DIRTY_LOCAL_KEY);
+      const dirtyTs = dirtyRaw ? Date.parse(dirtyRaw) : 0;
+      const dirtySince = (dirtyTs && (Date.now() - dirtyTs) < 30 * 60 * 1000) ? dirtyRaw : null;
+      if (dirtyRaw && !dirtySince) localStorage.removeItem(DIRTY_LOCAL_KEY);
+
       const localTs = (currentLocalState && currentLocalState.atualizadoEm) ? Date.parse(currentLocalState.atualizadoEm) : 0;
       const cloudTs = rawPayload.atualizadoEm ? Date.parse(rawPayload.atualizadoEm) : 0;
 

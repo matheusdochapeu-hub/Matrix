@@ -197,19 +197,38 @@ const MarketQuotes = (function () {
     return bruto ? 'Não foi possível obter as cotações: ' + bruto : 'Nenhuma cotação foi retornada.';
   }
 
-  // Plano B: data/quotes.json publicado pelo GitHub Actions (mesma origem, sem CORS).
+  // Plano B: JSON publicado pelo GitHub Actions.
+  // Primário: branch `quotes` (atualizada a cada 10 min no pregão) via raw.githubusercontent.
+  // Fallback: data/quotes.json na mesma origem (último retrato commitado no main).
+  const RAW_QUOTES_URL = 'https://raw.githubusercontent.com/matheusdochapeu-hub/Matrix/quotes/data/quotes.json';
+
   async function buscarQuotesDoJson() {
+    let rapido = null;
+    try {
+      const resp = await fetch(RAW_QUOTES_URL + '?_=' + Date.now(), { cache: 'no-store' });
+      if (resp.ok) {
+        const json = await resp.json();
+        const data = Array.isArray(json.quotes) ? json.quotes.filter(q => q && q.ok) : [];
+        if (data.length) rapido = { data, geradoEm: json.geradoEm || '' };
+      }
+    } catch (e) {}
+
+    let local = null;
     try {
       const resp = await fetch('data/quotes.json?_=' + Date.now(), { cache: 'no-store' });
-      if (!resp.ok) return null;
-      const json = await resp.json();
-      const data = Array.isArray(json.quotes) ? json.quotes.filter(q => q && q.ok) : [];
-      if (!data.length) return null;
-      registrarNoCache(data);
-      return { ok: true, data, geradoEm: json.geradoEm || '' };
-    } catch (e) {
-      return null;
-    }
+      if (resp.ok) {
+        const json = await resp.json();
+        const data = Array.isArray(json.quotes) ? json.quotes.filter(q => q && q.ok) : [];
+        if (data.length) local = { data, geradoEm: json.geradoEm || '' };
+      }
+    } catch (e) {}
+
+    const escolhido = (rapido && (!local || Date.parse(rapido.geradoEm || 0) >= Date.parse(local.geradoEm || 0)))
+      ? rapido
+      : local;
+    if (!escolhido) return null;
+    registrarNoCache(escolhido.data);
+    return { ok: true, data: escolhido.data, geradoEm: escolhido.geradoEm };
   }
 
   // ---------------------------------------------------------------- aplicação no estado

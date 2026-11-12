@@ -107,8 +107,9 @@ async function main() {
   const payload = { geradoEm: new Date().toISOString(), quotes };
   mkdirSync(path.dirname(OUT), { recursive: true });
 
-  // só regrava se algo mudou, para não gerar commit à toa
-  if (existsSync(OUT)) {
+  // por padrão só regrava se algo mudou (evita commit à toa). No workflow a branch `quotes`
+  // recebe um commit novo a cada execução, então lá usamos QUOTES_ALWAYS_WRITE=1.
+  if (process.env.QUOTES_ALWAYS_WRITE !== '1' && existsSync(OUT)) {
     try {
       const atual = JSON.parse(readFileSync(OUT, 'utf8'));
       const igual = JSON.stringify(atual.quotes) === JSON.stringify(quotes);

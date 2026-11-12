@@ -497,8 +497,15 @@ const MatrixApp = (function () {
       };
 
       if (cfg.cloudUrl) {
-        SyncEngine.fetchFromCloud().then(res => {
+        // v150: o boot tenta até 3 vezes (rede móvel / Apps Script lento). Antes, uma única
+        // tentativa que falhasse deixava o app "local" até o usuário mexer no Backup.
+        let tentouScrape = false;
+        let sincronizou = false;
+        const aplicarNuvem = (tentativa) => {
+          if (sincronizou) return;
+          SyncEngine.fetchFromCloud({ initial: true }).then(res => {
           if (res.success && res.data) {
+            sincronizou = true;
             if (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.syncMaracajuFromLocal === 'function') {
               SatelliteConnectors.syncMaracajuFromLocal();
             }
@@ -519,12 +526,37 @@ const MatrixApp = (function () {
             scheduleRenderAll();
           } else if (res.success && !res.data) {
             // Planilha conectada porém vazia: grava o primeiro backup automaticamente
+            sincronizou = true;
             SyncEngine.syncToCloud().then(() => {
               renderBackup();
             });
+          } else if (tentativa < 3) {
+            SyncEngine.updateStatusUI('syncing', 'Planilha não respondeu — tentando de novo (' + (tentativa + 1) + '/3)...');
+            setTimeout(() => aplicarNuvem(tentativa + 1), tentativa === 1 ? 4000 : 9000);
+          } else {
+            SyncEngine.updateStatusUI('offline');
           }
-        }).catch(() => {}).finally(() => {
-          runSatScrape();
+          }).catch(() => {
+            if (tentativa < 3) {
+              SyncEngine.updateStatusUI('syncing', 'Sem conexão — tentando de novo (' + (tentativa + 1) + '/3)...');
+              setTimeout(() => aplicarNuvem(tentativa + 1), tentativa === 1 ? 4000 : 9000);
+            } else {
+              SyncEngine.updateStatusUI('offline');
+            }
+          }).finally(() => {
+            if (!tentouScrape) {
+              tentouScrape = true;
+              runSatScrape();
+            }
+          });
+        };
+
+        aplicarNuvem(1);
+
+        // se a aba voltar ao foco com o app ainda sem sincronizar, tenta de novo
+        window.addEventListener('online', () => { if (!sincronizou) aplicarNuvem(1); });
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && !sincronizou) aplicarNuvem(1);
         });
       } else {
         SyncEngine.updateStatusUI('offline');
