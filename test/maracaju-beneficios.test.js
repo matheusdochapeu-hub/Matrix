@@ -80,8 +80,7 @@ test('Maracaju: retrato "saldo cheio sem gasto" é marcado como suspeito', () =>
   assert.equal(SC.maracajuSnapshotSuspeito({ ...vazio, comprasCicloAtual: [{ id: 'a', total: 20 }] }), false);
 });
 
-test('Faturas: simulações entram por padrão (igual ao app Faturas)', () => {
-  const cfg = SC.getSatelliteConfig();
+test('Faturas: simulações entram por padrão (igual ao app Faturas)', () => {  const cfg = SC.getSatelliteConfig();
   assert.equal(cfg.includeSimulated, true, 'sem configuração explícita as simulações entram');
 
   const appDesligado = carregarAplicacao(['js/faturas-data.js', 'js/satellite-connectors.js'], {
@@ -104,4 +103,16 @@ test('Faturas: simulações entram por padrão (igual ao app Faturas)', () => {
     base.faturasPorMes['2027-Janeiro'].total,
     'simulação de Dez não pode vazar para Janeiro'
   );
+});
+
+test('Faturas: a série vai até o último mês ativo (Dez/2027 incluso)', () => {
+  const out = SC.processFaturasData({
+    extraItems: [],
+    overrides: {},
+    simItems: [{ d: 'Nutri 2027 12/12', v: 330, de: 15, ate: 15 }]
+  }, true);
+  assert.ok(out.faturasPorMes['2027-Dezembro'], 'Dez/2027 precisa existir na série');
+  assert.equal(out.faturasPorMes['2027-Dezembro'].total, 330);
+  assert.ok(out.faturasPorMes['2027-Novembro'], 'Nov/2027 continua existindo');
+  assert.equal(out.faturasPorMes['2028-Janeiro'], undefined, 'não inventa mês sem lançamento');
 });

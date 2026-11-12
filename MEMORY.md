@@ -4,6 +4,28 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-12 11:05] - Matrix Finance v145: série de faturas vai até o último mês ativo (Dez/2027 incluso)
+
+### 🐞 Problema
+Depois da v142 os valores batiam mês a mês com o app Faturas, mas a série do Matrix **parava em
+Nov/2027**: `MNS_MAP` era um literal de 0 a 14 e o `for` ia até 14. O app Faturas mostra
+**Dez/2027 = R$ 330,00** (Nutri 12/12), que simplesmente não existia no Matrix — selecionar
+Dez/2027 caía no fallback e aparecia zerado/errado.
+
+### 🛠️ Correção
+- `processFaturasData` gera a chave do mês a partir da âncora (Set/2026 = 0) em vez do mapa fixo,
+  e calcula o limite com o maior `ate` de base/extras/simulações (+12 meses de folga), igual ao
+  `getMaxActiveMonth` do app Faturas.
+- Comparação mês a mês (payload real): Set/2026 → Dez/2027 idênticos ao app, incluindo
+  Out/2027 = 503,98, Nov/2027 = 374,99 e **Dez/2027 = 330,00**. Jan/2028 não é inventado.
+- Versão **v145**.
+
+### 🧪 Validação
+- Suíte **34/34** (novo caso "a série vai até o último mês ativo"), `check-syntax` 13/13.
+
+### 🧠 Regra
+- Nada de mapa fixo de meses: o horizonte vem dos dados (`ate`), não do código.
+
 ## [2026-11-12 10:52] - Matrix Finance v143: exclusão de receita volta a grudar (lápides) e o par Estúdio × Renda Extra morre
 
 ### 🐞 Problema

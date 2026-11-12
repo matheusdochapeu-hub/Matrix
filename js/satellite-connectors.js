@@ -479,30 +479,31 @@ const SatelliteConnectors = (function () {
     const simItems = rawData.simItems || rawData.pv4_sim || [];
     const profile = rawData.profile || rawData.pv4_profile || {};
 
-    const MNS_MAP = {
-      0: '2026-Setembro',
-      1: '2026-Outubro',
-      2: '2026-Novembro',
-      3: '2026-Dezembro',
-      4: '2027-Janeiro',
-      5: '2027-Fevereiro',
-      6: '2027-Março',
-      7: '2027-Abril',
-      8: '2027-Maio',
-      9: '2027-Junho',
-      10: '2027-Julho',
-      11: '2027-Agosto',
-      12: '2027-Setembro',
-      13: '2027-Outubro',
-      14: '2027-Novembro'
-    };
+    // v145: o mapa de meses era fixo até 2027-Novembro e cortava o que o app Faturas mostra
+    // (Dez/2027 em diante). Agora é gerado a partir da âncora Set/2026 = índice 0 e vai até o
+    // último mês ativo dos itens/simulações (+12 meses de folga), igual ao `getMaxActiveMonth`
+    // do app Faturas.
+    const MESES_LONGO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const MNS_ANCORA_ABS = 2026 * 12 + 8; // Setembro/2026
+    function faturasMonthKey(mi) {
+      const abs = MNS_ANCORA_ABS + mi;
+      const ano = Math.floor(abs / 12);
+      const mes = (abs % 12) + 1;
+      return ano + '-' + MESES_LONGO[mes - 1];
+    }
+    const agoraAbs = new Date().getFullYear() * 12 + new Date().getMonth();
+    let maxMesIdx = Math.max(0, agoraAbs - MNS_ANCORA_ABS + 12);
+    BASE_ITEMS.forEach(it => { const a = parseInt(it.ate, 10); if (!isNaN(a) && a > maxMesIdx) maxMesIdx = a; });
+    (Array.isArray(extraItems) ? extraItems : []).forEach(it => { const a = parseInt(it.ate, 10); if (!isNaN(a) && a > maxMesIdx) maxMesIdx = a; });
+    (Array.isArray(simItems) ? simItems : []).forEach(it => { const a = parseInt(it.ate, 10); if (!isNaN(a) && a > maxMesIdx) maxMesIdx = a; });
 
     const faturasPorMes = {};
     const categoriasTotais = {};
 
-    // Calcula dinamicamente cada mês de 0 a 14
-    for (let mi = 0; mi <= 14; mi++) {
-      const monthKey = MNS_MAP[mi] || `Mês_${mi}`;
+    // Calcula dinamicamente cada mês, do índice 0 até o último mês com lançamento ativo
+    for (let mi = 0; mi <= maxMesIdx; mi++) {
+      const monthKey = faturasMonthKey(mi);
       const itemsDoMes = [];
       let totalMes = 0;
 
