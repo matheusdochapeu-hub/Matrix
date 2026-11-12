@@ -302,7 +302,15 @@ const MarketQuotes = (function () {
           // relógio do dispositivo pode estar à frente do servidor: não mostrar data "futura"
           quandoJson = (isFinite(d.getTime()) && d.getTime() <= Date.now() + 60000) ? d.toLocaleString('pt-BR') : '';
         }
-        atualizarStatus(`Cotações via GitHub${quandoJson ? ' (' + quandoJson + ')' : ''} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
+        let idadeTxt = '';
+        if (jsonRapido.geradoEm) {
+          const ms = Date.now() - Date.parse(jsonRapido.geradoEm);
+          if (isFinite(ms) && ms >= 0) {
+            const min = Math.round(ms / 60000);
+            idadeTxt = min < 1 ? ' (agora)' : ` (há ${min} min)`;
+          }
+        }
+        atualizarStatus(`Cotações via GitHub${idadeTxt}${quandoJson ? ' • ' + quandoJson : ''} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
 
         // tenta o Apps Script sem bloquear a interface
         buscarQuotes(tickers).then(res => {

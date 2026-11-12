@@ -1,12 +1,12 @@
 name: Cotacoes B3
 
-# Gera data/quotes.json (fechamento do dia anterior + ultimo preco) a cada 10 minutos
+# Gera data/quotes.json (fechamento do dia anterior + ultimo preco) a cada 5 minutos
 # durante o pregao e publica na branch `quotes`. O app le esse arquivo pelo raw.githubusercontent
 # (CORS liberado) e mostra a idade da cotacao.
 on:
   schedule:
     # 11:00–21:59 UTC = 08:00–18:59 de Brasilia, segunda a sexta
-    - cron: '*/10 11-21 * * 1-5'
+    - cron: '*/5 11-21 * * 1-5'
   workflow_dispatch:
 
 permissions:
