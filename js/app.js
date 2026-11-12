@@ -467,6 +467,11 @@ const MatrixApp = (function () {
             }
           }
         }
+        // v143: limpa duplicatas de renda extra (par "Estúdio" × "Renda Extra") já gravadas
+        // no estado local, sem depender de uma restauração da nuvem para isso.
+        if (typeof MatrixDB.dedupeReceitasInState === 'function') {
+          if (MatrixDB.dedupeReceitasInState(curState) > 0) changed = true;
+        }
         if (changed) {
           MatrixDB.saveState(curState, 'upgrade_fatura_legada', { skipCloudSync: true });
         }

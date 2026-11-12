@@ -120,7 +120,32 @@ const MatrixDB = (function () {
     });
     const final = out.filter(it => !(it && isShortReceitaId(it.id) && seedNames.has(normalizarNomeReceita(it.nome))));
 
-    return { list: final, removed: list.length - final.length };
+    // v143: o par "Estúdio" × "Renda Extra" com o MESMO valor, no mesmo mês, é a mesma renda
+    // extra duplicada (lista antiga + cópia manual/seed). Os nomes são diferentes, então a
+    // regra 1 não pegava: o usuário apagava uma e a outra continuava lá, parecendo que voltou.
+    const EXTRA_DUP_NAMES = new Set(['estudio', 'renda extra']);
+    const porValorExtra = new Map();
+    final.forEach(it => {
+      if (!it || !EXTRA_DUP_NAMES.has(normalizarNomeReceita(it.nome))) return;
+      const chave = (Math.round((parseFloat(it.valor) || 0) * 100) / 100).toFixed(2);
+      const atual = porValorExtra.get(chave);
+      if (!atual) {
+        porValorExtra.set(chave, it);
+        return;
+      }
+      // Prefere a cópia com conta/categoria definidas (a que o usuário realmente usa).
+      const manter = (atual.conta && !it.conta) ? atual : ((it.conta && !atual.conta) ? it : atual);
+      const descartar = manter === atual ? it : atual;
+      mergeReceitaFields(manter, descartar);
+      porValorExtra.set(chave, manter);
+    });
+    const finalSemPar = final.filter(it => {
+      if (!it || !EXTRA_DUP_NAMES.has(normalizarNomeReceita(it.nome))) return true;
+      const chave = (Math.round((parseFloat(it.valor) || 0) * 100) / 100).toFixed(2);
+      return porValorExtra.get(chave) === it;
+    });
+
+    return { list: finalSemPar, removed: list.length - finalSemPar.length };
   }
 
   function dedupeReceitasInState(state) {
@@ -132,10 +157,18 @@ const MatrixDB = (function () {
       Object.keys(meses).forEach(mes => {
         const m = meses[mes];
         if (!m || !Array.isArray(m.receitas)) return;
+        const antesIds = m.receitas.map(r => r && r.id).filter(Boolean);
         const res = dedupeReceitasList(m.receitas);
         if (res.removed > 0) {
           m.receitas = res.list;
           removed += res.removed;
+          // v143: quem caiu na dedupe vira lápide, senão a nuvem devolve a cópia antiga.
+          const restantes = new Set(m.receitas.map(r => r && r.id).filter(Boolean));
+          antesIds.forEach(id => {
+            if (restantes.has(id)) return;
+            if (!state.deletedItens || typeof state.deletedItens !== 'object') state.deletedItens = {};
+            if (!state.deletedItens[id]) state.deletedItens[id] = Date.now();
+          });
         }
       });
     });
@@ -691,8 +724,12 @@ const MatrixDB = (function () {
   function ensureMonthReceitas(month, ano, mes) {
     if (!month) return [];
     const pagoPadrao = parseInt(ano, 10) < 2027; // De 2027 em diante, todo lançamento nasce PENDENTE
+    // v143: uma vez que o usuário apagou/definiu as receitas do mês, não recriar do `totais`.
+    // Sem esta trava, apagar a última receita fazia o `getMonth()` seguinte re-semear tudo.
+    if (month.receitasSeedDone) return month.receitas || [];
     if (month.receitas && month.receitas.length > 0) return month.receitas;
     if (!month.receitas) month.receitas = [];
+    month.receitasSeedDone = true;
 
     const t = month.totais || {};
     // Extrair receitas mapeadas da planilha/seed original
@@ -886,7 +923,15 @@ const MatrixDB = (function () {
     if (!month) return false;
     const list = getListByTipo(month, tipo);
     if (!list || index < 0 || index >= list.length) return false;
+    const removido = list[index];
     list.splice(index, 1);
+    // v143: exclusão precisa de lápide. Sem isso a nuvem devolvia o item no próximo restore
+    // (era o "excluo, salvo, reabro e o Estúdio voltou").
+    if (removido && removido.id) {
+      if (!s.deletedItens || typeof s.deletedItens !== 'object') s.deletedItens = {};
+      s.deletedItens[String(removido.id)] = Date.now();
+    }
+    if (tipo === 'receita') month.receitasSeedDone = true;
     saveState(s);
     return true;
   }

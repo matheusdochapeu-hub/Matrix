@@ -187,7 +187,11 @@ const SyncEngine = (function () {
         }
         return Object.keys(sat).length ? sat : undefined;
       })(),
-      anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
+      anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {},
+      // v143: lápides de itens apagados pelo usuário (sobrevivem ao round-trip).
+      deletedItens: rawState.deletedItens && typeof rawState.deletedItens === 'object'
+        ? JSON.parse(JSON.stringify(rawState.deletedItens))
+        : {}
     };
 
     // 2. Limpa tabelas pesadas de 271 meses que possam estar dentro de simulacoesAmortizacao
@@ -566,6 +570,25 @@ const SyncEngine = (function () {
       const localFaturasSat = currentLocalState && currentLocalState.satellites && currentLocalState.satellites.faturas;
       const payloadData = expandStateFromCloud(rawPayload);
       if (!payloadData.satellites) payloadData.satellites = {};
+
+      // v143: lápides de exclusão (do local e da nuvem) vencem o merge. Sem isso o item
+      // apagado voltava na próxima restauração — o clássico "excluí o Estúdio e ele reapareceu".
+      const lapides = Object.assign({}, (rawPayload && rawPayload.deletedItens) || {}, (currentLocalState && currentLocalState.deletedItens) || {});
+      payloadData.deletedItens = lapides;
+      const estaApagado = (it) => !!(it && it.id && Object.prototype.hasOwnProperty.call(lapides, String(it.id)));
+      if (payloadData.anos) {
+        Object.keys(payloadData.anos).forEach(ano => {
+          const anoObj = payloadData.anos[ano];
+          if (!anoObj || typeof anoObj !== 'object') return;
+          Object.keys(anoObj).forEach(mes => {
+            const md = anoObj[mes];
+            if (!md || typeof md !== 'object') return;
+            ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
+              if (Array.isArray(md[tipo])) md[tipo] = md[tipo].filter(it => !estaApagado(it));
+            });
+          });
+        });
+      }
       if (!payloadData.satellites.maracaju && localMaracajuSat) {
         payloadData.satellites.maracaju = localMaracajuSat;
       }
@@ -621,6 +644,7 @@ const SyncEngine = (function () {
             if (localMonth && Array.isArray(localMonth.diarios) && localMonth.diarios.length > 0) {
               localMonth.diarios.forEach(locD => {
                 if (!locD || typeof locD !== 'object') return;
+                if (estaApagado(locD)) return;
                 const existsInCloud = cloudMonth.diarios.some(cldD => {
                   if (cldD.id && locD.id && cldD.id === locD.id) return true;
                   const sameName = (cldD.nome || '').trim().toLowerCase() === (locD.nome || '').trim().toLowerCase();
@@ -641,6 +665,7 @@ const SyncEngine = (function () {
                 if (!Array.isArray(cloudMonth[tipo])) cloudMonth[tipo] = [];
                 for (const locIt of localMonth[tipo]) {
                   if (!locIt || !locIt.id) continue;
+                  if (estaApagado(locIt)) continue;
                   if (cloudMonth[tipo].some(cIt => cIt && cIt.id === locIt.id)) continue;
 
                   // v121: receita com o mesmo nome/valor (ou seed × cópia curta) não entra de novo.

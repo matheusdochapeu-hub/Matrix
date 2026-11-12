@@ -4,6 +4,40 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-12 10:52] - Matrix Finance v143: exclusão de receita volta a grudar (lápides) e o par Estúdio × Renda Extra morre
+
+### 🐞 Problema
+A renda extra do estúdio (R$ 600) aparecia **duas vezes** em Novembro/2026 e "voltava" sempre que
+o usuário excluía e salvava. No estado real havia duas cópias: `r7` "Estúdio" (conta `salario_bb`,
+`renda: salario_usp`) e `rec_estudio_Novembro_2026` "Renda Extra" (conta `debito_inter`).
+Três causas somadas:
+1. `dedupeReceitasInState` só casava **mesmo nome + mesmo valor** (ou seed × `rN`), e aqui os
+   nomes eram diferentes — o par passava ileso;
+2. exclusão **não deixava lápide**: o `fetchFromCloud` re-adicionava da nuvem o item que o
+   usuário tinha acabado de apagar;
+3. `ensureMonthReceitas` re-semeava do `month.totais` sempre que a lista de receitas ficava vazia
+   — apagar a última receita do mês recriava tudo.
+
+### 🛠️ Correção
+- `removeTransactionByIndex` grava `state.deletedItens[id] = Date.now()`; o compact leva as
+  lápides para a nuvem e o merge do `fetchFromCloud` **filtra** qualquer item com lápide
+  (fixos, outros, receitas e diários).
+- `dedupeReceitasInState`: terceira regra — `Estúdio` × `Renda Extra` com o mesmo valor no mesmo
+  mês é a mesma renda; fica a cópia com conta definida e as demais viram lápide.
+- `ensureMonthReceitas`: `receitasSeedDone` por mês; semeia uma vez e nunca mais recria do `totais`.
+- Limpeza da duplicata também roda no boot (`app.js`, junto do upgrade de fatura legada).
+- Versão **v143**.
+
+### 🧪 Validação
+- Suíte **33/33** (novo `test/receitas-exclusao.test.js`), `check-syntax` 13/13.
+- Casos cobertos: par Estúdio × Renda Extra cai (1 removida), exclusão deixa lápide e não
+  renasce, lápides viajam no backup compacto.
+
+### 🧠 Regra
+- Toda exclusão do usuário precisa de **lápide** e o merge da nuvem precisa respeitá-la; sem isso
+  a "fonte da verdade" desfaz a ação do usuário a cada abertura.
+- Dedupe de receita não pode depender do nome exato: o app usa vários rótulos para a mesma renda.
+
 ## [2026-11-12 10:20] - Matrix Finance v142: VA/VR nunca mais "saldo cheio sem gasto" e faturas com simulações
 
 ### 🐞 Problema

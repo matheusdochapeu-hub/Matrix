@@ -146,6 +146,13 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     v141 o `doPost` normaliza `rowPayload` para 5 células (limpa 5 colunas) e o `doGet` fica com
     o maior prefixo que fecha um JSON válido, devolve `reparado: true` e o cliente regrava a
     planilha (`queueSync`). Mexeu em `apps_script.gs`? Reimplante (regra 21).
+27. **Exclusão precisa de lápide; receita duplicada precisa morrer.** `removeTransactionByIndex`
+    grava `state.deletedItens[id]` (compactado para a nuvem) e o merge do `fetchFromCloud`
+    descarta qualquer item com lápide — sem isso o item apagado voltava na próxima restauração
+    ("excluí o Estúdio e ele reapareceu"). O par `Estúdio` × `Renda Extra` com o mesmo valor no
+    mesmo mês é a mesma renda duplicada e cai na `dedupeReceitasInState` (v143). `ensureMonthReceitas`
+    só semeia uma vez por mês (`receitasSeedDone`), nunca re-cria do `totais` depois que o usuário
+    apagou (v143).
 
 ## Dívida técnica conhecida
 
