@@ -4,6 +4,33 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-11 21:56] - Matrix Finance v139: Provisão de Caronas Editável (Ajuste Manual Persistente)
+
+### 🐞 Problema
+Ao editar o valor de **Caronas** em Outubro no Fluxo de Caixa, o app parecia não deixar:
+1. a célula de valor não tinha `onclick` (só a descrição e o ✏️ abriam o modal);
+2. mesmo salvando, `syncCaronasWithCalendar()` rodava no `init` e sobrescrevia o valor com
+   `commute.totalCaronas`, desfazendo o ajuste no próximo carregamento.
+
+### 🛠️ Correção
+- `saveItemFromModal`: item fixo que é carona recebe `valorManual: true`; ao renomear para algo
+  que não é carona, o flag é limpo.
+- `syncCaronasWithCalendar`: não sobrescreve mais quando `valorManual` está ativo.
+- Célula de valor da carona ficou clicável (abre o modal de edição).
+- Badge **✏️ Ajuste manual ↻** aparece na linha; ao tocar, `recalcularCarona()` remove o flag e
+  volta ao valor calculado pelos dias do calendário.
+
+### 🧪 Validação (Chromium, estado real)
+- Outubro/2026, Caronas R$ 1.080: editar para R$ 1.111 → salva, badge manual, **permanece 1.111
+  após reload**; ao tocar ↻ volta para **1.080**.
+- `check-syntax` 13/13 e suíte **22/22**.
+
+### 🧠 Regra
+- Valor de carona só é automático enquanto `valorManual` não existir. Toda edição manual cria o
+  flag; o calendário só volta a mandar depois do ↻ (ou de renomear o item).
+
+---
+
 ## [2026-11-08 14:20] - Matrix Finance v91: Inclusão da Fatura Nubank da Scarlet no Fechamento Consolidado
 
 ### 🔍 Motivação & Solução

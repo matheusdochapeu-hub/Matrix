@@ -4289,7 +4289,9 @@ ${avisoPendente}
     let changed = false;
 
     if (caronaItem) {
-      if (caronaItem.valor !== commute.totalCaronas) {
+      // v139: se o usuário editou o valor manualmente, o calendário não sobrescreve mais.
+      // O botão ↻ na tabela remove o ajuste e volta a calcular pelos dias do ciclo.
+      if (!caronaItem.valorManual && caronaItem.valor !== commute.totalCaronas) {
         caronaItem.valor = commute.totalCaronas;
         changed = true;
       }
@@ -4310,6 +4312,17 @@ ${avisoPendente}
       MatrixDB.saveMonth(yearStr, monthName, monthData, { skipCloudSync: true, reason: 'init_calibration' });
     }
     return commute;
+  }
+
+  function recalcularCarona(yearStr, monthName) {
+    const monthData = MatrixDB.getMonth(yearStr, monthName);
+    const caronaItem = monthData && (monthData.fixos || []).find(f => f && isCaronaItem(f));
+    if (caronaItem && caronaItem.valorManual) {
+      delete caronaItem.valorManual;
+      MatrixDB.saveMonth(yearStr, monthName, monthData);
+    }
+    syncCaronasWithCalendar(yearStr, monthName);
+    renderAll();
   }
 
   function abrirCalendarioParaCaronas(yearStr, monthName) {
@@ -4468,6 +4481,7 @@ ${avisoPendente}
                 ${isCarona && cycleInfo ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.07);" title="Previsão USP: ${cycleInfo.cycleWorkingDaysCount} dias x R$ 60 no ciclo (${cycleInfo.cycleRangeLabel})">🚗 Previsão USP: ${formatBRL(caronaSummary.provision)} (${cycleInfo.cycleWorkingDaysCount}d)</span>` : ''}
                 ${isCarona && caronaSummary.consumed > 0 ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--cyan);border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);" title="Total já registrado em Gastos Diários neste mês: ${formatBRL(caronaSummary.consumed)} em ${caronaSummary.dailyCount} viagem(ns)">⚡ Consumido: ${formatBRL(caronaSummary.consumed)} (${caronaSummary.dailyCount}x)</span>` : ''}
                 ${isCarona && caronaSummary.consumed > 0 && caronaSummary.remaining > 0 ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--amber);border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.08);" title="Saldo da provisão que ainda resta gastar até o final do ciclo">⏳ Saldo Restante: ${formatBRL(caronaSummary.remaining)}</span>` : ''}
+                ${isCarona && f.valorManual ? `<span class="lock-pill" style="font-size:9.5px;padding:3px 7px;color:var(--amber);border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.08);cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.recalcularCarona('${currentYear}', '${currentMonth}')" title="Valor ajustado manualmente. Toque para voltar a calcular pelos dias do calendário.">✏️ Ajuste manual ↻</span>` : ''}
                 ${isProvisaoConsumida ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--matrix-green);border-color:rgba(0,255,102,0.35);background:rgba(0,255,102,0.08);" title="Provisão orçamentária de caronas 100% consumida pelos gastos diários">✔ 100% Consumido em Diários</span>` : ''}
                 ${jaRetidoNoHolerite ? `<span class="lock-pill" style="font-size:9.5px;padding:2px 6px;color:var(--cyan);border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);" title="Esta parcela já foi descontada na folha de pagamento do holerite oficial deste mês. Não é deduzida novamente da conta corrente para evitar duplicidade.">📋 Retido no Holerite (Sem Duplicidade)</span>` : isConsignado ? `<span class="cat-pill" style="color:var(--amber);border-color:rgba(245,158,11,0.35);" title="Previsão de redução salarial nos meses futuros até a importação do holerite">🏛️ Consignado em Folha</span>` : ''}
               </div>
@@ -4496,7 +4510,7 @@ ${avisoPendente}
                 </button>
               `}
             </td>
-            <td class="val-col">
+            <td class="val-col" ${isCarona ? `style="cursor:pointer;" onclick="MatrixApp.editItemByIndex('${currentYear}', '${currentMonth}', 'fixo', ${i})" title="Toque para editar o valor da provisão de caronas"` : ''}>
               ${isCarona && caronaSummary.consumed > 0 ? `
                 <div style="display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;">
                   <span style="font-weight:700;color:${caronaSummary.remaining > 0 ? 'var(--amber)' : 'var(--matrix-green)'};">
@@ -8908,6 +8922,8 @@ function onModalCategoriaChange(catVal) {
     }
 
     const payload = { nome, valor, categoria: cat, conta, renda, pago, titular };
+    // v139: editar a provisão de caronas pelo modal cria um ajuste manual persistente.
+    if (tipo === 'fixo') payload.valorManual = isCaronaItem({ nome });
     if (titular === 'scarlet') {
       if (tipo === 'receita') {
         if (payload.renda !== 'outras_rendas_scarlet') payload.renda = 'ganhos_scarlet';
@@ -11331,6 +11347,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     toggleFaturaNubankPaga,
     abrirModalEditarDia,
     abrirCalendarioParaCaronas,
+    recalcularCarona,
     syncCaronasWithCalendar,
     isCaronaItem,
     getCaronasProvisionSummary,
