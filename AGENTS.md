@@ -138,6 +138,14 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     Quem decide o vencedor é `SatelliteConnectors.mergeFaturasSnapshots` (`fonte: 'baseline'`
     tem carimbo 0 e nunca ganha). Coleta que falha mantém o último retrato bom e mostra o badge
     **DESSINC.** — `success: true` só com payload do app Faturas na mão (v140).
+26. **Backup_JSON grava sempre 5 colunas e a leitura tolera sobra.** O estado vai fatiado em
+    blocos de 45.000 chars em `Timestamp + Payload_JSON + Partes 2..4`. Se o número de partes
+    encolher, uma sobra numa coluna não limpa quebrava o `JSON.parse` do `get_state` (o erro
+    clássico `Unexpected non-whitespace character after JSON at position N`) e o app parava de
+    restaurar da nuvem **em silêncio** — o sintoma é "sincronizar não atualiza nada". Desde a
+    v141 o `doPost` normaliza `rowPayload` para 5 células (limpa 5 colunas) e o `doGet` fica com
+    o maior prefixo que fecha um JSON válido, devolve `reparado: true` e o cliente regrava a
+    planilha (`queueSync`). Mexeu em `apps_script.gs`? Reimplante (regra 21).
 
 ## Dívida técnica conhecida
 

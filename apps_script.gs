@@ -385,13 +385,36 @@ function doGet(e) {
         }, e);
       }
 
-      var lastCol = Math.max(2, sheetRaw.getLastColumn());
+      var lastCol = Math.max(5, sheetRaw.getLastColumn());
       var rowVals = sheetRaw.getRange(2, 1, 1, lastCol).getValues()[0];
       var updated = rowVals[0];
       var jsonStr = rowVals.slice(1).filter(function (c) {
         return c !== null && c !== undefined && String(c) !== "";
       }).join("");
-      var parsed = jsonStr ? JSON.parse(jsonStr) : null;
+      // v141: leitura tolerante. O Backup_JSON grava o estado fatiado em colunas; quando o
+      // tamanho do estado diminui (ou uma gravação é interrompida), pode sobrar um bloco antigo
+      // depois do JSON válido e o JSON.parse explodia — a planilha inteira virava ilegível e o
+      // app parava de restaurar (foi o "Unexpected non-whitespace character after JSON").
+      // Aqui ficamos com o MAIOR prefixo que fecha um JSON completo e sinalizamos reparo.
+      var parsed = null;
+      var reparado = false;
+      if (jsonStr) {
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch (parseErr) {
+          var fim = -1;
+          for (var corte = jsonStr.length - 1; corte > 1; corte--) {
+            if (jsonStr.charAt(corte) !== "}") continue;
+            try {
+              parsed = JSON.parse(jsonStr.slice(0, corte + 1));
+              fim = corte + 1;
+              break;
+            } catch (e2) { /* tenta um corte anterior */ }
+          }
+          if (!parsed) throw parseErr;
+          reparado = true;
+        }
+      }
 
       // Integração Soberana com a aba Lançamentos:
       // Se o usuário adicionou ou editou linhas diretamente na aba Lançamentos da planilha,
@@ -455,7 +478,10 @@ function doGet(e) {
         timestamp: updated,
         data: parsed,
         state: parsed,
-        message: "Dados recuperados com sucesso da nuvem."
+        reparado: reparado,
+        message: reparado
+          ? "Dados recuperados com sucesso (backup tinha sobra de bloco antigo e foi lido até o último JSON válido)."
+          : "Dados recuperados com sucesso da nuvem."
       }, e);
     }
 
@@ -508,8 +534,13 @@ function doPost(e) {
         chunks.push(fullJson.slice(offset, offset + chunkSize));
       }
       if (chunks.length === 0) chunks.push("{}");
+      // v141: grava SEMPRE as 5 colunas do cabeçalho (Timestamp + 4 partes). Antes o número de
+      // células variava com o tamanho do estado e uma sobra de bloco antigo podia ficar numa
+      // coluna não limpa — o JSON concatenado virava inválido e a nuvem parava de ser lida.
+      var HEADER_COLS = 5;
       var rowPayload = [nowIso].concat(chunks);
-      var clearCols = Math.max(rowPayload.length, sheetRaw.getLastColumn(), 2);
+      while (rowPayload.length < HEADER_COLS) rowPayload.push("");
+      var clearCols = Math.max(HEADER_COLS, rowPayload.length, sheetRaw.getLastColumn(), 2);
       sheetRaw.getRange(2, 1, 1, clearCols).clearContent();
       sheetRaw.getRange(2, 1, 1, rowPayload.length).setValues([rowPayload]);
 

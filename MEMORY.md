@@ -4,6 +4,43 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-12 09:52] - Matrix Finance v141: backup da nuvem corrompido (sobra de bloco) parava a restauração
+
+### 🐞 Problema
+Depois da v140 as faturas ficaram certas no aparelho (Dez/2026 = 1.568,05; Jan/2027 = 600,99),
+mas **VA/VR apareceram como `—`** e o `get_state` da planilha respondeu
+`SyntaxError: Unexpected non-whitespace character after JSON at position 39205`.
+
+Causa: o `_Backup_JSON` guarda o estado fatiado em `Timestamp + Payload_JSON + Parte 2..4`
+(45.000 chars cada). Quando o número de partes **encolhe**, uma sobra antiga podia ficar numa
+coluna que o `clearContent` não alcançou; a leitura concatena todas as células não vazias e o
+`JSON.parse` explodia. Como o `fetchFromCloud` cai no ramo `success: false`, o app **nunca
+restaurava da nuvem** — cada dispositivo rodava só com o localStorage. Daí o `—` no VA/VR
+(o `satellites.maracaju` local estava apenas com o estado-semente `semente: true`, que a v120
+manda esconder) e a sensação de que "sincronizar não faz nada".
+
+### 🛠️ Correção
+- `apps_script.gs` — `doPost`: `rowPayload` normalizado para **5 células** (padding com `""`) e
+  limpeza de `max(5, rowPayload.length, lastColumn)` antes de gravar. Acabou a coluna órfã.
+- `apps_script.gs` — `doGet`: leitura tolerante; se o `JSON.parse` do concatenado falhar, fica com
+  o **maior prefixo que fecha um JSON válido** e devolve `reparado: true` (recupera o backup em
+  vez de derrubar a nuvem inteira).
+- `js/sync-engine.js`: ao receber `reparado: true`, restaura e chama `queueSync()` para regravar o
+  `_Backup_JSON` limpo.
+- Versão **v141** (`CACHE_NAME` + `?v=`), porque `sync-engine.js` mudou.
+
+### 🧪 Validação
+- `check-syntax` 13/13 (inclui `apps_script.gs`) e suíte **26/26**.
+- Sondagem real no perfil do Chrome do usuário (via CDP): o app carrega v141, o scrape de faturas
+  grava `fonte: 'satelite'` com Jan/2027 = 600,99, e o `get_state` respondia o erro de parse —
+  confirmando a corrupção da planilha como causa do "—".
+
+### 🧠 Regra
+- Backup fatiado tem que ter **largura fixa**; qualquer gravação que possa encolher precisa limpar
+  todas as colunas do cabeçalho. E leitura de backup nunca deve ser all-or-nothing: se o fim está
+  corrompido, o começo ainda é o dado do usuário.
+- Se a nuvem falha, o app tem que **dizer** (status de erro), não continuar em silêncio com o seed.
+
 ## [2026-11-12 09:20] - Matrix Finance v140: faturas de Dez/2026 em diante param de congelar na sincronização
 
 ### 🐞 Problema

@@ -680,6 +680,9 @@ const SyncEngine = (function () {
       if (hadLocalDiariosMerged) {
         queueSync();
       }
+      // v141: a planilha tinha sobra de bloco antigo e o servidor leu só até o último JSON
+      // válido. Regrava o estado recuperado para deixar o Backup_JSON limpo de novo.
+      if (json && json.reparado) queueSync();
       const ts = json.timestamp || new Date().toISOString();
       localStorage.setItem(STORAGE_KEYS.lastSync, ts);
       updateStatusUI('synced', 'Sincronizado com ' + (json.title || 'Matrix Finance 360'));
