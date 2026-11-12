@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=148">
+  <link rel="stylesheet" href="css/matrix.css?v=149">
 <link rel="stylesheet" href="nexo-theme.css">
 </head>
 <body>
@@ -2974,18 +2974,18 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=148"></script>
-  <script src="js/matrix-rain.js?v=148"></script>
-  <script src="js/db.js?v=148"></script>
-  <script src="js/calendar-engine.js?v=148"></script>
-  <script src="js/amortization-engine.js?v=148"></script>
-  <script src="js/scenario-simulator.js?v=148"></script>
-  <script src="js/pdf-reader.js?v=148"></script>
-  <script src="js/faturas-data.js?v=148"></script>
-<script src="js/satellite-connectors.js?v=148"></script>
-  <script src="js/sync-engine.js?v=148"></script>
-  <script src="js/market-quotes.js?v=148"></script>
-  <script src="js/app.js?v=148"></script>
+  <script src="js/seed-data.js?v=149"></script>
+  <script src="js/matrix-rain.js?v=149"></script>
+  <script src="js/db.js?v=149"></script>
+  <script src="js/calendar-engine.js?v=149"></script>
+  <script src="js/amortization-engine.js?v=149"></script>
+  <script src="js/scenario-simulator.js?v=149"></script>
+  <script src="js/pdf-reader.js?v=149"></script>
+  <script src="js/faturas-data.js?v=149"></script>
+<script src="js/satellite-connectors.js?v=149"></script>
+  <script src="js/sync-engine.js?v=149"></script>
+  <script src="js/market-quotes.js?v=149"></script>
+  <script src="js/app.js?v=149"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2997,8 +2997,29 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=148', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=149', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
+
+<script>
+/* Volta ao Nexo — aparece só quando a página foi aberta pelo shell (?de=nexo). */
+(function () {
+  try {
+    if (new URLSearchParams(location.search).get('de') !== 'nexo') return;
+    var voltar = document.createElement('a');
+    voltar.href = '../Nexo/';
+    voltar.textContent = '‹ Nexo';
+    voltar.setAttribute('aria-label', 'Voltar ao Nexo');
+    voltar.style.cssText =
+      'position:fixed;left:12px;bottom:12px;z-index:2147483000;' +
+      'display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;' +
+      'border-radius:999px;background:rgba(20,20,19,.82);color:#fff;' +
+      'font:600 13px/1 system-ui,-apple-system,"Segoe UI",sans-serif;' +
+      'text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.28);' +
+      'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)';
+    document.body.appendChild(voltar);
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
