@@ -2116,7 +2116,7 @@ const MatrixApp = (function () {
     const satAtualizadoMs = Date.parse(satMaracaju.atualizadoEm || '') || 0;
     const satHorasDeIdade = satAtualizadoMs ? (Date.now() - satAtualizadoMs) / 3600000 : 999;
     const maracajuDesatualizado = satHorasDeIdade > 6 && !maracajuFreshNestaSessao;
-    const maracajuPendente = !satMaracaju.manualOverride && !!(satMaracaju.semente || maracajuDesatualizado);
+    const maracajuPendente = !satMaracaju.manualOverride && !!(satMaracaju.semente || satMaracaju.invalido || maracajuDesatualizado);
     const vaAtual = isMesVigenteReal(currentYear, currentMonth)
       ? (satMaracaju.saldoVaRestante != null ? satMaracaju.saldoVaRestante : Math.max(0, (satMaracaju.vaTotal || 2059.84) - (satMaracaju.gastoMercadoMesAtual || 0)))
       : va;
@@ -2138,7 +2138,9 @@ const MatrixApp = (function () {
 
     const satCasaChip = (satCasaEl || satVaEl) ? (satCasaEl || satVaEl).closest('.sat-chip') : null;
     if (satCasaChip && maracajuPendente) {
-      satCasaChip.setAttribute('title', 'Sincronizando saldos com o app Casa Maracaju…');
+      satCasaChip.setAttribute('title', satMaracaju.invalido
+        ? 'Saldos do Casa Maracaju indisponíveis — configure o token em Backup & Conexões e sincronize.'
+        : 'Sincronizando saldos com o app Casa Maracaju…');
       satCasaChip.style.opacity = '0.75';
     } else if (satCasaChip) {
       satCasaChip.style.opacity = '';

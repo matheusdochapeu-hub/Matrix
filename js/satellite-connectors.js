@@ -184,7 +184,9 @@ const SatelliteConnectors = (function () {
       maracajuUrl,
       maracajuToken: localStorage.getItem(STORAGE_KEYS.maracajuToken) || DEFAULT_ENDPOINTS.maracajuToken,
       autoScrapeOnOpen: localStorage.getItem(STORAGE_KEYS.autoScrapeOnOpen) !== 'false',
-      includeSimulated: localStorage.getItem(STORAGE_KEYS.includeSimulatedInvoices) === 'true'
+      // v142: o app Faturas mostra as simulações por padrão (não tem toggle). Manter o Matrix
+      // sem elas fazia Dez/2026 em diante divergir (Dez: 1.568,05 aqui × 2.046,92 lá).
+      includeSimulated: localStorage.getItem(STORAGE_KEYS.includeSimulatedInvoices) !== 'false'
     };
   }
 
@@ -826,6 +828,36 @@ const SatelliteConnectors = (function () {
         matrixBenefits: (s.settings && s.settings.matrixBenefits) ? s.settings.matrixBenefits : undefined
       }
     };
+  }
+
+  /**
+   * v142: o Casa Maracaju é a ÚNICA autoridade sobre VA/VR. Um payload sem compras, sem
+   * `settings.matrixBenefits`/`benefitsSummary` e sem totais de benefício não é "ciclo limpo":
+   * é resposta vazia (token ausente, expirado ou planilha sem benefícios). Processar isso
+   * zerava o gasto e deixava saldo = total — e esse zero ia para a nuvem como se fosse real
+   * (foi o que trocou VA 1.569,28 / VR 343,26 por 2.059,84 / 1.105,16 no chip).
+   */
+  function maracajuPayloadTemDados(rawData) {
+    if (!rawData || typeof rawData !== 'object' || rawData.status === 'error') return false;
+    const p = (rawData.data && typeof rawData.data === 'object') ? rawData.data : rawData;
+    const registros = p.comprasRegistros || p.registros;
+    if (Array.isArray(registros) && registros.length > 0) return true;
+    const resumo = (p.settings && (p.settings.matrixBenefits || p.settings.benefitsSummary)) || p.matrixBenefits || p.benefitsSummary;
+    if (resumo && (resumo.cycleKey || resumo.vaBalance != null || resumo.vrBalance != null || resumo.vaTotal != null || resumo.vrTotal != null)) return true;
+    if (p.vaTotal != null || p.vrTotal != null || p.saldoVaRestante != null || p.saldoVrRestante != null) return true;
+    if (Array.isArray(p.refeicoes) && p.refeicoes.length > 0) return true;
+    const b = p.settings && p.settings.benefits;
+    if (b && (b.vaFixedAmount != null || b.monthlyEndingBalances != null || b.monthlyCreditDates != null)) return true;
+    return false;
+  }
+
+  // Retrato que parece "saldo cheio sem nenhum gasto" — típico de processamento vazio.
+  function maracajuSnapshotSuspeito(m) {
+    if (!m || m.manualOverride) return false;
+    const semCompras = !Array.isArray(m.comprasCicloAtual) || m.comprasCicloAtual.length === 0;
+    const semGasto = (Number(m.gastoMercadoMesAtual) || 0) === 0 && (Number(m.gastoVrMesAtual) || 0) === 0;
+    const saldoCheio = Number(m.saldoVaRestante) === Number(m.vaTotal) && Number(m.saldoVrRestante) === Number(m.vrTotal);
+    return semCompras && semGasto && saldoCheio;
   }
 
   function processMaracajuData(rawData, vrCreditadoNoMes = 1105.0, matrixDiarios = []) {
@@ -1480,9 +1512,12 @@ const SatelliteConnectors = (function () {
       if (commute && commute.totalVR) vrAtual = commute.totalVR;
     } catch (err) {}
 
-    if (cloudMaracajuRaw || localMaracajuRaw || novDiarios.length > 0) {
+    // v142: só processa se o Casa Maracaju publicou dados de benefícios de verdade.
+    const maracajuTemDados = maracajuPayloadTemDados(cloudMaracajuRaw) || maracajuPayloadTemDados(localMaracajuRaw);
+    if (maracajuTemDados) {
       const prevMaracaju = state.satellites.maracaju;
       const nextMaracaju = processMaracajuData(mergedMaracajuRaw, vrAtual, novDiarios);
+      delete nextMaracaju.invalido;
       // Preserva ajuste manual de saldo se não houver novas compras na nuvem que superem o ajuste
       if (prevMaracaju && prevMaracaju.manualOverride && prevMaracaju.cicloVigente === nextMaracaju.cicloVigente) {
         if (nextMaracaju.gastoVrMesAtual === 0 && prevMaracaju.saldoVrRestante !== nextMaracaju.saldoVrRestante) {
@@ -1499,6 +1534,20 @@ const SatelliteConnectors = (function () {
       }
       state.satellites.maracaju = nextMaracaju;
       statusResults.maracaju = { success: true, source: localMaracajuRaw ? 'local+cloud' : 'cloud' };
+    } else if (cloudMaracajuRaw || localMaracajuRaw || novDiarios.length > 0) {
+      // v142: veio resposta, mas sem benefícios (token ausente/expirado ou planilha sem dados).
+      // Mantém o último retrato bom e sinaliza; NUNCA grava saldo = total com gasto zero.
+      statusResults.maracaju = {
+        success: false,
+        error: 'Casa Maracaju respondeu sem dados de benefícios; mantido o último retrato real.'
+      };
+      const atual = state.satellites.maracaju;
+      if (maracajuSnapshotSuspeito(atual)) atual.invalido = true;
+    } else {
+      // Sem token e sem espelho local: se o retrato guardado é só "saldo cheio sem gasto",
+      // ele é resíduo de um processamento vazio — o chip deve mostrar "—", não um número falso.
+      const atual = state.satellites.maracaju;
+      if (maracajuSnapshotSuspeito(atual)) atual.invalido = true;
     }
 
     // Só envia localMaracajuRaw para a nuvem se o local tiver MAIS registros de compra do que a nuvem
@@ -1544,6 +1593,8 @@ const SatelliteConnectors = (function () {
     faturasSnapshotTs,
     mergeFaturasSnapshots,
     processMaracajuData,
+    maracajuPayloadTemDados,
+    maracajuSnapshotSuspeito,
     mergeMaracajuPayloads,
     compactMaracajuStateForCloud,
     getLocalMaracajuRawState,

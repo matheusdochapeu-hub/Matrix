@@ -4,6 +4,37 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-12 10:20] - Matrix Finance v142: VA/VR nunca mais "saldo cheio sem gasto" e faturas com simulações
+
+### 🐞 Problema
+1. **VA/VR errados**: o chip mostrava 2.059,84 / 1.105,16 (saldo = total, gasto 0) enquanto o app
+   Casa Maracaju mostrava **1.569,28 / 343,26**. O `processMaracajuData({})` rodava com resposta
+   vazia (token ausente) e fabricava "ciclo limpo"; esse zero era salvo e sincronizado, então a
+   nuvem passou a repetir o valor falso em todos os aparelhos.
+2. **Faturas de Dez/2026 em diante erradas**: o app Faturas inclui as **simulações**
+   (ar-condicionado, máquina de lavar, Nutri…) no total do mês, o Matrix não. Dez/2026 aparecia
+   como 1.568,05 em vez de 2.046,92; Jan/2027 como 600,99 em vez de 1.409,86.
+
+### 🛠️ Correção
+- `maracajuPayloadTemDados`: só processa VA/VR quando o payload tem compras, `benefitsSummary`/
+  `matrixBenefits` ou totais de benefício. Resposta vazia mantém o último retrato bom.
+- `maracajuSnapshotSuspeito`: retrato com `saldo == total`, gasto 0 e sem compras ganha
+  `invalido: true` — o chip mostra `—` com tooltip "configure o token", em vez de um número falso.
+- `getSatelliteConfig().includeSimulated` passa a ser **true** por padrão (o app Faturas não tem
+  toggle e sempre soma as simulações); `matrix_include_simulated_invoices = 'false'` desliga.
+- Versão **v142**.
+
+### 🧪 Validação
+- Suíte **30/30** (novo `test/maracaju-beneficios.test.js`) e `check-syntax` 13/13.
+- Teste real com o payload do Casa Maracaju: `processMaracajuData` devolve
+  `saldoVa 1569.28 / saldoVr 343.26 / gastoVa 490.56 / gastoVr 761.90` — idêntico ao app.
+- Com o token configurado no perfil de teste, o chip passou a exibir `VA R$ 1.569,28` / `VR R$ 343,26`.
+
+### 🧠 Regra
+- Satélite sem dados **não** é satélite com zero. Payload vazio nunca pode virar retrato.
+- "Saldo cheio + gasto zero + sem compras" é assinatura de bug, não de ciclo novo.
+- A régua das faturas é o app Faturas: simulações contam no total do mês.
+
 ## [2026-11-12 09:52] - Matrix Finance v141: backup da nuvem corrompido (sobra de bloco) parava a restauração
 
 ### 🐞 Problema
