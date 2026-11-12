@@ -576,6 +576,9 @@ const SyncEngine = (function () {
       const lapides = Object.assign({}, (rawPayload && rawPayload.deletedItens) || {}, (currentLocalState && currentLocalState.deletedItens) || {});
       payloadData.deletedItens = lapides;
       const estaApagado = (it) => !!(it && it.id && Object.prototype.hasOwnProperty.call(lapides, String(it.id)));
+      const lapidesNuvem = (rawPayload && rawPayload.deletedItens) || {};
+      const lapidesNovas = Object.keys(lapides).some((id) => !Object.prototype.hasOwnProperty.call(lapidesNuvem, id));
+      let lapidesAplicadas = false;
       if (payloadData.anos) {
         Object.keys(payloadData.anos).forEach(ano => {
           const anoObj = payloadData.anos[ano];
@@ -584,7 +587,10 @@ const SyncEngine = (function () {
             const md = anoObj[mes];
             if (!md || typeof md !== 'object') return;
             ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
-              if (Array.isArray(md[tipo])) md[tipo] = md[tipo].filter(it => !estaApagado(it));
+              if (!Array.isArray(md[tipo])) return;
+              const antes = md[tipo].length;
+              md[tipo] = md[tipo].filter(it => !estaApagado(it));
+              if (md[tipo].length !== antes) lapidesAplicadas = true;
             });
           });
         });
@@ -702,7 +708,9 @@ const SyncEngine = (function () {
         if (removidas > 0) hadLocalDiariosMerged = true;
       }
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
-      if (hadLocalDiariosMerged) {
+      if (hadLocalDiariosMerged || lapidesAplicadas || lapidesNovas) {
+        // v143: se havia lápide local (ou a nuvem ainda tinha o item apagado), regrava a
+        // planilha para que os outros aparelhos recebam a exclusão.
         queueSync();
       }
       // v141: a planilha tinha sobra de bloco antigo e o servidor leu só até o último JSON
