@@ -296,7 +296,12 @@ const MarketQuotes = (function () {
         const mudouJson = aplicarQuotes(state.investimentos, jsonRapido.data, modo);
         if (mudouJson) MatrixDB.saveState(state, 'cotacao_json_github', { skipCloudSync: true });
         if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
-        const quandoJson = jsonRapido.geradoEm ? new Date(jsonRapido.geradoEm).toLocaleString('pt-BR') : '';
+        let quandoJson = '';
+        if (jsonRapido.geradoEm) {
+          const d = new Date(jsonRapido.geradoEm);
+          // relógio do dispositivo pode estar à frente do servidor: não mostrar data "futura"
+          quandoJson = (isFinite(d.getTime()) && d.getTime() <= Date.now() + 60000) ? d.toLocaleString('pt-BR') : '';
+        }
         atualizarStatus(`Cotações via GitHub${quandoJson ? ' (' + quandoJson + ')' : ''} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
 
         // tenta o Apps Script sem bloquear a interface
