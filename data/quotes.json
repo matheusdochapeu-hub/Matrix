@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-11-11T19:42:53.866Z",
+  "geradoEm": "2026-11-12T02:29:44.579Z",
   "quotes": [
     {
       "ticker": "CSNA3",
@@ -7,8 +7,8 @@
       "moeda": "BRL",
       "fechamento": 4.38,
       "fechamentoData": "2026-11-10",
-      "atual": 4.5,
-      "atualEm": "2026-11-11T19:27:50.000Z",
+      "atual": 4.52,
+      "atualEm": "2026-11-11T21:05:48.000Z",
       "fonte": "Yahoo Finance (GitHub Actions)"
     },
     {
@@ -18,7 +18,7 @@
       "fechamento": 6.52,
       "fechamentoData": "2026-11-10",
       "atual": 7.66,
-      "atualEm": "2026-11-11T19:27:51.000Z",
+      "atualEm": "2026-11-11T21:05:52.000Z",
       "fonte": "Yahoo Finance (GitHub Actions)"
     }
   ]
