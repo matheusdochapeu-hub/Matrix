@@ -20,6 +20,9 @@ const MarketQuotes = (function () {
   // v136: quando o Apps Script falha (sem permissão/planilha sem calcular), não insistimos
   // a cada clique — vamos direto para o data/quotes.json por alguns minutos.
   let gasIndisponivelAte = 0;
+  // v154: quando o usuário pede "Cotação atual", o auto-sync (fechamento) não pode sobrescrever
+  // o preço do momento nos 10 minutos seguintes.
+  let ultimoManualAtualMs = 0;
 
   // ---------------------------------------------------------------- utilidades
   function tickerDe(item) {
@@ -362,6 +365,7 @@ const MarketQuotes = (function () {
     if (!tickers.length) return { ok: true, vazio: true, data: [] };
 
     emAndamento = true;
+    if (modo === 'atual') ultimoManualAtualMs = Date.now();
     atualizarStatus('Consultando cotações…', 'loading');
     try {
       const aplicar = (quotes, motivo) => {
@@ -413,6 +417,7 @@ const MarketQuotes = (function () {
 
   async function autoSincronizarFechamentos() {
     if (emAndamento) return { ok: false, ignorado: true };
+    if (Date.now() - ultimoManualAtualMs < 10 * 60 * 1000) return { ok: false, ignorado: true };
     if (Date.now() - ultimoAutoMs < AUTO_INTERVALO_MS) return { ok: false, ignorado: true };
     const state = (typeof MatrixDB !== 'undefined') ? MatrixDB.getState() : null;
     if (!state) return { ok: false };
