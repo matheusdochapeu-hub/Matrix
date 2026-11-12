@@ -1,24 +1,24 @@
 {
-  "geradoEm": "2026-11-12T02:29:44.579Z",
+  "geradoEm": "2026-11-12T16:31:30.917Z",
   "quotes": [
     {
       "ticker": "CSNA3",
       "ok": true,
       "moeda": "BRL",
-      "fechamento": 4.38,
-      "fechamentoData": "2026-11-10",
-      "atual": 4.52,
-      "atualEm": "2026-11-11T21:05:48.000Z",
+      "fechamento": 4.52,
+      "fechamentoData": "2026-11-11",
+      "atual": 4.3,
+      "atualEm": "2026-11-12T16:16:29.000Z",
       "fonte": "Yahoo Finance (GitHub Actions)"
     },
     {
       "ticker": "MGLU3",
       "ok": true,
       "moeda": "BRL",
-      "fechamento": 6.52,
-      "fechamentoData": "2026-11-10",
-      "atual": 7.66,
-      "atualEm": "2026-11-11T21:05:52.000Z",
+      "fechamento": 7.66,
+      "fechamentoData": "2026-11-11",
+      "atual": 7.4,
+      "atualEm": "2026-11-12T16:16:20.000Z",
       "fonte": "Yahoo Finance (GitHub Actions)"
     }
   ]
