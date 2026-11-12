@@ -197,6 +197,81 @@ const MarketQuotes = (function () {
     return bruto ? 'Não foi possível obter as cotações: ' + bruto : 'Nenhuma cotação foi retornada.';
   }
 
+  // v153: cotação AO VIVO, no momento do clique. O Yahoo não libera CORS; o r.jina.ai
+  // faz a ponte e devolve o JSON do endpoint `spark` (vários tickers numa única chamada).
+  let cacheVivo = { ts: 0, data: null, tickers: '' };
+
+  function diaAnteriorUtilISO() {
+    const d = new Date();
+    for (let i = 1; i <= 10; i++) {
+      const c = new Date(d.getTime() - i * 86400000);
+      const dow = c.getDay();
+      if (dow === 0 || dow === 6) continue;
+      return c.toISOString().slice(0, 10);
+    }
+    return new Date(d.getTime() - 86400000).toISOString().slice(0, 10);
+  }
+
+  const r2 = (v) => (v == null || !isFinite(v)) ? null : Math.round(Number(v) * 100) / 100;
+
+  async function buscarQuotesAoVivo(tickers) {
+    if (!tickers || !tickers.length) return null;
+    const chave = tickers.join(',');
+    if (cacheVivo.data && cacheVivo.tickers === chave && (Date.now() - cacheVivo.ts) < 60000) {
+      return { ok: true, data: cacheVivo.data, aoVivo: true, cache: true };
+    }
+
+    const symbols = tickers.map(t => `${t}.SA`).join(',');
+    const alvo = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbols)}&range=1d&interval=1m`;
+    let json = null;
+    try {
+      const res = await fetch('https://r.jina.ai/' + alvo, {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (res.ok) json = await res.json();
+    } catch (e) {
+      json = null;
+    }
+    if (!json) return null;
+
+    let interno = null;
+    try {
+      interno = typeof json.data?.content === 'string' ? JSON.parse(json.data.content) : json;
+    } catch (e) {
+      return null;
+    }
+
+    const linhas = (interno && interno.spark && interno.spark.result) || [];
+    if (!linhas.length) return null;
+
+    const fechData = diaAnteriorUtilISO();
+    const agora = new Date().toISOString();
+    const data = linhas.map(r => {
+      const resp = (r.response && r.response[0]) || {};
+      const meta = resp.meta || {};
+      const ticker = String(r.symbol || '').replace(/\.SA$/i, '').toUpperCase();
+      const atual = meta.regularMarketPrice;
+      const fech = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+      if (atual == null) return { ticker, ok: false, error: 'sem preço' };
+      return {
+        ticker,
+        ok: true,
+        moeda: meta.currency || 'BRL',
+        fechamento: r2(fech),
+        fechamentoData: fechData,
+        atual: r2(atual),
+        atualEm: agora,
+        fonte: 'Yahoo Finance (ao vivo)'
+      };
+    }).filter(q => q && q.ok);
+
+    if (!data.length) return null;
+    cacheVivo = { ts: Date.now(), data, tickers: chave };
+    registrarNoCache(data);
+    return { ok: true, data, aoVivo: true };
+  }
+
   // Plano B: JSON publicado pelo GitHub Actions.
   // Primário: branch `quotes` (atualizada a cada 10 min no pregão) via raw.githubusercontent.
   // Fallback: data/quotes.json na mesma origem (último retrato commitado no main).
@@ -289,19 +364,26 @@ const MarketQuotes = (function () {
     emAndamento = true;
     atualizarStatus('Consultando cotações…', 'loading');
     try {
-      // v137: se o data/quotes.json responde rápido, aplica na hora e deixa o Apps Script
-      // tentar em segundo plano (quando ele funciona, o preço intradiário substitui o do JSON).
+      const aplicar = (quotes, motivo) => {
+        const mudou = aplicarQuotes(state.investimentos, quotes, modo);
+        if (mudou) MatrixDB.saveState(state, motivo, { skipCloudSync: true });
+        if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
+        return mudou;
+      };
+
+      // 1) AO VIVO (Yahoo via r.jina.ai) — é o "momento" que o botão promete
+      const vivo = await buscarQuotesAoVivo(tickers);
+      if (vivo && vivo.ok) {
+        aplicar(vivo.data, modo === 'atual' ? 'cotacao_ao_vivo' : 'fechamento_ao_vivo');
+        const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        atualizarStatus(`Cotações ao vivo • ${hora} — ${vivo.data.length}/${tickers.length}.`, 'ok');
+        return { ok: true, data: vivo.data, fonte: 'ao-vivo' };
+      }
+
+      // 2) JSON do GitHub (fechamento do dia / última atualização do robô)
       const jsonRapido = await buscarQuotesDoJson();
       if (jsonRapido) {
-        const mudouJson = aplicarQuotes(state.investimentos, jsonRapido.data, modo);
-        if (mudouJson) MatrixDB.saveState(state, 'cotacao_json_github', { skipCloudSync: true });
-        if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
-        let quandoJson = '';
-        if (jsonRapido.geradoEm) {
-          const d = new Date(jsonRapido.geradoEm);
-          // relógio do dispositivo pode estar à frente do servidor: não mostrar data "futura"
-          quandoJson = (isFinite(d.getTime()) && d.getTime() <= Date.now() + 60000) ? d.toLocaleString('pt-BR') : '';
-        }
+        aplicar(jsonRapido.data, 'cotacao_json_github');
         let idadeTxt = '';
         if (jsonRapido.geradoEm) {
           const ms = Date.now() - Date.parse(jsonRapido.geradoEm);
@@ -310,58 +392,20 @@ const MarketQuotes = (function () {
             idadeTxt = min < 1 ? ' (agora)' : ` (há ${min} min)`;
           }
         }
-        atualizarStatus(`Cotações via GitHub${idadeTxt}${quandoJson ? ' • ' + quandoJson : ''} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
-
-        // tenta o Apps Script sem bloquear a interface
-        buscarQuotes(tickers).then(res => {
-          if (res && res.ok && res.data) {
-            const mudouGas = aplicarQuotes(state.investimentos, res.data, modo);
-            if (mudouGas) MatrixDB.saveState(state, 'cotacao_gas', { skipCloudSync: true });
-            if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) MatrixApp.renderInvestments();
-            atualizarStatus(`Cotações de ${modo === 'atual' ? 'agora' : 'fechamento'} atualizadas (${res.data.filter(q => q && q.ok).length}/${tickers.length}).`, 'ok');
-          }
-        }).catch(() => {});
-
+        atualizarStatus(`Cotações via GitHub${idadeTxt} — ${jsonRapido.data.length}/${tickers.length}.`, 'ok');
         return { ok: true, data: jsonRapido.data, fonte: 'github' };
       }
 
+      // 3) Apps Script (só funciona se a permissão UrlFetchApp for aceita)
       const res = await buscarQuotes(tickers);
-      if (!res.ok) {
-        // Apps Script fora do ar / sem permissão / planilha calculando: usa o JSON do GitHub.
-        const fb = await buscarQuotesDoJson();
-        if (fb) {
-          const mudouFb = aplicarQuotes(state.investimentos, fb.data, modo);
-          if (mudouFb) {
-            MatrixDB.saveState(state, 'cotacao_fallback_github', { skipCloudSync: true });
-          }
-          if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) {
-            MatrixApp.renderInvestments();
-          }
-          const quandoFb = fb.geradoEm ? new Date(fb.geradoEm).toLocaleString('pt-BR') : '';
-          atualizarStatus(`Cotações via GitHub${quandoFb ? ' (' + quandoFb + ')' : ''} — ${fb.data.length}/${tickers.length}.`, 'ok');
-          return { ok: true, data: fb.data, fonte: 'github' };
-        }
-        atualizarStatus(res.error || 'Não foi possível obter as cotações.', 'erro');
+      if (res && res.ok && res.data) {
+        aplicar(res.data, modo === 'atual' ? 'cotacao_gas' : 'fechamento_gas');
+        atualizarStatus(`Cotações atualizadas (${res.data.filter(q => q && q.ok).length}/${tickers.length}).`, 'ok');
         return res;
       }
 
-      const mudou = aplicarQuotes(state.investimentos, res.data, modo);
-      if (mudou) {
-        MatrixDB.saveState(state, modo === 'atual' ? 'cotacao_intradiaria' : 'cotacao_fechamento', { skipCloudSync: true });
-      }
-      if (typeof MatrixApp !== 'undefined' && MatrixApp.renderInvestments) {
-        MatrixApp.renderInvestments();
-      }
-      const quando = modo === 'atual' ? 'agora' : 'fechamento';
-      const okCount = res.data.filter(q => q && q.ok).length;
-      const total = tickers.length;
-      if (okCount === 0) {
-        const msg = 'Nenhuma cotação foi atualizada (0/' + total + ').';
-        atualizarStatus(msg, 'erro');
-        return { ok: false, error: msg, data: res.data };
-      }
-      atualizarStatus(`Cotações de ${quando} atualizadas (${okCount}/${total}).`, okCount === total ? 'ok' : 'loading');
-      return res;
+      atualizarStatus((res && res.error) || 'Não foi possível obter as cotações.', 'erro');
+      return res || { ok: false, error: 'Não foi possível obter as cotações.' };
     } finally {
       emAndamento = false;
     }
@@ -440,6 +484,7 @@ const MarketQuotes = (function () {
     tickerDe,
     tickersDaCarteira,
     buscarQuotes,
+    buscarQuotesAoVivo,
     sincronizar,
     autoSincronizarFechamentos,
     resumo,

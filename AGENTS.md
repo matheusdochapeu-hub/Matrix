@@ -153,6 +153,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     mesmo mês é a mesma renda duplicada e cai na `dedupeReceitasInState` (v143). `ensureMonthReceitas`
     só semeia uma vez por mês (`receitasSeedDone`), nunca re-cria do `totais` depois que o usuário
     apagou (v143).
+29. **"Cotação atual" é ao vivo, não do cron.** O botão usa `buscarQuotesAoVivo` (Yahoo `spark` via
+    `r.jina.ai`, cache 60 s). O cron do GitHub atrasa/pula execuções; use-o só para o fechamento diário
+    e como fallback. Ver GEMINI §40.
 28. **Ação da B3 é marcada no cadastro.** O checkbox "É ação da bolsa (B3)" grava `isAcao` + `ticker`
     (`invModalEhAcao`/`invModalTicker`). O card da ação mostra preço por ação e P&L vs. preço médio
     (`cardAcaoDetalhe`); sem quantidade/preço médio não há como calcular o lucro.

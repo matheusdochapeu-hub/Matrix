@@ -588,3 +588,16 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - Nunca calcule o P&L com `valorAtual` "na mão": o card usa `quantidade × precoAtual` e compara com
   `quantidade × precoMedio` (os mesmos campos que as cotações atualizam).
 - Service Worker em `matrix-finance-v152`.
+
+---
+
+## 40. Cotação ao Vivo no Botão (v153)
+
+- Caminho principal de `MarketQuotes.sincronizar`: **`buscarQuotesAoVivo`** — Yahoo `spark` (multi-símbolo)
+  via **`https://r.jina.ai/<url>`** com `Accept: application/json`; o JSON real vem em `json.data.content`.
+  - `regularMarketPrice` = preço do momento; `chartPreviousClose` = fechamento anterior.
+  - Cache em memória de 60 s (evita rate limit do r.jina.ai em cliques repetidos).
+- Fallback: `data/quotes.json` (branch `quotes`, atualizada pelo cron) e, por último, a ação `quotes` do Apps Script.
+- O cron do GitHub **não é confiável para "tempo real"**: ele atrasa e pode pular execuções. Nunca dependa
+  dele para o botão; ele serve para o fechamento diário e como plano B.
+- Service Worker em `matrix-finance-v153`.

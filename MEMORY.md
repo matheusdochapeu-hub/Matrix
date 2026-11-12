@@ -852,3 +852,26 @@ Atendimentos não respondeu, e o console mostrava
   `MGLU3 R$ 1.049,42 · R$ 7,66/ação · +R$ 252,08 (+31,6%)`;
   `CSNA3 R$ 180,80 · R$ 4,52/ação · -R$ 19,20 (-9,6%)`.
 - `check-syntax` 13/13, suíte **35/35**, `sw.js` e `?v=` em **v152**.
+
+---
+
+## [2026-11-12 14:40] - Matrix Finance v153: Cotação AO VIVO no Botão (Yahoo via r.jina.ai)
+
+### 🐛 Sintoma
+Ao pedir "Cotação atual" às 14:30, o app devolvia a cotação de 13:30 ("Cotações via GitHub (há 59 min)").
+O cron do GitHub Actions não roda a cada 5 min de verdade — o agendador atrasa e, no teste, só havia
+1 execução registrada no repositório.
+
+### 🛠️ Solução
+- Nova função `MarketQuotes.buscarQuotesAoVivo(tickers)`: chama o endpoint **`spark`** do Yahoo
+  (`v7/finance/spark?symbols=CSNA3.SA,MGLU3.SA&range=1d&interval=1m`) **através do `r.jina.ai`**,
+  que libera CORS e devolve o JSON em `data.content`. Uma chamada resolve todos os tickers.
+- Ordem de busca no `sincronizar`: **1) ao vivo** → 2) `data/quotes.json` do GitHub → 3) Apps Script.
+  Cache em memória de 60 s para não repetir a consulta em cliques seguidos.
+- Status passa a mostrar `Cotações ao vivo • 14:32 — 2/2.`
+
+### 🧪 Validação (Chromium, 12/11 14:32)
+- `buscarQuotesAoVivo(['CSNA3','MGLU3'])` → CSNA3 `atual 4,34` (fech. 4,52 de 11/11) e MGLU3 `7,27`
+  (fech. 7,66), `fonte: 'Yahoo Finance (ao vivo)'`.
+- `sincronizar('atual')` → `fonte: 'ao-vivo'`, 20 ms (cache), status "Cotações ao vivo • 14:32 — 2/2."
+- `check-syntax` 13/13, suíte **35/35**, `sw.js` e `?v=` em **v153**.
