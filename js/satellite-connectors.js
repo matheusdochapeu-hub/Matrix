@@ -1252,6 +1252,19 @@ const SatelliteConnectors = (function () {
   // HELPER UNIVERSAL DE FETCH PARA GOOGLE APPS SCRIPT
   // Tenta fetch nativo com timeout; se falhar por CORS/rede, usa JSONP
   // ========================================================
+  // v147: o fallback JSONP injeta <script src>. Só endpoints do Apps Script podem virar
+  // script executável — sem isso, uma URL trocada no localStorage viraria código de terceiros
+  // rodando na origem do app.
+  function urlAppsScriptPermitida(url) {
+    try {
+      const u = new URL(String(url));
+      return u.protocol === 'https:' &&
+        (u.hostname === 'script.google.com' || u.hostname === 'script.googleusercontent.com');
+    } catch (e) {
+      return false;
+    }
+  }
+
     async function fetchGasDataWithJsonpFallback(url, params = {}) {
     if (!url) return null;
 
@@ -1287,6 +1300,8 @@ const SatelliteConnectors = (function () {
     }
 
     // 2. Fallback JSONP via SyncEngine ou script tag direto
+    // v147: JSONP injeta <script src>; só Apps Script é aceito como executável.
+    if (!urlAppsScriptPermitida(url)) return null;
     if (typeof SyncEngine !== 'undefined' && typeof SyncEngine.jsonpRequest === 'function') {
       try {
         const data = await SyncEngine.jsonpRequest(url, params, 20000);

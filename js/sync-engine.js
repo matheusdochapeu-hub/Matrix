@@ -314,9 +314,24 @@ const SyncEngine = (function () {
     return cloudState;
   }
 
+  // v147: o JSONP injeta <script src> — aceitar qualquer host permitiria que código de
+  // terceiros rodasse na origem do app (notificação/redirect malicioso). Só Apps Script.
+  function isAppsScriptUrl(url) {
+    try {
+      const u = new URL(String(url));
+      return u.protocol === 'https:' &&
+        (u.hostname === 'script.google.com' || u.hostname === 'script.googleusercontent.com');
+    } catch (e) {
+      return false;
+    }
+  }
+
   function jsonpRequest(url, params, timeoutMs = 10000) {
     return new Promise((resolve, reject) => {
       if (typeof document === 'undefined') return reject(new Error('Sem DOM'));
+      if (!isAppsScriptUrl(url)) {
+        return reject(new Error('URL de sincronização não autorizada: use o endereço do Apps Script (https://script.google.com/.../exec).'));
+      }
       const cbName = '_matrix_gas_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
       const script = document.createElement('script');
       const timer = setTimeout(() => {
@@ -953,6 +968,7 @@ const SyncEngine = (function () {
     compactStateForCloud,
     expandStateFromCloud,
     jsonpRequest,
+    isAppsScriptUrl,
     DEFAULT_SPREADSHEET_ID,
     DEFAULT_SPREADSHEET_URL
   };
