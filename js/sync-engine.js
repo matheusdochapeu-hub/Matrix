@@ -121,6 +121,10 @@ const SyncEngine = (function () {
         if (m) {
           sat.maracaju = {
             origem: m.origem || 'Maracaju 88',
+            // v146: o selo de "isto é só semente" precisa sobreviver à nuvem, senão outro
+            // aparelho recebe o saldo de exemplo e o exibe como se fosse real (regra 10).
+            semente: !!m.semente,
+            invalido: !!m.invalido,
             atualizadoEm: m.atualizadoEm,
             cicloVigente: m.cicloVigente || '2026-11',
             creditDate: m.creditDate || '2026-11-06',

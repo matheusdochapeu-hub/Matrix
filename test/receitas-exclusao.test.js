@@ -86,8 +86,7 @@ test('Receitas: excluir deixa lápide e não é recriada pelo seed do mês', asy
   assert.ok(depois.deletedItens && depois.deletedItens['rec_estudio_Novembro_2026'], 'a exclusão precisa de lápide');
 });
 
-test('Nuvem: lápides viajam no backup compacto', () => {
-  const { mod: SyncEngine } = carregarModulo('sync-engine.js', 'SyncEngine', {
+test('Nuvem: lápides viajam no backup compacto', () => {  const { mod: SyncEngine } = carregarModulo('sync-engine.js', 'SyncEngine', {
     document: { getElementById: () => null }
   });
 
@@ -98,4 +97,15 @@ test('Nuvem: lápides viajam no backup compacto', () => {
   }, 45000);
 
   assert.equal(compacto.deletedItens.rec_estudio_Novembro_2026, 1794449997864);
+});
+
+test('Nuvem: o selo de semente do Maracaju sobrevive ao compacto', () => {
+  const { mod: SyncEngine } = carregarModulo('sync-engine.js', 'SyncEngine', {
+    document: { getElementById: () => null }
+  });
+  const compacto = SyncEngine.compactStateForCloud({
+    anos: {},
+    satellites: { maracaju: { origem: 'Maracaju 88', semente: true, vaTotal: 2059.84, saldoVaRestante: 1988.78, vrTotal: 1105.16, saldoVrRestante: 805.41 } }
+  }, 45000);
+  assert.equal(compacto.satellites.maracaju.semente, true, 'sem isso o saldo de exemplo volta como real em outro aparelho');
 });
