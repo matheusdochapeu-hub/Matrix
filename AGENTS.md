@@ -31,7 +31,7 @@ Abrir `index.html` direto por `file://` quebra o Service Worker e o fetch do App
 
 ```powershell
 npm run check      # sintaxe de todos os js/ + sw.js + apps_script.gs
-npm test           # 22 testes: sintaxe, integridade do HTML, manifest, Service Worker e regressões de dados
+npm test           # 26 testes: sintaxe, integridade do HTML, manifest, Service Worker, faturas/nuvem e regressões de dados
 npm run verify     # os dois acima em sequência (é o que a CI roda)
 ```
 O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
@@ -130,6 +130,14 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
     metadados `cat`/`tag` daqui. Não edite o arquivo à mão: rode o gerador no repo `Nexo`.
     O array em `js/satellite-connectors.js` é **fallback** (se o gerado não carregar,
     o app funciona igual). O script precisa estar no precache do `sw.js` — há teste para isso.
+25. **Faturas: vale o retrato mais recente, nunca o baseline embutido.** `compactStateForCloud`
+    precisa levar `satellites.faturas` (só `total`/`status` por mês) e `expandStateFromCloud`
+    **não** pode recriar faturas. Até a v139 ele injetava `processFaturasData({})`, carimbava
+    `atualizadoEm = agora` e descartava o scrape a cada sincronização — foi assim que Dez/2026
+    em diante ficou congelado (Jan/2027 voltava +R$ 350/mês, com a 1/6 do Studio Rocha reexibida).
+    Quem decide o vencedor é `SatelliteConnectors.mergeFaturasSnapshots` (`fonte: 'baseline'`
+    tem carimbo 0 e nunca ganha). Coleta que falha mantém o último retrato bom e mostra o badge
+    **DESSINC.** — `success: true` só com payload do app Faturas na mão (v140).
 
 ## Dívida técnica conhecida
 

@@ -4,6 +4,51 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-12 09:20] - Matrix Finance v140: faturas de Dez/2026 em diante param de congelar na sincronização
+
+### 🐞 Problema
+As faturas de **Dez/2026 em diante** apareciam desatualizadas e **não mudavam ao sincronizar**.
+Causa em três camadas, todas no caminho da nuvem:
+1. `compactStateForCloud` **não** levava `satellites.faturas` para o Google Sheets (só maracaju e fisioflow);
+2. `expandStateFromCloud` então **recriava** as faturas com `processFaturasData({})` — o baseline
+   embutido no código — e o carimbava com `atualizadoEm = agora`, parecendo recém-coletado;
+3. esse baseline sobrescrevia o retrato real que o scraping havia gravado, e ainda vinha com
+   `statusResults.faturas = { success: true }`.
+
+Efeito prático: a exclusão da `Studio Rocha 1/6 (nova)` (Jan/2027) feita no app Faturas nunca
+chegava — cada sincronização devolvia **+R$ 350/mês de Jan a Jun/2027** (Jan/2027: 950,99 em vez
+de 600,99). Dez/2026 coincidia por acaso; de Jan/2027 para frente divergia sempre.
+Além disso, quando a coleta falhava (CORS/JSONP), o app *chamava* `processFaturasData({})`, dizia
+`success: true` e exibia o baseline como se fosse dado atual.
+
+### 🛠️ Correção
+- `processFaturasData(raw, sim, fromBaseline)`: novo carimbo `fonte: 'satelite' | 'baseline'` e
+  `atualizadoEm = null` no baseline (baseline não finge ser coleta).
+- `SatelliteConnectors.faturasSnapshotTs` / `mergeFaturasSnapshots`: baseline vale **0**; entre
+  nuvem e local vence o retrato mais recente (empate → local, que traz os `itens` do drilldown;
+  meses herdados da nuvem reaproveitam os itens locais quando o total é o mesmo).
+- `runScrapeAll`: falha de coleta **mantém o último retrato bom** (`syncError` + `lastAttempt`) e
+  devolve `success: false` em vez de gravar baseline.
+- `compactStateForCloud` passa a levar as faturas (só `total`/`status` por mês, ~1 KB) e
+  `expandStateFromCloud` não fabrica mais faturas.
+- `fetchFromCloud` usa o merge novo e o badge de Faturas mostra **DESSINC.** quando a coleta falha
+  (antes exibia ATIVO sempre).
+- Versão **v140**: `CACHE_NAME` em `sw.js` e todos os `?v=` do `index.html`.
+
+### 🧪 Validação
+- `check-syntax` 13/13 e suíte **26/26** (novo `test/faturas-sync.test.js` com 4 casos:
+  baseline ≠ fresco, compact/expand sem baseline, precedência do merge, round-trip sem +350).
+- Reprodução com o payload real do Apps Script (`action=restore`, revisão 64): antes do fix o
+  round-trip devolvia Jan/2027 = 950,99; depois devolve 600,99 (igual ao app Faturas) e
+  Dez/2026, Jan, Fev e Jun/2027 sobrevivem intactos.
+
+### 🧠 Regra
+- Baseline embutido **nunca** ganha de um retrato real, e retrato sem `fonte`/`atualizadoEm` não
+  pode se impor a um datado. Sincronizar não pode *inventar* satélite: se a coleta falhou, o app
+  mantém o último retrato bom e avisa.
+- Toda informação que atravessa a nuvem precisa estar no `compactStateForCloud`; se ficar de
+  fora, o `expandStateFromCloud` a recria do zero — e o "zero" aqui era um baseline de ontem.
+
 ## [2026-11-11 21:56] - Matrix Finance v139: Provisão de Caronas Editável (Ajuste Manual Persistente)
 
 ### 🐞 Problema

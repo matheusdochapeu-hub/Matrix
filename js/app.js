@@ -8372,10 +8372,15 @@ function onModalCategoriaChange(catVal) {
 
     // 2. Faturas (Nubank Black)
     const faturasBadge = document.getElementById('badgeFaturasStatus');
-    const faturasAtivo = true;
+    const faturasEstado = sat.faturas;
+    const faturasAtivo = !!(faturasEstado && faturasEstado.faturasPorMes);
+    const faturasFalhou = !!(faturasEstado && faturasEstado.syncError);
     if (faturasBadge) {
-      faturasBadge.className = 'status-badge pago';
-      faturasBadge.textContent = 'ATIVO';
+      // v140: coleta que falhou não pode aparecer como "ATIVO" (o app fingia que sincronizou
+      // e o usuário via o baseline embutido como se fosse o dado atual).
+      faturasBadge.className = faturasFalhou ? 'status-badge pendente' : 'status-badge pago';
+      faturasBadge.textContent = faturasFalhou ? 'DESSINC.' : (faturasAtivo ? 'ATIVO' : 'PENDENTE');
+      faturasBadge.title = faturasFalhou ? faturasEstado.syncError : 'Faturas sincronizadas com o app Faturas';
     }
     const satFaturasObj = sat.faturas || (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.getBaselineFaturasData ? SatelliteConnectors.getBaselineFaturasData() : null);
     if (satFaturasObj) {

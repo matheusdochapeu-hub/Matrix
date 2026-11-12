@@ -162,6 +162,29 @@ const SyncEngine = (function () {
             lastAttempt: ff.lastAttempt || null
           };
         }
+        // v140: as faturas também precisam sobreviver ao round-trip. Antes o compact descartava
+        // o satélite inteiro e o expand recriava do baseline embutido — por isso "sincronizar"
+        // deixava Dez/2026 em diante desatualizado.
+        const fa = rawState.satellites && rawState.satellites.faturas;
+        if (fa && fa.faturasPorMes) {
+          const porMes = {};
+          Object.keys(fa.faturasPorMes).forEach(k => {
+            const m = fa.faturasPorMes[k] || {};
+            porMes[k] = { total: parseFloat(m.total) || 0, status: m.status || 'aberta' };
+          });
+          sat.faturas = {
+            origem: fa.origem || 'Faturas (Parcelado a Vista)',
+            fonte: fa.fonte || 'satelite',
+            atualizadoEm: fa.atualizadoEm || null,
+            faturasPorMes: porMes,
+            faturaAtualReal: fa.faturaAtualReal,
+            faturaAtualValor: fa.faturaAtualValor,
+            faturasFuturasCompromissadas: fa.faturasFuturasCompromissadas,
+            faturasFuturasTotal: fa.faturasFuturasTotal,
+            limiteMetaMensal: fa.limiteMetaMensal,
+            includeSimulated: !!fa.includeSimulated
+          };
+        }
         return Object.keys(sat).length ? sat : undefined;
       })(),
       anos: rawState.anos ? JSON.parse(JSON.stringify(rawState.anos)) : {}
@@ -276,12 +299,10 @@ const SyncEngine = (function () {
         });
       });
     }
-    if (typeof SatelliteConnectors !== 'undefined' && SatelliteConnectors.processFaturasData) {
-      if (!cloudState.satellites) cloudState.satellites = {};
-      if (!cloudState.satellites.faturas || !cloudState.satellites.faturas.faturasPorMes) {
-        cloudState.satellites.faturas = SatelliteConnectors.processFaturasData({});
-      }
-    }
+    // v140: NÃO inventar faturas aqui. Antes o baseline embutido (processFaturasData({})) era
+    // injetado a cada restauração, carimbado com a hora atual e sobrescrevia o retrato real que
+    // o scraping tinha acabado de gravar — as faturas de Dez/2026 em diante nunca avançavam.
+    if (!cloudState.satellites) cloudState.satellites = {};
     return cloudState;
   }
 
@@ -548,9 +569,13 @@ const SyncEngine = (function () {
       if (!payloadData.satellites.maracaju && localMaracajuSat) {
         payloadData.satellites.maracaju = localMaracajuSat;
       }
-      if (!payloadData.satellites.faturas && localFaturasSat) {
-        payloadData.satellites.faturas = localFaturasSat;
-      } else if (payloadData.satellites.maracaju && localMaracajuSat) {
+      // v140: faturas seguem a mesma regra dos outros satélites — vale o retrato mais recente
+      // (baseline do código nunca ganha de um retrato real do app Faturas).
+      const faturasMescladas = (typeof SatelliteConnectors !== 'undefined' && typeof SatelliteConnectors.mergeFaturasSnapshots === 'function')
+        ? SatelliteConnectors.mergeFaturasSnapshots(payloadData.satellites.faturas, localFaturasSat)
+        : (payloadData.satellites.faturas || localFaturasSat);
+      if (faturasMescladas) payloadData.satellites.faturas = faturasMescladas;
+      if (payloadData.satellites.maracaju && localMaracajuSat) {
         // Se o estado local já tiver gastos maiores/mais recentes no ciclo vigente, preserva
         const cSat = payloadData.satellites.maracaju;
         // v114: compara o ciclo vigente do local com o do snapshot (antes era fixo em '2026-11'

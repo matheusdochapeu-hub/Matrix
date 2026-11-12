@@ -456,13 +456,22 @@ const SatelliteConnectors = (function () {
   const BASELINE_FATURAS_RAW = {"extraItems": [{"desc": "Rd Saude Online", "val": 116.94, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 0}, {"desc": "Mercadolivre*Mercadol", "val": 67.64, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 1}, {"desc": "Amazonprimebr", "val": 19.9, "de": 1, "ate": 12, "tag": "extra", "isExtra": true, "extraIdx": 2}, {"desc": "Claro Flex", "val": 39.99, "de": 1, "ate": 13, "tag": "extra", "isExtra": true, "extraIdx": 3}, {"desc": "Rosa Cabelereira", "val": 210, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 4}, {"desc": "Nubank Ultravioleta", "val": 89, "de": 1, "ate": 13, "tag": "extra", "isExtra": true, "extraIdx": 5}, {"desc": "Kalunga R Pr*Kalunga", "val": 17.4, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 6}, {"desc": "Dl*Uberrides", "val": 14.98, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 7}, {"desc": "Mobifacil", "val": 61.71, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 8}, {"desc": "Dl*Uberrides", "val": 7.94, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 9}, {"desc": "Petlove - NuPay", "val": 352.8, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 10}, {"desc": "Dl*Uberrides", "val": 8.96, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 11}, {"desc": "Petlove - NuPay", "val": 174.17, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 12}, {"desc": "NuTag*PZC3J89", "val": 240.78, "de": 1, "ate": 1, "tag": "extra", "isExtra": true, "extraIdx": 13}, {"desc": "Claro Flex", "val": 44.99, "de": 2, "ate": 14, "tag": "extra", "isExtra": true, "extraIdx": 14}, {"desc": "Dl *Uberrides", "val": 8.92, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 15}, {"desc": "Autoparque", "val": 8, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 16}, {"desc": "Zé Delivery - NuPay", "val": 59.33, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 17}, {"desc": "99food *Hortifruti Cha", "val": 47.95, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 18}, {"desc": "Dl *Uberrides", "val": 12.95, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 19}, {"desc": "Dl *Uberrides", "val": 14.91, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 20}, {"desc": "Amazon Credito - NuPay", "val": 111, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 21}, {"desc": "Dl *Uberrides", "val": 4.85, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 22}, {"desc": "Petlove - NuPay - Parcela 1/3", "val": 168.3, "de": 2, "ate": 4, "tag": "extra", "isExtra": true, "extraIdx": 23}, {"desc": "Dl *Uberrides", "val": 52.96, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 24}, {"desc": "Estac Shopping", "val": 4.5, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 25}, {"desc": "Sodre Sodre Comercio D", "val": 33.99, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 26}, {"desc": "Mercadolivre*Chunhuaw - Parcela 1/2", "val": 31.62, "de": 2, "ate": 3, "tag": "extra", "isExtra": true, "extraIdx": 27}, {"desc": "NuTag*PZC3J89", "val": 220.23, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 28}, {"desc": "NuTag*FRV9579", "val": 14.5, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 29}, {"desc": "NuTag*PZC3J89", "val": 8.17, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 30}, {"desc": "NuTag*PZC3J89", "val": 17.38, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 31}, {"desc": "Sigapay", "val": 3, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 32}, {"desc": "Mi Alimentacao e Comer", "val": 50.05, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 33}, {"desc": "Restart Carnes", "val": 90.46, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 34}, {"desc": "Maravilhas do Lar", "val": 124.92, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 35}, {"desc": "S V Comercio", "val": 19.99, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 36}, {"desc": "NuTag*FRV9579", "val": 9.7, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 37}, {"desc": "NuTag*PZC3J89", "val": 17.38, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 38}, {"desc": "NuTag*FRV9579", "val": 6.65, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 39}, {"desc": "NuTag*FRV9579", "val": 11.02, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 40}, {"desc": "NuTag*PZC3J89", "val": 8.17, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 41}, {"desc": "NuTag*FRV9579", "val": 16.1, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 42}, {"desc": "NuTag*FRV9579", "val": 12.8, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 43}, {"desc": "Tres Marias Burger e B", "val": 345.18, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 44}, {"desc": "Estac Shopping", "val": 13, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 45}, {"desc": "Gelatto Borelli", "val": 40, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 46}, {"desc": "Sigapay", "val": 3, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 47}, {"desc": "Jockey Cafe", "val": 172.3, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 48}, {"desc": "Filialdrive", "val": 91.2, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 49}, {"desc": "Mariajosepereira", "val": 20, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 50}, {"desc": "Mariajosepereira", "val": 70, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 51}, {"desc": "Ifood", "val": 68.27, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 52}, {"desc": "Shopee", "val": 59.99, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 53}, {"desc": "Pasticceria Borelli", "val": 25, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 54}, {"desc": "Spoleto", "val": 227.4, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 55}, {"desc": "Estac Shopping", "val": 22, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 56}, {"desc": "Men Of Steel Rib Sho", "val": 130, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 57}, {"desc": "Outback Ribeirao Preto", "val": 246.51, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 58}, {"desc": "Livraria da Vila", "val": 44.9, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 59}, {"desc": "NuTag*FRV9579", "val": 14.5, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 60}, {"desc": "Dl *Uberrides", "val": 13.92, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 61}, {"desc": "Dl *Uberrides", "val": 14.95, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 62}, {"desc": "NuTag*FRV9579", "val": 14.5, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 63}, {"desc": "Rosinei da Costa Sorve", "val": 19.74, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 64}, {"desc": "Posto Sao Judas", "val": 37.97, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 65}, {"desc": "J A Arantes Limonta Si", "val": 20, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 66}, {"desc": "Vfa Alimentos", "val": 110.4, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 67}, {"desc": "NuTag*PZC3J89", "val": 11.8, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 68}, {"desc": "NuTag*PZC3J89", "val": 11.8, "de": 2, "ate": 2, "tag": "extra", "isExtra": true, "extraIdx": 69}], "simItems": [], "overrides": {"Borelli (2)__1": 23, "Cotton On 1/3__1": 69.95, "Cotton On 2/3__2": 69.95, "Cobertura 5/10__4": -1}, "purchHist": [], "profile": {"meta": 3000, "selic": 13.75, "cambio": 5.01, "milhas": 2.2, "milhaVal": 0.03, "gasUrl": "https://script.google.com/macros/s/AKfycbzXFXbZQ8TfHYwntMXg5k1lI_1pzBx7rTwVYycNESff8KC3DV95CRq15OrcP6dsC2_F/exec", "gasToken": ""}};
 
   function getBaselineFaturasData() {
-    return processFaturasData(BASELINE_FATURAS_RAW, false);
+    return processFaturasData(BASELINE_FATURAS_RAW, false, true);
   }
 
-  function processFaturasData(rawData, includeSimulated = false) {
+  /**
+   * v140: `fromBaseline` distingue o retrato REAL do satélite do baseline embutido no código.
+   * O baseline é um retrato antigo (fotografia de quando o arquivo foi gerado) e NÃO pode se
+   * passar por dado fresco: era assim que as faturas de Dez/2026 em diante ficavam congeladas
+   * — a restauração da nuvem injetava o baseline carimbado com a hora atual e descartava o
+   * retrato que o scraping tinha acabado de gravar.
+   */
+  function processFaturasData(rawData, includeSimulated = false, fromBaseline = false) {
     if (!rawData || (!rawData.extraItems && !rawData.overrides)) {
       rawData = BASELINE_FATURAS_RAW;
+      fromBaseline = true;
     }
+    const veioDoSatelite = !fromBaseline;
     const overrides = rawData.overrides || rawData.pv4_over || {};
     const extraItems = rawData.extraItems || rawData.pv4_extra || [];
     const simItems = rawData.simItems || rawData.pv4_sim || [];
@@ -575,7 +584,8 @@ const SatelliteConnectors = (function () {
 
     return {
       origem: 'Faturas (Parcelado a Vista)',
-      atualizadoEm: new Date().toISOString(),
+      fonte: veioDoSatelite ? 'satelite' : 'baseline',
+      atualizadoEm: veioDoSatelite ? new Date().toISOString() : null,
       faturasPorMes,
       faturaAtualReal,
       faturaAtualValor: faturaAtualReal,
@@ -586,6 +596,48 @@ const SatelliteConnectors = (function () {
       limiteMetaMensal: parseFloat(profile.meta || 3000.0),
       categoriasTotais
     };
+  }
+
+  // v140: carimbo de quando o retrato foi REALMENTE coletado. Baseline vale 0 (nunca ganha
+  // de um retrato de satélite), e retrato sem data também não se impõe a um datado.
+  function faturasSnapshotTs(sat) {
+    if (!sat || typeof sat !== 'object') return 0;
+    if (sat.fonte === 'baseline') return 0;
+    const t = Date.parse(sat.atualizadoEm || '');
+    return isNaN(t) ? 0 : t;
+  }
+
+  /**
+   * v140: escolhe qual retrato de faturas sobrevive ao round-trip da nuvem.
+   * - nuvem vazia → fica o local (o scrape deste aparelho é a verdade);
+   * - local vazio → fica a nuvem;
+   * - os dois     → vence o mais recente; no empate fica o local (traz `itens` do drilldown).
+   * Meses herdados da nuvem reaproveitam os `itens` locais quando o total é o mesmo.
+   */
+  function mergeFaturasSnapshots(cloudSat, localSat) {
+    const cloudOk = !!(cloudSat && cloudSat.faturasPorMes);
+    const localOk = !!(localSat && localSat.faturasPorMes);
+    if (!cloudOk) return localOk ? localSat : null;
+    if (!localOk) return cloudSat;
+
+    const cloudTs = faturasSnapshotTs(cloudSat);
+    const localTs = faturasSnapshotTs(localSat);
+    if (localTs > cloudTs) return localSat;
+    if (cloudTs > localTs) {
+      const out = JSON.parse(JSON.stringify(cloudSat));
+      Object.keys(out.faturasPorMes || {}).forEach(k => {
+        const cMes = out.faturasPorMes[k];
+        const lMes = localSat.faturasPorMes[k];
+        if (!cMes || !lMes) return;
+        const mesmoTotal = Math.abs((parseFloat(cMes.total) || 0) - (parseFloat(lMes.total) || 0)) < 0.005;
+        if (mesmoTotal && Array.isArray(lMes.itens) && lMes.itens.length) {
+          cMes.itens = lMes.itens;
+          if (lMes.categorias && Object.keys(lMes.categorias).length) cMes.categorias = lMes.categorias;
+        }
+      });
+      return out;
+    }
+    return localSat;
   }
 
   // ========================================================
@@ -1340,18 +1392,42 @@ const SatelliteConnectors = (function () {
       } catch (e) {}
     }
 
-    const fatProcessed = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
-    state.satellites.faturas = fatProcessed;
-    statusResults.faturas = { success: true };
+    const fatAnterior = state.satellites.faturas;
+    const fatTemRetratoReal = !!(fatAnterior && fatAnterior.faturasPorMes && fatAnterior.fonte !== 'baseline');
+
+    // v140: coleta que falhou NÃO vira baseline "novo". Antes o app chamava
+    // processFaturasData({}), anunciava success:true e congelava as faturas nos números
+    // embutidos no código — foi o que deixou Dez/2026 em diante desatualizado mesmo
+    // depois de sincronizar.
+    if (!faturasRaw && fatTemRetratoReal) {
+      const attemptFat = new Date().toISOString();
+      fatAnterior.syncError = 'Faturas não respondeu (CORS/JSONP); mantido o último retrato real.';
+      fatAnterior.lastAttempt = attemptFat;
+      statusResults.faturas = {
+        success: false,
+        mantido: true,
+        error: fatAnterior.syncError,
+        atualizadoEm: fatAnterior.atualizadoEm
+      };
+    } else {
+      const fatProcessed = processFaturasData(faturasRaw || {}, cfg.includeSimulated);
+      fatProcessed.syncError = faturasRaw ? null : 'Faturas não respondeu; exibindo o baseline embutido.';
+      fatProcessed.lastAttempt = new Date().toISOString();
+      state.satellites.faturas = fatProcessed;
+      statusResults.faturas = fatProcessed.syncError
+        ? { success: false, error: fatProcessed.syncError }
+        : { success: true, atualizadoEm: fatProcessed.atualizadoEm };
+    }
 
     // Sincroniza o valor calculado da fatura diretamente nos meses do Matrix
-    if (fatProcessed && fatProcessed.faturasPorMes && state.anos) {
-      Object.keys(fatProcessed.faturasPorMes).forEach(mKey => {
+    const fatAtual = state.satellites.faturas;
+    if (fatAtual && fatAtual.faturasPorMes && state.anos) {
+      Object.keys(fatAtual.faturasPorMes).forEach(mKey => {
         const parts = mKey.split('-');
         if (parts.length === 2) {
           const ano = parts[0];
           const mes = parts[1];
-          const mesFat = fatProcessed.faturasPorMes[mKey];
+          const mesFat = fatAtual.faturasPorMes[mKey];
           if (mesFat && typeof mesFat.total === 'number' && state.anos[ano] && state.anos[ano][mes]) {
             const mData = state.anos[ano][mes];
             if (!mData.scarlet) mData.scarlet = {};
@@ -1465,6 +1541,8 @@ const SatelliteConnectors = (function () {
     getBaselineFisioData,
     processFisioData,
     processFaturasData,
+    faturasSnapshotTs,
+    mergeFaturasSnapshots,
     processMaracajuData,
     mergeMaracajuPayloads,
     compactMaracajuStateForCloud,
