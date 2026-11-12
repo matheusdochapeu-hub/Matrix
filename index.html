@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=151">
+  <link rel="stylesheet" href="css/matrix.css?v=152">
 <link rel="stylesheet" href="nexo-theme.css">
 </head>
 <body>
@@ -2169,6 +2169,23 @@
         <input type="text" id="invModalAtivo" class="matrix-input" placeholder="Ex: Tesouro Direto Renda+ 2055, CSNA3, Bitcoin...">
       </div>
 
+      <div style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-muted);cursor:pointer;user-select:none;">
+          <input type="checkbox" id="invModalEhAcao" onchange="MatrixApp.toggleInvModalAcao()" style="width:16px;height:16px;accent-color:var(--matrix-green);">
+          <span>É <strong style="color:var(--matrix-green);">ação da bolsa (B3)</strong> — o app busca a cotação sozinho</span>
+        </label>
+      </div>
+
+      <div id="invModalAcaoRow" style="display:none;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);">Código do ticker (B3):</label>
+          <input type="text" id="invModalTicker" class="matrix-input" placeholder="Ex: PETR4, VALE3, HGLG11" maxlength="10" style="text-transform:uppercase;">
+        </div>
+        <div style="display:flex;align-items:flex-end;">
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.35;">Em branco, o app detecta pelo nome (ex.: "PETR4 (Petrobras)"). Quantidade e preço médio são obrigatórios para calcular o lucro.</div>
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <div>
           <label style="font-size:11px;color:var(--text-muted);">Categoria do Investimento:</label>
@@ -2974,18 +2991,18 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=151"></script>
-  <script src="js/matrix-rain.js?v=151"></script>
-  <script src="js/db.js?v=151"></script>
-  <script src="js/calendar-engine.js?v=151"></script>
-  <script src="js/amortization-engine.js?v=151"></script>
-  <script src="js/scenario-simulator.js?v=151"></script>
-  <script src="js/pdf-reader.js?v=151"></script>
-  <script src="js/faturas-data.js?v=151"></script>
-<script src="js/satellite-connectors.js?v=151"></script>
-  <script src="js/sync-engine.js?v=151"></script>
-  <script src="js/market-quotes.js?v=151"></script>
-  <script src="js/app.js?v=151"></script>
+  <script src="js/seed-data.js?v=152"></script>
+  <script src="js/matrix-rain.js?v=152"></script>
+  <script src="js/db.js?v=152"></script>
+  <script src="js/calendar-engine.js?v=152"></script>
+  <script src="js/amortization-engine.js?v=152"></script>
+  <script src="js/scenario-simulator.js?v=152"></script>
+  <script src="js/pdf-reader.js?v=152"></script>
+  <script src="js/faturas-data.js?v=152"></script>
+<script src="js/satellite-connectors.js?v=152"></script>
+  <script src="js/sync-engine.js?v=152"></script>
+  <script src="js/market-quotes.js?v=152"></script>
+  <script src="js/app.js?v=152"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -2997,7 +3014,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=151', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=152', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 

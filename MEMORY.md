@@ -827,3 +827,28 @@ Atendimentos não respondeu, e o console mostrava
 - Validado: coleta automática e o botão "Fazer Scraping dos 3 Apps Agora" concluem com sucesso
   ("Scraping concluído com sucesso"), 16 sessões e R$ 1.435 a receber em nov/2026, 0 erros no console.
 - `check-syntax` 13/13, suíte **22/22**, `sw.js` e `?v=` em **v134**.
+
+---
+
+## [2026-11-12 14:05] - Matrix Finance v152: Ação no Cadastro + Preço por Ação e Lucro no Card
+
+### ✨ Novidades
+- **Modal de investimento** ganhou o checkbox **"É ação da bolsa (B3)"** com campo de **ticker**.
+  - Ao marcar, a categoria vira "Ações" e o ticker é **detectado pelo nome** ("PETR4 (Petrobras)" → `PETR4`).
+  - Salva `isAcao: true` + `ticker`; sem ticker o app não deixa salvar (mostra aviso).
+  - Ação sem posição informada começa com `quantidade × preço médio`, vencimento "Indeterminado / B3" e
+    rentabilidade "Renda Variável B3".
+- **Card do ativo** (aba Investimentos) agora mostra, para ações:
+  - valor total (como antes),
+  - **preço por ação** (`R$ 4,52/ação`),
+  - **lucro/prejuízo** vs. preço médio pago (`+R$ 252,08 (+31,6%)`, verde/vermelho),
+  - a origem/data da cotação (`fech. 11/11` ou `atual`).
+- O ticker salvo entra automaticamente na lista de cotações (fechamento diário + botão "Cotação atual").
+
+### 🧪 Validação (Chromium)
+- Modal: checkbox oculto → `display:grid` ao marcar; ticker auto `PETR4`; categoria auto `Ações`.
+- Salvo: `{ ativo: 'PETR4 (Petrobras)', ticker: 'PETR4', isAcao: true, qtd: 100, pm: 38.2 }`.
+- Cards: `PETR4 R$ 4.125,00 · R$ 41,25/ação · +R$ 305,00 (+8,0%)`;
+  `MGLU3 R$ 1.049,42 · R$ 7,66/ação · +R$ 252,08 (+31,6%)`;
+  `CSNA3 R$ 180,80 · R$ 4,52/ação · -R$ 19,20 (-9,6%)`.
+- `check-syntax` 13/13, suíte **35/35**, `sw.js` e `?v=` em **v152**.

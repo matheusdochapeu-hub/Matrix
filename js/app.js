@@ -7928,6 +7928,40 @@ function onModalCategoriaChange(catVal) {
     renderInvestTable(state.investimentos || []);
   }
 
+  // v152: para ações, mostra o preço por ação e o lucro/prejuízo vs. preço médio pago.
+  function cardAcaoDetalhe(inv) {
+    if (typeof MarketQuotes === 'undefined' || typeof MarketQuotes.tickerDe !== 'function') return '';
+    const ticker = MarketQuotes.tickerDe(inv);
+    const qtd = parseFloat(inv.quantidade) || 0;
+    const pm = parseFloat(inv.precoMedio) || 0;
+    const precoAtual = parseFloat(inv.precoAtual) || (qtd > 0 ? (parseFloat(inv.valorAtual) || 0) / qtd : 0);
+    if (!ticker || qtd <= 0 || pm <= 0 || precoAtual <= 0) {
+      if (ticker) {
+        return `<div style="font-size:9.5px;color:var(--text-dim);margin-top:2px;">aguardando cotação…</div>`;
+      }
+      return '';
+    }
+    const investido = qtd * pm;
+    const atual = qtd * precoAtual;
+    const pl = atual - investido;
+    const pct = investido > 0 ? (pl / investido) * 100 : 0;
+    const cor = pl >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    const sinal = pl >= 0 ? '+' : '';
+    const dataCot = inv.cotacaoFechamentoData ? MarketQuotes.formatarDataCurta(inv.cotacaoFechamentoData) : '';
+    return `
+      <div style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-bright);margin-top:2px;white-space:nowrap;">
+        ${formatBRL(precoAtual)}<span style="color:var(--text-dim);font-size:9px;">/ação</span>
+      </div>
+      <div style="font-size:10px;font-family:var(--font-mono);color:${cor};margin-top:1px;white-space:nowrap;"
+           title="Quantidade ${qtd} × preço médio ${formatBRL(pm)} = ${formatBRL(investido)} investidos">
+        ${sinal}${formatBRL(pl)} <span style="font-size:9px;">(${sinal}${pct.toFixed(1).replace('.', ',')}%)</span>
+      </div>
+      <div style="font-size:8.5px;color:var(--text-dim);font-family:var(--font-mono);margin-top:1px;">
+        ${inv.cotacaoModo === 'atual' ? 'atual' : (dataCot ? 'fech. ' + dataCot : '')}
+      </div>
+    `;
+  }
+
   function renderInvestTable(invList) {
     const container = document.getElementById('investmentsCardsContainer') || document.getElementById('investmentsTableBody');
     const badgeCount = document.getElementById('investCountBadge');
@@ -8055,6 +8089,7 @@ function onModalCategoriaChange(catVal) {
             </div>
             <div style="text-align:right;flex-shrink:0;">
               <div style="font-size:16px;font-weight:800;color:var(--matrix-green);font-family:var(--font-mono);">${formatBRL(inv.valorAtual)}</div>
+              ${cardAcaoDetalhe(inv)}
             </div>
           </div>
 
@@ -8075,6 +8110,24 @@ function onModalCategoriaChange(catVal) {
     }).join('');
   }
 
+  // v152: marca o ativo como ação da B3 (o app busca cotação) e mostra o campo do ticker.
+  function toggleInvModalAcao() {
+    const chk = document.getElementById('invModalEhAcao');
+    const row = document.getElementById('invModalAcaoRow');
+    const cat = document.getElementById('invModalCategoria');
+    const ligado = !!(chk && chk.checked);
+    if (row) row.style.display = ligado ? 'grid' : 'none';
+    if (ligado && cat && cat.value !== 'Ações') cat.value = 'Ações';
+    if (ligado) {
+      const ticker = document.getElementById('invModalTicker');
+      const ativo = document.getElementById('invModalAtivo');
+      if (ticker && !ticker.value && ativo && typeof MarketQuotes !== 'undefined' && MarketQuotes.tickerDe) {
+        const detectado = MarketQuotes.tickerDe({ ativo: ativo.value });
+        if (detectado) ticker.value = detectado;
+      }
+    }
+  }
+
   function openNewInvestmentModal(defaultTitular) {
     document.getElementById('invModalTitle').textContent = 'Novo Investimento';
     document.getElementById('invModalId').value = '';
@@ -8088,6 +8141,9 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invModalQtd').value = '';
     document.getElementById('invModalPM').value = '';
     document.getElementById('invModalStatus').value = 'Ativo (Foco de novos aportes)';
+    if (document.getElementById('invModalEhAcao')) document.getElementById('invModalEhAcao').checked = false;
+    if (document.getElementById('invModalTicker')) document.getElementById('invModalTicker').value = '';
+    toggleInvModalAcao();
 
     const backdrop = document.getElementById('investModalBackdrop');
     openModal(backdrop);
@@ -8110,6 +8166,12 @@ function onModalCategoriaChange(catVal) {
     document.getElementById('invModalQtd').value = inv.quantidade || '';
     document.getElementById('invModalPM').value = inv.precoMedio || '';
     document.getElementById('invModalStatus').value = inv.status || 'Ativo';
+    const ehAcaoEdit = !!(inv.isAcao || inv.ticker || (inv.categoria || '').toLowerCase().includes('ações'));
+    if (document.getElementById('invModalEhAcao')) document.getElementById('invModalEhAcao').checked = ehAcaoEdit;
+    if (document.getElementById('invModalTicker')) {
+      document.getElementById('invModalTicker').value = inv.ticker || (typeof MarketQuotes !== 'undefined' && MarketQuotes.tickerDe ? (MarketQuotes.tickerDe(inv) || '') : '');
+    }
+    toggleInvModalAcao();
 
     const backdrop = document.getElementById('investModalBackdrop');
     openModal(backdrop);
@@ -8127,6 +8189,16 @@ function onModalCategoriaChange(catVal) {
     const status = document.getElementById('invModalStatus').value.trim() || 'Ativo';
     const quantidade = parseFloat(document.getElementById('invModalQtd').value) || undefined;
     const precoMedio = parseFloat(document.getElementById('invModalPM').value) || undefined;
+    const ehAcao = !!(document.getElementById('invModalEhAcao') || {}).checked;
+    let ticker = ((document.getElementById('invModalTicker') || {}).value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+    if (ehAcao && !ticker && typeof MarketQuotes !== 'undefined' && MarketQuotes.tickerDe) {
+      ticker = MarketQuotes.tickerDe({ ativo }) || '';
+    }
+    if (ehAcao && !ticker) {
+      alert('Informe o código do ticker (ex.: PETR4) para o app buscar a cotação.');
+      return;
+    }
 
     if (!ativo) {
       alert('Por favor, informe o nome do ativo.');
@@ -8136,18 +8208,25 @@ function onModalCategoriaChange(catVal) {
     const state = MatrixDB.getState();
     if (!state.investimentos) state.investimentos = [];
 
+    // v152: ação sem posição informada começa com quantidade × preço médio (e rótulos de B3)
+    const valorAtualFinal = (ehAcao && !valorAtual && quantidade && precoMedio)
+      ? Math.round(quantidade * precoMedio * 100) / 100
+      : valorAtual;
+
     const item = {
       id: id || ('inv_' + Date.now()),
       ativo,
       corretora: corretora || 'Corretora',
       categoria,
       titular,
-      valorAtual,
-      vencimento: vencimento || 'Longo Prazo',
-      rentabilidadeContratada: rentabilidadeContratada || 'Renda Fixa / CDI',
+      valorAtual: valorAtualFinal,
+      vencimento: vencimento || (ehAcao ? 'Indeterminado / B3' : 'Longo Prazo'),
+      rentabilidadeContratada: rentabilidadeContratada || (ehAcao ? 'Renda Variável B3' : 'Renda Fixa / CDI'),
       status,
       quantidade,
-      precoMedio
+      precoMedio,
+      isAcao: ehAcao || undefined,
+      ticker: ehAcao ? ticker : undefined
     };
 
     if (id) {
@@ -11339,6 +11418,7 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
+    toggleInvModalAcao,
     atualizarCardsMetas2055,
     atualizarCotacoesAtuais,
     atualizarCotacoesFechamento,

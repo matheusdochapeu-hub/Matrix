@@ -575,3 +575,16 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - O cliente **nunca** deve dizer "atualizadas (0/N)" em verde: `MarketQuotes.sincronizar` devolve `ok:false`
   e escreve o motivo (permissão, HTTP 429, HTTP 5xx) na linha `#invQuoteStatus`.
 - Service Worker atualizado para `matrix-finance-v131`.
+
+---
+
+## 39. Ação da B3 no Cadastro e P&L no Card (v152)
+
+- O modal de investimento tem o checkbox **"É ação da bolsa (B3)"** (`invModalEhAcao`) + campo `invModalTicker`.
+  Ao marcar, `toggleInvModalAcao()` exibe o ticker, força a categoria "Ações" e tenta detectar o código pelo nome
+  (`MarketQuotes.tickerDe`). O item é salvo com `isAcao` e `ticker`.
+- `cardAcaoDetalhe(inv)` monta, no card de cada ação: **preço por ação**, **lucro/prejuízo** (`(preçoAtual − preçoMédio) × quantidade`)
+  e a origem da cotação. Sem `quantidade`/`precoMedio` o card mostra "aguardando cotação…".
+- Nunca calcule o P&L com `valorAtual` "na mão": o card usa `quantidade × precoAtual` e compara com
+  `quantidade × precoMedio` (os mesmos campos que as cotações atualizam).
+- Service Worker em `matrix-finance-v152`.
