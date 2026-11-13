@@ -477,6 +477,7 @@ const MatrixApp = (function () {
         }
       }
     } catch (e) {}
+    aplicarOrdemAbas();
     populateYearSelector();
     setupEventListeners();
     updateInstallButtonVisibility();
@@ -1411,15 +1412,106 @@ const MatrixApp = (function () {
     alert(`Ano ${anoStr} aberto com sucesso! Você já pode adicionar, editar receitas e despesas livremente.`);
   }
 
-  const TAB_ORDER = [
+  // v155: ordem padrão (barra no topo) + ordem personalizável pelo usuário.
+  const ABAS_PADRAO = [
     'tab-fluxo',
-    'tab-simulador',
-    'tab-holerites',
+    'tab-investimentos',
     'tab-calendario',
     'tab-financiamento',
-    'tab-investimentos',
+    'tab-holerites',
+    'tab-simulador',
     'tab-backup'
   ];
+
+  const ABAS_LABEL = {
+    'tab-fluxo': '📊 Fluxo de Caixa',
+    'tab-investimentos': '📈 Investimentos',
+    'tab-calendario': '📅 Calendário',
+    'tab-financiamento': '🏠 Financiamento',
+    'tab-holerites': '📄 Holerites',
+    'tab-simulador': '🔮 E se?',
+    'tab-backup': '☁️ Backup'
+  };
+
+  const ABAS_ORDEM_KEY = 'matrix_tabs_order_v1';
+
+  function lerOrdemAbas() {
+    try {
+      const salvo = JSON.parse(localStorage.getItem(ABAS_ORDEM_KEY) || '[]');
+      if (Array.isArray(salvo) && salvo.length) {
+        const validas = salvo.filter(id => ABAS_PADRAO.includes(id));
+        const faltando = ABAS_PADRAO.filter(id => !validas.includes(id));
+        return validas.concat(faltando);
+      }
+    } catch (e) {}
+    return ABAS_PADRAO.slice();
+  }
+
+  let TAB_ORDER = lerOrdemAbas();
+
+  // Aplica TAB_ORDER no DOM (botões da barra + bolinhas do swipe) e persiste.
+  function aplicarOrdemAbas() {
+    const nav = document.getElementById('matrixTabsBar');
+    if (nav) {
+      TAB_ORDER.forEach(id => {
+        const btn = nav.querySelector('.tab-btn[data-tab="' + id + '"]');
+        if (btn) nav.appendChild(btn);
+      });
+      const gear = document.getElementById('btnOrganizarAbas');
+      if (gear) nav.appendChild(gear);
+    }
+    const dots = document.getElementById('swipeDotsContainer');
+    if (dots) {
+      TAB_ORDER.forEach(id => {
+        const dot = dots.querySelector('.swipe-dot[data-tab="' + id + '"]');
+        if (dot) dots.appendChild(dot);
+      });
+    }
+    try { localStorage.setItem(ABAS_ORDEM_KEY, JSON.stringify(TAB_ORDER)); } catch (e) {}
+  }
+
+  function renderListaOrganizarAbas() {
+    const lista = document.getElementById('organizarAbasLista');
+    if (!lista) return;
+    lista.innerHTML = TAB_ORDER.map((id, idx) => {
+      const primeiro = idx === 0;
+      const ultimo = idx === TAB_ORDER.length - 1;
+      return `
+        <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border-dim);border-radius:var(--radius-sm);padding:7px 10px;">
+          <span style="font-size:12px;color:var(--text-bright);flex:1;min-width:0;">${ABAS_LABEL[id] || id}</span>
+          <button class="btn-matrix secondary" style="padding:2px 8px;font-size:11px;" ${primeiro ? 'disabled' : ''} onclick="MatrixApp.moverAba('${id}', -1)" title="Subir">▲</button>
+          <button class="btn-matrix secondary" style="padding:2px 8px;font-size:11px;" ${ultimo ? 'disabled' : ''} onclick="MatrixApp.moverAba('${id}', 1)" title="Descer">▼</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function abrirOrganizarAbas() {
+    renderListaOrganizarAbas();
+    const backdrop = document.getElementById('organizarAbasBackdrop');
+    if (backdrop) openModal(backdrop);
+  }
+
+  function fecharOrganizarAbas() {
+    closeModal('organizarAbasBackdrop');
+  }
+
+  function moverAba(id, direcao) {
+    const idx = TAB_ORDER.indexOf(id);
+    if (idx === -1) return;
+    const novo = idx + direcao;
+    if (novo < 0 || novo >= TAB_ORDER.length) return;
+    TAB_ORDER.splice(idx, 1);
+    TAB_ORDER.splice(novo, 0, id);
+    aplicarOrdemAbas();
+    renderListaOrganizarAbas();
+  }
+
+  function resetarOrdemAbas() {
+    TAB_ORDER = ABAS_PADRAO.slice();
+    aplicarOrdemAbas();
+    renderListaOrganizarAbas();
+  }
 
   let currentActiveTabId = 'tab-fluxo';
 
@@ -11418,6 +11510,11 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarHoleriteManual,
     salvarConfigSatellites,
     executarScrapingSatellites,
+    abrirOrganizarAbas,
+    fecharOrganizarAbas,
+    moverAba,
+    resetarOrdemAbas,
+    aplicarOrdemAbas,
     toggleInvModalAcao,
     atualizarCardsMetas2055,
     atualizarCotacoesAtuais,

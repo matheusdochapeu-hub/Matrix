@@ -875,3 +875,23 @@ O cron do GitHub Actions não roda a cada 5 min de verdade — o agendador atras
   (fech. 7,66), `fonte: 'Yahoo Finance (ao vivo)'`.
 - `sincronizar('atual')` → `fonte: 'ao-vivo'`, 20 ms (cache), status "Cotações ao vivo • 14:32 — 2/2."
 - `check-syntax` 13/13, suíte **35/35**, `sw.js` e `?v=` em **v153**.
+
+---
+
+## [2026-11-13 15:10] - Matrix Finance v155: Barra de Abas no Topo e Ordem Personalizável
+
+### ✨ O que mudou
+- A barra de navegação saiu de baixo do painel executivo e foi para **logo abaixo do header**,
+  com `position: sticky` (fica visível ao rolar).
+- Nova ordem padrão, conforme pedido: **Fluxo de Caixa → Investimentos → Calendário → Financiamento →
+  Holerites → E se? → Backup**. Rótulos encurtados para caber mais abas.
+- Botão **⚙️** no fim da barra (sticky à direita, sempre acessível) abre o modal **"Organizar abas"**:
+  cada aba com ▲/▼ e um "Restaurar padrão". A ordem vale para a barra **e** para o deslize entre abas
+  (as bolinhas acompanham) e fica salva em `matrix_tabs_order_v1`.
+- No celular a barra ficou compacta (43 px de altura) e continua rolando na horizontal.
+
+### 🧪 Validação (Chromium 1440 e 390)
+- Barra em `top: 93` com o painel executivo em `157` (acima dele); `position: sticky`; sem overflow horizontal.
+- Ordem padrão conferida no DOM; mover "Holerites" para o topo pelo modal atualiza barra + bolinhas,
+  persiste no `localStorage` e sobrevive ao reload; "Restaurar padrão" volta à ordem original.
+- `check-syntax` 13/13, suíte **35/35**, `sw.js` e `?v=` em **v155**.

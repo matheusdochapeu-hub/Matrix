@@ -601,3 +601,16 @@ Este documento registra as regras de negócio, integrações, convenções de UX
 - O cron do GitHub **não é confiável para "tempo real"**: ele atrasa e pode pular execuções. Nunca dependa
   dele para o botão; ele serve para o fechamento diário e como plano B.
 - Service Worker em `matrix-finance-v153`.
+
+---
+
+## 41. Barra de Abas no Topo e Ordem Personalizável (v155)
+
+- A `.matrix-tabs` fica **logo após o `</header>`** e é `position: sticky; top: 0` (fundo opaco para
+  não vazar o conteúdo). Não volte a colocá-la depois do painel executivo.
+- Ordem padrão em `ABAS_PADRAO` (`js/app.js`): fluxo, investimentos, calendário, financiamento,
+  holerites, simulador, backup. `TAB_ORDER` é **dinâmico** (`lerOrdemAbas()`), reconstruído de
+  `matrix_tabs_order_v1`; `aplicarOrdemAbas()` reordena botões **e** bolinhas do swipe.
+- O usuário reordena pelo modal "Organizar abas" (⚙️ no fim da barra; no celular ele fica sticky à direita).
+  Nunca chumbe índices: `switchTab`/swipe usam `TAB_ORDER`.
+- Service Worker em `matrix-finance-v155`.

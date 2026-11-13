@@ -159,6 +159,9 @@ O Node local do workspace fica em `..\node-bin\PFiles64\nodejs\node.exe`
 29. **"Cotação atual" é ao vivo, não do cron.** O botão usa `buscarQuotesAoVivo` (Yahoo `spark` via
     `r.jina.ai`, cache 60 s). O cron do GitHub atrasa/pula execuções; use-o só para o fechamento diário
     e como fallback. Ver GEMINI §40.
+30. **Barra de abas no topo, ordem personalizável.** A `.matrix-tabs` fica após o `</header>` e é sticky.
+    A ordem vem de `ABAS_PADRAO`/`matrix_tabs_order_v1` e é aplicada por `aplicarOrdemAbas()` (barra + bolinhas).
+    Nunca fixe índices de aba: use `TAB_ORDER`.
 
 ## Dívida técnica conhecida
 

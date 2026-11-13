@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=154">
+  <link rel="stylesheet" href="css/matrix.css?v=155">
 <link rel="stylesheet" href="nexo-theme.css">
 </head>
 <body>
@@ -70,6 +70,19 @@
         <span id="cloudSyncStatusBadge" class="status-badge pago" style="cursor:pointer;" onclick="document.querySelector('[data-tab=\'tab-backup\']').click()">💾 Salvo Automaticamente</span>
       </div>
     </header>
+
+    <!-- Navigation Tabs (v155: barra no topo + ordem personalizável) -->
+    <nav class="matrix-tabs" id="matrixTabsBar">
+      <button class="tab-btn active" data-tab="tab-fluxo">📊 Fluxo de Caixa</button>
+      <button class="tab-btn" data-tab="tab-investimentos">📈 Investimentos</button>
+      <button class="tab-btn" data-tab="tab-calendario">📅 Calendário</button>
+      <button class="tab-btn" data-tab="tab-financiamento">🏠 Financiamento</button>
+      <button class="tab-btn" data-tab="tab-holerites">📄 Holerites</button>
+      <button class="tab-btn" data-tab="tab-simulador">🔮 E se?</button>
+      <button class="tab-btn" data-tab="tab-backup">☁️ Backup</button>
+      <button class="tab-btn tab-organizar" id="btnOrganizarAbas" onclick="MatrixApp.abrirOrganizarAbas()" title="Escolher a ordem das abas">⚙️</button>
+    </nav>
+
 
     <!-- PAINEL SUPERIOR UNIFICADO: RENDA CONJUNTA, GASTOS E SOBRAS DO MÊS -->
     <section id="unifiedTopExecutivePanel" class="unified-top-panel">
@@ -499,27 +512,16 @@
       </div>
     </section>
 
-    <!-- Navigation Tabs -->
-    <nav class="matrix-tabs">
-      <button class="tab-btn active" data-tab="tab-fluxo">📊 Fluxo de Caixa</button>
-      <button class="tab-btn" data-tab="tab-simulador">🔮 Simulador "E se?"</button>
-      <button class="tab-btn" data-tab="tab-holerites">📄 Holerites & Renda</button>
-      <button class="tab-btn" data-tab="tab-calendario">📅 Calendário USP & Caronas</button>
-      <button class="tab-btn" data-tab="tab-financiamento">🏠 Financiamento Caixa</button>
-      <button class="tab-btn" data-tab="tab-investimentos">📈 Investimentos 360</button>
-      <button class="tab-btn" data-tab="tab-backup">☁️ Backup & Conexões</button>
-    </nav>
-
     <!-- Indicador Visual de Swipe / Carrossel no Celular -->
     <div id="mobileSwipeIndicator" class="mobile-swipe-indicator">
       <span class="swipe-hint">👈 Deslize entre as abas 👉</span>
       <div class="swipe-dots" id="swipeDotsContainer">
         <span class="swipe-dot active" data-tab="tab-fluxo" onclick="MatrixApp.switchTab('tab-fluxo')"></span>
-        <span class="swipe-dot" data-tab="tab-simulador" onclick="MatrixApp.switchTab('tab-simulador')"></span>
-        <span class="swipe-dot" data-tab="tab-holerites" onclick="MatrixApp.switchTab('tab-holerites')"></span>
+        <span class="swipe-dot" data-tab="tab-investimentos" onclick="MatrixApp.switchTab('tab-investimentos')"></span>
         <span class="swipe-dot" data-tab="tab-calendario" onclick="MatrixApp.switchTab('tab-calendario')"></span>
         <span class="swipe-dot" data-tab="tab-financiamento" onclick="MatrixApp.switchTab('tab-financiamento')"></span>
-        <span class="swipe-dot" data-tab="tab-investimentos" onclick="MatrixApp.switchTab('tab-investimentos')"></span>
+        <span class="swipe-dot" data-tab="tab-holerites" onclick="MatrixApp.switchTab('tab-holerites')"></span>
+        <span class="swipe-dot" data-tab="tab-simulador" onclick="MatrixApp.switchTab('tab-simulador')"></span>
         <span class="swipe-dot" data-tab="tab-backup" onclick="MatrixApp.switchTab('tab-backup')"></span>
       </div>
     </div>
@@ -2990,19 +2992,37 @@
     </div>
   </div>
 
+  <!-- v155: organizar a ordem das abas -->
+  <div class="matrix-modal-backdrop" id="organizarAbasBackdrop" onclick="if(event.target===this) MatrixApp.fecharOrganizarAbas()">
+    <div class="matrix-modal" style="max-width:460px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 style="font-size:14px;color:var(--matrix-green);">🧩 Organizar abas</h3>
+        <button class="close-btn" onclick="MatrixApp.fecharOrganizarAbas()">&times;</button>
+      </div>
+      <div style="padding:14px 16px;">
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Use as setas para mudar a ordem. A barra do topo e o deslize entre abas seguem esta ordem.</p>
+        <div id="organizarAbasLista" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px;flex-wrap:wrap;">
+          <button class="btn-matrix secondary" style="font-size:11px;" onclick="MatrixApp.resetarOrdemAbas()">↺ Restaurar padrão</button>
+          <button class="btn-matrix primary" style="font-size:11px;" onclick="MatrixApp.fecharOrganizarAbas()">Concluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=154"></script>
-  <script src="js/matrix-rain.js?v=154"></script>
-  <script src="js/db.js?v=154"></script>
-  <script src="js/calendar-engine.js?v=154"></script>
-  <script src="js/amortization-engine.js?v=154"></script>
-  <script src="js/scenario-simulator.js?v=154"></script>
-  <script src="js/pdf-reader.js?v=154"></script>
-  <script src="js/faturas-data.js?v=154"></script>
-<script src="js/satellite-connectors.js?v=154"></script>
-  <script src="js/sync-engine.js?v=154"></script>
-  <script src="js/market-quotes.js?v=154"></script>
-  <script src="js/app.js?v=154"></script>
+  <script src="js/seed-data.js?v=155"></script>
+  <script src="js/matrix-rain.js?v=155"></script>
+  <script src="js/db.js?v=155"></script>
+  <script src="js/calendar-engine.js?v=155"></script>
+  <script src="js/amortization-engine.js?v=155"></script>
+  <script src="js/scenario-simulator.js?v=155"></script>
+  <script src="js/pdf-reader.js?v=155"></script>
+  <script src="js/faturas-data.js?v=155"></script>
+<script src="js/satellite-connectors.js?v=155"></script>
+  <script src="js/sync-engine.js?v=155"></script>
+  <script src="js/market-quotes.js?v=155"></script>
+  <script src="js/app.js?v=155"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -3014,7 +3034,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=154', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=155', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 
