@@ -4,6 +4,37 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-16 21:25] - Matrix Finance v156: Fim da Duplicação dos Gastos da Scarlet e Salvamento na Planilha
+
+### 🐞 Problema
+Os gastos próprios da Scarlet (Psicóloga, aportes, etc.) duplicavam depois de sincronizar/reabrir:
+1. `compactStateForCloud` ainda reescrevia o id de **fixos/outros** longos para `f0`, `o0`...;
+   o merge da nuvem casa por `id`, então o item original voltava como novo na restauração.
+2. `addTransaction` descartava metadados do lançamento novo (`titular`, `valorManual`, vínculo
+   de investimento etc.), o que também impedia o item de se comportar como Scarlet em alguns fluxos.
+3. Um duplo-toque em **Salvar Lançamento** podia executar `saveItemFromModal` duas vezes antes do
+   modal fechar e criar dois itens idênticos.
+
+### 🛠️ Correção
+- **Nenhum id é reescrito** no compacto da nuvem (receita, fixo, outro e diário). O id é a chave
+  do merge; compactar só remove campos opcionais.
+- `MatrixDB.addTransaction` agora faz `...item` e preserva `titular`, `valorManual`,
+  `investLinked*`, `consignadoFolha`, `naoPecunia`, etc.
+- `saveItemFromModal` ganhou trava de 400 ms (`savingItemFromModal`) contra duplo-toque.
+
+### 🧪 Validação
+- `check-syntax` 13/13; suíte **36/36** (novos testes: id de fixo/outro preservado no compacto e
+  `addTransaction` mantendo `titular`/`valorManual`).
+- Estado local e nuvem comparados item a item: **sem diferenças**, `deletedItens` 13/13 e
+  `get_state` retornando `reparado: false`.
+- Backup automático da planilha segue válido: compacto em partes, 5 colunas e leitura íntegra.
+
+### 🧠 Regra
+- **Id de lançamento é imutável em qualquer tipo.** Se precisar reduzir payload, remova campos
+  opcionais — nunca o `id`. Sem isso, fixos/outros da Scarlet duplicam na próxima restauração.
+
+---
+
 ## [2026-11-12 11:05] - Matrix Finance v145: série de faturas vai até o último mês ativo (Dez/2027 incluso)
 
 ### 🐞 Problema

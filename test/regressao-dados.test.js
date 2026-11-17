@@ -106,7 +106,7 @@ test('FisioFlow: parser ignora cancelados e reconcilia sessões com agendamentos
   assert.equal(out.totalAtendimentosRegistrados, 2);
 });
 
-test('Nuvem: compactação preserva id de receita e o satélite FisioFlow', () => {
+test('Nuvem: compactação preserva id de receita, fixo e outro (evita duplicata na restauração)', () => {
   const SyncEngine = carregarModulo('sync-engine.js', 'SyncEngine', {
     document: { getElementById: () => null },
     navigator: {}
@@ -117,7 +117,8 @@ test('Nuvem: compactação preserva id de receita e o satélite FisioFlow', () =
       '2026': {
         Novembro: {
           receitas: [{ id: 'rec_renda_extra_1780000000000', nome: 'Renda Extra', valor: 600 }],
-          fixos: []
+          fixos: [{ id: 'fix_1780000000000_ab12', nome: 'Psicóloga', valor: 600, categoria: 'Psicóloga & Terapias', conta: 'scarlet_fisio', renda: 'ganhos_scarlet' }],
+          outros: [{ id: 'out_1780000000000_cd34', nome: 'Farmácia', valor: 80, categoria: 'Saúde' }]
         }
       }
     },
@@ -134,5 +135,56 @@ test('Nuvem: compactação preserva id de receita e o satélite FisioFlow', () =
 
   const compacto = SyncEngine.compactStateForCloud(state, 35000);
   assert.equal(compacto.anos['2026'].Novembro.receitas[0].id, 'rec_renda_extra_1780000000000');
+  assert.equal(compacto.anos['2026'].Novembro.fixos[0].id, 'fix_1780000000000_ab12');
+  assert.equal(compacto.anos['2026'].Novembro.outros[0].id, 'out_1780000000000_cd34');
   assert.equal(compacto.satellites.fisioflow.ganhosPorMes['2026-11'].total, 1245);
+});
+
+test('Gastos Scarlet: par f0/o0 antigo vira um só item com lápide', async () => {
+  const MatrixDB = carregarModulo('db.js', 'MatrixDB');
+  await new Promise((r) => setTimeout(r, 30));
+
+  const state = {
+    anos: {
+      '2026': {
+        Novembro: {
+          fixos: [
+            { id: 'fix_1780000000000_ab12', nome: 'Psicóloga', valor: 600, categoria: 'Psicóloga & Terapias', conta: 'scarlet_fisio', renda: 'ganhos_scarlet', pago: false },
+            { id: 'f0', nome: 'Psicóloga', valor: 600, categoria: 'Psicóloga & Terapias', conta: 'scarlet_fisio', renda: 'ganhos_scarlet', pago: true }
+          ],
+          outros: []
+        }
+      }
+    }
+  };
+
+  const removidos = MatrixDB.dedupeLancamentoIdPairsInState(state);
+  const fixos = state.anos['2026'].Novembro.fixos;
+  assert.equal(removidos, 1);
+  assert.equal(fixos.length, 1);
+  assert.equal(fixos[0].id, 'fix_1780000000000_ab12');
+  assert.equal(fixos[0].pago, true, 'o pago da cópia curta é preservado');
+  assert.ok(state.deletedItens['f0'], 'a cópia curta precisa deixar lápide');
+});
+
+test('Lançamento novo preserva titular e metadados (addTransaction)', async () => {
+  const MatrixDB = carregarModulo('db.js', 'MatrixDB');
+  await new Promise((r) => setTimeout(r, 30));
+
+  MatrixDB.addTransaction('2026', 'Novembro', 'fixo', {
+    nome: 'Psicóloga',
+    valor: 600,
+    categoria: 'Psicóloga & Terapias',
+    conta: 'scarlet_fisio',
+    renda: 'ganhos_scarlet',
+    titular: 'scarlet',
+    pago: true,
+    valorManual: false
+  });
+
+  const item = (MatrixDB.getMonth('2026', 'Novembro').fixos || []).find((i) => i.nome === 'Psicóloga');
+  assert.ok(item, 'o lançamento precisa existir');
+  assert.equal(item.titular, 'scarlet');
+  assert.equal(item.valorManual, false);
+  assert.equal(item.pago, true);
 });

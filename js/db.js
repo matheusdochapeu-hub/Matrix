@@ -175,6 +175,61 @@ const MatrixDB = (function () {
     return removed;
   }
 
+  // v156: o compacto antigo trocava ids longos de fixos/outros por f0/o0. Na restauração
+  // o merge por id via os dois como itens diferentes. Este cleanup remove apenas o par
+  // inequívoco (mesmo nome/valor/categoria/conta/renda, um id curto e um longo) e deixa
+  // a lápide para a nuvem não devolver a cópia curta.
+  function isShortLancamentoId(id) {
+    return /^[fo]\d+$/.test(String(id || ''));
+  }
+
+  function dedupeLancamentoIdPairsInState(state) {
+    if (!state || !state.anos) return 0;
+    let removed = 0;
+    Object.keys(state.anos).forEach(ano => {
+      const meses = state.anos[ano];
+      if (!meses || typeof meses !== 'object') return;
+      Object.keys(meses).forEach(mes => {
+        const m = meses[mes];
+        if (!m || typeof m !== 'object') return;
+        ['fixos', 'outros'].forEach(tipo => {
+          const lista = m[tipo];
+          if (!Array.isArray(lista) || lista.length < 2) return;
+          const grupos = new Map();
+          lista.forEach((it) => {
+            if (!it || typeof it !== 'object') return;
+            const chave = [
+              normalizarNomeReceita(it.nome),
+              (Math.round((parseFloat(it.valor) || 0) * 100) / 100).toFixed(2),
+              String(it.categoria || '').trim().toLowerCase(),
+              String(it.conta || '').trim().toLowerCase(),
+              String(it.renda || '').trim().toLowerCase()
+            ].join('|');
+            if (!grupos.has(chave)) grupos.set(chave, []);
+            grupos.get(chave).push(it);
+          });
+
+          const remover = new Set();
+          grupos.forEach((itens) => {
+            const curtos = itens.filter((it) => isShortLancamentoId(it.id));
+            const longos = itens.filter((it) => !isShortLancamentoId(it.id));
+            if (!curtos.length || !longos.length) return;
+            const canonico = longos[0];
+            curtos.forEach((curto) => {
+              if (curto.pago && !canonico.pago) canonico.pago = true;
+              if (!state.deletedItens || typeof state.deletedItens !== 'object') state.deletedItens = {};
+              state.deletedItens[String(curto.id)] = Date.now();
+              remover.add(curto);
+              removed++;
+            });
+          });
+          if (remover.size > 0) m[tipo] = lista.filter((it) => !remover.has(it));
+        });
+      });
+    });
+    return removed;
+  }
+
   // Regra Financeira: VA e VR são benefícios de alimentação e NÃO são dinheiro em pecúnia para pagar contas
   function isBeneficioNaoPecunia(itemOuNome) {
     if (!itemOuNome) return false;
@@ -252,6 +307,9 @@ const MatrixDB = (function () {
       state.holerites = state.holerites.filter(h => (h.periodo || '') >= '2026-10');
       if (state.holerites.length !== origHl) mutated = true;
     }
+    // v156: limpa pares fix_/out_ longos × f0/o0 curtos criados pela compactação antiga.
+    const paresAntigos = dedupeLancamentoIdPairsInState(state);
+    if (paresAntigos > 0) mutated = true;
     if (mutated) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -859,6 +917,9 @@ const MatrixDB = (function () {
     const prefix = tipo === 'fixo' ? 'fix_' : (tipo === 'receita' ? 'rec_' : (tipo === 'diario' || tipo === 'gasto_diario' ? 'diar_' : 'out_'));
 
     list.push({
+      // v144: preserva metadados do item (titular, valorManual, vínculo com investimento,
+      // consignadoFolha, naoPecunia etc.). Antes o addTransaction descartava tudo isso.
+      ...item,
       id: prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       nome: item.nome,
       valor: parseFloat(item.valor) || 0,
@@ -1182,6 +1243,7 @@ const MatrixDB = (function () {
     togglePaidByIndex,
     ensureMonthReceitas,
     dedupeReceitasInState,
+    dedupeLancamentoIdPairsInState,
     isBeneficioNaoPecunia,
     getAllYears,
     createYear,

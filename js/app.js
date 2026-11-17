@@ -20,6 +20,7 @@ const MatrixApp = (function () {
   // v127: marca se o Casa Maracaju/planilha já responderam nesta sessão (evita exibir dado velho como atual).
   let maracajuFreshNestaSessao = false;
   let renderScheduled = false;
+  let savingItemFromModal = false;
 
   const MONTH_NAMES = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -9091,6 +9092,18 @@ function onModalCategoriaChange(catVal) {
   }
 
   function saveItemFromModal() {
+    // v144: trava duplo-toque. No celular o botão Salvar podia disparar duas vezes antes
+    // do modal fechar e criava dois lançamentos idênticos (o clássico "duplicou sozinho").
+    if (savingItemFromModal) return;
+    savingItemFromModal = true;
+    try {
+      salvarItemFromModalInterno();
+    } finally {
+      setTimeout(() => { savingItemFromModal = false; }, 400);
+    }
+  }
+
+  function salvarItemFromModalInterno() {
     const tipo = document.getElementById('modalItemTipo').value;
     const editId = document.getElementById('modalItemEditId').value;
     const nome = document.getElementById('modalItemNome').value.trim();

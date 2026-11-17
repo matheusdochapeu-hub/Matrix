@@ -242,14 +242,9 @@ const SyncEngine = (function () {
                 if (it.metodo === 'debito') delete it.metodo;
                 if (it.conta === 'debito_nubank') delete it.conta;
                 if (!it.pago) delete it.pago;
-                // Preserva IDs semânticos da Scarlet/Fisio/Salário/VA/VR para não perder vínculo após restaurar da nuvem
-                const idStr = String(it.id || '');
-                const isSemanticId = idStr.includes('scarlet') || idStr.includes('fisio') || idStr.startsWith('rec_sal') || idStr.startsWith('rec_va') || idStr.startsWith('rec_vr') || idStr.startsWith('rec_extra');
-                // v121: NUNCA reescrever o id de uma RECEITA. O merge da nuvem casa por id e, ao
-                // trocar 'rec_...' por 'r0', a mesma renda voltava como item novo e duplicava.
-                if (idStr.length > 10 && !isSemanticId && tipo !== 'receitas') {
-                  it.id = tipo[0] + idx;
-                }
+                // v144: NUNCA reescrever id de fixo/outro/diário. A nuvem casa o merge por id;
+                // trocar 'fix_...' por 'f0' fazia o item voltar como novo na restauração e
+                // duplicava os gastos da Scarlet a cada abertura. O id é a chave do merge.
               });
               if (md[tipo].length === 0) delete md[tipo];
             }
@@ -732,6 +727,11 @@ const SyncEngine = (function () {
       if (typeof MatrixDB.dedupeReceitasInState === 'function') {
         const removidas = MatrixDB.dedupeReceitasInState(payloadData);
         if (removidas > 0) hadLocalDiariosMerged = true;
+      }
+      // v156: pares fix_/out_ longos × f0/o0 curtos (bug de compactação antiga) viram um só.
+      if (typeof MatrixDB.dedupeLancamentoIdPairsInState === 'function') {
+        const pares = MatrixDB.dedupeLancamentoIdPairsInState(payloadData);
+        if (pares > 0) hadLocalDiariosMerged = true;
       }
       MatrixDB.saveState(payloadData, 'cloud_restore', { skipCloudSync: true });
       if (hadLocalDiariosMerged || lapidesAplicadas || lapidesNovas) {
