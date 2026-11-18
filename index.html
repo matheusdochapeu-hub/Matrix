@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/matrix.css?v=156">
+  <link rel="stylesheet" href="css/matrix.css?v=159">
 <link rel="stylesheet" href="nexo-theme.css">
 </head>
 <body>
@@ -206,8 +206,8 @@
               <span>🎁 (+) 13º Salário USP:</span>
               <strong style="color:var(--cyan);" id="top13SalVal">R$ 0,00</strong>
             </div>
-            <div class="unified-row" id="topOutrosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver Rendas Extras">
-              <span>🎁 (+) <span id="topOutrosLabel">Renda Extra</span>:</span>
+            <div class="unified-row" id="topOutrosRow" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('renda')" style="cursor:pointer;" title="Clique para ver Rendas Extras / Outros Ganhos">
+              <span>🎁 (+) <span id="topOutrosLabel">Outros Ganhos</span>:</span>
               <strong style="color:var(--matrix-green);" id="topOutrosVal">+ R$ 0,00</strong>
             </div>
             <div class="unified-row" style="cursor:pointer;" onclick="event.stopPropagation(); MatrixApp.abrirDrilldown('maracaju')" title="Vale Alimentação Casa Maracaju 88">
@@ -345,7 +345,7 @@
 
           <!-- DOIS CÁLCULOS PADRONIZADOS: 1. Sobra Individual (Matheus) | 2. Sobra Consolidada do Casal -->
           <div class="dual-gastos-container">
-            <div class="dual-gastos-box sobra-calc1" title="Saldo líquido que sobra na conta bancária do Matheus após descontar fixos, variáveis e diários">
+            <div class="dual-gastos-box sobra-calc1" title="Sobra líquida do Matheus considerando todos os lançamentos do mês (pagos e pendentes cadastrados no app)">
               <div class="dual-gastos-header">
                 <span class="dual-gastos-title" style="color:var(--matrix-green);">1. SOBRA INDIVIDUAL (MATHEUS)</span>
                 <span class="dual-gastos-badge" style="color:var(--matrix-green);background:rgba(0,0,0,0.4);border:1px solid rgba(0,255,102,0.3);">Conta Corrente</span>
@@ -356,7 +356,7 @@
               </div>
             </div>
 
-            <div class="dual-gastos-box sobra-calc2" title="Resultado consolidado do casal (Sobra Matheus + Sobra Scarlet)">
+            <div class="dual-gastos-box sobra-calc2" title="Resultado consolidado do casal considerando todos os lançamentos do mês (Sobra Matheus + Sobra Scarlet)">
               <div class="dual-gastos-header">
                 <span class="dual-gastos-title" style="color:var(--cyan);">2. SOBRA CONSOLIDADA DO CASAL</span>
                 <span class="dual-gastos-badge" style="color:var(--cyan);background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.35);">Matheus + Scarlet</span>
@@ -666,7 +666,10 @@
                 </strong>
                 <div style="font-size:10px;color:var(--text-muted);">Lançamentos rápidos do dia a dia com data/hora e banco</div>
               </div>
-              <button class="btn-matrix primary" style="padding:3px 8px;font-size:10.5px;" onclick="MatrixApp.openQuickExpenseModal()">+ Gasto Diário</button>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button type="button" class="btn-matrix secondary" id="btnToggleOrdemDiarios" style="padding:3px 8px;font-size:10.5px;" onclick="MatrixApp.toggleOrdemDiarios()" title="Alternar ordenação por data (Mais Recentes / Mais Antigos)">📅 Recentes ↓</button>
+                <button class="btn-matrix primary" style="padding:3px 8px;font-size:10.5px;" onclick="MatrixApp.openQuickExpenseModal()">+ Gasto Diário</button>
+              </div>
             </div>
 
             <!-- Termômetro de Gastos Diários -->
@@ -683,7 +686,7 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th class="desc-col">Descrição & Origem</th>
+                    <th class="desc-col" style="cursor:pointer;" onclick="MatrixApp.toggleOrdemDiarios()" title="Clique para alternar ordenação por data">Descrição & Origem</th>
                     <th class="status-col">Status</th>
                     <th class="val-col">Valor</th>
                     <th class="action-col">Ações</th>
@@ -3011,18 +3014,18 @@
   </div>
 
   <!-- SCRIPTS -->
-  <script src="js/seed-data.js?v=156"></script>
-  <script src="js/matrix-rain.js?v=156"></script>
-  <script src="js/db.js?v=156"></script>
-  <script src="js/calendar-engine.js?v=156"></script>
-  <script src="js/amortization-engine.js?v=156"></script>
-  <script src="js/scenario-simulator.js?v=156"></script>
-  <script src="js/pdf-reader.js?v=156"></script>
-  <script src="js/faturas-data.js?v=156"></script>
-<script src="js/satellite-connectors.js?v=156"></script>
-  <script src="js/sync-engine.js?v=156"></script>
-  <script src="js/market-quotes.js?v=156"></script>
-  <script src="js/app.js?v=156"></script>
+  <script src="js/seed-data.js?v=159"></script>
+  <script src="js/matrix-rain.js?v=159"></script>
+  <script src="js/db.js?v=159"></script>
+  <script src="js/calendar-engine.js?v=159"></script>
+  <script src="js/amortization-engine.js?v=159"></script>
+  <script src="js/scenario-simulator.js?v=159"></script>
+  <script src="js/pdf-reader.js?v=159"></script>
+  <script src="js/faturas-data.js?v=159"></script>
+<script src="js/satellite-connectors.js?v=159"></script>
+  <script src="js/sync-engine.js?v=159"></script>
+  <script src="js/market-quotes.js?v=159"></script>
+  <script src="js/app.js?v=159"></script>
 
   <!-- Service Worker para suporte Offline PWA -->
   <script>
@@ -3034,7 +3037,7 @@
           window.location.reload();
         }
       });
-      navigator.serviceWorker.register('sw.js?v=156', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
+      navigator.serviceWorker.register('sw.js?v=159', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
     }
   </script>
 

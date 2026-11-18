@@ -286,11 +286,15 @@ const MatrixDB = (function () {
           const dedup = dedupeReceitasList(m.receitas);
           m.receitas = dedup.list;
           if (m.receitas.length !== origLen || dedup.removed > 0) mutated = true;
-          // Sinalizar VA e VR existentes como não-pecúnia
+          // Sinalizar VA e VR existentes como não-pecúnia e normalizar "Empréstimo" para "Outros Ganhos"
           m.receitas.forEach(r => {
             if (isBeneficioNaoPecunia(r) && (!r.naoPecunia || r.categoria !== 'Benefício (Não Pecúnia)')) {
               r.naoPecunia = true;
               r.categoria = 'Benefício (Não Pecúnia)';
+              mutated = true;
+            }
+            if (r && r.nome && /^empr[eé]stimo$/i.test(r.nome.trim())) {
+              r.nome = 'Outros Ganhos';
               mutated = true;
             }
           });
@@ -299,6 +303,7 @@ const MatrixDB = (function () {
           const origLen = m.diarios.length;
           m.diarios = m.diarios.filter(it => it && !isSummaryOrTotalItem(it.nome));
           if (m.diarios.length !== origLen) mutated = true;
+          sortDiariosInMonth(m);
         }
       }
     }
@@ -888,6 +893,9 @@ const MatrixDB = (function () {
     if (month.receitas) {
       month.receitas = month.receitas.filter(it => it && !isSummaryOrTotalItem(it.nome));
     }
+    if (month.diarios && Array.isArray(month.diarios)) {
+      sortDiariosInMonth(month);
+    }
     return month;
   }
 
@@ -898,6 +906,34 @@ const MatrixDB = (function () {
     const reason = (options && options.reason) || 'alteracao_mes';
     saveState(s, reason, options);
     return data;
+  }
+
+  function getDiarioTimestamp(d) {
+    if (!d) return 0;
+    const str = d.dataHora || d.data || '';
+    if (!str) return 0;
+    const parsed = Date.parse(str);
+    if (!isNaN(parsed)) return parsed;
+    if (str.includes('/')) {
+      const parts = str.split(' ');
+      const dParts = parts[0].split('/');
+      if (dParts.length === 3) {
+        const iso = `${dParts[2]}-${dParts[1]}-${dParts[0]}${parts[1] ? 'T' + parts[1] : 'T00:00:00'}`;
+        const p = Date.parse(iso);
+        if (!isNaN(p)) return p;
+      }
+    }
+    return 0;
+  }
+
+  function sortDiariosInMonth(month) {
+    if (!month || !Array.isArray(month.diarios)) return;
+    month.diarios.sort((a, b) => {
+      const tA = getDiarioTimestamp(a);
+      const tB = getDiarioTimestamp(b);
+      if (tA !== tB) return tA - tB;
+      return String(a?.id || '').localeCompare(String(b?.id || ''));
+    });
   }
 
   function getListByTipo(month, tipo) {
@@ -932,6 +968,10 @@ const MatrixDB = (function () {
       pago: item.pago !== undefined ? !!item.pago : (parseInt(ano, 10) < 2027)
     });
 
+    if (tipo === 'diario' || tipo === 'gasto_diario') {
+      sortDiariosInMonth(month);
+    }
+
     saveState(s);
     return month;
   }
@@ -945,6 +985,9 @@ const MatrixDB = (function () {
     const item = list.find(it => it.id === id || it.nome === id);
     if (item) {
       Object.assign(item, updates);
+      if (tipo === 'diario' || tipo === 'gasto_diario') {
+        sortDiariosInMonth(month);
+      }
       saveState(s);
       return true;
     }
@@ -1004,6 +1047,9 @@ const MatrixDB = (function () {
     const list = getListByTipo(month, tipo);
     if (!list || !list[index]) return false;
     Object.assign(list[index], updates);
+    if (tipo === 'diario' || tipo === 'gasto_diario') {
+      sortDiariosInMonth(month);
+    }
     saveState(s);
     return true;
   }
@@ -1235,6 +1281,8 @@ const MatrixDB = (function () {
     predictCategory,
     getMonth,
     saveMonth,
+    getDiarioTimestamp,
+    sortDiariosInMonth,
     addTransaction,
     updateTransaction,
     updateTransactionByIndex,

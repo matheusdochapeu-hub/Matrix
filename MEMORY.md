@@ -4,6 +4,68 @@ Este arquivo consolida decisões arquiteturais, regras de negócio, auditorias e
 
 ---
 
+## [2026-11-17 21:30] - Matrix Finance v159: Organização Automática dos Gastos Diários por Data
+
+### 🐞 Problema
+Os lançamentos na seção **⚡ Gastos Diários & Imediatos** eram inseridos por ordem de criação (`diarios.push`), sem organização cronológica garantida:
+- Lançamentos com horários ou dias retroativos (ou cadastrados fora de sequência) ficavam desordenados no extrato visual.
+- Não havia alternância para o usuário escolher entre ver os mais recentes no topo (ordem padrão em apps bancários) ou ordem cronológica (antigos primeiro).
+
+### 🛠️ Correção
+1. **Ordenação Automática no Banco de Dados (`MatrixDB`)**:
+   - Criada a função `getDiarioTimestamp(d)` que converte datas em formato ISO (`YYYY-MM-DDTHH:mm`) ou formato brasileiro (`DD/MM/YYYY HH:mm` / `DD/MM/YYYY`) em timestamps numéricos precisos.
+   - Criada a função `sortDiariosInMonth(month)` que mantém a lista `month.diarios` sempre organizada por timestamp.
+   - `MatrixDB.getState()`, `MatrixDB.getMonth()`, `MatrixDB.addTransaction()`, `MatrixDB.updateTransaction()` e `MatrixDB.updateTransactionByIndex()` chamam a ordenação automaticamente após qualquer inserção ou alteração.
+2. **Interface Visual & Mapeamento Seguro de Índices (`app.js`)**:
+   - `renderFluxoCaixa`: Mapeia `{ d, origIdx }` antes de ordenar a visualização. Isso garante que os botões de **Editar**, **Excluir** e **Alternar Pago/Pendente** continuem operando exatamente no índice correto de `month.diarios`, sem descompasso.
+   - Adicionado botão interativo `📅 Recentes ↓` / `📅 Antigos ↑` no cabeçalho dos Gastos Diários e tornado o cabeçalho `Descrição & Origem` clicável para alternar ordenação instantaneamente com persistência em `localStorage`.
+   - Modais de detalhamento/drilldown (`abrirDrilldown('diarios')`) passam a exibir os gastos diários ordenados por data.
+3. **Versão & Cache**: Atualizados para `v159` no `sw.js` e `index.html`.
+4. **Testes**: Criado teste unitário automatizado em `test/diarios-ordenacao.test.js` (41/41 testes passando).
+
+---
+
+## [2026-11-17 21:16] - Matrix Finance v158: Nomenclatura "Outros Ganhos" no Card Ganhos Matheus
+
+### 🐞 Problema
+No card **💵 Ganhos Matheus** (Card 1), quando uma receita extra tinha o nome ou a categoria "Empréstimo", a linha de detalhamento exibia a palavra `🎁 (+) Empréstimo: + R$ 4.900,00` em vez de uma nomenclatura neutra e padronizada de receita.
+
+### 🛠️ Correção
+1. **Padronização Visual**: A linha do card passa a exibir `🎁 (+) Outros Ganhos: + R$ X,XX` de forma consistente.
+2. **Normalização em `db.js` e `app.js`**:
+   - No loop de inicialização/higienização de `receitas` em `MatrixDB.getState()`, receitas com nome "Empréstimo" são normalizadas para "Outros Ganhos".
+   - `renderKPIs` e `renderMonthlyHorizonCards` garantem que o rótulo da linha seja sempre "Outros Ganhos" quando a fonte for um empréstimo ou ganho avulso.
+   - Em `salvarItemFromModalInterno`, ao cadastrar ou editar uma receita com o nome "Empréstimo", ela é salva automaticamente como "Outros Ganhos".
+3. **Versão & Cache**: Atualizados para `v158` no `sw.js` e `index.html`.
+
+---
+
+## [2026-11-17 21:10] - Matrix Finance v157: Área "Sobra pra Mim" Considera Lançamentos Pendentes
+
+### 🐞 Problema
+Na área **👨 Sobra pra Mim** (Card 3 do dashboard principal), o cálculo deduzia estritamente os gastos com status `pago === true` (`calcM.totalGastosPago`), ignorando os compromissos que ainda se apresentavam como `[PENDENTE]` no app (`calcM.totalGastosPendente`). 
+- Isso gerava uma visão distorcida do saldo final do mês: o usuário via uma "Sobra Individual" inflada (+R$ 1.925,86 no exemplo de Nov/2026), embora ainda existissem R$ 2.030,00 de despesas cadastradas no app aguardando quitação.
+- A linha `(-) Gastos Fixos + Var. + Diários` exibia o valor pago e apenas uma etiqueta informativa `(⏳ R$ 2.030,00 a pagar)`, sem abater esse valor na linha de fechamento `(=) Sobra Individual Matheus`.
+- No fluxo da Scarlet e no Horizonte Mensal, despesas pendentes também eram desconsideradas do cálculo principal da sobra.
+
+### 🛠️ Correção
+1. **Cálculo da Sobra com Todos os Lançamentos do App**:
+   - `Card 3 (Sobra pra Mim)`: O valor principal agora exibe a sobra **considerando todos os compromissos cadastrados no mês** (`calcM.sobraPrevista`), que deduz tanto os gastos pagos quanto os pendentes (`calcM.totalGastos`).
+   - O subtítulo foi atualizado para informar de forma transparente: `Previsto pós-quitação • Líquido hoje no BB: R$ X,XX` (mantendo a visibilidade do saldo líquido já liquidado no banco).
+   - O detalhamento do card agora exibe o total planejado/cadastrado: `(-) Gastos Fixos + Var. + Diários: - R$ 10.792,33 (⏳ R$ 2.030,00 a pagar)`, fazendo com que a equação `Renda - Gastos = Sobra` feche com 100% de consistência matemática.
+2. **Sobra da Scarlet e do Casal**:
+   - A Sobra da Scarlet e a Sobra Consolidada do Casal passam a deduzir todos os gastos próprios e repasses cadastrados no app (pagos + pendentes).
+3. **Auditoria no Modal Drilldown (`sobra_matheus` e `scarlet`)**:
+   - O modal de auditoria detalha a equação com `Compromissos Totais (Pagos + Pendentes) = Sobra Prevista Final`, trazendo uma linha explícita para o `🏦 Saldo Líquido Atual no Banco (Hoje)` antes dos débitos pendentes.
+4. **Horizonte Mensal (`renderMonthlyHorizonCards`)**:
+   - Os cards de meses futuros passam a usar `calcHorizonM.sobraPrevista` e a transferência total prevista, garantindo que meses projetados com itens pendentes não exibam sobras artificiais.
+
+### 🧪 Validação
+- Suíte de testes atualizada: **38/38 testes passando** (novo teste `test/sobra-pendentes.test.js`).
+- Versão e cache incrementados para `v157` no `sw.js` e `index.html`.
+
+---
+
 ## [2026-11-16 21:25] - Matrix Finance v156: Fim da Duplicação dos Gastos da Scarlet e Salvamento na Planilha
 
 ### 🐞 Problema

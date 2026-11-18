@@ -1960,7 +1960,9 @@ const MatrixApp = (function () {
         if (isReceitaExtraMatheus(r)) {
           const val = parseFloat(r.valor) || 0;
           outrosGanhosMatheus += val;
-          if (val > 0 && !labelExtraMatheus) labelExtraMatheus = r.nome;
+          if (val > 0 && !labelExtraMatheus) {
+            labelExtraMatheus = /^empr[eé]stimo$/i.test(r.nome.trim()) ? 'Outros Ganhos' : r.nome;
+          }
         }
       });
       const rendaMatheusTotal = salMatheus + outrosGanhosMatheus;
@@ -2005,10 +2007,10 @@ const MatrixApp = (function () {
       // Os gastos aqui têm que bater com a soma de gastos fixos + variaveis + diarios + nubank
       const totalGastosCasal = totalGastosConta + faturaNubank;
 
-      // 5. Sobra Real = Sobra Casal calculada pelo motor central calcSobraMatheus
+      // 5. Sobra Real = Sobra Casal calculada pelo motor central calcSobraMatheus (considerando pendentes)
       const calcHorizonM = calcSobraMatheus(m.ano, m.mes);
-      const sobraMatheus = calcHorizonM.sobra;
-      const transfScarlet = calcHorizonM.transfPaga;
+      const sobraMatheus = calcHorizonM.sobraPrevista;
+      const transfScarlet = calcHorizonM.transf;
       const subtotalScarlet = rendaScarletTotal + transfScarlet;
       const sobraScarlet = subtotalScarlet - faturaNubank;
       const sobraCasalReal = sobraMatheus + sobraScarlet;
@@ -2153,7 +2155,9 @@ const MatrixApp = (function () {
         const val = parseFloat(r.valor) || 0;
         outrosGanhosTotal += val;
         if (r.pago === true) outrosGanhosPago += val;
-        if (val > 0 && !outrosLabel) outrosLabel = r.nome;
+        if (val > 0 && !outrosLabel) {
+          outrosLabel = /^empr[eé]stimo$/i.test(r.nome.trim()) ? 'Outros Ganhos' : r.nome;
+        }
       }
     });
     const outrosGanhosPendente = Math.max(0, outrosGanhosTotal - outrosGanhosPago);
@@ -2347,7 +2351,11 @@ const MatrixApp = (function () {
 
     const labelEstudio = document.getElementById('topLabelEstudio') || document.getElementById('topOutrosLabel');
     if (labelEstudio) {
-      labelEstudio.textContent = outrosLabel || getNomeEstudio() || 'Outros Ganhos';
+      let lbl = outrosLabel || getNomeEstudio() || 'Outros Ganhos';
+      if (/^empr[eé]stimo/i.test(lbl.trim())) {
+        lbl = 'Outros Ganhos';
+      }
+      labelEstudio.textContent = lbl;
     }
 
     const totalBenEl = document.getElementById('topTotalBeneficiosVal');
@@ -2422,13 +2430,20 @@ const MatrixApp = (function () {
 
     // 5. Card 3: Sobra pra Mim (Matheus) & Sobra do Casal
     // PARTE 1 (TOPO): SOBRA PRA MIM (MATHEUS)
-    // + Meu salario + rendas extras recebidas em conta
-    // - Gastos fixos+variaveis+diarios e transferências EFETIVAMENTE PAGOS
-    // = Sobra real no caixa do Matheus (se a conta ou repasse ainda não foi pago, sobra na conta dele!)
-    const rendaMatheus = calcM.ganhos; // Salário USP + Rendas Extras recebidas
-    const gastosTotaisMatheus = calcM.totalGastosPago; // Contas próprias e repasses já debitados/pagos
-    const sobraMatheus = calcM.sobra; // O que sobra no caixa hoje!
-    const sobraPrevistaMatheus = calcM.sobraPrevista;
+    // Apresenta o resultado considerando TODOS os lançamentos cadastrados no app (pagos + pendentes),
+    // garantindo que os compromissos pendentes não fiquem de fora do cálculo da sobra.
+    const rendaMatheus = calcM.ganhosPrevistos; // Salário USP + Rendas Extras previstas/cadastradas no mês
+    const rendaMatheusRecebida = calcM.ganhos; // O que já caiu em conta
+    const rendaMatheusPendente = calcM.ganhosPrevistos - calcM.ganhos; // A receber
+
+    // Gastos Totais Matheus: Considera TODOS os lançamentos (pagos + pendentes)
+    const gastosTotaisMatheus = calcM.totalGastos; // Fixos + Variáveis + Diários + Transf + Contas Início
+    const gastosTotaisMatheusPago = calcM.totalGastosPago;
+    const gastosTotaisMatheusPendente = calcM.totalGastosPendente;
+
+    // Sobra Matheus considerando os lançamentos pendentes (pós-quitação de todos os compromissos)
+    const sobraMatheus = calcM.sobraPrevista;
+    const sobraMatheusHoje = calcM.sobra; // Saldo imediato em conta antes de debitar os pendentes
 
     const eqMatheusRendaEl = document.getElementById('topEqMatheusRenda');
     if (eqMatheusRendaEl) eqMatheusRendaEl.textContent = formatBRL(rendaMatheus);
@@ -2442,7 +2457,7 @@ const MatrixApp = (function () {
       eqMatheusSobraEl.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
-    // Valor Principal no topo do Card: Sobra pra Mim
+    // Valor Principal no topo do Card: Sobra pra Mim (considerando todos os lançamentos pendentes)
     const topSobraMatheusEl = document.getElementById('topSobraMatheusVal');
     if (topSobraMatheusEl) {
       smoothSetText(topSobraMatheusEl, `${sobraMatheus >= 0 ? "+" : ""}${formatBRL(sobraMatheus)}`, sobraMatheus >= 0 ? "var(--matrix-green)" : "var(--rose)");
@@ -2451,18 +2466,24 @@ const MatrixApp = (function () {
 
     const topSobraMatheusSub = document.getElementById('topSobraMatheusSub');
     if (topSobraMatheusSub) {
-      topSobraMatheusSub.textContent = calcM.totalGastosPendente > 0
-        ? `Líquido em Conta (BB) • ${formatBRL(sobraPrevistaMatheus)} previsto pós-quitação`
+      topSobraMatheusSub.textContent = gastosTotaisMatheusPendente > 0 || rendaMatheusPendente > 0
+        ? `Previsto pós-quitação • Líquido hoje no BB: ${formatBRL(sobraMatheusHoje)}`
         : `Líquido em Conta (BB)`;
     }
 
     const topMatheusReceitasEl = document.getElementById('topMatheusReceitasVal');
-    if (topMatheusReceitasEl) topMatheusReceitasEl.textContent = formatBRL(rendaMatheus);
+    if (topMatheusReceitasEl) {
+      if (rendaMatheusPendente > 0) {
+        topMatheusReceitasEl.innerHTML = `<span style="color:var(--cyan);">${formatBRL(rendaMatheus)}</span> <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(rendaMatheusPendente)} a receber)</span>`;
+      } else {
+        topMatheusReceitasEl.textContent = formatBRL(rendaMatheus);
+      }
+    }
 
     const topMatheusGastosEl = document.getElementById('topMatheusGastosVal');
     if (topMatheusGastosEl) {
-      if (calcM.totalGastosPendente > 0) {
-        topMatheusGastosEl.innerHTML = `<span style="color:var(--rose);">- ${formatBRL(gastosTotaisMatheus)}</span> <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(calcM.totalGastosPendente)} a pagar)</span>`;
+      if (gastosTotaisMatheusPendente > 0) {
+        topMatheusGastosEl.innerHTML = `<span style="color:var(--rose);">- ${formatBRL(gastosTotaisMatheus)}</span> <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(gastosTotaisMatheusPendente)} a pagar)</span>`;
       } else {
         topMatheusGastosEl.textContent = `- ${formatBRL(gastosTotaisMatheus)}`;
       }
@@ -2476,12 +2497,13 @@ const MatrixApp = (function () {
 
     const topMatheusStatusBadge = document.getElementById('topMatheusStatusBadge');
     if (topMatheusStatusBadge) {
-      topMatheusStatusBadge.textContent = sobraMatheus >= 0 ? 'Sobra Positiva' : 'Déficit em Conta';
+      topMatheusStatusBadge.textContent = sobraMatheus >= 0 ? 'Sobra Positiva' : 'Déficit Previsto';
       topMatheusStatusBadge.className = sobraMatheus >= 0 ? 'unified-badge green' : 'unified-badge rose';
     }
 
-    // PARTE 2 (EMBAIXO DISSO): SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS
-    const scarletTransf = calcM.transfPaga;
+    // PARTE 2 (EMBAIXO DISSO): SOBRA DO CASAL = SOBRA SCARLET + SOBRA MATHEUS (CONSIDERANDO PENDENTES)
+    const scarletTransf = calcM.transf; // Transf total prevista do Matheus para Scarlet (paga + pendente)
+    const scarletTransfPaga = calcM.transfPaga;
     const scarletTransfPendente = calcM.transfPendente;
     const scarletFisio = ganhosScarlet;
     const scarletOutras = getOutrasRendasScarletMes(currentYear, currentMonth);
@@ -2496,14 +2518,21 @@ const MatrixApp = (function () {
     const scarletGastosPropriosPago = scarletGastosItems.filter(it => it.pago === true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
     const scarletGastosPropriosPendente = scarletGastosItems.filter(it => it.pago !== true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
 
-    const scarletSobra = scarletSubtotal - scarletFatura - scarletGastosPropriosPago;
+    // Sobra Scarlet considerando todos os gastos e repasses cadastrados
+    const scarletSobra = scarletSubtotal - scarletFatura - scarletGastosPropriosTotal;
     const sobraCasalReal = sobraMatheus + scarletSobra;
 
     const eqCasalSobraMatheus = document.getElementById('topEqCasalSobraMatheus');
-    if (eqCasalSobraMatheus) eqCasalSobraMatheus.textContent = formatBRL(sobraMatheus);
+    if (eqCasalSobraMatheus) {
+      eqCasalSobraMatheus.textContent = `${sobraMatheus >= 0 ? '+' : ''}${formatBRL(sobraMatheus)}`;
+      eqCasalSobraMatheus.style.color = sobraMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
+    }
 
     const eqCasalSobraScarlet = document.getElementById('topEqCasalSobraScarlet');
-    if (eqCasalSobraScarlet) eqCasalSobraScarlet.textContent = formatBRL(scarletSobra);
+    if (eqCasalSobraScarlet) {
+      eqCasalSobraScarlet.textContent = `${scarletSobra >= 0 ? '+' : ''}${formatBRL(scarletSobra)}`;
+      eqCasalSobraScarlet.style.color = scarletSobra >= 0 ? 'var(--purple)' : 'var(--rose)';
+    }
 
     const eqCasalSobraFinal = document.getElementById('topEqCasalSobraFinal');
     if (eqCasalSobraFinal) {
@@ -2537,9 +2566,10 @@ const MatrixApp = (function () {
 
     const sobraFooterMsg = document.getElementById('topSobraFooterMsg');
     if (sobraFooterMsg) {
+      const temPendentesCasal = gastosTotaisMatheusPendente > 0 || scarletGastosPropriosPendente > 0 || scarletTransfPendente > 0;
       sobraFooterMsg.textContent = sobraCasalReal >= 0
-        ? 'Caixa Conjunto Positivo'
-        : 'Atenção: Déficit Conjunto';
+        ? (temPendentesCasal ? 'Caixa Conjunto Positivo (Pós-quitação)' : 'Caixa Conjunto Positivo')
+        : (temPendentesCasal ? 'Atenção: Déficit Conjunto Previsto' : 'Atenção: Déficit Conjunto');
       sobraFooterMsg.style.color = sobraCasalReal >= 0 ? 'var(--matrix-green)' : 'var(--rose)';
     }
 
@@ -2563,7 +2593,7 @@ const MatrixApp = (function () {
     if (eqScarletFaturaEl) eqScarletFaturaEl.textContent = formatBRL(scarletFatura);
 
     const eqScarletGastosEl = document.getElementById('topEqScarletGastos');
-    if (eqScarletGastosEl) eqScarletGastosEl.textContent = formatBRL(scarletGastosPropriosPago);
+    if (eqScarletGastosEl) eqScarletGastosEl.textContent = formatBRL(scarletGastosPropriosTotal);
 
     const eqScarletSobraEl = document.getElementById('topEqScarletSobra');
     if (eqScarletSobraEl) {
@@ -2679,10 +2709,12 @@ const MatrixApp = (function () {
 
     const topScarletGastosPropriosVal = document.getElementById('topScarletGastosPropriosVal');
     if (topScarletGastosPropriosVal) {
-      if (scarletGastosPropriosPago > 0) {
-        topScarletGastosPropriosVal.textContent = `- ${formatBRL(scarletGastosPropriosPago)}`;
-      } else if (scarletGastosPropriosPendente > 0) {
-        topScarletGastosPropriosVal.innerHTML = `<span style="color:var(--rose);font-size:11px;">R$ 0,00 <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(scarletGastosPropriosPendente)} a pagar)</span></span>`;
+      if (scarletGastosPropriosTotal > 0) {
+        if (scarletGastosPropriosPendente > 0) {
+          topScarletGastosPropriosVal.innerHTML = `<span style="color:var(--rose);">- ${formatBRL(scarletGastosPropriosTotal)}</span> <span style="font-size:9.5px;color:var(--text-muted);">(⏳ ${formatBRL(scarletGastosPropriosPendente)} a pagar)</span>`;
+        } else {
+          topScarletGastosPropriosVal.textContent = `- ${formatBRL(scarletGastosPropriosTotal)}`;
+        }
       } else {
         topScarletGastosPropriosVal.textContent = '- R$ 0,00';
       }
@@ -2846,59 +2878,59 @@ const MatrixApp = (function () {
     } else if (tipo === 'sobra_matheus') {
       titleEl.innerHTML = `👨 Auditoria da Sobra Pessoal • Matheus (${periodLabel})`;
       const calcM = calcSobraMatheus(currentYear, currentMonth);
-      const ganhosMatheusTot = calcM.ganhos;
+      const ganhosMatheusTot = calcM.ganhosPrevistos;
+      const ganhosMatheusPago = calcM.ganhos;
+      const ganhosMatheusPendente = calcM.ganhosPrevistos - calcM.ganhos;
+      const fixosMatheusTot = calcM.fixos;
       const fixosMatheusPago = calcM.fixosPago;
       const fixosMatheusPendente = calcM.fixosPendente;
+      const outrosMatheusTot = calcM.outros;
       const outrosMatheusPago = calcM.outrosPago;
       const outrosMatheusPendente = calcM.outrosPendente;
       const diariosMatheusTot = calcM.diarios;
       const contasInicioVal = calcM.contasInicio;
+      const transfScarletTot = calcM.transf;
       const transfScarletPago = calcM.transfPaga;
       const transfScarletPendente = calcM.transfPendente;
-      const contasPropriasTot = calcM.gastosPropriosPago;
-      const sobraFinalMatheus = calcM.sobra;
-      const sobraPrevistaMatheus = calcM.sobraPrevista;
+      const compromissosTotais = calcM.totalGastos;
+      const sobraFinalMatheus = calcM.sobraPrevista;
+      const sobraRealizadaMatheus = calcM.sobra;
       const totalPendente = calcM.totalGastosPendente;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.8;">
-          <!-- Equação Visual Principal -->
+          <!-- Equação Visual Principal (Considerando Lançamentos Pendentes) -->
           <div class="unified-equation-banner green-banner" style="margin-bottom:12px;">
             <div class="eq-part">
-              <span class="eq-label">Renda Recebida</span>
+              <span class="eq-label">Renda Prevista</span>
               <strong class="eq-val" style="color:var(--cyan);">${formatBRL(ganhosMatheusTot)}</strong>
             </div>
             <span class="eq-op" style="color:var(--cyan);">-</span>
             <div class="eq-part">
-              <span class="eq-label">Contas Pagas</span>
-              <strong class="eq-val" style="color:var(--rose);">${formatBRL(contasPropriasTot)}</strong>
-            </div>
-            <span class="eq-op" style="color:var(--cyan);">-</span>
-            <div class="eq-part">
-              <span class="eq-label">Transf. Paga</span>
-              <strong class="eq-val" style="color:var(--amber);">${formatBRL(transfScarletPago)}</strong>
+              <span class="eq-label">Compromissos</span>
+              <strong class="eq-val" style="color:var(--rose);">${formatBRL(compromissosTotais)}</strong>
             </div>
             <span class="eq-op" style="color:var(--cyan);">=</span>
             <div class="eq-part">
-              <span class="eq-label">Sobra em Conta</span>
+              <span class="eq-label">Sobra Prevista</span>
               <strong class="eq-val" style="color:${sobraFinalMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraFinalMatheus >= 0 ? '+' : ''}${formatBRL(sobraFinalMatheus)}</strong>
             </div>
           </div>
 
           <div style="background:var(--bg-card);border:1px solid var(--border-dim);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px;">
-            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:8px;">Detalhamento das Contas & Repasses em Tempo Real:</div>
+            <div style="color:var(--text-muted);font-size:11px;text-transform:uppercase;margin-bottom:8px;">Detalhamento Considerando Todos os Lançamentos no App:</div>
             
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--cyan);">(+) Salário USP + Renda Extra Recebida em Conta:</span>
-              <strong>${formatBRL(ganhosMatheusTot)}</strong>
+              <span style="color:var(--cyan);">(+) Salário USP + Renda Extra no Mês:</span>
+              <span><strong>${formatBRL(ganhosMatheusTot)}</strong> ${ganhosMatheusPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(ganhosMatheusPendente)} a receber)</span>` : ''}</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--amber);">(-) Gastos Fixos Pagos (Parcela Caixa, Contas):</span>
-              <span>- ${formatBRL(fixosMatheusPago)} ${fixosMatheusPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(fixosMatheusPendente)} pendente)</span>` : ''}</span>
+              <span style="color:var(--amber);">(-) Gastos Fixos Totais (Parcela Caixa, Contas):</span>
+              <span>- ${formatBRL(fixosMatheusTot)} ${fixosMatheusPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(fixosMatheusPendente)} pendente • ${formatBRL(fixosMatheusPago)} pago)</span>` : ''}</span>
             </div>
             <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--rose);">(-) Gastos Variáveis & Diários Pagos:</span>
-              <span>- ${formatBRL(outrosMatheusPago + diariosMatheusTot)} ${outrosMatheusPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(outrosMatheusPendente)} pendente)</span>` : ''}</span>
+              <span style="color:var(--rose);">(-) Gastos Variáveis & Diários Totais:</span>
+              <span>- ${formatBRL(outrosMatheusTot + diariosMatheusTot)} ${outrosMatheusPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(outrosMatheusPendente)} pendente • ${formatBRL(outrosMatheusPago + diariosMatheusTot)} pago)</span>` : ''}</span>
             </div>
             ${contasInicioVal > 0 ? `
             <div style="display:flex;justify-content:space-between;">
@@ -2907,11 +2939,11 @@ const MatrixApp = (function () {
             </div>` : ''}
             <div style="display:flex;justify-content:space-between;border-top:1px dashed rgba(255,255,255,0.08);padding-top:4px;margin-top:4px;">
               <span style="color:#f59e0b;">(-) Transferência para Scarlet (Pix):</span>
-              <strong style="color:#f59e0b;">- ${formatBRL(transfScarletPago)} ${transfScarletPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(transfScarletPendente)} pendente - ainda no seu caixa)</span>` : ''}</strong>
+              <strong style="color:#f59e0b;">- ${formatBRL(transfScarletTot)} ${transfScarletPendente > 0 ? `<span style="font-size:10px;color:var(--text-muted);">(⏳ ${formatBRL(transfScarletPendente)} pendente • ${formatBRL(transfScarletPago)} paga)</span>` : ''}</strong>
             </div>
 
             <div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px;">
-              <strong style="color:var(--text-main);">(=) Sobra em Conta Hoje (Líquido BB):</strong>
+              <strong style="color:var(--text-main);">(=) Sobra Prevista Final (Pós-Quitação):</strong>
               <strong style="color:${sobraFinalMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraFinalMatheus >= 0 ? '+' : ''}${formatBRL(sobraFinalMatheus)}</strong>
             </div>
 
@@ -2920,14 +2952,14 @@ const MatrixApp = (function () {
               <span>⏳ Contas & Repasses Pendentes (A Pagar):</span>
               <span style="color:var(--amber);">- ${formatBRL(totalPendente)}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--matrix-green);margin-top:2px;">
-              <span>(=) Sobra Prevista Final do Mês (Pós-Quitação):</span>
-              <span style="color:${sobraPrevistaMatheus >= 0 ? 'var(--matrix-green)' : 'var(--rose)'};">${sobraPrevistaMatheus >= 0 ? '+' : ''}${formatBRL(sobraPrevistaMatheus)}</span>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--cyan);margin-top:2px;">
+              <span>🏦 Saldo Líquido Atual no Banco (Hoje):</span>
+              <span style="font-weight:700;color:${sobraRealizadaMatheus >= 0 ? 'var(--cyan)' : 'var(--rose)'};">${sobraRealizadaMatheus >= 0 ? '+' : ''}${formatBRL(sobraRealizadaMatheus)}</span>
             </div>` : ''}
           </div>
 
           <div style="background:rgba(0,255,65,0.05);border:1px solid var(--border-glow);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--text-bright);line-height:1.5;">
-            💡 <strong>Regra de Caixa em Tempo Real:</strong> Se uma despesa própria ou a transferência para a Scarlet ainda estiver como <code>[PENDENTE]</code>, o valor <strong>não é debitado antecipadamente</strong> e <strong>continua sobrando no seu saldo líquido em conta</strong>. Ao alternar para <code>[PAGO]</code>, o valor é deduzido na hora e repassado aos recursos da Scarlet.
+            💡 <strong>Planejamento com Lançamentos Pendentes:</strong> Os resultados apresentados consideram todos os compromissos cadastrados no mês (pagos + pendentes), garantindo que contas futuras programadas não fiquem de fora do cálculo da sua sobra.
           </div>
         </div>
       `;
@@ -3190,7 +3222,11 @@ const MatrixApp = (function () {
                   <tr><th>Descrição</th><th>Data</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
                 </thead>
                 <tbody>
-                  ${diarios.map(d => {
+                  ${[...diarios].sort((a, b) => {
+                    const tA = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(a) : 0;
+                    const tB = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(b) : 0;
+                    return getOrdemDiarios() === 'asc' ? (tA - tB) : (tB - tA);
+                  }).map(d => {
                     let dtFmt = '';
                     if (d.dataHora) {
                       const p = d.dataHora.split('T');
@@ -3384,7 +3420,11 @@ const MatrixApp = (function () {
                 <tr><th>Descrição</th><th>Data</th><th>Categoria</th><th>Status</th><th style="text-align:right;">Valor</th></tr>
               </thead>
               <tbody>
-                ${diarios.map(d => {
+                ${[...diarios].sort((a, b) => {
+                  const tA = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(a) : 0;
+                  const tB = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(b) : 0;
+                  return getOrdemDiarios() === 'asc' ? (tA - tB) : (tB - tA);
+                }).map(d => {
                   let dtFmt = '';
                   if (d.dataHora) {
                     const p = d.dataHora.split('T');
@@ -3420,7 +3460,8 @@ const MatrixApp = (function () {
       const outrasRendasScarlet = getOutrasRendasScarletMes(currentYear, currentMonth);
       const descOutrasScarlet = getDescOutrasRendasScarletMes(currentYear, currentMonth);
       const calcM = calcSobraMatheus(currentYear, currentMonth);
-      const scarletTransf = calcM.transfPaga;
+      const scarletTransf = calcM.transf;
+      const scarletTransfPaga = calcM.transfPaga;
       const scarletTransfPendente = calcM.transfPendente;
       const scarletSubtotal = ganhosScarlet + outrasRendasScarlet + scarletTransf;
 
@@ -3428,7 +3469,8 @@ const MatrixApp = (function () {
         .filter(it => isGastoDaScarlet(it) && !isTransferenciaParaScarlet(it) && it.nome !== 'Nubank Scarlet');
       const scarletGastosPropriosTotal = scarletGastosItems.reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
       const scarletGastosPropriosPago = scarletGastosItems.filter(it => it.pago === true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
-      const scarletSobra = scarletSubtotal - faturaNubank - scarletGastosPropriosPago;
+      const scarletGastosPropriosPendente = scarletGastosItems.filter(it => it.pago !== true).reduce((acc, it) => acc + (parseFloat(it.valor) || 0), 0);
+      const scarletSobra = scarletSubtotal - faturaNubank - scarletGastosPropriosTotal;
 
       html = `
         <div style="font-family:var(--font-mono);font-size:12.5px;line-height:1.7;">
@@ -4761,10 +4803,29 @@ ${avisoPendente}
     // Render Diários / Micro-Gastos Table Body
     const diariosTbody = document.getElementById('diariosTableBody');
     if (diariosTbody) {
+      const ordemDiarios = getOrdemDiarios();
+      const btnToggle = document.getElementById('btnToggleOrdemDiarios');
+      if (btnToggle) {
+        btnToggle.textContent = ordemDiarios === 'asc' ? '📅 Antigos ↑' : '📅 Recentes ↓';
+        btnToggle.title = ordemDiarios === 'asc'
+          ? 'Ordenado por data (mais antigos primeiro). Clique para alternar para mais recentes primeiro.'
+          : 'Ordenado por data (mais recentes primeiro). Clique para alternar para mais antigos primeiro.';
+      }
+
       if (diariosList.length === 0) {
         diariosTbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:14px;">Nenhum gasto diário registrado neste mês. Clique no botão flutuante "+ Gasto Diário" para lançar.</td></tr>`;
       } else {
-        diariosTbody.innerHTML = diariosList.map((d, i) => {
+        const diariosMapped = diariosList.map((d, origIdx) => ({ d, origIdx }));
+        diariosMapped.sort((a, b) => {
+          const tA = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(a.d) : 0;
+          const tB = (typeof MatrixDB !== 'undefined' && MatrixDB.getDiarioTimestamp) ? MatrixDB.getDiarioTimestamp(b.d) : 0;
+          if (tA !== tB) {
+            return ordemDiarios === 'asc' ? (tA - tB) : (tB - tA);
+          }
+          return ordemDiarios === 'asc' ? (a.origIdx - b.origIdx) : (b.origIdx - a.origIdx);
+        });
+
+        diariosTbody.innerHTML = diariosMapped.map(({ d, origIdx }) => {
           let dtFmt = '';
           if (d.dataHora) {
             const p = d.dataHora.split('T');
@@ -4774,7 +4835,7 @@ ${avisoPendente}
           }
           return `
           <tr class="${d.pago ? 'paid' : ''}">
-            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})" title="Toque para editar este gasto diário">
+            <td class="desc-col" style="cursor:pointer;" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${origIdx})" title="Toque para editar este gasto diário">
               <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:2px;">
                 <strong>${d.nome}</strong>
                 ${dtFmt ? `<small style="color:var(--text-dim);font-size:9.5px;">${dtFmt}</small>` : ''}
@@ -4788,15 +4849,15 @@ ${avisoPendente}
             <td class="status-col">
               <button type="button" 
                       class="status-btn ${d.pago ? 'pago' : 'pendente'}" 
-                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'diario', ${i})"
+                      onclick="MatrixApp.togglePaidByIndex('${currentYear}', '${currentMonth}', 'diario', ${origIdx})"
                       title="Clique para alternar entre Pago e Pendente">
                 ${d.pago ? '✅ PAGO' : '⏳ PENDENTE'}
               </button>
             </td>
             <td class="val-col" style="color:var(--rose);font-weight:700;">${formatBRL(d.valor)}</td>
             <td class="action-col">
-              <button class="btn-icon edit" title="Editar este gasto diário" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">✏️</button>
-              <button class="btn-icon delete" title="Excluir este gasto diário" onclick="MatrixApp.removeQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${i})">🗑️</button>
+              <button class="btn-icon edit" title="Editar este gasto diário" onclick="MatrixApp.editQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${origIdx})">✏️</button>
+              <button class="btn-icon delete" title="Excluir este gasto diário" onclick="MatrixApp.removeQuickExpenseByIndex('${currentYear}', '${currentMonth}', ${origIdx})">🗑️</button>
             </td>
           </tr>
         `;
@@ -5455,6 +5516,9 @@ function onModalCategoriaChange(catVal) {
         jaAlocadoVariavel: true,
         obs: obs ? `${obs} [Fatura ${targetMonthName}/${targetYear}]` : `[Fatura ${targetMonthName}/${targetYear}]`
       });
+      if (typeof MatrixDB !== 'undefined' && MatrixDB.sortDiariosInMonth) {
+        MatrixDB.sortDiariosInMonth(targetMonthObj);
+      }
 
       MatrixDB.saveState(s);
       closeModal('quickExpenseModalBackdrop');
@@ -5511,6 +5575,25 @@ function onModalCategoriaChange(catVal) {
       MatrixDB.removeTransactionByIndex(ano, mes, 'diario', index);
       renderAll();
     }
+  }
+
+  const ORDEM_DIARIOS_STORAGE_KEY = 'matrix_ordem_diarios';
+
+  function getOrdemDiarios() {
+    try {
+      const saved = localStorage.getItem(ORDEM_DIARIOS_STORAGE_KEY);
+      if (saved === 'asc' || saved === 'desc') return saved;
+    } catch (_) {}
+    return 'desc';
+  }
+
+  function toggleOrdemDiarios() {
+    const current = getOrdemDiarios();
+    const next = current === 'asc' ? 'desc' : 'asc';
+    try {
+      localStorage.setItem(ORDEM_DIARIOS_STORAGE_KEY, next);
+    } catch (_) {}
+    renderAll();
   }
 
   // ==========================================
@@ -9106,7 +9189,10 @@ function onModalCategoriaChange(catVal) {
   function salvarItemFromModalInterno() {
     const tipo = document.getElementById('modalItemTipo').value;
     const editId = document.getElementById('modalItemEditId').value;
-    const nome = document.getElementById('modalItemNome').value.trim();
+    let nome = document.getElementById('modalItemNome').value.trim();
+    if (tipo === 'receita' && /^empr[eé]stimo$/i.test(nome)) {
+      nome = 'Outros Ganhos';
+    }
     const valor = parseFloat(document.getElementById('modalItemValor').value) || 0;
     const cat = document.getElementById('modalItemCategoria').value;
     const renda = document.getElementById('modalItemRenda') ? document.getElementById('modalItemRenda').value : 'salario_usp';
@@ -11615,7 +11701,9 @@ Considerando as taxas de mercado atuais (**IPCA + 6,0% a.a.** e **IPCA + 6,5% a.
     salvarBotaoRapidoDoManager,
     excluirBotaoRapido,
     moverBotaoRapido,
-    restaurarBotoesRapidosPadrao
+    restaurarBotoesRapidosPadrao,
+    getOrdemDiarios,
+    toggleOrdemDiarios
   };
 })();
 
