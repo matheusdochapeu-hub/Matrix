@@ -31,12 +31,24 @@ const SyncEngine = (function () {
   let pendingFollowUpSync = false;
   const DIRTY_LOCAL_KEY = 'matrix_local_dirty_since';
 
+  // v160: migra automaticamente implantações antigas v1.0 (AKfycbySx...) que liam apenas a célula B2
+  // (estourando "Unterminated string in JSON at position 45000") para o endpoint multi-célula oficial.
+  function normalizeCloudUrl(rawUrl) {
+    const u = String(rawUrl || '').trim();
+    if (!u || /AKfycbySx/i.test(u)) {
+      return DEFAULT_CLOUD_URL;
+    }
+    return u;
+  }
+
   function syncInputsIfPresent() {
     if (typeof document === 'undefined') return;
     const urlInput = document.getElementById('cfgCloudUrl');
     const tokenInput = document.getElementById('cfgCloudToken');
     if (urlInput && urlInput.value && urlInput.value.trim()) {
-      localStorage.setItem(STORAGE_KEYS.cloudUrl, urlInput.value.trim());
+      const norm = normalizeCloudUrl(urlInput.value);
+      if (urlInput.value.trim() !== norm) urlInput.value = norm;
+      localStorage.setItem(STORAGE_KEYS.cloudUrl, norm);
     }
     if (tokenInput && tokenInput.value && tokenInput.value.trim()) {
       localStorage.setItem(STORAGE_KEYS.cloudToken, tokenInput.value.trim());
@@ -45,8 +57,13 @@ const SyncEngine = (function () {
 
   function getConfig() {
     syncInputsIfPresent();
+    const rawSavedUrl = localStorage.getItem(STORAGE_KEYS.cloudUrl);
+    const cloudUrl = normalizeCloudUrl(rawSavedUrl);
+    if (rawSavedUrl && rawSavedUrl.trim() !== cloudUrl) {
+      try { localStorage.setItem(STORAGE_KEYS.cloudUrl, cloudUrl); } catch (e) {}
+    }
     return {
-      cloudUrl: (localStorage.getItem(STORAGE_KEYS.cloudUrl) || DEFAULT_CLOUD_URL).trim(),
+      cloudUrl,
       cloudToken: (localStorage.getItem(STORAGE_KEYS.cloudToken) || 'MatrixReloaded2026!').trim(),
       lastSync: localStorage.getItem(STORAGE_KEYS.lastSync) || '',
       spreadsheetId: DEFAULT_SPREADSHEET_ID,
@@ -61,7 +78,7 @@ const SyncEngine = (function () {
   }
 
   function saveConfig(cfg) {
-    if (cfg.cloudUrl !== undefined) localStorage.setItem(STORAGE_KEYS.cloudUrl, cfg.cloudUrl.trim());
+    if (cfg.cloudUrl !== undefined) localStorage.setItem(STORAGE_KEYS.cloudUrl, normalizeCloudUrl(cfg.cloudUrl));
     if (cfg.cloudToken !== undefined) localStorage.setItem(STORAGE_KEYS.cloudToken, cfg.cloudToken.trim());
     if (cfg.maracajuUrl !== undefined) localStorage.setItem(STORAGE_KEYS.maracajuUrl, cfg.maracajuUrl.trim());
     if (cfg.maracajuToken !== undefined) localStorage.setItem(STORAGE_KEYS.maracajuToken, cfg.maracajuToken.trim());
@@ -141,7 +158,14 @@ const SyncEngine = (function () {
             totalBeneficios: m.totalBeneficios || 3165,
             totalDisponivel: m.totalDisponivel != null ? m.totalDisponivel : 3165,
             gastoMercadoCicloAnterior: m.gastoMercadoCicloAnterior || 390.41,
-            comprasCicloAtual: Array.isArray(m.comprasCicloAtual) ? m.comprasCicloAtual.slice(0, 30) : []
+            comprasCicloAtual: Array.isArray(m.comprasCicloAtual)
+              ? m.comprasCicloAtual.slice(0, 10).map(cp => {
+                  if (!cp || typeof cp !== 'object') return cp;
+                  const out = { id: cp.id, date: cp.date, marketName: cp.marketName || cp.establishment, total: cp.total, paymentMethod: cp.paymentMethod };
+                  if (cp.itemsCount != null) out.itemsCount = cp.itemsCount;
+                  return out;
+                })
+              : []
           };
         }
         // v121: o Atendimentos também precisa sobreviver ao round-trip da nuvem. Antes ele era
@@ -232,19 +256,54 @@ const SyncEngine = (function () {
           const md = anoObj[mes];
           if (!md || typeof md !== 'object') return;
           delete md.totais;
+          if (md.scarlet && typeof md.scarlet === 'object') {
+            if (Array.isArray(md.scarlet.gastos) && md.scarlet.gastos.length === 0) delete md.scarlet.gastos;
+            if (!md.scarlet.ganhos) delete md.scarlet.ganhos;
+          }
+          if (Array.isArray(md.fixos)) {
+            const caronas = md.fixos.filter(it => it && String(it.nome || '').trim().toLowerCase() === 'caronas');
+            if (caronas.length > 1) {
+              const keep = caronas[caronas.length - 1];
+              md.fixos = md.fixos.filter(it => !it || String(it.nome || '').trim().toLowerCase() !== 'caronas' || it === keep);
+            }
+          }
           ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
             if (Array.isArray(md[tipo])) {
-              md[tipo].forEach((it, idx) => {
+              md[tipo].forEach((it) => {
                 if (!it || typeof it !== 'object') return;
                 if (!it.obs) delete it.obs;
                 if (!it.descricao) delete it.descricao;
                 if (!it.renda) delete it.renda;
+                if (it.investLinkedId == null || it.investLinkedId === '') delete it.investLinkedId;
+                if (it.investLinkedOp == null || it.investLinkedOp === '') delete it.investLinkedOp;
+                if (!it.investLinkedVal) delete it.investLinkedVal;
+                if (!it.transferenciaScarlet) delete it.transferenciaScarlet;
+                if (!it.naoPecunia) delete it.naoPecunia;
+                if (!it.valorManual) delete it.valorManual;
                 if (it.metodo === 'debito') delete it.metodo;
                 if (it.conta === 'debito_nubank') delete it.conta;
                 if (!it.pago) delete it.pago;
-                // v144: NUNCA reescrever id de fixo/outro/diário. A nuvem casa o merge por id;
-                // trocar 'fix_...' por 'f0' fazia o item voltar como novo na restauração e
-                // duplicava os gastos da Scarlet a cada abertura. O id é a chave do merge.
+                if ((tipo === 'fixos' || tipo === 'outros') && (it.titular || 'matheus') === 'matheus') {
+                  if (it.titular === 'matheus') delete it.titular;
+                  if (it.conta === 'salario_bb') delete it.conta;
+                  if (it.renda === 'salario_usp') delete it.renda;
+                }
+                if (tipo === 'fixos' && it.categoria === 'Geral') delete it.categoria;
+                if (tipo === 'outros' && it.categoria === 'Variável') delete it.categoria;
+                if (tipo === 'receitas') {
+                  const rid = String(it.id || '');
+                  if (rid.startsWith('rec_vr_') || rid.startsWith('rec_va_')) {
+                    delete it.categoria;
+                    delete it.naoPecunia;
+                    delete it.conta;
+                    delete it.renda;
+                  } else if (rid.startsWith('rec_sal_')) {
+                    delete it.categoria;
+                    delete it.conta;
+                    delete it.renda;
+                  }
+                }
+                // v144: NUNCA reescrever id de fixo/outro/diário. A nuvem casa o merge por id.
               });
               if (md[tipo].length === 0) delete md[tipo];
             }
@@ -290,11 +349,37 @@ const SyncEngine = (function () {
           if (!md.receitas) md.receitas = [];
           if (!md.diarios) md.diarios = [];
           if (!md.totais) md.totais = {};
+          if (md.scarlet && typeof md.scarlet === 'object') {
+            if (!Array.isArray(md.scarlet.gastos)) md.scarlet.gastos = [];
+            if (md.scarlet.ganhos == null) md.scarlet.ganhos = 0;
+          }
           ['fixos', 'outros', 'receitas', 'diarios'].forEach(tipo => {
             if (Array.isArray(md[tipo])) {
               md[tipo].forEach(it => {
                 if (it && typeof it === 'object') {
                   it.pago = !!it.pago;
+                  if (tipo === 'fixos' && !it.categoria) it.categoria = 'Geral';
+                  if (tipo === 'outros' && !it.categoria) it.categoria = 'Variável';
+                  if (tipo === 'receitas') {
+                    const rid = String(it.id || '');
+                    if (rid.startsWith('rec_vr_')) {
+                      it.naoPecunia = true;
+                      if (!it.categoria) it.categoria = 'Benefício (Não Pecúnia)';
+                      if (!it.conta) it.conta = 'cartao_vr';
+                      if (!it.renda) it.renda = 'vr_almoco';
+                    } else if (rid.startsWith('rec_va_')) {
+                      it.naoPecunia = true;
+                      if (!it.categoria) it.categoria = 'Benefício (Não Pecúnia)';
+                      if (!it.conta) it.conta = 'cartao_va';
+                      if (!it.renda) it.renda = 'va_mercado';
+                    } else if (rid.startsWith('rec_sal_')) {
+                      if (!it.categoria) it.categoria = 'Salário / Proventos';
+                      if (!it.conta) it.conta = 'bb';
+                      if (!it.renda) it.renda = 'salario_usp';
+                    } else if (!it.categoria) {
+                      it.categoria = it.naoPecunia ? 'Benefício (Não Pecúnia)' : 'Salário / Proventos';
+                    }
+                  }
                 }
               });
             }
@@ -755,6 +840,18 @@ const SyncEngine = (function () {
       };
     } else {
       const errMsg = (json && (json.error || json.message)) || 'Resposta inválida da planilha.';
+      // v160: se uma URL antiga/customizada falhar com truncamento de célula única (45000 / SyntaxError),
+      // migra automaticamente para o endpoint oficial multi-célula e refaz a busca na hora.
+      if (!options._retriedDefault && cfg.cloudUrl !== DEFAULT_CLOUD_URL && /SyntaxError|45000|Unterminated|Unexpected/i.test(String(errMsg))) {
+        try {
+          localStorage.setItem(STORAGE_KEYS.cloudUrl, DEFAULT_CLOUD_URL);
+          if (typeof document !== 'undefined') {
+            const urlInput = document.getElementById('cfgCloudUrl');
+            if (urlInput) urlInput.value = DEFAULT_CLOUD_URL;
+          }
+        } catch (e) {}
+        return fetchFromCloud(Object.assign({}, options, { _retriedDefault: true }));
+      }
       updateStatusUI('error', errMsg);
       return { success: false, error: errMsg };
     }

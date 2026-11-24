@@ -188,3 +188,59 @@ test('Lançamento novo preserva titular e metadados (addTransaction)', async () 
   assert.equal(item.valorManual, false);
   assert.equal(item.pago, true);
 });
+
+test('Nuvem v160: migra URL legada de célula única (AKfycbySx...) e compacta/expande defaults sem perda', () => {
+  const ls = criarLocalStorage({
+    matrix_cloud_url: 'https://script.google.com/macros/s/AKfycbySxW123456789/exec'
+  });
+  const SyncEngine = carregarModulo('sync-engine.js', 'SyncEngine', {
+    localStorage: ls,
+    document: { getElementById: () => null },
+    navigator: {}
+  });
+
+  const cfg = SyncEngine.getConfig();
+  assert.ok(!cfg.cloudUrl.includes('AKfycbySx'), 'URL legada de célula única deve ser migrada automaticamente');
+  assert.ok(cfg.cloudUrl.includes('AKfycbyTXjWm4651tmwl4AujcG299cHBYGmECtLKoTruRaI7y9kzNOKr58QeKp0O46Erxb7DFQ'));
+
+  const state = {
+    anos: {
+      '2026': {
+        Novembro: {
+          fixos: [
+            { id: 'fix_3', nome: 'Parcela casa', valor: 1395.88, categoria: 'Geral', titular: 'matheus', conta: 'salario_bb', renda: 'salario_usp', investLinkedId: null, investLinkedOp: null, investLinkedVal: 0, pago: false },
+            { id: 'fix_carona_1', nome: 'Caronas', valor: 1200, categoria: 'Geral', pago: false },
+            { id: 'fix_carona_2', nome: 'Caronas', valor: 1140, categoria: 'Geral', pago: false }
+          ],
+          outros: [
+            { id: 'out_6', nome: 'Renda+ 2055', valor: 102, categoria: 'Variável', titular: 'matheus', conta: 'salario_bb', renda: 'salario_usp', pago: true }
+          ],
+          receitas: [
+            { id: 'rec_sal_Novembro_2026', nome: 'Salário Líquido USP (Banco do Brasil)', valor: 5788.19, categoria: 'Salário / Proventos', conta: 'bb', renda: 'salario_usp', pago: true },
+            { id: 'rec_vr_Novembro_2026', nome: 'Vale Refeição (VR)', valor: 1105, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, conta: 'cartao_vr', renda: 'vr_almoco', pago: true },
+            { id: 'rec_va_Novembro_2026', nome: 'Vale Alimentação (VA - Maracaju 88)', valor: 2050, categoria: 'Benefício (Não Pecúnia)', naoPecunia: true, conta: 'cartao_va', renda: 'va_mercado', pago: true }
+          ],
+          scarlet: { gastos: [], ganhos: 0, faturaNubank: 4883.05 }
+        }
+      }
+    }
+  };
+
+  const compacto = SyncEngine.compactStateForCloud(state, 35000);
+  const novComp = compacto.anos['2026'].Novembro;
+  assert.equal(novComp.fixos.length, 2, 'duplicata de Caronas no mesmo mês é consolidada');
+  assert.equal(novComp.fixos[0].categoria, undefined, 'categoria Geral default é omitida no payload compacto');
+  assert.equal(novComp.outros[0].categoria, undefined, 'categoria Variável default é omitida no payload compacto');
+  assert.equal(novComp.scarlet.gastos, undefined, 'lista vazia de gastos Scarlet é omitida no payload compacto');
+
+  const expandido = SyncEngine.expandStateFromCloud(JSON.parse(JSON.stringify(compacto)));
+  const novExp = expandido.anos['2026'].Novembro;
+  assert.equal(novExp.fixos[0].categoria, 'Geral');
+  assert.equal(novExp.outros[0].categoria, 'Variável');
+  assert.equal(novExp.receitas[1].naoPecunia, true);
+  assert.equal(novExp.receitas[1].conta, 'cartao_vr');
+  assert.equal(novExp.receitas[2].naoPecunia, true);
+  assert.equal(novExp.receitas[2].conta, 'cartao_va');
+  assert.deepEqual(Array.from(novExp.scarlet.gastos), []);
+  assert.equal(novExp.scarlet.faturaNubank, 4883.05);
+});

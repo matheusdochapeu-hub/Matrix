@@ -10170,7 +10170,7 @@ function onModalCategoriaChange(catVal) {
     const cloudToken = (document.getElementById('cfgCloudToken')?.value || 'MatrixReloaded2026!').trim();
     SyncEngine.saveConfig({ cloudUrl, cloudToken });
     if (confirm('Deseja puxar os dados mais recentes do Google Sheets e substituir a memória local?')) {
-      const res = await SyncEngine.fetchFromCloud();
+      const res = await SyncEngine.fetchFromCloud({ force: true });
       if (res.success && res.data) {
         alert('✅ Dados restaurados com sucesso do Google Sheets!');
         renderAll();
